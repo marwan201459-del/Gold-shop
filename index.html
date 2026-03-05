@@ -3,30 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gold Shop Management System</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Gold Shop Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        header { background: #f3c623; padding: 10px; text-align: center; }
+        .container { width: 80%; margin: auto; overflow: hidden; }
+        h1 { margin: 0; }
+        form { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        input { margin: 10px 0; padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .dashboards { display: flex; justify-content: space-between; margin-top: 20px; }
+        .safe { padding: 20px; border: 1px solid #ddd; border-radius: 5px; flex: 1; margin: 0 10px; }
+    </style>
 </head>
 <body>
     <header>
-        <h1>Welcome to Gold Shop Management System</h1>
+        <h1>Gold Shop Dashboard</h1>
     </header>
-    <nav>
-        <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Products</a></li>
-            <li><a href="#">Orders</a></li>
-            <li><a href="#">Customers</a></li>
-            <li><a href="#">Reports</a></li>
-        </ul>
-    </nav>
-    <main>
-        <section>
-            <h2>Featured Products</h2>
-            <p>List of top-selling gold products.</p>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2026 Gold Shop</p>
-    </footer>
+    <div class="container">
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" required />
+            <input type="password" id="password" placeholder="Password" required />
+            <button type="submit">Login</button>
+        </form>
+        <form id="registration-form">
+            <input type="text" id="reg-username" placeholder="Username" required />
+            <input type="password" id="reg-password" placeholder="Password" required />
+            <button type="submit">Register</button>
+        </form>
+        <div class="dashboards">
+            <div class="safe" id="gold-24">Gold 24</div>
+            <div class="safe" id="kasr">Kasr</div>
+            <div class="safe" id="cash">Cash</div>
+            <div class="safe" id="expenses">Expenses</div>
+        </div>
+        <button onclick="peopleManagement()">People Management</button>
+        <button onclick="transactionsTracking()">Transactions Tracking</button>
+        <button onclick="expensesPage()">Expenses Page</button>
+        <button onclick="statements()">Statements</button>
+        <button onclick="settings()">Settings</button>
+    </div>
+    <script>
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            localStorage.setItem('username', username);
+            // Add authentication logic
+        }
+        function register() {
+            const regUsername = document.getElementById('reg-username').value;
+            const regPassword = document.getElementById('reg-password').value;
+            localStorage.setItem(regUsername, regPassword);
+            // Add registration logic
+        }
+        function peopleManagement() {
+            // Logic for managing people
+        }
+        function transactionsTracking() {
+            // Logic for tracking transactions
+        }
+        function expensesPage() {
+            // Logic for showing expenses page
+        }
+        function statements() {
+            // Logic for showing statements
+        }
+        function settings() {
+            // Logic for settings
+        }
+        document.getElementById('login-form').onsubmit = function(event) {
+            event.preventDefault();
+            login();
+        };
+        document.getElementById('registration-form').onsubmit = function(event) {
+            event.preventDefault();
+            register();
+        };
+    </script>
 </body>
 </html>
