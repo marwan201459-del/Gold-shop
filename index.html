@@ -1310,7 +1310,10 @@ function saveInvoice(){
   const goldTotal =draftItems.reduce((a,i)=>a+i.weight*i.price,0);
   const ajTotal   =draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
   const discount  =parseFloat(document.getElementById("f-discount")?.value)||0;
-  const invTotal  =goldTotal+ajTotal-discount;
+  const vatCheck  = document.getElementById('vat-check');
+  const vatOn     = vatCheck && vatCheck.checked;
+  const vatAmt    = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
+  const invTotal  =goldTotal+ajTotal+vatAmt-discount;
   const totalWeight=draftItems.reduce((a,i)=>a+i.weight,0);
   const isDebt=selType==='sell'&&selPay==='debt';
   const cash = isDebt ? 0 : (draftItems.reduce((a,i)=>a+i.weight*(i.ajour||0),0));
