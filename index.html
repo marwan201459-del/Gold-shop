@@ -825,6 +825,17 @@ if(sessionStorage.getItem('auth')==='1'){
   </div>
 </div>
 
+<!-- MODAL: CONFIRM -->
+<div class="mo" id="m-confirm" onclick="OMO(event,'m-confirm')">
+  <div class="mp" style="max-width:320px;text-align:center">
+    <div style="font-size:36px;margin-bottom:10px">⚠️</div>
+    <div id="confirm-msg" style="font-size:15px;font-weight:700;margin-bottom:20px">هل أنت متأكد؟</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-red" style="flex:1" id="confirm-ok">تأكيد</button>
+      <button class="btn btn-outline" style="flex:1" onclick="closeM('m-confirm')">إلغاء</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
