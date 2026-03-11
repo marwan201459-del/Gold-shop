@@ -564,6 +564,24 @@ if(sessionStorage.getItem('auth')==='1'){
           <div class="inv-sum-row total-row"><span class="lbl">الإجمالي الكلي</span><span class="val" id="sum-total">0 ريال</span></div>
         </div>
 
+        <!-- ضريبة 15% -->
+        <div id="vat-row" style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px">
+            <div>
+              <div style="font-size:13px;font-weight:700">🧾 ضريبة القيمة المضافة</div>
+              <div style="font-size:11px;color:var(--text2)">15% من إجمالي الأجور</div>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="vat-check" onchange="renderInvSummary()" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
+              <span id="vat-label" style="font-size:12px;color:var(--text2)">غير محتسبة</span>
+            </label>
+          </div>
+          <div id="vat-preview" style="display:none;background:#fff8e1;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:12px;display:flex;justify-content:space-between">
+            <span style="color:#b45309">ضريبة 15%</span>
+            <span id="vat-amount" style="font-weight:700;color:#b45309">0 ريال</span>
+          </div>
+        </div>
+
         <!-- Payment type (sell only) -->
         <div id="pay-type-row">
           <div class="st">نوع البيع</div>
@@ -1211,8 +1229,22 @@ function renderInvSummary(){
   if(el) el.innerHTML = `<span style="font-size:12px">${goldLabel}</span>`;
   const elAj = document.getElementById('sum-ajour');
   if(elAj) elAj.textContent = fmt(ajSum)+' ريال';
+
+  // ضريبة 15%
+  const vatCheck = document.getElementById('vat-check');
+  const vatOn = vatCheck && vatCheck.checked;
+  const vatAmt = vatOn ? Math.round(ajSum * 0.15 * 100)/100 : 0;
+  const totalWithVat = total + vatAmt;
+
+  const vatLabel = document.getElementById('vat-label');
+  if(vatLabel) vatLabel.textContent = vatOn ? '✅ محتسبة' : 'غير محتسبة';
+  const vatPreview = document.getElementById('vat-preview');
+  if(vatPreview) vatPreview.style.display = vatOn ? 'flex' : 'none';
+  const vatAmountEl = document.getElementById('vat-amount');
+  if(vatAmountEl) vatAmountEl.textContent = fmt(vatAmt)+' ريال';
+
   const elT = document.getElementById('sum-total');
-  if(elT) elT.textContent = fmt(total)+' ريال';
+  if(elT) elT.textContent = fmt(totalWithVat)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--text2)">(شامل الضريبة)</span>':'');
 }
 
 function renderDraftItems(){
@@ -1295,7 +1327,7 @@ function saveInvoice(){
     id:Date.now(), date:txDate,
     type:isDebt?'sell-debt':selType,
     items:[...draftItems],
-    goldTotal, ajTotal, discount, total:invTotal, weight:totalWeight,
+    goldTotal, ajTotal, discount, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight,
     cash, goldPay, prepaid, due, isDebt,
     client, staff, notes
   };
@@ -2813,7 +2845,7 @@ function renderHome(){
     <div class="sb green"><div class="v">${fmt(S.safes.cash)}</div><div class="l">💵 الصندوق النقدي (ريال)</div></div>
     <div class="sb gold"><div class="v">${fmtG(S.safes.scrap21)}</div><div class="l">🗃️ كسر عيار 21 (جرام)</div></div>
     <div class="sb gold"><div class="v">${fmtG(S.safes.scrap18)}</div><div class="l">🗃️ كسر عيار 18 (جرام)</div></div>
-    ${S.safes.pure24?`<div class="sb blue"><div class="v">${fmtG(S.safes.pure24)}</div><div class="l">✨ ذهب صافي 24 (جرام)</div></div>`:''}
+    <div class="sb blue"><div class="v">${fmtG(S.safes.pure24||0)}</div><div class="l">✨ ذهب صافي 24 (جرام)</div></div>
     ${(S.safes.debt21||S.safes.debt18||S.safes.debt24)?`
     <div style="grid-column:1/-1;background:var(--purple-bg);border:1.5px solid var(--purple);border-radius:12px;padding:10px;margin-top:4px">
       <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">📋 مديونيات الذهب (على العملاء)</div>
@@ -3196,7 +3228,7 @@ onSnapshot(REF, (snap) => {
     S.clients      = d.clients      || [];
     S.safes        = d.safes        || S.safes;
     S.customSafes  = d.customSafes  || [];
-    S.users        = (d.users && d.users.length) ? d.users : [{username:'Marwan', password:'your_password', role:'admin', label:'مروان'}];
+    S.users        = (d.users && d.users.length) ? d.users : [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
     renderAll();
     syncEl.textContent = '☁️ محفوظ';
     setTimeout(()=>{ syncEl.textContent=''; }, 1500);
