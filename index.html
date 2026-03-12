@@ -214,10 +214,10 @@ body{font-family:'Tajawal',sans-serif;background:#EDE0B8;min-height:100vh;color:
 function doLogin(){
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
-  // تحقق من قائمة المستخدمين (S.users محمّلة من Firebase أو DEF)
-  const users = (typeof S !== 'undefined' && S.users && S.users.length)
-    ? S.users
-    : [{username:'Marwan',password:'2139989681',role:'admin'}];
+  // دايماً نجمع DEF + S.users — نضمن وجود المستخدم حتى لو Firebase بطيئة
+  const defUsers = [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+  const fireUsers = (typeof S !== 'undefined' && S.users && S.users.length) ? S.users : [];
+  const users = fireUsers.length ? fireUsers : defUsers;
   const found = users.find(x => x.username === u && x.password === p);
   if(found){
     document.getElementById('login-screen').style.display = 'none';
@@ -3266,6 +3266,8 @@ const syncEl = document.createElement('div');
 syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:10px;color:#B89A60;font-family:Tajawal,sans-serif;background:rgba(255,255,255,0.8);padding:2px 6px;border-radius:6px';
 syncEl.textContent = '⟳ جاري التحميل...';
 document.body.appendChild(syncEl);
+// اختفاء تلقائي بعد 5 ثواني لو Firebase ما ردت
+setTimeout(()=>{ if(syncEl.textContent==='⟳ جاري التحميل...') syncEl.textContent=''; }, 5000);
 
 let _lastSaveTime = 0;
 
@@ -3308,7 +3310,11 @@ onSnapshot(REF, (snap) => {
   }
 }, (err) => {
   console.error("Sync error:", err);
-  syncEl.textContent = '⚠️ تحقق من الاتصال';
+  syncEl.textContent = '⚠️ لا يوجد اتصال — تعمل محلياً';
+  setTimeout(()=>{ syncEl.textContent=''; }, 3000);
+  // خلّ اللوجن يشتغل بالبيانات المحلية
+  if(!S.users || !S.users.length) S.users = [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+  renderAll();
 });
 </script>
 </body>
