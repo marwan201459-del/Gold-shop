@@ -2715,8 +2715,7 @@ function renderDebts(){
   // عملاء مدينون لنا (موجب)
   const clientBals   = balances.filter(b=>b.type==='عميل');
   // موردون نحن مدينون لهم (سالب = نحن مدينون) أو لهم رصيد
-  const supplierBals = balances.filter(b=>b.type==='مورد'||b.type==='موزع');dAs24)>0.001 || Math.abs(b.cashOwed)>0.01;
-  }).sort((a,b)=> Math.abs(b.goldAs24)-Math.abs(a.goldAs24));
+  const supplierBals = balances.filter(b=>b.type==='مورد'||b.type==='موزع');
 
   if(!balances.length){
     el.innerHTML='<div class="card"><div class="cb"><div class="empty"><p>لا توجد مديونيات ✅</p></div></div></div>';
