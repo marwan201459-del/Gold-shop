@@ -3732,62 +3732,71 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const REF = doc(db, "gold", "data");
 
-// ── مزامنة من السحاب ──
+// ── مؤشر المزامنة ──
 const syncEl = document.createElement('div');
-syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:10px;color:#B89A60;font-family:Tajawal,sans-serif;background:rgba(255,255,255,0.8);padding:2px 6px;border-radius:6px';
-syncEl.textContent = '⟳ جاري التحميل...';
+syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:11px;color:#fff;font-family:Tajawal,sans-serif;background:rgba(0,0,0,0.75);padding:3px 10px;border-radius:8px;display:none';
 document.body.appendChild(syncEl);
-// اختفاء تلقائي بعد 5 ثواني لو Firebase ما ردت
-setTimeout(()=>{ if(syncEl.textContent==='⟳ جاري التحميل...') syncEl.textContent=''; }, 5000);
+function showSync(msg, dur){
+  syncEl.textContent = msg;
+  syncEl.style.display = 'block';
+  if(dur) setTimeout(()=>{ syncEl.style.display='none'; }, dur);
+}
 
 let _lastSaveTime = 0;
+let _firstLoad = true;
 
-// sv = حفظ على Firebase — معرّفة على window عشان تكون عالمية
-window.sv_save = function sv(){
+// ── الحفظ على Firebase ──
+window.sv_save = function(){
   _lastSaveTime = Date.now();
+  showSync('⟳ جاري الحفظ...');
   setDoc(REF, {
-    transactions: S.transactions,
-    clients: S.clients,
-    safes: S.safes,
-    customSafes: S.customSafes||[],
-    users: S.users||[],
-    updatedAt: _lastSaveTime
+    transactions: S.transactions || [],
+    clients:      S.clients      || [],
+    safes:        S.safes        || {},
+    customSafes:  S.customSafes  || [],
+    snapshots:    S.snapshots    || [],
+    users:        S.users        || [],
+    updatedAt:    _lastSaveTime
   }).then(()=>{
-    syncEl.textContent = '☁️ محفوظ';
-    setTimeout(()=>{ syncEl.textContent=''; }, 1500);
+    showSync('☁️ محفوظ', 2000);
   }).catch(e=>{
-    console.error(e);
-    syncEl.textContent = '⚠️ خطأ في الحفظ';
+    console.error('Firebase save error:', e);
+    showSync('⚠️ خطأ في الحفظ', 4000);
   });
 };
 
-// استقبال التغييرات من السحاب (أجهزة أخرى أو أول تحميل)
+// ── استقبال البيانات من السحاب ──
 onSnapshot(REF, (snap) => {
-  // تجاهل التحديث لو جاء بعد حفظنا مباشرة (أقل من ثانية)
   if(Date.now() - _lastSaveTime < 3000) return;
-
   if(snap.exists()){
     const d = snap.data();
     S.transactions = d.transactions || [];
     S.clients      = d.clients      || [];
-    S.safes        = d.safes        || S.safes;
+    S.safes        = d.safes        || {};
     S.customSafes  = d.customSafes  || [];
     S.snapshots    = d.snapshots    || [];
-    S.users        = (d.users && d.users.length) ? d.users : [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+    S.users        = (d.users && d.users.length)
+      ? d.users
+      : [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+    if(_firstLoad){ _firstLoad=false; showSync('☁️ متصل', 2000); }
     renderAll();
-    syncEl.textContent = '☁️ محفوظ';
-    setTimeout(()=>{ syncEl.textContent=''; }, 1500);
   } else {
     window.sv_save();
   }
 }, (err) => {
-  console.error("Sync error:", err);
-  syncEl.textContent = '⚠️ لا يوجد اتصال — تعمل محلياً';
-  setTimeout(()=>{ syncEl.textContent=''; }, 3000);
-  // خلّ اللوجن يشتغل بالبيانات المحلية
-  if(!S.users || !S.users.length) S.users = [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
-  renderAll();
+  console.error('Firebase error:', err);
+  if(!S.users||!S.users.length) S.users=[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+  if(_firstLoad){ _firstLoad=false; showSync('📴 بدون اتصال', 3000); renderAll(); }
 });
+
+// ── timeout 6 ثواني: لو Firebase ما ردت شغّل offline ──
+setTimeout(()=>{
+  if(!_firstLoad) return;
+  _firstLoad = false;
+  if(!S.users||!S.users.length) S.users=[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+  showSync('📴 بدون اتصال — تعمل محلياً', 3000);
+  renderAll();
+}, 6000);
 </script>
 </body>
 </html>
