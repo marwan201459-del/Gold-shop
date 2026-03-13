@@ -299,8 +299,24 @@ if(sessionStorage.getItem('auth')==='1'){
       <!-- Transfer -->
       <div id="tf-sec" style="display:none">
         <div class="g2">
-          <div class="fr"><label>من صندوق</label><select id="tf-from" onchange="onTfChange()"></select></div>
-          <div class="fr"><label>إلى صندوق</label><select id="tf-to" onchange="onTfChange()"></select></div>
+          <div class="fr"><label>من صندوق / جهة</label>
+            <div class="sw"><span class="si">🔍</span>
+              <input type="text" id="tf-from-s" placeholder="ابحث عن صندوق أو جهة..." autocomplete="off"
+                oninput="searchTfSafe('from')" onfocus="searchTfSafe('from')">
+              <input type="hidden" id="tf-from">
+              <div class="sdrop" id="tf-from-d"></div>
+            </div>
+            <div id="tf-from-lbl" style="font-size:11px;color:var(--gold);margin-top:3px;font-weight:700"></div>
+          </div>
+          <div class="fr"><label>إلى صندوق / جهة</label>
+            <div class="sw"><span class="si">🔍</span>
+              <input type="text" id="tf-to-s" placeholder="ابحث عن صندوق أو جهة..." autocomplete="off"
+                oninput="searchTfSafe('to')" onfocus="searchTfSafe('to')">
+              <input type="hidden" id="tf-to">
+              <div class="sdrop" id="tf-to-d"></div>
+            </div>
+            <div id="tf-to-lbl" style="font-size:11px;color:var(--gold);margin-top:3px;font-weight:700"></div>
+          </div>
         </div>
         <!-- عيار الإيداع (يظهر فقط لو الوجهة madan أو lava) -->
         <div id="tf-karat-row" style="display:none">
@@ -311,6 +327,7 @@ if(sessionStorage.getItem('auth')==='1'){
             <select id="tf-karat">
               <option value="21">عيار 21</option>
               <option value="18">عيار 18</option>
+              <option value="24">عيار 24</option>
             </select>
           </div>
         </div>
@@ -1562,8 +1579,8 @@ function saveScrap(){
 const MADAN_SAFES = ['madan','lava'];
 
 function onTfChange(){
-  const from = document.getElementById('tf-from').value;
-  const to   = document.getElementById('tf-to').value;
+  const from = document.getElementById('tf-from')?.value||'';
+  const to   = document.getElementById('tf-to')?.value||'';
   const isMadanTo   = MADAN_SAFES.includes(to);
   const isMadanFrom = MADAN_SAFES.includes(from);
   const isMadan = isMadanTo || isMadanFrom;
@@ -1637,6 +1654,7 @@ function doTransfer(){
   if(!from||!to){toast('⚠️ اختر المصدر والوجهة');return;}
   if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
   if(from===to){toast('⚠️ اختر صناديق مختلفة');return;}
+  // الصناديق تسمح بالسالب (مستودعات كبيرة)
 
   const fromCli=from.startsWith('__cli__')?from.replace('__cli__',''):null;
   const toCli=to.startsWith('__cli__')?to.replace('__cli__',''):null;
@@ -3593,17 +3611,55 @@ function saveAdj(){
 
 function renderTfDrops(){
   const safeOpts=Object.keys(SM).map(k=>`<option value="${k}">${SM[k].label}</option>`).join('');
-  const cliOpts=S.clients.map(c=>`<option value="__cli__${c.name}">${c.name}</option>`).join('');
-  const allOpts=safeOpts+'<optgroup label="── الجهات ──">'+cliOpts+'</optgroup>';
-
-  ['tf-from','tf-to'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){const v=el.value;el.innerHTML=allOpts;el.value=v;}
-  });
+  // pay-from فقط
   ['pay-from'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){const v=el.value;el.innerHTML=safeOpts;el.value=v;}
   });
+}
+
+function searchTfSafe(side){
+  const inpId  = 'tf-'+side+'-s';
+  const dropId = 'tf-'+side+'-d';
+  const hidId  = 'tf-'+side;
+  const lblId  = 'tf-'+side+'-lbl';
+  const q = (document.getElementById(inpId)?.value||'').trim().toLowerCase();
+  const drop = document.getElementById(dropId);
+  if(!drop) return;
+
+  // بناء القائمة: صناديق + جهات
+  const safes = Object.keys(SM).map(k=>({val:k, lbl:SM[k].label, type:'safe'}));
+  const clis  = (S.clients||[]).map(cl=>({val:'__cli__'+cl.name, lbl:cl.name, type:'cli'}));
+  const all   = [...safes, ...clis];
+  const filtered = q ? all.filter(x=>x.lbl.includes(q)) : all;
+
+  if(!filtered.length){
+    drop.innerHTML='<div class="sde">لا نتائج</div>';
+    drop.style.display='block';
+    return;
+  }
+  drop.innerHTML = filtered.map(x=>{
+    let balStr='';
+    if(x.type==='safe' && x.val in S.safes){
+      const t = SM[x.val]?.type||'cash';
+      const gk = x.val.startsWith('cs_')?(x.val+'_gold'):(x.val+'Gold');
+      if(t==='cash')       balStr=`<span style="float:left;color:var(--green);font-size:11px">${fmt(S.safes[x.val]||0)} ر</span>`;
+      else if(t==='gold')  balStr=`<span style="float:left;color:var(--gold);font-size:11px">${fmtG(S.safes[x.val]||0)} ج</span>`;
+      else if(t==='both')  balStr=`<span style="float:left;font-size:11px"><span style="color:var(--green)">${fmt(S.safes[x.val]||0)}ر</span> <span style="color:var(--gold)">${fmtG(S.safes[gk]||0)}ج</span></span>`;
+    }
+    return `<div class="sdi" onclick="selTfSafe('${side}','${x.val.replace(/'/g,"\'")}','${x.lbl.replace(/'/g,"\'")}')">
+      ${x.lbl}${balStr}
+    </div>`;
+  }).join('');
+  drop.style.display='block';
+}
+
+function selTfSafe(side, val, lbl){
+  document.getElementById('tf-'+side).value = val;
+  document.getElementById('tf-'+side+'-s').value = lbl;
+  document.getElementById('tf-'+side+'-lbl').textContent = '';
+  document.getElementById('tf-'+side+'-d').style.display='none';
+  onTfChange();
 }
 
 function renderStmt(){
