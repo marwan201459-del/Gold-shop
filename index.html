@@ -1023,8 +1023,8 @@ function calcSafes(){
 
     // ── بيع كاش أو آجل ──
     if(t.type==='sell'||t.type==='sell-debt'){
-      // نقد: أجور دخلت (كاش كامل، آجل لا يدخل نقد الآن)
-      if(!t.isDebt) safes.cash += (t.ajTotal||0);
+      // نقد: أجور + ضريبة دخلت (كاش كامل، آجل لا يدخل نقد الآن)
+      if(!t.isDebt) safes.cash += (t.ajTotal||0) + (t.vatAmt||0);
       // ذهب: خرج من يدنا
       // إذا كان الصنف من المشغول → يُخصم من worked
       // وإلا → يُخصم من scrap (الكسر)
