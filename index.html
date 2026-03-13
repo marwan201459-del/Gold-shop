@@ -1158,8 +1158,8 @@ function calcSafes(){
           else if(k24(i.karat)) safes.pure24  -= w;
         }
       });
-      // لو كان شراء آجل: يُقلل الدين النقدي علينا
-      if(t.isBuyDebt) safes.cash += (t.ajTotal||t.total||0);
+      // مردود للمورد لا يُضيف نقداً — تأثيره على الدين فقط
+      // (الدين يُحسب تلقائياً في getClientBalance من مقارنة المشتريات والمردودات)
     }
 
     // ── مردود كسر ──
