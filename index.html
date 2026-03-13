@@ -322,7 +322,8 @@ if(sessionStorage.getItem('auth')==='1'){
           <div id="tf-madan-detail" style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px"></div>
         </div>
         <div class="g2">
-          <div class="fr"><label>الوزن (جرام)</label><input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()"></div>
+          <div class="fr"><label>المبلغ النقدي (ريال) — اتركه 0 إن لم يكن نقداً</label><input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()"></div>
+          <div class="fr"><label>كمية الذهب (جرام) — اتركه 0 إن لم يكن ذهباً</label><input type="number" id="tf-gold-amt" inputmode="decimal" placeholder="0"></div>
           <div class="fr"><label>الوحدة</label><select id="tf-unit"><option value="جرام">جرام</option><option value="ريال">ريال</option></select></div>
         </div>
         <!-- معاينة التحويل -->
@@ -869,14 +870,15 @@ if(sessionStorage.getItem('auth')==='1'){
     <input type="hidden" id="edit-safe-key">
     <div class="fr"><label>اسم الصندوق</label><input type="text" id="ns-name" placeholder="مثال: صندوق الزبدة"></div>
     <div class="fr"><label>الأيقونة (رمز)</label><input type="text" id="ns-icon" placeholder="🏦" maxlength="2" value="💰"></div>
-    <div class="fr" id="ns-unit-row"><label>الوحدة</label>
-      <select id="ns-unit">
-        <option value="ريال">ريال</option>
-        <option value="جرام">جرام</option>
-        <option value="دولار">دولار</option>
+    <div class="fr" id="ns-type-row"><label>نوع الصندوق</label>
+      <select id="ns-type" onchange="updateSafeTypeUI()">
+        <option value="cash">💵 نقد فقط (ريال)</option>
+        <option value="gold">🥇 ذهب فقط (جرام)</option>
+        <option value="both">💵🥇 نقد + ذهب</option>
       </select>
     </div>
-    <div class="fr" id="ns-bal-row"><label>الرصيد الابتدائي (اختياري)</label><input type="number" id="ns-bal" placeholder="اتركه فارغاً للإبقاء على الحالي" inputmode="decimal"></div>
+    <div class="fr" id="ns-bal-row"><label>رصيد نقدي ابتدائي (اختياري)</label><input type="number" id="ns-bal" placeholder="0 ريال" inputmode="decimal"></div>
+    <div class="fr" id="ns-bal-gold-row" style="display:none"><label>رصيد ذهب ابتدائي (اختياري)</label><input type="number" id="ns-bal-gold" placeholder="0 جرام" inputmode="decimal"></div>
     <button class="btn btn-gold" onclick="saveCustomSafe()">💾 حفظ</button>
   </div>
 </div>
@@ -925,7 +927,7 @@ if(sessionStorage.getItem('auth')==='1'){
 
 <script>
 // ── State ─────────────────────────────────────────────────────────
-const DEF={transactions:[],clients:[],safes:{cash:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,debt21:0,debt18:0,debt24:0,khazina:0,madan:0,madan21:0,madan18:0,lava:0,lava21:0,lava18:0,discount:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}]};
+const DEF={transactions:[],clients:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}]};
 let S={...DEF}; // سيُستبدل من Firebase فور الاتصال
 ['khazina','madan','lava','discount'].forEach(k=>{if(S.safes[k]==null)S.safes[k]=0;});
 if(!S.customSafes)S.customSafes=[];
@@ -939,29 +941,37 @@ let itemCounter=0;
 function sv(){ if(window.sv_save) window.sv_save(); }
 
 const SM_BASE={
-  cash:      {label:'💵 الصندوق النقدي',    unit:'ريال', cls:'cash'},
-  khazina:   {label:'🏦 الخزينة',           unit:'ريال', cls:'khz'},
-  discount:  {label:'🏷️ الخصم المسموح',    unit:'ريال', cls:'cash'},
-  scrap21:   {label:'🗃️ كسر عيار 21',      unit:'جرام', cls:'s21'},
-  scrap18:   {label:'🗃️ كسر عيار 18',      unit:'جرام', cls:'s18'},
-  pure24:    {label:'✨ ذهب صافي 24',      unit:'جرام', cls:'p24'},
-  worked21:  {label:'💍 مشغول عيار 21',    unit:'جرام', cls:'s21'},
-  worked18:  {label:'💍 مشغول عيار 18',    unit:'جرام', cls:'s18'},
-  madan:     {label:'⚙️ المعدن',            unit:'جرام', cls:'mdn'},
-  lava:      {label:'🔥 لافا',               unit:'جرام', cls:'lava'},
-  debt21:    {label:'📋 مديونية عيار 21',   unit:'جرام', cls:'purple'},
-  debt18:    {label:'📋 مديونية عيار 18',   unit:'جرام', cls:'purple'},
-  debt24:    {label:'📋 مديونية عيار 24',   unit:'جرام', cls:'purple'},
+  cash:      {label:'💵 الصندوق النقدي',    unit:'ريال', cls:'cash',   type:'cash'},
+  khazina:   {label:'🏦 الخزينة',           unit:'ريال', cls:'khz',    type:'both'},
+  discount:  {label:'🏷️ الخصم المسموح',    unit:'ريال', cls:'cash',   type:'cash'},
+  scrap21:   {label:'🗃️ كسر عيار 21',      unit:'جرام', cls:'s21',    type:'gold'},
+  scrap18:   {label:'🗃️ كسر عيار 18',      unit:'جرام', cls:'s18',    type:'gold'},
+  pure24:    {label:'✨ ذهب صافي 24',      unit:'جرام', cls:'p24',    type:'gold'},
+  worked21:  {label:'💍 مشغول عيار 21',    unit:'جرام', cls:'s21',    type:'gold'},
+  worked18:  {label:'💍 مشغول عيار 18',    unit:'جرام', cls:'s18',    type:'gold'},
+  madan:     {label:'⚙️ المعدن',            unit:'جرام', cls:'mdn',    type:'both'},
+  lava:      {label:'🔥 لافا',               unit:'جرام', cls:'lava',   type:'both'},
+  debt21:    {label:'📋 مديونية عيار 21',   unit:'جرام', cls:'purple', type:'gold'},
+  debt18:    {label:'📋 مديونية عيار 18',   unit:'جرام', cls:'purple', type:'gold'},
+  debt24:    {label:'📋 مديونية عيار 24',   unit:'جرام', cls:'purple', type:'gold'},
 };
 function getSM(){
   const m={...SM_BASE};
   (S.customSafes||[]).forEach(cs=>{
-    m['cs_'+cs.id]={label:cs.icon+' '+cs.name,unit:cs.unit,cls:'cash'};
+    const t = cs.type||'cash';
+    m['cs_'+cs.id]={
+      label: cs.icon+' '+cs.name,
+      unit:  t==='gold'?'جرام':'ريال',
+      cls:   'cash',
+      type:  t,
+      editable: true
+    };
     if(S.safes['cs_'+cs.id]==null) S.safes['cs_'+cs.id]=0;
+    if((t==='both') && S.safes['cs_'+cs.id+'_gold']==null) S.safes['cs_'+cs.id+'_gold']=0;
   });
   return m;
 }
-window.getSM = getSM; // نكشفها للـ module
+window.getSM = getSM;
 
 // ══════════════════════════════════════════════════════
 // calcSafes — المصدر الوحيد للحقيقة
@@ -974,23 +984,27 @@ function calcSafes(){
 
   const safes = {
     // ─ نقد ─
-    cash:    base.cash    || 0,
-    khazina: base.khazina || 0,
-    discount:base.discount|| 0,
-    // ─ كسر (ما في يدك فعلاً) ─
+    cash:        base.cash        || 0,
+    cashGold:    base.cashGold    || 0,
+    khazina:     base.khazina     || 0,
+    khazinaGold: base.khazinaGold || 0,
+    discount:    base.discount    || 0,
+    // ─ كسر ─
     scrap21:  base.scrap21  || 0,
     scrap18:  base.scrap18  || 0,
     pure24:   base.pure24   || 0,
-    // ─ مشغول (ذهب جاهز للبيع) ─
+    // ─ مشغول ─
     worked21: base.worked21 || 0,
     worked18: base.worked18 || 0,
-    // ─ معدن ولافا — الرصيد الإجمالي بعيار 24 ─
-    madan:   base.madan   || 0,
-    lava:    base.lava    || 0,
-    // ─ مديونيات ذهب (على العملاء) ─
-    debt21:  base.debt21  || 0,
-    debt18:  base.debt18  || 0,
-    debt24:  base.debt24  || 0,
+    // ─ معدن ولافا ─
+    madan:     base.madan     || 0,
+    madanGold: base.madanGold || 0,
+    lava:      base.lava      || 0,
+    lavaGold:  base.lavaGold  || 0,
+    // ─ مديونيات ─
+    debt21: base.debt21 || 0,
+    debt18: base.debt18 || 0,
+    debt24: base.debt24 || 0,
   };
 
   // الصناديق المخصصة
@@ -1099,9 +1113,18 @@ function calcSafes(){
 
     // ── تحويل بين صناديق ──
     else if(t.type==='transfer'){
-      const fk = t.fromSafe, tk = t.toSafe;
-      if(fk && !fk.startsWith('__cli__') && safes[fk]!=null) safes[fk] -= (t.amount||0);
-      if(tk && !tk.startsWith('__cli__') && safes[tk]!=null) safes[tk] += (t.amount||0);
+      const fk=t.fromSafe, tk=t.toSafe;
+      const amt=t.amount||0, gAmt=t.goldAmount||0;
+      // نقد
+      if(fk&&!fk.startsWith('__cli__')&&safes[fk]!=null) safes[fk]-=amt;
+      if(tk&&!tk.startsWith('__cli__')&&safes[tk]!=null) safes[tk]+=amt;
+      // ذهب (للصناديق المختلطة)
+      if(gAmt>0){
+        const fkG=fk&&(fk.startsWith('cs_')?(fk+'_gold'):(fk+'Gold'));
+        const tkG=tk&&(tk.startsWith('cs_')?(tk+'_gold'):(tk+'Gold'));
+        if(fkG&&safes[fkG]!=null) safes[fkG]-=gAmt;
+        if(tkG&&safes[tkG]!=null) safes[tkG]+=gAmt;
+      }
     }
 
     // ── مردود جزئي (من عميل) ──
@@ -1603,10 +1626,12 @@ function onTfAmtChange(){
 function doTransfer(){
   const from=document.getElementById('tf-from').value;
   const to=document.getElementById('tf-to').value;
-  const amt=parseFloat(document.getElementById('tf-amt').value);
+  const amt=parseFloat(document.getElementById('tf-amt').value)||0;
+  const gAmt=parseFloat(document.getElementById('tf-gold-amt')?.value)||0;
   const unit=document.getElementById('tf-unit').value;
   const note=document.getElementById('tf-note').value;
-  if(!from||!to||!amt||amt<=0){toast('⚠️ أكمل البيانات');return;}
+  if(!from||!to){toast('⚠️ اختر المصدر والوجهة');return;}
+  if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
   if(from===to){toast('⚠️ اختر صناديق مختلفة');return;}
 
   const fromCli=from.startsWith('__cli__')?from.replace('__cli__',''):null;
@@ -1615,24 +1640,23 @@ function doTransfer(){
   const toKey=toCli?null:to;
   const cliName=fromCli||toCli||'';
 
-  // الصناديق تُحسب في calcSafes
-
   const tfDate=document.getElementById('tf-date')?.value;
   const tfISO=tfDate?new Date(tfDate).toISOString():new Date().toISOString();
 
-  // if paying to client = payment type so it shows in their statement
-  const txType = toCli ? 'payment' : (fromCli ? 'cash-receipt' : 'transfer');
+  const txType=toCli?'payment':(fromCli?'cash-receipt':'transfer');
+  const tfKarat=document.getElementById('tf-karat')?.value||null;
 
-  const tfKarat = document.getElementById('tf-karat')?.value||null;
   S.transactions.unshift({
     id:Date.now(), date:tfISO, type:txType,
     fromSafe:fromKey||from, toSafe:toKey||to,
-    amount:amt, unit, notes:note||'تحويل',
-    goldKarat: tfKarat,
+    amount:amt, goldAmount:gAmt, unit,
+    notes:note||'تحويل',
+    goldKarat:tfKarat,
     client:cliName, items:[], total:amt, cash:txType==='cash-receipt'?amt:0, goldPay:0
   });
   sv(); renderAll();
   document.getElementById('tf-amt').value='';
+  if(document.getElementById('tf-gold-amt')) document.getElementById('tf-gold-amt').value='';
   document.getElementById('tf-note').value='';
   const tfd=document.getElementById('tf-date');if(tfd)tfd.value='';
   toast('✅ تم التحويل');
@@ -2398,6 +2422,15 @@ function saveScrapReturn(){
 }
 
 // ── Custom Safes ──────────────────────────────────────────────────
+function updateSafeTypeUI(){
+  const t=document.getElementById('ns-type')?.value||'cash';
+  const balRow=document.getElementById('ns-bal-row');
+  const balGoldRow=document.getElementById('ns-bal-gold-row');
+  if(balRow) balRow.style.display=(t==='gold')?'none':'block';
+  if(balGoldRow) balGoldRow.style.display=(t==='gold'||t==='both')?'block':'none';
+  // label الرصيد
+  if(balRow) balRow.querySelector('label').textContent=t==='cash'?'رصيد ابتدائي (ريال)':'رصيد نقدي ابتدائي (ريال)';
+}
 function openAddSafe(id=null){
   document.getElementById('edit-safe-id').value=id||'';
   document.getElementById('edit-safe-key').value='';
@@ -2406,82 +2439,84 @@ function openAddSafe(id=null){
     if(!cs)return;
     document.getElementById('ns-name').value=cs.name;
     document.getElementById('ns-icon').value=cs.icon||'💰';
-    document.getElementById('ns-unit').value=cs.unit;
+    document.getElementById('ns-type').value=cs.type||'cash';
     document.getElementById('ns-bal').value='';
+    document.getElementById('ns-bal-gold').value='';
     document.getElementById('addsafe-title').textContent='✏️ تعديل الصندوق';
-    document.getElementById('ns-unit-row').style.display='block';
-    document.getElementById('ns-bal-row').style.display='block';
+    document.getElementById('ns-type-row').style.display='block';
   } else {
-    ['ns-name','ns-bal'].forEach(i=>document.getElementById(i).value='');
+    ['ns-name','ns-bal','ns-bal-gold'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('ns-icon').value='💰';
-    document.getElementById('addsafe-title').textContent='➕ إضافة صندوق';
-    document.getElementById('ns-unit-row').style.display='block';
-    document.getElementById('ns-bal-row').style.display='block';
+    document.getElementById('ns-type').value='cash';
+    document.getElementById('addsafe-title').textContent='➕ إضافة صندوق جديد';
+    document.getElementById('ns-type-row').style.display='block';
   }
+  updateSafeTypeUI();
   openM('m-addsafe');
 }
-// تعديل صندوق أساسي أو مخصص
 function openEditSafe(safeKey, csId=null){
-  if(csId){
-    // مخصص
-    openAddSafe(csId);
-    return;
-  }
-  // أساسي — نسمح بتعديل الاسم والأيقونة فقط
-  const sm = getSM();
-  const info = sm[safeKey]||{};
-  const parts = info.label ? info.label.split(' ') : [];
-  const icon = parts[0]||'💰';
-  const name = parts.slice(1).join(' ')||safeKey;
+  if(csId){ openAddSafe(csId); return; }
+  // أساسي — تعديل الاسم والأيقونة والنوع والرصيد
+  const sm=getSM();
+  const info=sm[safeKey]||{};
+  const parts=info.label?info.label.split(' '):[];
+  const icon=parts[0]||'💰';
+  const name=parts.slice(1).join(' ')||safeKey;
+  const t=info.type||'cash';
+  const goldKey=safeKey+'Gold';
   document.getElementById('edit-safe-id').value='';
   document.getElementById('edit-safe-key').value=safeKey;
   document.getElementById('ns-name').value=name;
   document.getElementById('ns-icon').value=icon;
-  document.getElementById('ns-unit').value=info.unit||'ريال';
+  document.getElementById('ns-type').value=t;
   document.getElementById('ns-bal').value='';
-  document.getElementById('addsafe-title').textContent='✏️ تعديل اسم الصندوق';
-  document.getElementById('ns-unit-row').style.display='none'; // وحدة لا تتغير للأساسي
-  document.getElementById('ns-bal-row').style.display='block';
+  document.getElementById('ns-bal-gold').value='';
+  document.getElementById('addsafe-title').textContent='✏️ تعديل الصندوق';
+  document.getElementById('ns-type-row').style.display='block';
+  updateSafeTypeUI();
   openM('m-addsafe');
 }
 function saveCustomSafe(){
   const name=document.getElementById('ns-name').value.trim();
   if(!name){toast('⚠️ أدخل اسم الصندوق');return;}
   const icon=document.getElementById('ns-icon').value||'💰';
-  const unit=document.getElementById('ns-unit').value;
+  const type=document.getElementById('ns-type')?.value||'cash';
   const bal=parseFloat(document.getElementById('ns-bal').value);
+  const balGold=parseFloat(document.getElementById('ns-bal-gold').value);
   const eid=document.getElementById('edit-safe-id').value;
   const ekey=document.getElementById('edit-safe-key').value;
+  if(!S.safesBase) S.safesBase={};
 
   if(ekey){
-    // تعديل صندوق أساسي — نعدّل SM_BASE مباشرة
-    SM_BASE[ekey].label = icon+' '+name;
-    if(!isNaN(bal)){
-      if(!S.safesBase) S.safesBase={};
-      S.safesBase[ekey]=bal;
-    }
+    // تعديل صندوق أساسي
+    SM_BASE[ekey].label=icon+' '+name;
+    SM_BASE[ekey].type=type;
+    if(!isNaN(bal)) S.safesBase[ekey]=bal;
+    if(type==='both'&&!isNaN(balGold)) S.safesBase[ekey+'Gold']=balGold;
+    if(type==='gold'&&!isNaN(bal)) S.safesBase[ekey]=bal;
   } else if(eid){
     // تعديل مخصص
     const cs=S.customSafes.find(x=>x.id===parseInt(eid));
-    if(cs){cs.name=name;cs.icon=icon;cs.unit=unit;}
-    if(!isNaN(bal)){
-      if(!S.safesBase) S.safesBase={};
-      S.safesBase['cs_'+eid]=bal;
-    }
+    if(cs){cs.name=name;cs.icon=icon;cs.type=type;}
+    const csk='cs_'+eid;
+    if(!isNaN(bal)) S.safesBase[csk]=bal;
+    if(type==='both'&&!isNaN(balGold)) S.safesBase[csk+'_gold']=balGold;
   } else {
     // إضافة جديد
     const id=Date.now();
-    S.customSafes.push({id,name,icon,unit});
-    if(!S.safesBase) S.safesBase={};
-    if(!isNaN(bal)) S.safesBase['cs_'+id]=bal;
+    S.customSafes.push({id,name,icon,type});
+    const csk='cs_'+id;
+    if(!isNaN(bal)) S.safesBase[csk]=bal;
+    if(type==='both'&&!isNaN(balGold)) S.safesBase[csk+'_gold']=balGold;
   }
-  window.getSM=getSM; // تحديث
+  SM=getSM();
   sv();closeM('m-addsafe');renderAll();toast('✅ تم الحفظ');
 }
 function delCustomSafe(id){
   appConfirm('حذف هذا الصندوق؟', ()=>{
     S.customSafes=S.customSafes.filter(x=>x.id!==id);
     delete S.safes['cs_'+id];
+    delete S.safes['cs_'+id+'_gold'];
     sv();renderAll();toast('🗑️ تم الحذف');
   });
 }
@@ -3379,6 +3414,10 @@ function renderHome(){
   // ── صناديق الرئيسية: نقد + كسر + مديونيات ──
   const safesHtml = `
     <div class="sb green"><div class="v">${fmt(S.safes.cash)}</div><div class="l">💵 الصندوق النقدي (ريال)</div></div>
+    ${(S.safes.khazinaGold||S.safes.khazina)?`<div class="sb khz" style="grid-column:${S.safes.khazinaGold&&S.safes.khazina?'1/-1':'auto'}">
+      <div class="v" style="font-size:13px">${S.safes.khazina?fmt(S.safes.khazina)+' ر':''} ${S.safes.khazinaGold?'<span style=\'color:var(--gold)\'>'+fmtG(S.safes.khazinaGold)+' ج</span>':''}</div>
+      <div class="l">🏦 الخزينة</div>
+    </div>`:''}
     <div class="sb gold"><div class="v">${fmtG(S.safes.scrap21)}</div><div class="l">🗃️ كسر عيار 21 (جرام)</div></div>
     <div class="sb gold"><div class="v">${fmtG(S.safes.scrap18)}</div><div class="l">🗃️ كسر عيار 18 (جرام)</div></div>
     <div class="sb blue"><div class="v">${fmtG(S.safes.pure24||0)}</div><div class="l">✨ ذهب صافي 24 (جرام)</div></div>
@@ -3461,20 +3500,38 @@ function renderSafes(){
   document.getElementById('all-safes').innerHTML=smKeys.map(k=>{
     const isCustom=k.startsWith('cs_');
     const csId=isCustom?parseInt(k.replace('cs_','')):null;
-    const isMadan = (k==='madan'||k==='lava');
-    const madanDetail = isMadan ? calcMadanDetail(k) : null;
+    const isMadan=(k==='madan'||k==='lava');
+    const madanDetail=isMadan?calcMadanDetail(k):null;
+    const t=SM[k].type||'cash';
+    const goldKey = isCustom?(k+'_gold'):(k+'Gold');
+    const cashVal = S.safes[k]||0;
+    const goldVal = S.safes[goldKey]||0;
+
+    // بناء عرض الأرصدة حسب النوع
+    let valHtml='';
+    if(t==='cash'){
+      valHtml=`<div class="sv">${fmt(cashVal)} ر</div>`;
+    } else if(t==='gold'){
+      valHtml=`<div class="sv">${fmtG(cashVal)} ج</div>`;
+    } else if(t==='both'){
+      valHtml=`<div style="text-align:left">
+        <div class="sv" style="font-size:14px">${fmt(cashVal)} <span style="font-size:10px">ريال</span></div>
+        <div class="sv" style="font-size:13px;color:var(--gold)">${fmtG(goldVal)} <span style="font-size:10px">جرام</span></div>
+      </div>`;
+    }
+
     return `<div class="sfc ${SM[k].cls||'cash'}" style="position:relative">
       <div style="flex:1">
         <div class="sl">${SM[k].label}</div>
-        <div class="su">${SM[k].unit}</div>
-        ${madanDetail ? `<div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.9">
+        <div class="su">${t==='cash'?'ريال':t==='gold'?'جرام':'نقد + ذهب'}</div>
+        ${madanDetail?`<div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.9">
           ${madanDetail.depRows.map(r=>`<div>↑ إيداع عيار ${r.k}: <b>${fmtG(r.w)}ج</b> = <span style="color:var(--teal)">${fmtG(r.as24)}ج ع٢٤</span></div>`).join('')}
           ${madanDetail.withRows.map(r=>`<div style="color:var(--red)">↓ سحب عيار ${r.k}: <b>${fmtG(r.w)}ج</b> = <span>${fmtG(r.as24)}ج ع٢٤</span></div>`).join('')}
           <div style="font-weight:900;color:var(--gold);margin-top:3px;font-size:12px">✨ الإجمالي: ${fmtG(madanDetail.balance24)} ج عيار 24</div>
-        </div>` : ''}
+        </div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <div class="sv">${fmtG(S.safes[k]||0)}</div>
+        ${valHtml}
         <div style="display:flex;flex-direction:column;gap:3px">
           <button class="ib" style="font-size:11px;padding:3px 6px" onclick="openEditSafe('${k}',${csId||'null'})">✏️</button>
           ${isCustom?`<button class="ib" style="font-size:11px;padding:3px 6px;background:#fee2e2;color:#b91c1c" onclick="delCustomSafe(${csId})">🗑️</button>`:''}
@@ -3482,19 +3539,37 @@ function renderSafes(){
       </div>
     </div>`;
   }).join('');
-  document.getElementById('adj-form').innerHTML=smKeys.map(k=>
-    `<div class="fr"><label>${SM[k].label}</label>
-      <input type="number" id="adj-${k}" inputmode="decimal" placeholder="الرصيد الحالي: ${fmt(S.safes[k]||0)} ${SM[k].unit}">
-    </div>`
-  ).join('')+`<button class="btn btn-gold" onclick="saveAdj()">💾 حفظ</button>`;
+
+  // فورم التعديل اليدوي
+  document.getElementById('adj-form').innerHTML=smKeys.map(k=>{
+    const t=SM[k].type||'cash';
+    const goldKey=k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
+    let fields=`<div class="fr"><label>${SM[k].label}</label>`;
+    if(t==='cash'||t==='both'){
+      fields+=`<input type="number" id="adj-${k}" inputmode="decimal" placeholder="نقد: ${fmt(S.safes[k]||0)} ر">`;
+    }
+    if(t==='gold'||t==='both'){
+      fields+=`<input type="number" id="adj-${goldKey}" inputmode="decimal" placeholder="${t==='both'?'ذهب: ':''}${fmtG(S.safes[t==='gold'?k:goldKey]||0)} ج">`;
+    }
+    fields+='</div>';
+    return fields;
+  }).join('')+`<button class="btn btn-gold" onclick="saveAdj()">💾 حفظ التعديلات</button>`;
 }
 function saveAdj(){
   if(!S.safesBase) S.safesBase={};
   Object.keys(getSM()).forEach(k=>{
-    const v=parseFloat(document.getElementById('adj-'+k)?.value);
-    if(!isNaN(v)) S.safesBase[k]=v;
+    const t=SM[k].type||'cash';
+    const goldKey=k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
+    // نقد أو ذهب-فقط
+    const vCash=parseFloat(document.getElementById('adj-'+k)?.value);
+    if(!isNaN(vCash)) S.safesBase[k]=vCash;
+    // ذهب في صناديق both
+    if(t==='both'){
+      const vGold=parseFloat(document.getElementById('adj-'+goldKey)?.value);
+      if(!isNaN(vGold)) S.safesBase[goldKey]=vGold;
+    }
   });
-  sv(); renderAll(); toast('✅ تم تحديث الرصيد الافتتاحي');
+  sv(); renderAll(); toast('✅ تم تحديث الأرصدة');
 }
 
 function renderTfDrops(){
