@@ -339,9 +339,9 @@ if(sessionStorage.getItem('auth')==='1'){
           <div id="tf-madan-detail" style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px"></div>
         </div>
         <div class="g2">
-          <div class="fr"><label>المبلغ النقدي (ريال) — اتركه 0 إن لم يكن نقداً</label><input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()"></div>
-          <div class="fr"><label>كمية الذهب (جرام) — اتركه 0 إن لم يكن ذهباً</label><input type="number" id="tf-gold-amt" inputmode="decimal" placeholder="0"></div>
-          <div class="fr"><label>الوحدة</label><select id="tf-unit"><option value="جرام">جرام</option><option value="ريال">ريال</option></select></div>
+          <div class="fr"><label id="tf-amt-lbl">الكمية</label><input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()"></div>
+          <input type="hidden" id="tf-gold-amt" value="0">
+          <input type="hidden" id="tf-unit" value="جرام">
         </div>
         <!-- معاينة التحويل -->
         <div id="tf-preview" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px"></div>
@@ -1698,13 +1698,22 @@ function doTransfer(){
   const txType=toCli?'payment':(fromCli?'cash-receipt':'transfer');
   const tfKarat=document.getElementById('tf-karat')?.value||null;
 
+  // تحديد نوع الصندوق المصدر لمعرفة هل الكمية ذهب أو نقد
+  const fromKey2 = fromKey||from;
+  const fromType = SM[fromKey2]?.type || (
+    ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(fromKey2)?'gold':'cash'
+  );
+  // لو الصندوق ذهبي → الكمية تذهب كـ goldAmount تلقائياً
+  const finalAmt  = fromType==='gold' ? 0 : amt;
+  const finalGAmt = fromType==='gold' ? amt : gAmt;
+
   S.transactions.unshift({
     id:Date.now(), date:tfISO, type:txType,
     fromSafe:fromKey||from, toSafe:toKey||to,
-    amount:amt, goldAmount:gAmt, unit,
+    amount:finalAmt, goldAmount:finalGAmt, unit: fromType==='gold'?'جرام':'ريال',
     notes:note||'تحويل',
     goldKarat:tfKarat,
-    client:cliName, items:[], total:amt, cash:txType==='cash-receipt'?amt:0, goldPay:0
+    client:cliName, items:[], total:finalAmt||finalGAmt, cash:txType==='cash-receipt'?finalAmt:0, goldPay:0
   });
   sv(); renderAll();
   document.getElementById('tf-amt').value='';
@@ -3690,6 +3699,22 @@ function selTfSafe(side, val, lbl){
   document.getElementById('tf-'+side+'-lbl').textContent = '';
   document.getElementById('tf-'+side+'-d').style.display='none';
   onTfChange();
+  updateTfAmtLabel();
+}
+
+function updateTfAmtLabel(){
+  const from = document.getElementById('tf-from').value;
+  const to   = document.getElementById('tf-to').value;
+  const key  = from || to;
+  if(!key) return;
+  const t = SM[key]?.type || (
+    ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(key)?'gold':'cash'
+  );
+  const lbl = document.getElementById('tf-amt-lbl');
+  if(!lbl) return;
+  if(t==='cash')       lbl.textContent = 'المبلغ (ريال)';
+  else if(t==='gold')  lbl.textContent = 'الكمية (جرام)';
+  else                 lbl.textContent = 'المبلغ (ريال أو جرام)';
 }
 
 function renderStmt(){
