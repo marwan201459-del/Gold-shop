@@ -1134,15 +1134,45 @@ function calcSafes(){
     else if(t.type==='transfer'){
       const fk=t.fromSafe, tk=t.toSafe;
       const amt=t.amount||0, gAmt=t.goldAmount||0;
-      // نقد
-      if(fk&&!fk.startsWith('__cli__')&&safes[fk]!=null) safes[fk]-=amt;
-      if(tk&&!tk.startsWith('__cli__')&&safes[tk]!=null) safes[tk]+=amt;
-      // ذهب (للصناديق المختلطة)
-      if(gAmt>0){
-        const fkG=fk&&(fk.startsWith('cs_')?(fk+'_gold'):(fk+'Gold'));
-        const tkG=tk&&(tk.startsWith('cs_')?(tk+'_gold'):(tk+'Gold'));
-        if(fkG&&safes[fkG]!=null) safes[fkG]-=gAmt;
-        if(tkG&&safes[tkG]!=null) safes[tkG]+=gAmt;
+
+      const safeType = k => SM[k]?.type || (
+        // fallback: صناديق ذهب معروفة
+        ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(k) ? 'gold' : 'cash'
+      );
+
+      // ── من صندوق ──
+      if(fk && !fk.startsWith('__cli__')){
+        const ft = safeType(fk);
+        if(ft==='cash'  && safes[fk]!=null)  safes[fk] -= amt;
+        else if(ft==='gold' && safes[fk]!=null){
+          // لو استخدم حقل النقد بدل الذهب — نقبل الاثنين
+          const val = gAmt>0 ? gAmt : amt;
+          safes[fk] -= val;
+        }
+        else if(ft==='both'){
+          if(amt>0  && safes[fk]!=null)  safes[fk] -= amt;
+          if(gAmt>0){
+            const fkG=fk.startsWith('cs_')?(fk+'_gold'):(fk+'Gold');
+            if(safes[fkG]!=null) safes[fkG]-=gAmt;
+          }
+        }
+      }
+
+      // ── إلى صندوق ──
+      if(tk && !tk.startsWith('__cli__')){
+        const tt = safeType(tk);
+        if(tt==='cash'  && safes[tk]!=null)  safes[tk] += amt;
+        else if(tt==='gold' && safes[tk]!=null){
+          const val = gAmt>0 ? gAmt : amt;
+          safes[tk] += val;
+        }
+        else if(tt==='both'){
+          if(amt>0  && safes[tk]!=null)  safes[tk] += amt;
+          if(gAmt>0){
+            const tkG=tk.startsWith('cs_')?(tk+'_gold'):(tk+'Gold');
+            if(safes[tkG]!=null) safes[tkG]+=gAmt;
+          }
+        }
       }
     }
 
