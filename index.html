@@ -2231,8 +2231,10 @@ function selectRetInv(id){
         '</div>'+
         '<div class="fr"><label>سعر الجرام للرد</label>'+
         '<input type="number" id="ret-p-'+i+'" value="'+item.price+'" inputmode="decimal">'+
+        '</div>'+
+        '<div class="fr"><label>الأجور (ريال/جرام)</label>'+
+        '<input type="number" id="ret-aj-'+i+'" value="'+item.ajour+'" inputmode="decimal" style="border:1.5px solid var(--gold)">'+
         '</div></div>'+
-        '<div style="font-size:11px;color:var(--text2);margin-top:4px">الأجور الأصلية: '+fmt(item.ajour)+' ريال/جرام</div>'+
         '</div>';
     }).join('');
 }
@@ -2255,8 +2257,10 @@ function saveReturnInv(){
     const p = parseFloat(pEl?.value)||item.price;
     if(w > 0){
       if(w > item.weight){toast('⚠️ الوزن المرجوع أكبر من الأصلي للصنف '+(i+1));return;}
-      const aj = item.ajour * w;
-      retItems.push({...item, weight:w, price:p, ajour:item.ajour});
+      const ajEl = document.getElementById('ret-aj-'+i);
+      const aj_rate = ajEl ? (parseFloat(ajEl.value)||0) : (item.ajour||0);
+      const aj = aj_rate * w;
+      retItems.push({...item, weight:w, price:p, ajour:aj_rate});
       retGoldTotal += w * p;
       retAjTotal += aj;
     }
@@ -2346,6 +2350,9 @@ function selectSuppRetInv(id){
         '</div>'+
         '<div class="fr"><label>سعر الجرام</label>'+
         '<input type="number" id="rsupp-p-'+i+'" value="'+item.price+'" inputmode="decimal">'+
+        '</div>'+
+        '<div class="fr"><label>الأجور (ريال/جرام)</label>'+
+        '<input type="number" id="rsupp-aj-'+i+'" value="'+(item.ajour||0)+'" inputmode="decimal" style="border:1.5px solid var(--gold)">'+
         '</div></div>'+
         '</div>';
     }).join('');
@@ -2366,8 +2373,10 @@ function saveSupplierReturn(){
     const p = parseFloat(pEl?.value)||item.price;
     if(w > 0){
       if(w > item.weight){toast('⚠️ الوزن المرجوع أكبر من الأصلي للصنف '+(i+1));return;}
-      const aj = (item.ajour||0) * w;
-      retItems.push({...item, weight:w, price:p, ajour:item.ajour||0});
+      const ajElS = document.getElementById('rsupp-aj-'+i);
+      const aj_rate = ajElS ? (parseFloat(ajElS.value)||0) : (item.ajour||0);
+      const aj = aj_rate * w;
+      retItems.push({...item, weight:w, price:p, ajour:aj_rate});
       retGoldTotal += w * p;
       retAjTotal += aj;
     }
