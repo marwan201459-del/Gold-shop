@@ -437,6 +437,7 @@ if(sessionStorage.getItem('auth')==='1'){
           </div>
           <div id="ret-items-list"></div>
           <div class="fr"><label>سبب الإرجاع</label><input type="text" id="ret-reason" placeholder="اختياري..."></div>
+          <div class="fr"><label>تاريخ المردود</label><input type="date" id="ret-date"></div>
           <button class="btn" style="background:var(--purple);color:white" onclick="saveReturnInv()">↩️ تنفيذ الإرجاع</button>
         </div>
 
@@ -499,6 +500,7 @@ if(sessionStorage.getItem('auth')==='1'){
           </div>
           <div id="rsupp-items-list"></div>
           <div class="fr"><label>سبب الإرجاع</label><input type="text" id="rsupp-reason" placeholder="اختياري..."></div>
+          <div class="fr"><label>تاريخ المردود</label><input type="date" id="rsupp-date"></div>
           <button class="btn" style="background:var(--orange);color:white" onclick="saveSupplierReturn()">↩️ تنفيذ مردود المورد</button>
         </div>
       </div>
@@ -1351,7 +1353,7 @@ function SBT(p){
 // ── Invoice Items ─────────────────────────────────────────────────
 function addItem(){
   const id=++itemCounter;
-  draftItems.push({id,karat:'21',desc:'',weight:0,price:0,ajour:0,isWorked:false});
+  draftItems.push({id,karat:'18',desc:'',weight:0,price:0,ajour:0,isWorked:true});
   renderDraftItems();
 }
 
@@ -1448,10 +1450,12 @@ function renderDraftItems(){
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
+          ${(selType==='sell'||selType==='sell-debt'||selType==='return')?`
           <button type="button" onclick="updateItem(${item.id},'isWorked','0');this.classList.add('on');this.nextElementSibling.classList.remove('on')"
             class="ptb${!item.isWorked?' on':''}" style="flex:1;font-size:12px">🗃️ كسر</button>
           <button type="button" onclick="updateItem(${item.id},'isWorked','1');this.classList.add('on');this.previousElementSibling.classList.remove('on')"
             class="ptb${item.isWorked?' on':''}" style="flex:1;font-size:12px">💍 مشغول</button>
+          `:`<div class="ptb on" style="flex:1;font-size:12px;text-align:center;pointer-events:none">💍 مشغول</div>`}
         </div>
         <div class="g3">
           <div class="fr"><label>الوزن (جرام)</label>
@@ -2236,6 +2240,8 @@ function selectRetInv(id){
 function saveReturnInv(){
   if(!selectedRetId||!retOrigTx){toast('⚠️ اختر الفاتورة الأصلية أولاً');return;}
   const reason = document.getElementById('ret-reason').value;
+  const retDateVal = document.getElementById('ret-date').value;
+  const retISO = retDateVal ? new Date(retDateVal).toISOString() : new Date().toISOString();
   const kNames={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 18K'};
 
   let retItems = [];
@@ -2261,7 +2267,7 @@ function saveReturnInv(){
   const retTotal = retGoldTotal + retAjTotal;
   const retTx = {
     id: Date.now(),
-    date: new Date().toISOString(),
+    date: retISO,
     type: 'return',
     origId: retOrigTx.id,
     items: retItems,
@@ -2348,6 +2354,8 @@ function selectSuppRetInv(id){
 function saveSupplierReturn(){
   if(!selectedSuppRetId||!suppRetOrigTx){toast('⚠️ اختر فاتورة الشراء الأصلية أولاً');return;}
   const reason = document.getElementById('rsupp-reason').value;
+  const rsuppDateVal = document.getElementById('rsupp-date').value;
+  const rsuppISO = rsuppDateVal ? new Date(rsuppDateVal).toISOString() : new Date().toISOString();
   let retItems = [];
   let retGoldTotal = 0;
   let retAjTotal = 0;
@@ -2369,7 +2377,7 @@ function saveSupplierReturn(){
   const isBuyDebt = suppRetOrigTx.type==='buy-debt';
   const retTx = {
     id: Date.now(),
-    date: new Date().toISOString(),
+    date: rsuppISO,
     type: 'supplier-return',
     origId: suppRetOrigTx.id,
     items: retItems,
