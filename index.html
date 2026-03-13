@@ -2634,15 +2634,14 @@ function getClientBalance(cli){
   let retAs24 = 0;
   retTxs.forEach(t=>(t.items||[]).forEach(i=>{ retAs24 += to24(i.weight, i.karat); }));
 
-  // ذهب مرجوع للمورد (خرج منا) — يزيد ما علينا له
+  // ذهب مرجوع للمورد (خرج منا) — يُقلل ما علينا له من ذهب
   let suppRetGoldAs24 = 0;
   suppRetTxs.forEach(t=>(t.items||[]).forEach(i=>{ suppRetGoldAs24 += to24(i.weight, i.karat); }));
-  // نقد مرجوع للمورد — يُقلل ما علينا نقداً
-  const suppRetCash = suppRetTxs.filter(t=>t.isBuyDebt).reduce((a,t)=>a+(t.ajTotal||t.total||0),0);
 
   // الرصيد الكلي بعيار 24
-  // موجب = المورد/العميل مدين لنا بذهب | سالب = نحن مدينون له
-  const goldOwedAs24 = Math.round((soldAs24 - boughtAs24 - buyDebtGoldAs24 - scrapAs24 - payGoldAs24 - retAs24 + suppRetGoldAs24)*1000)/1000;
+  // موجب = العميل مدين لنا | سالب = نحن مدينون للمورد
+  // suppRetGoldAs24 يُقلل الدين علينا (يُطرح من buyDebtGoldAs24)
+  const goldOwedAs24 = Math.round((soldAs24 - boughtAs24 - (buyDebtGoldAs24 - suppRetGoldAs24) - scrapAs24 - payGoldAs24 - retAs24)*1000)/1000;
 
   // للعرض: نحتفظ بتفاصيل كل عيار أيضاً
   const karats=['21','18','24'];
@@ -2666,12 +2665,15 @@ function getClientBalance(cli){
   const buyDebtOwed     = buyDebtTxs.reduce((a,t)=>a+(t.ajTotal||t.total||0),0);
   // سداد للمورد (نحن دفعنا له) — يُضاف لما عليه
   const supplierPaid    = payTxs.filter(t=>t.type==='supplier-payment').reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
-  // مردودات — تُطرح من إجمالي الأجور المستحقة
+  // مردودات من عميل — تُطرح من الأجور المستحقة
   const retAjour        = retTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
+  // مردود للمورد — يُقلل الدين النقدي علينا (أجور المردود)
+  const suppRetAjour    = suppRetTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
   const ajTotalNet      = ajTotal - retAjour;
   const totalNaqd       = cashPaidOnSell + prepaid + ajourPaid + cashRcvd - supplierPaid;
-  // cashOwed: موجب = العميل مدين لنا | سالب = نحن مدينون له (مورد آجل)
-  const cashOwed        = ajTotalNet - totalNaqd - buyDebtOwed + suppRetCash;
+  // cashOwed: موجب = العميل مدين لنا | سالب = نحن مدينون للمورد
+  // buyDebtOwed = ما علينا للمورد | suppRetAjour = ما يُخصم منه بسبب المردود
+  const cashOwed        = ajTotalNet - totalNaqd - (buyDebtOwed - suppRetAjour);
 
   return {cashOwed, goldOwed, goldOwedAs24, ajTotal, totalNaqd};
 }
