@@ -1234,47 +1234,118 @@ function calcSafes(){
 function karat2factor(k){ return parseFloat(k)/24; }
 
 function calcMadanDetail(safeKey){
-  // تفصيل إيداعات وسحوبات كل عيار على حدة
+  return calcSafeDetail24(safeKey);
+}
+
+// دالة عامة: تحسب كل حركات أي صندوق ذهبي وتحولها لعيار 24
+function calcSafeDetail24(safeKey){
   const txs = S.transactions;
-  const deps  = {'18':0,'21':0,'24':0};
-  const withs = {'18':0,'21':0,'24':0};
+  const base = S.safesBase||{};
+  // رصيد ابتدائي من safesBase
+  const baseVal = base[safeKey]||0;
+
+  // كل حركة: {date, label, karat, weight, isIn}
+  const moves = [];
+
+  // العيار الافتراضي لكل صندوق
+  const defaultKarat = {
+    scrap21:'21', worked21:'21', debt21:'21',
+    scrap18:'18', worked18:'18', debt18:'18',
+    pure24:'24',  debt24:'24',
+    madan:'21',   lava:'21'
+  }[safeKey] || '24';
 
   txs.forEach(t=>{
+    // ── تحويل ──
     if(t.type==='transfer'){
-      if(t.toSafe===safeKey){
-        const k = t.goldKarat||'21';
-        deps[k]  = (deps[k]||0)  + (t.amount||0);
-      }
-      if(t.fromSafe===safeKey){
-        const k = t.goldKarat||'24';
-        withs[k] = (withs[k]||0) + (t.amount||0);
-      }
+      const amt = t.goldAmount>0 ? t.goldAmount : t.amount||0;
+      const k   = t.goldKarat || defaultKarat;
+      if(t.toSafe===safeKey && amt>0)
+        moves.push({date:t.date, label:TLBL[t.type]||'تحويل', note:t.notes||'', karat:k, weight:amt, isIn:true});
+      if(t.fromSafe===safeKey && amt>0)
+        moves.push({date:t.date, label:TLBL[t.type]||'تحويل', note:t.notes||'', karat:k, weight:amt, isIn:false});
     }
-    if(t.type==='scrap' && t.dest===safeKey){
-      const k = t.karat||'21';
-      deps[k] = (deps[k]||0) + (t.weight||0);
+    // ── قبض كسر ──
+    if(t.type==='scrap' && t.dest===safeKey)
+      moves.push({date:t.date, label:'قبض كسر', note:t.client||'', karat:t.karat||defaultKarat, weight:t.weight||0, isIn:true});
+    // ── سداد مورد بذهب ──
+    if(t.type==='supplier-payment' && t.goldSafe===safeKey)
+      moves.push({date:t.date, label:'سداد مورد', note:t.client||'', karat:t.goldKarat||defaultKarat, weight:t.goldWeight||0, isIn:false});
+    // ── سداد عميل بذهب ──
+    if(t.type==='payment' && t.goldDest===safeKey)
+      moves.push({date:t.date, label:'سداد عميل', note:t.client||'', karat:t.goldKarat||defaultKarat, weight:t.goldWeight||0, isIn:true});
+    // ── شراء (ذهب يدخل) ──
+    if((t.type==='buy'||t.type==='buy-debt')){
+      (t.items||[]).forEach(i=>{
+        const dest = i.isWorked
+          ? (i.karat==='21'?'worked21':'worked18')
+          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        if(dest===safeKey)
+          moves.push({date:t.date, label:TLBL[t.type]||'شراء', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:true});
+      });
     }
-    if(t.type==='supplier-payment' && t.goldSafe===safeKey){
-      const k = t.goldKarat||'21';
-      withs[k] = (withs[k]||0) + (t.goldWeight||0);
+    // ── بيع (ذهب يخرج) ──
+    if((t.type==='sell'||t.type==='sell-debt')){
+      (t.items||[]).forEach(i=>{
+        const src = i.isWorked
+          ? (i.karat==='21'?'worked21':'worked18')
+          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        if(src===safeKey)
+          moves.push({date:t.date, label:TLBL[t.type]||'بيع', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:false});
+      });
+    }
+    // ── مردود (ذهب يرجع) ──
+    if(t.type==='return'){
+      (t.items||[]).forEach(i=>{
+        const dest = i.isWorked
+          ? (i.karat==='21'?'worked21':'worked18')
+          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        if(dest===safeKey)
+          moves.push({date:t.date, label:'مردود عميل', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:true});
+      });
+    }
+    // ── مردود مورد (ذهب يخرج) ──
+    if(t.type==='supplier-return'){
+      (t.items||[]).forEach(i=>{
+        const src = i.isWorked
+          ? (i.karat==='21'?'worked21':'worked18')
+          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        if(src===safeKey)
+          moves.push({date:t.date, label:'مردود مورد', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:false});
+      });
     }
   });
 
-  // تحويل كل شيء لعيار 24
-  const to24 = (k,v) => v * parseFloat(k)/24;
-  const depRows  = Object.entries(deps).filter(([,v])=>v>0).map(([k,v])=>({k, w:v, as24: to24(k,v)}));
-  const withRows = Object.entries(withs).filter(([,v])=>v>0).map(([k,v])=>({k, w:v, as24: to24(k,v)}));
+  const to24 = (k,w) => (w||0)*parseFloat(k||'24')/24;
 
-  const totalDep24  = depRows.reduce((a,r)=>a+r.as24, 0);
-  const totalWith24 = withRows.reduce((a,r)=>a+r.as24, 0);
-  const balance24   = Math.round((totalDep24-totalWith24)*1000)/1000;
+  // رصيد ابتدائي بعيار 24
+  const base24 = to24(defaultKarat, baseVal);
+  let running24 = base24;
 
-  return {
-    depRows, withRows,
-    totalDep24:  Math.round(totalDep24*1000)/1000,
-    totalWith24: Math.round(totalWith24*1000)/1000,
-    balance24
-  };
+  const rows = moves
+    .sort((a,b)=>new Date(a.date)-new Date(b.date))
+    .map(m=>{
+      const as24 = Math.round(to24(m.karat, m.weight)*1000)/1000;
+      running24 += m.isIn ? as24 : -as24;
+      running24 = Math.round(running24*1000)/1000;
+      return {...m, as24, running24};
+    });
+
+  const totalIn24  = rows.filter(r=>r.isIn).reduce((a,r)=>a+r.as24,0) + base24;
+  const totalOut24 = rows.filter(r=>!r.isIn).reduce((a,r)=>a+r.as24,0);
+  const balance24  = Math.round(running24*1000)/1000;
+
+  // للتوافق مع calcMadanDetail القديم
+  const deps  = {};
+  const withs = {};
+  rows.filter(r=>r.isIn).forEach(r=>{ deps[r.karat]=(deps[r.karat]||0)+r.weight; });
+  rows.filter(r=>!r.isIn).forEach(r=>{ withs[r.karat]=(withs[r.karat]||0)+r.weight; });
+  const depRows  = Object.entries(deps).map(([k,v])=>({k,w:v,as24:to24(k,v)}));
+  const withRows = Object.entries(withs).map(([k,v])=>({k,w:v,as24:to24(k,v)}));
+
+  return {rows, depRows, withRows, balance24,
+    totalDep24:Math.round(totalIn24*1000)/1000,
+    totalWith24:Math.round(totalOut24*1000)/1000};
 }
 
 // SM as proxy for backward compat
@@ -3727,64 +3798,82 @@ function renderStmt(){
     const k=v.replace('__safe__','');
     const safeInfo = SM[k]||{};
     const safeT = safeInfo.type||'cash';
-    const goldKey = k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
 
-    // فلترة كل حركات هذا الصندوق
+    // ── صندوق ذهبي: يُعرض بعيار 24 ──
+    if(safeT==='gold'){
+      const det = calcSafeDetail24(k);
+      const bal24 = det.balance24;
+      let html=`<div class="card"><div class="ch">${safeInfo.label||k} — كشف عيار 24</div><div class="cb">
+        <div class="sfc ${safeInfo.cls||'s21'}" style="margin-bottom:10px">
+          <div>
+            <div class="sl">الرصيد الكلي</div>
+            <div class="su">جرام عيار 24</div>
+          </div>
+          <div class="sv" style="color:${bal24>=0?'var(--green)':'var(--red)'}">${fmtG(Math.abs(bal24))} ${bal24<0?'−':''}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">إجمالي الدخول</div>
+            <div style="font-weight:900;color:var(--green)">${fmtG(det.totalDep24)} ج</div>
+          </div>
+          <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">إجمالي الخروج</div>
+            <div style="font-weight:900;color:var(--red)">${fmtG(det.totalWith24)} ج</div>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📋 تفصيل الحركات</div>`;
+
+      if(!det.rows||!det.rows.length){
+        html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>`;
+      } else {
+        // عرض الحركات من الأحدث للأقدم مع الرصيد المتراكم
+        [...det.rows].reverse().forEach(r=>{
+          const dt=fmtDate(r.date);
+          const clr = r.isIn?'var(--green)':'var(--red)';
+          html+=`<div class="stmt-row" style="align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:700">${r.label}${r.note?' — '+r.note:''}</div>
+              <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
+              <div style="font-size:11px;color:var(--text2)">عيار ${r.karat}: ${fmtG(r.weight)}ج = <b>${fmtG(r.as24)}ج ع24</b></div>
+            </div>
+            <div style="text-align:left;min-width:80px">
+              <div style="font-weight:700;color:${clr}">${r.isIn?'+':'-'}${fmtG(r.as24)} ج</div>
+              <div style="font-size:10px;color:var(--text2)">رصيد: ${fmtG(r.running24)} ج</div>
+            </div>
+          </div>`;
+        });
+      }
+      html+='</div></div>';
+      body.innerHTML=html; return;
+    }
+
+    // ── صندوق نقدي أو مختلط ──
+    const goldKey = k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
+    const cashBal = S.safes[k]||0;
+    const goldBal = S.safes[goldKey]||0;
     const txs=S.transactions.filter(t=>{
       if(t.type==='transfer') return t.fromSafe===k||t.toSafe===k;
-      if(t.type==='payment') return t.fromSafe===k||t.goldDest===k;
-      if(t.type==='supplier-payment') return t.fromSafe===k||t.goldSafe===k;
+      if(t.type==='payment') return t.fromSafe===k;
+      if(t.type==='supplier-payment') return t.fromSafe===k;
       if(t.type==='cash-receipt') return t.toSafe===k;
-      if(t.type==='scrap') return t.dest===k;
       return false;
     }).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-    // الرصيد الحالي
-    const cashBal = S.safes[k]||0;
-    const goldBal = S.safes[goldKey]||0;
-    let balHtml='';
-    if(safeT==='cash')       balHtml=`<div class="sv">${fmt(cashBal)} ريال</div>`;
-    else if(safeT==='gold')  balHtml=`<div class="sv">${fmtG(cashBal)} جرام</div>`;
-    else balHtml=`<div class="sv" style="font-size:13px">${fmt(cashBal)} ر · <span style="color:var(--gold)">${fmtG(goldBal)} ج</span></div>`;
+    let balHtml = safeT==='both'
+      ? `<div style="text-align:left"><div class="sv" style="font-size:14px">${fmt(cashBal)} <span style="font-size:10px">ريال</span></div><div style="font-size:13px;color:var(--gold)">${fmtG(goldBal)} <span style="font-size:10px">جرام</span></div></div>`
+      : `<div class="sv">${fmt(cashBal)} ريال</div>`;
 
-    let running = safeT==='gold' ? cashBal : cashBal; // رصيد متراكم للعرض
     let html=`<div class="card"><div class="ch">${safeInfo.label||k} — كشف الصندوق</div><div class="cb">
       <div class="sfc ${safeInfo.cls||'cash'}" style="margin-bottom:10px">
-        <div><div class="sl">الرصيد الحالي</div><div class="su">${safeT==='both'?'نقد + ذهب':safeInfo.unit||''}</div></div>
+        <div><div class="sl">الرصيد الحالي</div><div class="su">${safeT==='both'?'نقد + ذهب':'ريال'}</div></div>
         ${balHtml}
       </div>`;
 
     txs.forEach(t=>{
       const dt=fmtDate(t.date);
       const lbl=TLBL[t.type]||t.type;
-
-      // تحديد الاتجاه والكمية لهذا الصندوق
-      let amt=0, unit='', isOut=false;
-
-      if(t.type==='transfer'){
-        isOut = t.fromSafe===k;
-        // نوع الصندوق يحدد الكمية
-        if(safeT==='gold'){
-          amt = t.goldAmount>0 ? t.goldAmount : t.amount||0;
-          unit='جرام';
-        } else if(safeT==='both'){
-          if(t.amount>0){ amt=t.amount; unit='ريال'; }
-          else if(t.goldAmount>0){ amt=t.goldAmount; unit='جرام'; }
-        } else {
-          amt=t.amount||0; unit='ريال';
-        }
-      } else if(t.type==='cash-receipt'){
-        isOut=false; amt=t.amount||0; unit='ريال';
-      } else if(t.type==='payment'){
-        if(t.goldDest===k){ isOut=false; amt=t.goldWeight||0; unit='جرام'; }
-        else { isOut=true; amt=t.ajourPaid||t.amount||0; unit='ريال'; }
-      } else if(t.type==='supplier-payment'){
-        if(t.goldSafe===k){ isOut=true; amt=t.goldWeight||0; unit='جرام'; }
-        else { isOut=true; amt=t.ajourPaid||t.amount||0; unit='ريال'; }
-      } else if(t.type==='scrap'){
-        isOut=false; amt=t.weight||0; unit='جرام';
-      }
-
+      const isOut = (t.type==='transfer'&&t.fromSafe===k)||t.type==='payment'||t.type==='supplier-payment';
+      const amt = t.amount||t.ajourPaid||t.total||0;
       if(amt<=0) return;
       const clr = isOut?'var(--red)':'var(--green)';
       html+=`<div class="stmt-row">
@@ -3793,11 +3882,10 @@ function renderStmt(){
           ${t.notes&&t.notes!=='تحويل'?`<div style="font-size:10px;color:var(--gold)">📝 ${t.notes}</div>`:''}
           <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
         </div>
-        <span style="font-weight:700;color:${clr}">${isOut?'−':'+'}${safeT==='gold'?fmtG(amt):fmt(amt)} ${unit}</span>
+        <span style="font-weight:700;color:${clr}">${isOut?'−':'+'}${fmt(amt)} ريال</span>
       </div>`;
     });
-
-    if(!txs.length) html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات لهذا الصندوق</p></div>`;
+    if(!txs.length) html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>`;
     html+='</div></div>';
     body.innerHTML=html; return;
   }
