@@ -3725,33 +3725,79 @@ function renderStmt(){
   // ── كشف صندوق ──
   if(v.startsWith('__safe__')){
     const k=v.replace('__safe__','');
-    const txs=S.transactions.filter(t=>
-      (t.type==='transfer'&&(t.fromSafe===k||t.toSafe===k)) ||
-      (t.type==='payment'&&(t.fromSafe===k||t.goldDest===k)) ||
-      (t.type==='cash-receipt'&&t.toSafe===k)
-    ).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    let html=`<div class="card"><div class="ch">${SM[k]?.label||k} — كشف الصندوق</div><div class="cb">
-      <div class="sfc ${SM[k]?.cls||'cash'}" style="margin-bottom:10px">
-        <div><div class="sl">الرصيد الحالي</div><div class="su">${SM[k]?.unit||''}</div></div>
-        <div class="sv">${fmt(S.safes[k]||0)}</div>
+    const safeInfo = SM[k]||{};
+    const safeT = safeInfo.type||'cash';
+    const goldKey = k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
+
+    // فلترة كل حركات هذا الصندوق
+    const txs=S.transactions.filter(t=>{
+      if(t.type==='transfer') return t.fromSafe===k||t.toSafe===k;
+      if(t.type==='payment') return t.fromSafe===k||t.goldDest===k;
+      if(t.type==='supplier-payment') return t.fromSafe===k||t.goldSafe===k;
+      if(t.type==='cash-receipt') return t.toSafe===k;
+      if(t.type==='scrap') return t.dest===k;
+      return false;
+    }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+    // الرصيد الحالي
+    const cashBal = S.safes[k]||0;
+    const goldBal = S.safes[goldKey]||0;
+    let balHtml='';
+    if(safeT==='cash')       balHtml=`<div class="sv">${fmt(cashBal)} ريال</div>`;
+    else if(safeT==='gold')  balHtml=`<div class="sv">${fmtG(cashBal)} جرام</div>`;
+    else balHtml=`<div class="sv" style="font-size:13px">${fmt(cashBal)} ر · <span style="color:var(--gold)">${fmtG(goldBal)} ج</span></div>`;
+
+    let running = safeT==='gold' ? cashBal : cashBal; // رصيد متراكم للعرض
+    let html=`<div class="card"><div class="ch">${safeInfo.label||k} — كشف الصندوق</div><div class="cb">
+      <div class="sfc ${safeInfo.cls||'cash'}" style="margin-bottom:10px">
+        <div><div class="sl">الرصيد الحالي</div><div class="su">${safeT==='both'?'نقد + ذهب':safeInfo.unit||''}</div></div>
+        ${balHtml}
       </div>`;
+
     txs.forEach(t=>{
       const dt=fmtDate(t.date);
-      const isOut=t.fromSafe===k;
       const lbl=TLBL[t.type]||t.type;
-      const amt=t.type==='payment'&&t.goldDest===k?(t.goldWeight||0):(t.amount||t.total||0);
-      const unit=t.type==='payment'&&t.goldDest===k?'جرام':'ريال';
+
+      // تحديد الاتجاه والكمية لهذا الصندوق
+      let amt=0, unit='', isOut=false;
+
+      if(t.type==='transfer'){
+        isOut = t.fromSafe===k;
+        // نوع الصندوق يحدد الكمية
+        if(safeT==='gold'){
+          amt = t.goldAmount>0 ? t.goldAmount : t.amount||0;
+          unit='جرام';
+        } else if(safeT==='both'){
+          if(t.amount>0){ amt=t.amount; unit='ريال'; }
+          else if(t.goldAmount>0){ amt=t.goldAmount; unit='جرام'; }
+        } else {
+          amt=t.amount||0; unit='ريال';
+        }
+      } else if(t.type==='cash-receipt'){
+        isOut=false; amt=t.amount||0; unit='ريال';
+      } else if(t.type==='payment'){
+        if(t.goldDest===k){ isOut=false; amt=t.goldWeight||0; unit='جرام'; }
+        else { isOut=true; amt=t.ajourPaid||t.amount||0; unit='ريال'; }
+      } else if(t.type==='supplier-payment'){
+        if(t.goldSafe===k){ isOut=true; amt=t.goldWeight||0; unit='جرام'; }
+        else { isOut=true; amt=t.ajourPaid||t.amount||0; unit='ريال'; }
+      } else if(t.type==='scrap'){
+        isOut=false; amt=t.weight||0; unit='جرام';
+      }
+
+      if(amt<=0) return;
+      const clr = isOut?'var(--red)':'var(--green)';
       html+=`<div class="stmt-row">
         <div>
-          <div style="font-size:12px;font-weight:700">${lbl} ${t.client?'— '+t.client:''}</div>
+          <div style="font-size:12px;font-weight:700">${lbl}${t.client?' — '+t.client:''}</div>
+          ${t.notes&&t.notes!=='تحويل'?`<div style="font-size:10px;color:var(--gold)">📝 ${t.notes}</div>`:''}
           <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
         </div>
-        <span style="font-weight:700;color:${isOut?'var(--red)':'var(--green)'}">
-          ${isOut?'−':'+'}${fmt(amt)} ${unit}
-        </span>
+        <span style="font-weight:700;color:${clr}">${isOut?'−':'+'}${safeT==='gold'?fmtG(amt):fmt(amt)} ${unit}</span>
       </div>`;
     });
-    if(!txs.length) html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>`;
+
+    if(!txs.length) html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات لهذا الصندوق</p></div>`;
     html+='</div></div>';
     body.innerHTML=html; return;
   }
