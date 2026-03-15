@@ -584,6 +584,7 @@ if(sessionStorage.getItem('auth')==='1'){
           </div>
         </div>
         <div class="fr"><label>ملاحظات</label><input type="text" id="sc-notes" placeholder="اختياري"></div>
+        <div class="fr"><label>📅 التاريخ (اختياري)</label><input type="date" id="sc-date"></div>
         <button class="btn btn-gold" onclick="saveScrap()">💾 حفظ</button>
       </div>
 
@@ -1258,8 +1259,14 @@ function calcSafeDetail24(safeKey){
   txs.forEach(t=>{
     // ── تحويل ──
     if(t.type==='transfer'){
-      const amt = t.goldAmount>0 ? t.goldAmount : t.amount||0;
-      const k   = t.goldKarat || defaultKarat;
+      // الذهب فقط — نقرأ goldAmount أولاً، وإن لم يوجد نقرأ amount
+      // للصناديق المختلطة (both) نقرأ goldAmount بشكل صريح
+      const safeInfoT = SM[safeKey]||{};
+      const isBoth = safeInfoT.type==='both';
+      const amt = isBoth
+        ? (t.goldAmount||0)           // both: خذ الذهب فقط
+        : (t.goldAmount>0 ? t.goldAmount : t.amount||0); // gold: خذ أياً كان
+      const k = t.goldKarat || defaultKarat;
       if(t.toSafe===safeKey && amt>0)
         moves.push({date:t.date, label:TLBL[t.type]||'تحويل', note:t.notes||'', karat:k, weight:amt, isIn:true});
       if(t.fromSafe===safeKey && amt>0)
@@ -1664,7 +1671,9 @@ function saveScrap(){
   const dest=document.getElementById('sc-dest').value;
   const client=document.getElementById('sc-cli-v').value||document.getElementById('sc-cli-s').value;
   const notes=document.getElementById('sc-notes').value;
-  const tx={id:Date.now(),date:new Date().toISOString(),type:'scrap',karat,weight,dest,client,notes,items:[],total:0,cash:0,goldPay:0};
+  const scDateVal=document.getElementById('sc-date')?.value;
+  const scISO=scDateVal?new Date(scDateVal).toISOString():new Date().toISOString();
+  const tx={id:Date.now(),date:scISO,type:'scrap',karat,weight,dest,client,notes,items:[],total:0,cash:0,goldPay:0};
   S.transactions.unshift(tx);
   const d=dest;
   // الصناديق تُحسب في calcSafes
@@ -1673,6 +1682,7 @@ function saveScrap(){
   document.getElementById('sc-notes').value='';
   document.getElementById('sc-cli-s').value='';
   document.getElementById('sc-cli-v').value='';
+  const scd=document.getElementById('sc-date');if(scd)scd.value='';
   renderAll(); toast('✅ تم حفظ قبض الكسر');
 }
 
@@ -3559,29 +3569,27 @@ function renderHome(){
     }
   }
   // ── صناديق الرئيسية: نقد + كسر + مديونيات ──
-  const safesHtml = `
-    <div class="sb green"><div class="v">${fmt(S.safes.cash)}</div><div class="l">💵 الصندوق النقدي (ريال)</div></div>
-    ${(S.safes.khazinaGold||S.safes.khazina)?`<div class="sb khz" style="grid-column:${S.safes.khazinaGold&&S.safes.khazina?'1/-1':'auto'}">
-      <div class="v" style="font-size:13px">${S.safes.khazina?fmt(S.safes.khazina)+' ر':''} ${S.safes.khazinaGold?'<span style=\'color:var(--gold)\'>'+fmtG(S.safes.khazinaGold)+' ج</span>':''}</div>
+  const safesHtml = (()=>{
+    // حساب ذهب الخزينة بعيار 24
+    const khzDet = calcSafeDetail24('khazina');
+    const khzGold24 = khzDet.balance24;
+    const khzCash = S.safes.khazina||0;
+    const hasKhz = khzCash || khzGold24;
+
+    return `
+    <div class="sb green"><div class="v">${fmt(S.safes.cash)}</div><div class="l">💵 النقدي (ريال)</div></div>
+    <div class="sb gold"><div class="v">${fmtG(S.safes.scrap21)}</div><div class="l">🗃️ كسر 21</div></div>
+    <div class="sb gold"><div class="v">${fmtG(S.safes.scrap18)}</div><div class="l">🗃️ كسر 18</div></div>
+    <div class="sb blue"><div class="v">${fmtG(S.safes.pure24||0)}</div><div class="l">✨ صافي 24</div></div>
+    ${hasKhz?`<div class="sb khz">
+      <div class="v" style="font-size:13px">
+        ${khzCash?`<div>${fmt(khzCash)} <span style="font-size:10px">ريال</span></div>`:''}
+        ${khzGold24?`<div style="color:var(--gold)">${fmtG(Math.abs(khzGold24))} <span style="font-size:10px">ج ع٢٤</span></div>`:''}
+      </div>
       <div class="l">🏦 الخزينة</div>
     </div>`:''}
-    <div class="sb gold"><div class="v">${fmtG(S.safes.scrap21)}</div><div class="l">🗃️ كسر عيار 21 (جرام)</div></div>
-    <div class="sb gold"><div class="v">${fmtG(S.safes.scrap18)}</div><div class="l">🗃️ كسر عيار 18 (جرام)</div></div>
-    <div class="sb blue"><div class="v">${fmtG(S.safes.pure24||0)}</div><div class="l">✨ ذهب صافي 24 (جرام)</div></div>
-    ${(S.safes.worked21||S.safes.worked18)?`
-    <div class="sb teal"><div class="v">${fmtG(S.safes.worked21||0)}</div><div class="l">💍 مشغول عيار 21 (جرام)</div></div>
-    <div class="sb teal"><div class="v">${fmtG(S.safes.worked18||0)}</div><div class="l">💍 مشغول عيار 18 (جرام)</div></div>
-    `:''}
-    ${(S.safes.debt21||S.safes.debt18||S.safes.debt24)?`
-    <div style="grid-column:1/-1;background:var(--purple-bg);border:1.5px solid var(--purple);border-radius:12px;padding:10px;margin-top:4px">
-      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px">📋 مديونيات الذهب (على العملاء)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${S.safes.debt21>0?`<div style="background:white;border-radius:8px;padding:6px 10px;font-size:12px"><span style="color:var(--text2)">عيار 21: </span><b style="color:var(--purple)">${fmtG(S.safes.debt21)} ج</b></div>`:''}
-        ${S.safes.debt18>0?`<div style="background:white;border-radius:8px;padding:6px 10px;font-size:12px"><span style="color:var(--text2)">عيار 18: </span><b style="color:var(--purple)">${fmtG(S.safes.debt18)} ج</b></div>`:''}
-        ${S.safes.debt24>0?`<div style="background:white;border-radius:8px;padding:6px 10px;font-size:12px"><span style="color:var(--text2)">عيار 24: </span><b style="color:var(--purple)">${fmtG(S.safes.debt24)} ج</b></div>`:''}
-      </div>
-    </div>`:''}
-  `;
+    `;
+  })()
   document.getElementById('home-safes').innerHTML=safesHtml;
   const todayStr=new Date().toDateString();
   const td=S.transactions.filter(t=>new Date(t.date).toDateString()===todayStr);
@@ -3848,9 +3856,11 @@ function renderStmt(){
     }
 
     // ── صندوق نقدي أو مختلط ──
-    const goldKey = k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
     const cashBal = S.safes[k]||0;
-    const goldBal = S.safes[goldKey]||0;
+    // للصناديق المختلطة: احسب ذهبها بعيار 24 من الحركات
+    const goldDet24 = safeT==='both' ? calcSafeDetail24(k) : null;
+    const goldBal24 = goldDet24 ? goldDet24.balance24 : 0;
+
     const txs=S.transactions.filter(t=>{
       if(t.type==='transfer') return t.fromSafe===k||t.toSafe===k;
       if(t.type==='payment') return t.fromSafe===k;
@@ -3860,7 +3870,10 @@ function renderStmt(){
     }).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
     let balHtml = safeT==='both'
-      ? `<div style="text-align:left"><div class="sv" style="font-size:14px">${fmt(cashBal)} <span style="font-size:10px">ريال</span></div><div style="font-size:13px;color:var(--gold)">${fmtG(goldBal)} <span style="font-size:10px">جرام</span></div></div>`
+      ? `<div style="text-align:left">
+           <div class="sv" style="font-size:14px">${fmt(cashBal)} <span style="font-size:10px">ريال</span></div>
+           ${goldBal24?`<div style="font-size:13px;color:var(--gold)">${fmtG(Math.abs(goldBal24))} <span style="font-size:10px">ج ع٢٤</span></div>`:''}
+         </div>`
       : `<div class="sv">${fmt(cashBal)} ريال</div>`;
 
     let html=`<div class="card"><div class="ch">${safeInfo.label||k} — كشف الصندوق</div><div class="cb">
@@ -3885,7 +3898,39 @@ function renderStmt(){
         <span style="font-weight:700;color:${clr}">${isOut?'−':'+'}${fmt(amt)} ريال</span>
       </div>`;
     });
-    if(!txs.length) html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>`;
+    // لو صندوق مختلط — أضف كشف الذهب بعيار 24
+    if(safeT==='both' && goldDet24 && goldDet24.rows && goldDet24.rows.length>0){
+      html+=`<div style="margin-top:14px;border-top:2px solid var(--gold);padding-top:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">🏅 حركات الذهب — إجمالي عيار 24</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">إجمالي الدخول</div>
+            <div style="font-weight:900;color:var(--green)">${fmtG(goldDet24.totalDep24)} ج</div>
+          </div>
+          <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">إجمالي الخروج</div>
+            <div style="font-weight:900;color:var(--red)">${fmtG(goldDet24.totalWith24)} ج</div>
+          </div>
+        </div>`;
+      [...goldDet24.rows].reverse().forEach(r=>{
+        const dt2=fmtDate(r.date);
+        const clr2=r.isIn?'var(--green)':'var(--red)';
+        html+=`<div class="stmt-row" style="align-items:flex-start">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700">${r.label}${r.note?' — '+r.note:''}</div>
+            <div style="font-size:10px;color:var(--text2)">${dt2.ar} · ${dt2.en}</div>
+            <div style="font-size:11px;color:var(--text2)">عيار ${r.karat}: ${fmtG(r.weight)}ج = <b>${fmtG(r.as24)}ج ع24</b></div>
+          </div>
+          <div style="text-align:left;min-width:80px">
+            <div style="font-weight:700;color:${clr2}">${r.isIn?'+':'-'}${fmtG(r.as24)} ج</div>
+            <div style="font-size:10px;color:var(--text2)">رصيد: ${fmtG(r.running24)} ج</div>
+          </div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    if(!txs.length && !(safeT==='both'&&goldDet24?.rows?.length)) html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>`;
     html+='</div></div>';
     body.innerHTML=html; return;
   }
