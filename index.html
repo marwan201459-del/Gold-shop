@@ -340,6 +340,7 @@ if(sessionStorage.getItem('auth')==='1'){
         </div>
         <div class="g2">
           <div class="fr"><label id="tf-amt-lbl">الكمية</label><input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()"></div>
+          <div class="fr"><label>النوع</label><select id="tf-type-sel" onchange="updateTfAmtLabel()"><option value="auto">🔄 تلقائي حسب الصندوق</option><option value="cash">💵 نقد (ريال)</option><option value="gold">🥇 ذهب (جرام)</option></select></div>
           <input type="hidden" id="tf-gold-amt" value="0">
           <input type="hidden" id="tf-unit" value="جرام">
         </div>
@@ -1141,38 +1142,31 @@ function calcSafes(){
         ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(k) ? 'gold' : 'cash'
       );
 
-      // ── من صندوق ──
+      // القاعدة: amount=نقد، goldAmount=ذهب — كل واحد يذهب لصندوقه
+      // ── من صندوق (خروج) ──
       if(fk && !fk.startsWith('__cli__')){
-        const ft = safeType(fk);
-        if(ft==='cash'  && safes[fk]!=null)  safes[fk] -= amt;
-        else if(ft==='gold' && safes[fk]!=null){
-          // لو استخدم حقل النقد بدل الذهب — نقبل الاثنين
-          const val = gAmt>0 ? gAmt : amt;
-          safes[fk] -= val;
-        }
-        else if(ft==='both'){
-          if(amt>0  && safes[fk]!=null)  safes[fk] -= amt;
-          if(gAmt>0){
-            const fkG=fk.startsWith('cs_')?(fk+'_gold'):(fk+'Gold');
-            if(safes[fkG]!=null) safes[fkG]-=gAmt;
-          }
+        // نقد يخرج
+        if(amt>0 && safes[fk]!=null) safes[fk] -= amt;
+        // ذهب يخرج
+        if(gAmt>0){
+          const fkG=fk.startsWith('cs_')?(fk+'_gold'):(fk+'Gold');
+          // لو الصندوق ذهبي مباشر → اطرح من safes[fk]
+          const ft=safeType(fk);
+          if(ft==='gold' && safes[fk]!=null) safes[fk] -= gAmt;
+          else if(ft==='both' && safes[fkG]!=null) safes[fkG] -= gAmt;
         }
       }
 
-      // ── إلى صندوق ──
+      // ── إلى صندوق (دخول) ──
       if(tk && !tk.startsWith('__cli__')){
-        const tt = safeType(tk);
-        if(tt==='cash'  && safes[tk]!=null)  safes[tk] += amt;
-        else if(tt==='gold' && safes[tk]!=null){
-          const val = gAmt>0 ? gAmt : amt;
-          safes[tk] += val;
-        }
-        else if(tt==='both'){
-          if(amt>0  && safes[tk]!=null)  safes[tk] += amt;
-          if(gAmt>0){
-            const tkG=tk.startsWith('cs_')?(tk+'_gold'):(tk+'Gold');
-            if(safes[tkG]!=null) safes[tkG]+=gAmt;
-          }
+        // نقد يدخل
+        if(amt>0 && safes[tk]!=null) safes[tk] += amt;
+        // ذهب يدخل
+        if(gAmt>0){
+          const tkG=tk.startsWith('cs_')?(tk+'_gold'):(tk+'Gold');
+          const tt=safeType(tk);
+          if(tt==='gold' && safes[tk]!=null) safes[tk] += gAmt;
+          else if(tt==='both' && safes[tkG]!=null) safes[tkG] += gAmt;
         }
       }
     }
@@ -1779,19 +1773,30 @@ function doTransfer(){
   const txType=toCli?'payment':(fromCli?'cash-receipt':'transfer');
   const tfKarat=document.getElementById('tf-karat')?.value||null;
 
-  // تحديد نوع الصندوق المصدر لمعرفة هل الكمية ذهب أو نقد
+  // تحديد نوع التحويل: تلقائي أو يدوي
   const fromKey2 = fromKey||from;
-  const fromType = SM[fromKey2]?.type || (
+  const fromSafeType = SM[fromKey2]?.type || (
     ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(fromKey2)?'gold':'cash'
   );
-  // لو الصندوق ذهبي → الكمية تذهب كـ goldAmount تلقائياً
-  const finalAmt  = fromType==='gold' ? 0 : amt;
-  const finalGAmt = fromType==='gold' ? amt : gAmt;
+  const userSel = document.getElementById('tf-type-sel')?.value||'auto';
+  let finalAmt, finalGAmt, finalUnit;
+  if(userSel==='cash'){
+    // المستخدم اختار نقد صراحةً
+    finalAmt=amt; finalGAmt=0; finalUnit='ريال';
+  } else if(userSel==='gold'){
+    // المستخدم اختار ذهب صراحةً
+    finalAmt=0; finalGAmt=amt; finalUnit='جرام';
+  } else {
+    // تلقائي حسب نوع الصندوق
+    finalAmt  = fromSafeType==='gold' ? 0 : amt;
+    finalGAmt = fromSafeType==='gold' ? amt : 0;
+    finalUnit = fromSafeType==='gold' ? 'جرام' : 'ريال';
+  }
 
   S.transactions.unshift({
     id:Date.now(), date:tfISO, type:txType,
     fromSafe:fromKey||from, toSafe:toKey||to,
-    amount:finalAmt, goldAmount:finalGAmt, unit: fromType==='gold'?'جرام':'ريال',
+    amount:finalAmt, goldAmount:finalGAmt, unit:finalUnit,
     notes:note||'تحويل',
     goldKarat:tfKarat,
     client:cliName, items:[], total:finalAmt||finalGAmt, cash:txType==='cash-receipt'?finalAmt:0, goldPay:0
@@ -3885,8 +3890,23 @@ function renderStmt(){
     txs.forEach(t=>{
       const dt=fmtDate(t.date);
       const lbl=TLBL[t.type]||t.type;
-      const isOut = (t.type==='transfer'&&t.fromSafe===k)||t.type==='payment'||t.type==='supplier-payment';
-      const amt = t.amount||t.ajourPaid||t.total||0;
+      // تحديد اتجاه الحركة بدقة لهذا الصندوق
+      let isOut=false, amt=0;
+      if(t.type==='transfer'){
+        isOut = t.fromSafe===k;  // خرج من هنا؟
+        amt = t.amount||0;
+      } else if(t.type==='payment'){
+        // سداد عميل → نقد يدخل صندوقنا = +
+        isOut = false;
+        amt = t.ajourPaid||t.amount||0;
+      } else if(t.type==='supplier-payment'){
+        // سداد مورد → نقد يخرج من صندوقنا = -
+        isOut = true;
+        amt = t.ajourPaid||t.amount||0;
+      } else if(t.type==='cash-receipt'){
+        isOut = false;
+        amt = t.amount||0;
+      }
       if(amt<=0) return;
       const clr = isOut?'var(--red)':'var(--green)';
       html+=`<div class="stmt-row">
