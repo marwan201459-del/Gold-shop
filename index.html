@@ -1106,46 +1106,41 @@ function calcSafes(){
     }
 
     // ── تحويل بين صناديق ──
+    // القاعدة الذهبية: المرسِل ينقص، المستقبِل يزيد — دائماً
     else if(t.type==='transfer'){
       const fk=t.fromSafe, tk=t.toSafe;
-      const amt=t.amount||0, gAmt=t.goldAmount||0;
+      const amt=t.amount||0;      // نقد بالريال
+      const gAmt=t.goldAmount||0; // ذهب بالجرام
 
-      const safeType = k => SM[k]?.type || (
-        // fallback: صناديق ذهب معروفة
-        ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(k) ? 'gold' : 'cash'
-      );
+      const getSafeGoldKey = k => k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
+      const isBothSafe = k => SM[k]?.type==='both';
+      const isGoldSafe = k => SM[k]?.type==='gold' ||
+        ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(k);
 
-      // القاعدة الصحيحة:
-      // amount (نقد) → يطرح/يضيف فقط من صناديق cash أو both (الجزء النقدي)
-      // goldAmount (ذهب) → يطرح/يضيف فقط من صناديق gold أو both (الجزء الذهبي)
-
-      // ── من صندوق (خروج) ──
-      if(fk && !fk.startsWith('__cli__')){
-        const ft = safeType(fk);
-        if(amt>0){
-          if((ft==='cash'||ft==='both') && safes[fk]!=null) safes[fk] -= amt;
-        }
-        if(gAmt>0){
-          if(ft==='gold' && safes[fk]!=null) safes[fk] -= gAmt;
-          else if(ft==='both'){
-            const fkG=fk.startsWith('cs_')?(fk+'_gold'):(fk+'Gold');
-            if(safes[fkG]!=null) safes[fkG] -= gAmt;
-          }
+      // ── من (خروج) ──
+      if(fk && !fk.startsWith('__cli__') && safes[fk]!=null){
+        if(isBothSafe(fk)){
+          // صندوق مختلط: نقد من الرصيد النقدي، ذهب من الرصيد الذهبي
+          if(amt>0) safes[fk] -= amt;
+          if(gAmt>0){ const gk=getSafeGoldKey(fk); if(safes[gk]!=null) safes[gk]-=gAmt; }
+        } else if(isGoldSafe(fk)){
+          // صندوق ذهبي: اطرح gAmt (أو amt كـ fallback لو المستخدم وضعه هناك)
+          safes[fk] -= (gAmt>0 ? gAmt : amt);
+        } else {
+          // صندوق نقدي: اطرح amt (أو gAmt كـ fallback)
+          safes[fk] -= (amt>0 ? amt : gAmt);
         }
       }
 
-      // ── إلى صندوق (دخول) ──
-      if(tk && !tk.startsWith('__cli__')){
-        const tt = safeType(tk);
-        if(amt>0){
-          if((tt==='cash'||tt==='both') && safes[tk]!=null) safes[tk] += amt;
-        }
-        if(gAmt>0){
-          if(tt==='gold' && safes[tk]!=null) safes[tk] += gAmt;
-          else if(tt==='both'){
-            const tkG=tk.startsWith('cs_')?(tk+'_gold'):(tk+'Gold');
-            if(safes[tkG]!=null) safes[tkG] += gAmt;
-          }
+      // ── إلى (دخول) ──
+      if(tk && !tk.startsWith('__cli__') && safes[tk]!=null){
+        if(isBothSafe(tk)){
+          if(amt>0) safes[tk] += amt;
+          if(gAmt>0){ const gk=getSafeGoldKey(tk); if(safes[gk]!=null) safes[gk]+=gAmt; }
+        } else if(isGoldSafe(tk)){
+          safes[tk] += (gAmt>0 ? gAmt : amt);
+        } else {
+          safes[tk] += (amt>0 ? amt : gAmt);
         }
       }
     }
@@ -1747,7 +1742,6 @@ function doTransfer(){
   const to=document.getElementById('tf-to').value;
   const amt=parseFloat(document.getElementById('tf-amt').value)||0;
   const gAmt=parseFloat(document.getElementById('tf-gold-amt')?.value)||0;
-  const unit=document.getElementById('tf-unit').value;
   const note=document.getElementById('tf-note').value;
   if(!from||!to){toast('⚠️ اختر المصدر والوجهة');return;}
   if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
@@ -1766,24 +1760,30 @@ function doTransfer(){
   const txType=toCli?'payment':(fromCli?'cash-receipt':'transfer');
   const tfKarat=document.getElementById('tf-karat')?.value||null;
 
-  // الخانتان مستقلتان: amt=نقد، gAmt=ذهب
-  // نسجل معاملة واحدة تحمل الاثنين
+  // تسجيل التحويل
+  // amt=نقد (ريال) | gAmt=ذهب (جرام) — كلاهما مستقل
   S.transactions.unshift({
     id:Date.now(), date:tfISO, type:txType,
     fromSafe:fromKey||from, toSafe:toKey||to,
-    amount:amt,        // نقد بالريال
-    goldAmount:gAmt,   // ذهب بالجرام
+    amount:amt,          // نقد بالريال
+    goldAmount:gAmt,     // ذهب بالجرام
     goldKarat:tfKarat||'21',
-    unit: gAmt>0&&amt<=0 ? 'جرام' : 'ريال',
+    unit: gAmt>0 && amt<=0 ? 'جرام' : 'ريال',
     notes:note||'تحويل',
-    client:cliName, items:[], total:amt||gAmt, cash:txType==='cash-receipt'?amt:0, goldPay:gAmt
+    client:cliName, items:[], total:amt+gAmt,
+    cash: txType==='cash-receipt'?amt:0,
+    goldPay:gAmt
   });
   sv(); renderAll();
-  document.getElementById('tf-amt').value='';
-  if(document.getElementById('tf-gold-amt')) document.getElementById('tf-gold-amt').value='';
-  document.getElementById('tf-note').value='';
+  ['tf-amt','tf-gold-amt','tf-note','tf-from-s','tf-to-s'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  ['tf-from','tf-to'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
   const tfd=document.getElementById('tf-date');if(tfd)tfd.value='';
-  toast('✅ تم التحويل');
+  const amtMsg=[amt>0?fmt(amt)+' ريال':'', gAmt>0?fmtG(gAmt)+' جرام':''].filter(Boolean).join(' + ');
+  toast('✅ تم التحويل: '+amtMsg);
 }
 
 // ── Delete TX ──────────────────────────────────────────────────────
@@ -2789,15 +2789,22 @@ function getClientBalance(cli){
   // موجب = العميل مدين لنا بذهب | سالب = نحن مدينون للمورد بذهب
   // للعميل: بعنا له - اشترينا منه - كسر - سداد ذهب - مردود
   // للمورد: اشترينا آجل - سددنا ذهب - مردودنا له
+  // goldOwedAs24: موجب=الطرف مدين لنا بذهب | سالب=نحن مدينون له
+  //
+  // للعميل:  بعنا له (+) | سدد ذهب (-) | كسر أعطانا (-) | رددنا له (-)
+  // للمورد:  اشترينا فوري (-) | اشترينا آجل (-) | سددنا ذهب (-) | ردّ لنا (+)
+  //
+  // الصيغة: goldOut - goldIn - buyDebtGold + suppRetGold - scrapIn - payGoldIn - payGoldOut - retGold
+  // لكن suppRetGold (ذهب رددناه للمورد) = يُقلل ما علينا له = يجب أن يُضاف لـ goldOwed
+  // وpayGoldOut (ذهب سددناه للمورد) = يُقلل ما علينا = يُضاف أيضاً
+  // إذن: -(buyDebtGold - suppRetGold - payGoldOut) = ما تبقى علينا للمورد
   const goldOwedAs24 = Math.round((
-    goldOut24          // ذهب بعناه
-    - goldIn24         // ذهب اشتريناه فوري
-    - buyDebtGold24    // ذهب اشتريناه آجل (علينا له)
-    + suppRetGold24    // مردودنا للمورد (يُقلل ما علينا)
-    - scrapIn24        // كسر استلمناه
-    - payGoldIn24      // ذهب سدده العميل لنا
-    + payGoldOut24     // ذهب سددناه نحن للمورد (يُقلل رصيده لدينا)
-    - retGold24        // ذهب رجع من عميل
+    goldOut24                        // ذهب بعناه للعميل (+)
+    - goldIn24                       // اشتريناه فوري (-)
+    - (buyDebtGold24 - suppRetGold24 - payGoldOut24)  // صافي دين المورد الذهبي (-)
+    - scrapIn24                      // كسر استلمناه (-)
+    - payGoldIn24                    // ذهب سدده العميل (-)
+    - retGold24                      // ذهب رجعناه للعميل (-)
   )*1000)/1000;
 
   // ── حساب رصيد النقد ──
