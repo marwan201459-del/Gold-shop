@@ -2092,24 +2092,41 @@ function printStmt(){
     const txs=S.transactions.filter(t=>t.client===v).sort((a,b)=>new Date(b.date)-new Date(a.date));
     const isSettled=Math.abs(bal.cashOwed)<0.01&&Math.abs(bal.goldOwedAs24||0)<0.001;
 
-    // ── بطاقة الرصيد ──
+    // ── بطاقة الرصيد الواضحة ──
+    // cashOwed: موجب=عليه لنا | سالب=لنا عليه (أو علينا للمورد)
+    // goldOwedAs24: موجب=ذهب عليه | سالب=ذهب علينا
     let balRows='';
     if(isSettled){
-      balRows=`<div class="settled">✅ الحساب مسدد كامل — لا يوجد أي رصيد متبقي</div>`;
+      balRows=`<div style="text-align:center;padding:14px">
+        <div style="font-size:28px;margin-bottom:6px">✅</div>
+        <div style="font-size:15px;font-weight:900;color:var(--green)">الحساب مسدد بالكامل</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px">لا يوجد أي رصيد متبقي</div>
+      </div>`;
     } else {
+      // نقد
       if(Math.abs(bal.cashOwed)>0.01){
-        const sign=bal.cashOwed>0;
-        balRows+=`<div class="bal-row">
-          <span>💵 أجور ${sign?'متبقية عليه':'له (زيادة)'}</span>
-          <span class="bal-val ${sign?'neg':'pos'}">${sign?'':'+'}${fmt(Math.abs(bal.cashOwed))} ريال</span>
+        const weOwe = bal.cashOwed<0;  // سالب = نحن مدينون (لمورد أو نحن من أعطى)
+        const label = weOwe ? '💵 نقد علينا (مدينون)' : '💵 نقد عليه لنا (دائنون)';
+        const clr   = weOwe ? 'var(--red)' : 'var(--green)';
+        balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:700">${label}</div>
+            <div style="font-size:10px;color:var(--text2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'}</div>
+          </div>
+          <div style="font-size:20px;font-weight:900;color:${clr}">${fmt(Math.abs(bal.cashOwed))} ر</div>
         </div>`;
       }
-      // رقم واحد فقط بعيار 24
+      // ذهب بعيار 24
       if(Math.abs(bal.goldOwedAs24||0)>0.001){
-        const sign = bal.goldOwedAs24>0;
-        balRows+=`<div class="bal-row">
-          <span>🏅 ذهب ${sign?'متبقي عليه':'له (زيادة)'}</span>
-          <span class="bal-val ${sign?'neg':'pos'}">${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span>
+        const weOwe = bal.goldOwedAs24<0;
+        const label = weOwe ? '🏅 ذهب علينا (مدينون)' : '🏅 ذهب عليه لنا (دائنون)';
+        const clr   = weOwe ? 'var(--red)' : 'var(--green)';
+        balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+          <div>
+            <div style="font-size:13px;font-weight:700">${label}</div>
+            <div style="font-size:10px;color:var(--text2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'} — بعيار 24</div>
+          </div>
+          <div style="font-size:20px;font-weight:900;color:${clr}">${fmtG(Math.abs(bal.goldOwedAs24))} ج</div>
         </div>`;
       }
     }
@@ -2699,104 +2716,148 @@ function loadClientBalance(){
   const rows=document.getElementById('pay-balance-rows');
   const kN={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'18K','14k':'18K'};
   let html='';
-  if(bal.cashOwed>0.01) html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>💵 نقد عليه</span><span style="font-weight:700;color:var(--red)">${fmt(bal.cashOwed)} ريال</span></div>`;
-  if(bal.cashOwed<-0.01) html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>💵 نقد له (زيادة)</span><span style="font-weight:700;color:var(--green)">${fmt(Math.abs(bal.cashOwed))} ريال</span></div>`;
-  // رقم واحد فقط بعيار 24
+  // رصيد واضح في صفحة السداد
+  const weOwe = bal.cashOwed<-0.01;  // نحن مدينون (مورد)
+  const theyOwe = bal.cashOwed>0.01; // هو مدين (عميل)
+  if(theyOwe) html+=`<div style="display:flex;justify-content:space-between;padding:4px 0">
+    <span style="font-size:12px">💵 نقد عليه لنا</span>
+    <span style="font-weight:900;color:var(--red)">${fmt(bal.cashOwed)} ريال</span>
+  </div>`;
+  if(weOwe) html+=`<div style="display:flex;justify-content:space-between;padding:4px 0">
+    <span style="font-size:12px">💵 نقد علينا له</span>
+    <span style="font-weight:900;color:var(--orange)">${fmt(Math.abs(bal.cashOwed))} ريال</span>
+  </div>`;
   if(Math.abs(bal.goldOwedAs24)>0.001){
-    const clr = bal.goldOwedAs24>0 ? 'var(--red)' : 'var(--green)';
-    const lbl = bal.goldOwedAs24>0 ? '🏅 ذهب عليه' : '🏅 ذهب له (زيادة)';
-    html += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
-      <span>${lbl}</span>
-      <span style="font-weight:900;color:${clr}">${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span>
+    const goldWeOwe=bal.goldOwedAs24<0;
+    html+=`<div style="display:flex;justify-content:space-between;padding:4px 0">
+      <span style="font-size:12px">🏅 ذهب ${goldWeOwe?'علينا له':'عليه لنا'}</span>
+      <span style="font-weight:900;color:${goldWeOwe?'var(--orange)':'var(--red)'}">
+        ${fmtG(Math.abs(bal.goldOwedAs24))} ج ع24
+      </span>
     </div>`;
   }
-  if(!html) html='<div style="font-size:12px;color:var(--green);font-weight:700">✅ الحساب مسدد</div>';
   rows.innerHTML=html;
   box.style.display='block';
 }
 
 function getClientBalance(cli){
-  const txs      = S.transactions.filter(t=>t.client===cli);
-  const sellTxs  = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
-  const buyTxs   = txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
-  const buyDebtTxs = txs.filter(t=>t.type==='buy-debt');
-  const scrapTxs = txs.filter(t=>t.type==='scrap');
-  const payTxs   = txs.filter(t=>t.type==='payment'||t.type==='supplier-payment');
-  const crTxs    = txs.filter(t=>t.type==='cash-receipt');
-  const retTxs        = txs.filter(t=>t.type==='return');
-  const suppRetTxs    = txs.filter(t=>t.type==='supplier-return');
+  const txs = S.transactions.filter(t=>t.client===cli);
+  const to24 = (w,k) => (w||0)*parseFloat(k||'21')/24;
 
-  // ── كل شيء يتحوّل لعيار 24 كعملة مشتركة ──
-  // w = جرامات، k = عيار → جرام عيار 24 مكافئ
-  const to24 = (w, k) => (w||0) * (parseFloat(k)||21) / 24;
+  // ── ذهب ──
+  // ذهب خرج منا (بعناه للعميل)
+  let goldOut24=0;
+  txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+     .forEach(t=>(t.items||[]).forEach(i=>{ goldOut24+=to24(i.weight,i.karat); }));
 
-  // ذهب خرج منا للعميل (مبيعات) → بعيار 24
-  let soldAs24 = 0;
-  sellTxs.forEach(t=>(t.items||[]).forEach(i=>{ soldAs24 += to24(i.weight, i.karat); }));
+  // ذهب دخل منه لنا (اشتريناه منه فوري)
+  let goldIn24=0;
+  txs.filter(t=>t.type==='buy')
+     .forEach(t=>(t.items||[]).forEach(i=>{ goldIn24+=to24(i.weight,i.karat); }));
 
-  // ذهب دخل منه لنا (مشتريات فورية) → يخصم من ما عليه
-  let boughtAs24 = 0;
-  buyTxs.filter(t=>t.type==='buy').forEach(t=>(t.items||[]).forEach(i=>{ boughtAs24 += to24(i.weight, i.karat); }));
+  // ذهب اشتريناه منه آجل (نحن مدينون له بهذا الذهب)
+  let buyDebtGold24=0;
+  txs.filter(t=>t.type==='buy-debt')
+     .forEach(t=>(t.items||[]).forEach(i=>{ buyDebtGold24+=to24(i.weight,i.karat); }));
 
-  // ذهب من شراء آجل — نحن مدينون بهذا الذهب للمورد
-  let buyDebtGoldAs24 = 0;
-  buyDebtTxs.forEach(t=>(t.items||[]).forEach(i=>{ buyDebtGoldAs24 += to24(i.weight, i.karat); }));
+  // كسر قبضناه منه
+  let scrapIn24=0;
+  txs.filter(t=>t.type==='scrap')
+     .forEach(t=>{ scrapIn24+=to24(t.weight,t.karat||'21'); });
 
-  // كسر قبضناه منه → يخصم
-  let scrapAs24 = 0;
-  scrapTxs.forEach(t=>{ scrapAs24 += to24(t.weight, t.karat||'21'); });
+  // ذهب سدده لنا (سداد عميل)
+  let payGoldIn24=0;
+  txs.filter(t=>t.type==='payment')
+     .forEach(t=>{ payGoldIn24+=to24(t.goldWeight,t.goldKarat||'21'); });
 
-  // ذهب سدده في السداد الرسمي → يخصم
-  let payGoldAs24 = 0;
-  payTxs.forEach(t=>{ payGoldAs24 += to24(t.goldWeight, t.goldKarat||'21'); });
+  // ذهب سددناه له (سداد مورد)
+  let payGoldOut24=0;
+  txs.filter(t=>t.type==='supplier-payment')
+     .forEach(t=>{ payGoldOut24+=to24(t.goldWeight,t.goldKarat||'21'); });
 
-  // مردودات (رجعنا له ذهب) → يخصم
-  let retAs24 = 0;
-  retTxs.forEach(t=>(t.items||[]).forEach(i=>{ retAs24 += to24(i.weight, i.karat); }));
+  // ذهب مرجوع من عميل
+  let retGold24=0;
+  txs.filter(t=>t.type==='return')
+     .forEach(t=>(t.items||[]).forEach(i=>{ retGold24+=to24(i.weight,i.karat); }));
 
-  // ذهب مرجوع للمورد (خرج منا) — يُقلل ما علينا له من ذهب
-  let suppRetGoldAs24 = 0;
-  suppRetTxs.forEach(t=>(t.items||[]).forEach(i=>{ suppRetGoldAs24 += to24(i.weight, i.karat); }));
+  // ذهب مرجوع للمورد (يُقلل ما علينا)
+  let suppRetGold24=0;
+  txs.filter(t=>t.type==='supplier-return')
+     .forEach(t=>(t.items||[]).forEach(i=>{ suppRetGold24+=to24(i.weight,i.karat); }));
 
-  // الرصيد الكلي بعيار 24
-  // موجب = العميل مدين لنا | سالب = نحن مدينون للمورد
-  // suppRetGoldAs24 يُقلل الدين علينا (يُطرح من buyDebtGoldAs24)
-  const goldOwedAs24 = Math.round((soldAs24 - boughtAs24 - (buyDebtGoldAs24 - suppRetGoldAs24) - scrapAs24 - payGoldAs24 - retAs24)*1000)/1000;
+  // ── حساب رصيد الذهب بعيار 24 ──
+  // موجب = العميل مدين لنا بذهب | سالب = نحن مدينون للمورد بذهب
+  // للعميل: بعنا له - اشترينا منه - كسر - سداد ذهب - مردود
+  // للمورد: اشترينا آجل - سددنا ذهب - مردودنا له
+  const goldOwedAs24 = Math.round((
+    goldOut24          // ذهب بعناه
+    - goldIn24         // ذهب اشتريناه فوري
+    - buyDebtGold24    // ذهب اشتريناه آجل (علينا له)
+    + suppRetGold24    // مردودنا للمورد (يُقلل ما علينا)
+    - scrapIn24        // كسر استلمناه
+    - payGoldIn24      // ذهب سدده العميل لنا
+    + payGoldOut24     // ذهب سددناه نحن للمورد (يُقلل رصيده لدينا)
+    - retGold24        // ذهب رجع من عميل
+  )*1000)/1000;
 
-  // للعرض: نحتفظ بتفاصيل كل عيار أيضاً
-  const karats=['21','18','24'];
-  const goldOwed={as24: goldOwedAs24}; // الرئيسي
-  karats.forEach(k=>{
-    const sold   = sellTxs.reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
-    const bought = buyTxs.reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
-    const scrap  = scrapTxs.filter(t=>t.karat===k).reduce((a,t)=>a+(t.weight||0),0);
-    const payG   = payTxs.filter(t=>t.goldKarat===k).reduce((a,t)=>a+(t.goldWeight||0),0);
-    const ret    = retTxs.reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
-    goldOwed[k]  = sold - bought - scrap - payG - ret;
+  // ── حساب رصيد النقد ──
+  // أجور البيع المستحقة
+  const sellAjTotal = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+                         .reduce((a,t)=>a+(t.ajTotal||0),0);
+  // أجور البيع الكاش (دخلت الصندوق فعلاً)
+  const sellCashPaid = txs.filter(t=>t.type==='sell'&&!t.isDebt)
+                          .reduce((a,t)=>a+(t.ajTotal||0),0);
+  // مدفوع مقدماً
+  const prepaid = txs.filter(t=>t.type==='sell-debt')
+                     .reduce((a,t)=>a+(t.prepaid||0),0);
+  // نقد سدده العميل (payment)
+  const clientPayCash = txs.filter(t=>t.type==='payment')
+                           .reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
+  // نقد قبضناه (cash-receipt)
+  const cashRcvd = txs.filter(t=>t.type==='cash-receipt')
+                      .reduce((a,t)=>a+(t.amount||0),0);
+  // أجور مردود من عميل (تُخصم مما عليه)
+  const retAjour = txs.filter(t=>t.type==='return')
+                      .reduce((a,t)=>a+(t.ajTotal||0),0);
+
+  // ── للمورد ──
+  // ما علينا للمورد نقداً (شراء آجل)
+  const buyDebtCash = txs.filter(t=>t.type==='buy-debt')
+                         .reduce((a,t)=>a+(t.ajTotal||t.total||0),0);
+  // ما سددناه له نقداً
+  const supplierPayCash = txs.filter(t=>t.type==='supplier-payment')
+                             .reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
+  // أجور مردود للمورد (تُقلل ما علينا)
+  const suppRetAjour = txs.filter(t=>t.type==='supplier-return')
+                          .reduce((a,t)=>a+(t.ajTotal||0),0);
+
+  // cashOwed:
+  // للعميل: أجور البيع - ما سدده نقداً - مردودات
+  // للمورد: ما علينا آجل - ما سددناه - مردودات (سالب = علينا)
+  const cashOwed = Math.round((
+    (sellAjTotal - retAjour)          // أجور البيع - مردودات
+    - (sellCashPaid + prepaid + clientPayCash + cashRcvd)  // ما استلمناه
+    - (buyDebtCash - supplierPayCash - suppRetAjour)       // دين المورد الصافي
+  )*100)/100;
+
+  // للعرض بالتفصيل
+  const goldOwed = {as24: goldOwedAs24, '21':0, '18':0, '24':0};
+  ['21','18','24'].forEach(k=>{
+    const sold = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+                    .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
+    const ret  = txs.filter(t=>t.type==='return')
+                    .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
+    const buy  = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
+                    .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
+    const scr  = txs.filter(t=>t.type==='scrap'&&t.karat===k).reduce((a,t)=>a+(t.weight||0),0);
+    const payG = txs.filter(t=>(t.type==='payment'||t.type==='supplier-payment')&&t.goldKarat===k)
+                    .reduce((a,t)=>a+(t.goldWeight||0),0);
+    goldOwed[k] = sold - buy - scr - payG - ret;
   });
 
-  // ── نقد على العميل/المورد ──
-  const ajTotal         = sellTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  const cashPaidOnSell  = sellTxs.filter(t=>!t.isDebt).reduce((a,t)=>a+(t.ajTotal||0),0);
-  const prepaid         = sellTxs.filter(t=>t.isDebt).reduce((a,t)=>a+(t.prepaid||0),0);
-  const ajourPaid       = payTxs.filter(t=>t.type==='payment').reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
-  const cashRcvd        = crTxs.reduce((a,t)=>a+(t.amount||0),0);
-  // ديون شراء آجل: نحن مدينون للمورد بهذا المبلغ
-  const buyDebtOwed     = buyDebtTxs.reduce((a,t)=>a+(t.ajTotal||t.total||0),0);
-  // سداد للمورد (نحن دفعنا له) — يُضاف لما عليه
-  const supplierPaid    = payTxs.filter(t=>t.type==='supplier-payment').reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
-  // مردودات من عميل — تُطرح من الأجور المستحقة
-  const retAjour        = retTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  // مردود للمورد — يُقلل الدين النقدي علينا (أجور المردود)
-  const suppRetAjour    = suppRetTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  const ajTotalNet      = ajTotal - retAjour;
-  const totalNaqd       = cashPaidOnSell + prepaid + ajourPaid + cashRcvd - supplierPaid;
-  // cashOwed: موجب = العميل مدين لنا | سالب = نحن مدينون للمورد
-  // buyDebtOwed = ما علينا للمورد | suppRetAjour = ما يُخصم منه بسبب المردود
-  const cashOwed        = ajTotalNet - totalNaqd - (buyDebtOwed - suppRetAjour);
-
-  return {cashOwed, goldOwed, goldOwedAs24, ajTotal, totalNaqd};
+  return {cashOwed, goldOwed, goldOwedAs24, ajTotal:sellAjTotal, totalNaqd:sellCashPaid+prepaid+clientPayCash+cashRcvd};
 }
+
 
 function calcPaySummary(){
   const ajour = parseFloat(document.getElementById('pay-ajour').value)||0;
