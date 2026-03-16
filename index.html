@@ -285,21 +285,215 @@ if(sessionStorage.getItem('auth')==='1'){
     <div class="ch">➕ فاتورة جديدة</div>
     <div class="cb">
 
+      <!-- نوع العملية -->
       <div class="st">نوع العملية</div>
-      <div class="tg">
-        <div class="tb" id="tb-sell"  onclick="ST('sell')">🟢 بيع ذهب / مجوهرات</div>
-        <div class="tb" id="tb-buy"   onclick="ST('buy')">🔴 شراء / توريد</div>
-        <div class="tb" id="tb-scrap" onclick="ST('scrap')">🟡 قبض كسر من العميل</div>
-        <div class="tb" id="tb-tf"    onclick="ST('tf')">🔵 تحويل بين الصناديق</div>
-        <div class="tb" id="tb-pay"   onclick="ST('pay')">💳 سداد لعميل / مورد</div>
-        <div class="tb" id="tb-ret"   onclick="ST('ret')">↩️ فاتورة مرجعة</div>
-        <div class="tb" id="tb-cashrcv" onclick="ST('cashrcv')">💵 قبض نقد</div>
+      <div class="tg" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr">
+        <div class="tb" id="tb-sell"   onclick="ST('sell')">🟢 بيع</div>
+        <div class="tb" id="tb-buy"    onclick="ST('buy')">🔴 شراء</div>
+        <div class="tb" id="tb-pay"    onclick="ST('pay')">💵 سداد</div>
+        <div class="tb" id="tb-cashrcv" onclick="ST('cashrcv')">📥 قبض</div>
+        <div class="tb" id="tb-tf"     onclick="ST('tf')">🔄 تحويل</div>
       </div>
 
-      <!-- Transfer -->
-      <div id="tf-sec" style="display:none">
+      <!-- ── بيع / شراء ── -->
+      <div id="inv-sec" style="display:none">
+        <!-- نوع الدفع للبيع -->
+        <div id="pay-type-row" style="display:none">
+          <div class="tg g2" style="margin-bottom:8px">
+            <div class="ptb on" id="pt-cash" onclick="SPT('cash')">💵 كاش</div>
+            <div class="ptb"    id="pt-debt" onclick="SPT('debt')">📋 آجل</div>
+          </div>
+          <div id="debt-row" style="display:none">
+            <div class="fr"><label>📅 تاريخ الاستحقاق</label><input type="date" id="f-due"></div>
+          </div>
+        </div>
+        <!-- نوع دفع الشراء -->
+        <div id="buy-type-row" style="display:none">
+          <div class="tg g2" style="margin-bottom:8px">
+            <div class="ptb on" id="bt-cash" onclick="SBT('cash')">💵 فوري</div>
+            <div class="ptb"    id="bt-debt" onclick="SBT('debt')">📋 آجل</div>
+          </div>
+          <div id="buy-debt-row" style="display:none">
+            <div class="fr"><label>📅 تاريخ الاستحقاق</label><input type="date" id="f-buy-due"></div>
+          </div>
+        </div>
+        <!-- العميل/المورد -->
         <div class="g2">
-          <div class="fr"><label>من صندوق / جهة</label>
+          <div class="fr"><label>👤 العميل / المورد</label>
+            <div class="sw"><span class="si">🔍</span>
+              <input type="text" id="f-cli-s" placeholder="ابحث أو اكتب..." autocomplete="off"
+                oninput="openCS('f-cli-s','f-cli-d','f-cli-v')" onfocus="openCS('f-cli-s','f-cli-d','f-cli-v')">
+              <input type="hidden" id="f-cli-v">
+              <div class="sdrop" id="f-cli-d"></div>
+            </div>
+          </div>
+          <div class="fr"><label>📅 تاريخ الفاتورة</label><input type="date" id="f-date"></div>
+        </div>
+        <!-- الأصناف -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
+          <span class="st" style="margin:0">الأصناف</span>
+          <button class="btn-sm btn-gold" onclick="addItem()">＋ إضافة صنف</button>
+        </div>
+        <div id="inv-items-list"></div>
+        <!-- ملخص -->
+        <div class="inv-summary">
+          <div class="inv-sum-row"><span class="lbl">🏅 إجمالي الذهب</span><span class="val" id="sum-gold">0</span></div>
+          <div class="inv-sum-row"><span class="lbl">⚒️ إجمالي الأجور</span><span class="val" id="sum-ajour">0</span></div>
+          <!-- ضريبة -->
+          <div class="inv-sum-row" style="cursor:pointer" onclick="document.getElementById('vat-check').click()">
+            <span class="lbl">🧾 ضريبة 15% <span id="vat-label" style="font-size:10px;color:var(--text2)">غير محتسبة</span></span>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="vat-check" onchange="renderInvSummary()" style="width:16px;height:16px">
+            </label>
+          </div>
+          <div class="inv-sum-row" id="vat-preview" style="display:none">
+            <span class="lbl" style="color:var(--orange)">مبلغ الضريبة</span>
+            <span class="val" id="vat-amount" style="color:var(--orange)">0</span>
+          </div>
+          <!-- خصم -->
+          <div class="inv-sum-row">
+            <span class="lbl">🏷️ خصم</span>
+            <input type="number" id="f-discount" inputmode="decimal" placeholder="0"
+              style="width:90px;text-align:left;border:1px solid var(--border);border-radius:6px;padding:4px 8px"
+              oninput="calcDiscount()">
+          </div>
+          <div class="inv-sum-row" id="discount-preview" style="display:none">
+            <span class="lbl" style="color:var(--green)">بعد الخصم</span>
+            <span class="val" id="disc-after" style="color:var(--green)">0</span>
+          </div>
+          <div class="inv-sum-row total-row">
+            <span class="lbl">💰 الإجمالي</span>
+            <span class="val" id="sum-total">0 ريال</span>
+          </div>
+        </div>
+        <div class="fr"><label>👷 الموظف (اختياري)</label>
+          <div class="sw"><span class="si">👤</span>
+            <input type="text" id="f-stf-s" placeholder="ابحث..." autocomplete="off"
+              oninput="openCS('f-stf-s','f-stf-d','f-stf-v',['موظف'])" onfocus="openCS('f-stf-s','f-stf-d','f-stf-v',['موظف'])">
+            <input type="hidden" id="f-stf-v">
+            <div class="sdrop" id="f-stf-d"></div>
+          </div>
+        </div>
+        <div class="fr"><label>📝 ملاحظات</label><input type="text" id="f-notes" placeholder="اختياري"></div>
+        <button class="btn btn-gold" onclick="saveInvoice()">💾 حفظ الفاتورة</button>
+      </div>
+
+      <!-- ── سداد (عميل أو مورد) ── -->
+      <div id="pay-sec" style="display:none">
+        <div style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--green);font-weight:700">
+          💵 سداد دين — عميل يسدد لنا أو نحن نسدد لمورد
+        </div>
+        <!-- العميل/المورد -->
+        <div class="fr"><label>👤 العميل / المورد</label>
+          <div class="sw"><span class="si">🔍</span>
+            <input type="text" id="pay-cli-s" placeholder="ابحث..." autocomplete="off"
+              oninput="openCS('pay-cli-s','pay-cli-d','pay-cli-v')"
+              onfocus="openCS('pay-cli-s','pay-cli-d','pay-cli-v')"
+              onchange="setTimeout(loadClientBalance,300)">
+            <input type="hidden" id="pay-cli-v">
+            <div class="sdrop" id="pay-cli-d"></div>
+          </div>
+        </div>
+        <!-- رصيد العميل -->
+        <div id="pay-balance-box" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">💳 الرصيد الحالي</div>
+          <div id="pay-balance-rows"></div>
+        </div>
+        <!-- بانر مورد -->
+        <div id="pay-supplier-banner" style="display:none;background:var(--orange-bg);border:1px solid var(--orange);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--orange);font-weight:700">
+          🏭 سداد لمورد — النقد يخرج من صناديقنا، الذهب يخرج من مخزوننا
+        </div>
+        <!-- صندوق النقد (للمورد) -->
+        <div id="pay-cash-safe-row" style="display:none">
+          <div class="fr"><label>💵 صندوق النقد (يُخصم منه)</label>
+            <select id="pay-cash-safe"></select>
+          </div>
+        </div>
+        <!-- المبالغ -->
+        <div class="g2">
+          <div class="fr"><label>💵 نقد (ريال)</label>
+            <input type="number" id="pay-ajour" inputmode="decimal" placeholder="0" oninput="calcPaySummary()">
+          </div>
+          <div class="fr" style="display:flex;flex-direction:column;gap:4px">
+            <label>🥇 ذهب (جرام)</label>
+            <div style="display:flex;gap:4px">
+              <input type="number" id="pay-gold-weight" inputmode="decimal" placeholder="0.000" style="flex:2" oninput="calcPaySummary()">
+              <select id="pay-gold-karat" style="flex:1" onchange="calcPaySummary()">
+                <option value="21">ع21</option>
+                <option value="18">ع18</option>
+                <option value="24">ع24</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- صندوق الذهب (للمورد) -->
+        <div id="pay-gold-safe-row" style="display:none">
+          <div class="fr"><label>🥇 صندوق الذهب (يُخصم منه)</label>
+            <select id="pay-gold-safe"></select>
+          </div>
+        </div>
+        <!-- تحويل العيارات -->
+        <div id="pay-karat-convert" style="display:none;background:var(--teal-bg);border-radius:10px;padding:10px;margin-bottom:8px"></div>
+        <!-- ملخص -->
+        <div id="pay-summary" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:10px;padding:10px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">✅ ملخص السداد</div>
+          <div id="pay-summary-rows"></div>
+        </div>
+        <div class="g2">
+          <div class="fr"><label>📝 ملاحظة</label><input type="text" id="pay-note" placeholder="اختياري"></div>
+          <div class="fr"><label>📅 التاريخ</label><input type="date" id="pay-date"></div>
+        </div>
+        <button class="btn btn-green" onclick="doPayment()">✅ تسجيل السداد</button>
+      </div>
+
+      <!-- ── قبض نقد أو ذهب ── -->
+      <div id="cashrcv-sec" style="display:none">
+        <div style="background:var(--blue-bg,#EBF3FF);border:1.5px solid var(--blue);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--blue);font-weight:700">
+          📥 قبض — استلام نقد أو ذهب من عميل أو مورد أو أي جهة
+        </div>
+        <div class="fr"><label>👤 الجهة (اختياري)</label>
+          <div class="sw"><span class="si">🔍</span>
+            <input type="text" id="cr-cli-s" placeholder="ابحث..." autocomplete="off"
+              oninput="openCS('cr-cli-s','cr-cli-d','cr-cli-v')" onfocus="openCS('cr-cli-s','cr-cli-d','cr-cli-v')">
+            <input type="hidden" id="cr-cli-v">
+            <div class="sdrop" id="cr-cli-d"></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fr">
+            <label>💵 نقد (ريال)</label>
+            <input type="number" id="cr-amount" inputmode="decimal" placeholder="0">
+          </div>
+          <div class="fr">
+            <label>🥇 ذهب (جرام)</label>
+            <div style="display:flex;gap:4px">
+              <input type="number" id="cr-gold-amount" inputmode="decimal" placeholder="0.000" style="flex:2">
+              <select id="cr-gold-karat" style="flex:1">
+                <option value="21">ع21</option>
+                <option value="18">ع18</option>
+                <option value="24">ع24</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fr"><label>💵 صندوق النقد</label><select id="cr-to"></select></div>
+          <div class="fr"><label>🥇 صندوق الذهب</label><select id="cr-gold-to"></select></div>
+        </div>
+        <div class="g2">
+          <div class="fr"><label>📝 ملاحظة</label><input type="text" id="cr-note" placeholder="اختياري"></div>
+          <div class="fr"><label>📅 التاريخ</label><input type="date" id="cr-date"></div>
+        </div>
+        <button class="btn btn-blue" onclick="saveCashReceipt()">📥 تسجيل القبض</button>
+      </div>
+
+      <!-- ── تحويل بين صناديق ── -->
+      <div id="tf-sec" style="display:none">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--text2)">
+          🔄 تحويل — نقل نقد أو ذهب من صندوق لصندوق آخر أو لعميل/مورد
+        </div>
+        <div class="g2">
+          <div class="fr"><label>📤 من</label>
             <div class="sw"><span class="si">🔍</span>
               <input type="text" id="tf-from-s" placeholder="ابحث عن صندوق أو جهة..." autocomplete="off"
                 oninput="searchTfSafe('from')" onfocus="searchTfSafe('from')">
@@ -308,7 +502,7 @@ if(sessionStorage.getItem('auth')==='1'){
             </div>
             <div id="tf-from-lbl" style="font-size:11px;color:var(--gold);margin-top:3px;font-weight:700"></div>
           </div>
-          <div class="fr"><label>إلى صندوق / جهة</label>
+          <div class="fr"><label>📥 إلى</label>
             <div class="sw"><span class="si">🔍</span>
               <input type="text" id="tf-to-s" placeholder="ابحث عن صندوق أو جهة..." autocomplete="off"
                 oninput="searchTfSafe('to')" onfocus="searchTfSafe('to')">
@@ -318,244 +512,46 @@ if(sessionStorage.getItem('auth')==='1'){
             <div id="tf-to-lbl" style="font-size:11px;color:var(--gold);margin-top:3px;font-weight:700"></div>
           </div>
         </div>
-        <!-- عيار الإيداع (يظهر فقط لو الوجهة madan أو lava) -->
-        <div id="tf-karat-row" style="display:none">
-          <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12px;color:var(--gold);font-weight:700">
-            ⚙️ إيداع في مصنع — حدد عيار الذهب المودَع
+        <!-- المبالغ -->
+        <div class="g2">
+          <div class="fr">
+            <label>💵 نقد (ريال) — 0 إن لم يكن</label>
+            <input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()">
           </div>
-          <div class="fr"><label>عيار الذهب المودَع</label>
-            <select id="tf-karat">
-              <option value="21">عيار 21</option>
-              <option value="18">عيار 18</option>
-              <option value="24">عيار 24</option>
-            </select>
+          <div class="fr">
+            <label>🥇 ذهب (جرام) — 0 إن لم يكن</label>
+            <div style="display:flex;gap:4px">
+              <input type="number" id="tf-gold-amt" inputmode="decimal" placeholder="0.000" style="flex:2" oninput="onTfAmtChange()">
+              <select id="tf-karat" style="flex:1">
+                <option value="21">ع21</option>
+                <option value="18">ع18</option>
+                <option value="24">ع24</option>
+              </select>
+            </div>
           </div>
         </div>
-        <!-- سحب من madan/lava (دايماً عيار 24) -->
-        <div id="tf-withdraw-info" style="display:none">
-          <div style="background:var(--teal-bg);border:1.5px solid var(--teal);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12px;color:var(--teal);font-weight:700">
-            ✨ سحب من المصنع — الوزن بعيار 24 صافي
+        <!-- معاينة مصنع -->
+        <div id="tf-karat-row" style="display:none">
+          <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--gold);font-weight:700">
+            ⚙️ صندوق المصنع — حدد عيار الذهب
           </div>
+        </div>
+        <div id="tf-withdraw-info" style="display:none">
           <div id="tf-madan-detail" style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px"></div>
         </div>
+        <div id="tf-preview" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:8px;font-size:12px"></div>
         <div class="g2">
-          <div class="fr"><label id="tf-amt-lbl">الكمية</label><input type="number" id="tf-amt" inputmode="decimal" placeholder="0" oninput="onTfAmtChange()"></div>
-          <div class="fr"><label>النوع</label><select id="tf-type-sel" onchange="updateTfAmtLabel()"><option value="auto">🔄 تلقائي حسب الصندوق</option><option value="cash">💵 نقد (ريال)</option><option value="gold">🥇 ذهب (جرام)</option></select></div>
-          <input type="hidden" id="tf-gold-amt" value="0">
-          <input type="hidden" id="tf-unit" value="جرام">
+          <div class="fr"><label>📝 ملاحظة</label><input type="text" id="tf-note" placeholder="اختياري"></div>
+          <div class="fr"><label>📅 التاريخ</label><input type="date" id="tf-date"></div>
         </div>
-        <!-- معاينة التحويل -->
-        <div id="tf-preview" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px"></div>
-        <div class="fr"><label>ملاحظة</label><input type="text" id="tf-note" placeholder="اختياري"></div>
-        <div class="fr"><label>📅 التاريخ (اختياري)</label><input type="date" id="tf-date"></div>
         <button class="btn btn-blue" onclick="doTransfer()">🔄 تنفيذ التحويل</button>
       </div>
 
-      <!-- Payment/Sedad -->
-      <div id="pay-sec" style="display:none">
-        <div style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--green)">
-          💳 سداد يشمل <b>أجور نقداً</b> + <b>ذهب مقابل ذهب</b>
-        </div>
-        <div class="fr">
-          <label>العميل / المورد</label>
-          <div class="sw"><span class="si">🔍</span>
-            <input type="text" id="pay-cli-s" placeholder="ابحث..." autocomplete="off"
-              oninput="openCS('pay-cli-s','pay-cli-d','pay-cli-v');setTimeout(loadClientBalance,300)"
-              onfocus="openCS('pay-cli-s','pay-cli-d','pay-cli-v')">
-            <input type="hidden" id="pay-cli-v">
-            <div class="sdrop" id="pay-cli-d"></div>
-          </div>
-        </div>
-        <!-- بانر المورد -->
-        <div id="pay-supplier-banner" style="display:none;background:#FFF3E0;border:1.5px solid #FF9800;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:#E65100">
-          🏭 <b>سداد مورد</b> — المبالغ ستُخصم من صناديقك
-        </div>
-        <div id="pay-balance-box" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid var(--gold)">
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:6px">📊 الرصيد على العميل</div>
-          <div id="pay-balance-rows"></div>
-        </div>
-        <!-- ── الأجور ── -->
-        <div class="st">⚒️ الأجور (نقداً)</div>
-        <div class="fr"><label>مبلغ الأجور (ريال)</label>
-          <input type="number" id="pay-ajour" inputmode="decimal" placeholder="0" oninput="calcPaySummary()">
-        </div>
-        <!-- للمورد: من أي صندوق نقد -->
-        <div id="pay-cash-safe-row" style="display:none;margin-bottom:10px">
-          <div style="background:#FFF3E0;border:1.5px solid #FF9800;border-radius:10px;padding:8px 12px">
-            <div style="font-size:11px;color:#B45309;font-weight:700;margin-bottom:5px">📦 خصم الأجور من صندوق:</div>
-            <select id="pay-cash-safe" style="width:100%;border:1px solid #FF9800;border-radius:8px;padding:8px;font-family:Tajawal,sans-serif;font-size:13px;background:white">
-              <option value="cash">💵 الصندوق النقدي</option>
-              <option value="khazina">🏦 الخزينة</option>
-            </select>
-          </div>
-        </div>
-        <input type="hidden" id="pay-from" value="cash">
-
-        <!-- ── الذهب ── -->
-        <div class="st">🏅 الذهب</div>
-        <div class="g2">
-          <div class="fr"><label>العيار المُسلَّم</label>
-            <select id="pay-gold-karat" onchange="calcPaySummary()">
-              <option value="21">عيار 21</option>
-              <option value="18">عيار 18</option>
-              <option value="24">عيار 24 صافي</option>
-            </select>
-          </div>
-          <div class="fr"><label>الوزن (جرام)</label>
-            <input type="number" id="pay-gold-weight" step="0.001" inputmode="decimal" placeholder="0.000" oninput="calcPaySummary()">
-          </div>
-        </div>
-
-        <!-- تحويل العيارات — يظهر تلقائياً عند إدخال وزن -->
-        <div id="pay-karat-convert" style="display:none;background:var(--teal-bg);border:1.5px solid var(--teal);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px"></div>
-
-        <!-- للمورد: من أي صندوق ذهب -->
-        <div id="pay-gold-safe-row" style="display:none;margin-bottom:10px">
-          <div style="background:#FFF3E0;border:1.5px solid #FF9800;border-radius:10px;padding:8px 12px">
-            <div style="font-size:11px;color:#B45309;font-weight:700;margin-bottom:5px">📦 خصم الذهب من صندوق:</div>
-            <select id="pay-gold-safe" style="width:100%;border:1px solid #FF9800;border-radius:8px;padding:8px;font-family:Tajawal,sans-serif;font-size:13px;background:white">
-              <option value="scrap21">🗃️ كسر عيار 21</option>
-              <option value="scrap18">🗃️ كسر عيار 18</option>
-              <option value="pure24">✨ ذهب صافي 24</option>
-              <option value="madan">⚙️ المعدن</option>
-              <option value="lava">🔥 لافا</option>
-            </select>
-          </div>
-        </div>
-        <input type="hidden" id="pay-gold-dest" value="scrap21">
-        <div id="pay-summary" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;border:2px solid var(--green)">
-          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">✅ ملخص السداد</div>
-          <div id="pay-summary-rows"></div>
-        </div>
-        <div class="fr"><label>📅 التاريخ (اختياري)</label><input type="date" id="pay-date"></div>
-        <div class="fr"><label>ملاحظة</label><input type="text" id="pay-note" placeholder="اختياري..."></div>
-        <button class="btn btn-green" onclick="doPayment()">💳 تنفيذ السداد</button>
-      </div>
-
-      <!-- Return Invoice -->
-      <div id="ret-sec" style="display:none">
-        <div class="tg" style="margin-bottom:12px;grid-template-columns:1fr 1fr 1fr">
-          <div class="tb" id="rtb-inv"  onclick="setRetType('inv')">📋 إرجاع من فاتورة</div>
-          <div class="tb" id="rtb-scrap" onclick="setRetType('scrap')">🗃️ مردود كسر للزبون</div>
-          <div class="tb" id="rtb-supp" onclick="setRetType('supp')">🏭 مردود للمورد</div>
-        </div>
-
-        <!-- إرجاع جزئي من فاتورة -->
-        <div id="ret-inv-sec" style="display:none">
-          <div style="background:var(--purple-bg);border:1.5px solid var(--purple);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--purple)">
-            ↩️ حدد كمية الجرامات المرجعة من كل صنف (جزئي أو كامل)
-          </div>
-          <div class="fr">
-            <label>ابحث عن الفاتورة الأصلية</label>
-            <div class="sw"><span class="si">🔍</span>
-              <input type="text" id="ret-s" placeholder="اسم العميل..." autocomplete="off"
-                oninput="searchRetInv()" onfocus="searchRetInv()">
-              <div class="sdrop" id="ret-d"></div>
-            </div>
-          </div>
-          <div id="ret-items-list"></div>
-          <div class="fr"><label>سبب الإرجاع</label><input type="text" id="ret-reason" placeholder="اختياري..."></div>
-          <div class="fr"><label>تاريخ المردود</label><input type="date" id="ret-date"></div>
-          <button class="btn" style="background:var(--purple);color:white" onclick="saveReturnInv()">↩️ تنفيذ الإرجاع</button>
-        </div>
-
-        <!-- مردود كسر للزبون -->
-        <div id="ret-scrap-sec" style="display:none">
-          <div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--orange)">
-            🗃️ كسر مرجوع للزبون — ناقص عيار أو فيه عيب
-          </div>
-          <div class="g2">
-            <div class="fr"><label>العيار</label>
-              <select id="rsc-karat">
-                <option value="21">عيار 21</option>
-                <option value="18">عيار 18</option>
-                <option value="24">عيار 24 صافي</option>
-              </select>
-            </div>
-            <div class="fr"><label>الوزن المرجوع (جرام)</label>
-              <input type="number" id="rsc-weight" placeholder="0.000" step="0.001" inputmode="decimal">
-            </div>
-          </div>
-          <div class="fr"><label>يُخصم من صندوق</label>
-            <select id="rsc-from">
-              <option value="scrap21">🗃️ كسر عيار 21</option>
-              <option value="scrap18">🗃️ كسر عيار 18</option>
-              <option value="pure24">✨ ذهب صافي 24</option>
-            </select>
-          </div>
-          <div class="fr">
-            <label>الزبون</label>
-            <div class="sw"><span class="si">🔍</span>
-              <input type="text" id="rsc-cli-s" placeholder="ابحث..." autocomplete="off"
-                oninput="openCS('rsc-cli-s','rsc-cli-d','rsc-cli-v')" onfocus="openCS('rsc-cli-s','rsc-cli-d','rsc-cli-v')">
-              <input type="hidden" id="rsc-cli-v">
-              <div class="sdrop" id="rsc-cli-d"></div>
-            </div>
-          </div>
-          <div class="fr"><label>سبب الإرجاع</label>
-            <select id="rsc-reason">
-              <option value="ناقص عيار">ناقص عيار</option>
-              <option value="عيب في البضاعة">عيب في البضاعة</option>
-              <option value="غلط في الوزن">غلط في الوزن</option>
-              <option value="أخرى">أخرى</option>
-            </select>
-          </div>
-          <div class="fr"><label>ملاحظة إضافية</label><input type="text" id="rsc-note" placeholder="اختياري..."></div>
-          <button class="btn" style="background:var(--orange);color:white" onclick="saveScrapReturn()">↩️ تنفيذ مردود الكسر</button>
-        </div>
-        <!-- مردود للمورد -->
-        <div id="ret-supp-sec" style="display:none">
-          <div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--orange)">
-            🏭 إرجاع ذهب للمورد — يُخصم من صناديقنا ويُقلل الدين
-          </div>
-          <div class="fr">
-            <label>ابحث عن فاتورة الشراء الأصلية</label>
-            <div class="sw"><span class="si">🔍</span>
-              <input type="text" id="rsupp-s" placeholder="اسم المورد..." autocomplete="off"
-                oninput="searchSuppRet()" onfocus="searchSuppRet()">
-              <div class="sdrop" id="rsupp-d"></div>
-            </div>
-          </div>
-          <div id="rsupp-items-list"></div>
-          <div class="fr"><label>سبب الإرجاع</label><input type="text" id="rsupp-reason" placeholder="اختياري..."></div>
-          <div class="fr"><label>تاريخ المردود</label><input type="date" id="rsupp-date"></div>
-          <button class="btn" style="background:var(--orange);color:white" onclick="saveSupplierReturn()">↩️ تنفيذ مردود المورد</button>
-        </div>
-      </div>
-
-      <!-- Cash Receipt -->
-      <div id="cashrcv-sec" style="display:none">
-        <div style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--green)">
-          💵 قبض نقد من عميل أو مورد أو موظف — يُضاف للصندوق المختار
-        </div>
-        <div class="g2">
-          <div class="fr"><label>المبلغ (ريال)</label>
-            <input type="number" id="cr-amount" placeholder="0" inputmode="decimal">
-          </div>
-          <div class="fr"><label>يُضاف إلى صندوق</label>
-            <select id="cr-to"></select>
-          </div>
-        </div>
-        <div class="fr">
-          <label>من (عميل / مورد / موظف)</label>
-          <div class="sw"><span class="si">🔍</span>
-            <input type="text" id="cr-cli-s" placeholder="ابحث أو اكتب..." autocomplete="off"
-              oninput="openCS('cr-cli-s','cr-cli-d','cr-cli-v')" onfocus="openCS('cr-cli-s','cr-cli-d','cr-cli-v')">
-            <input type="hidden" id="cr-cli-v">
-            <div class="sdrop" id="cr-cli-d"></div>
-          </div>
-        </div>
-        <div class="fr"><label>📅 التاريخ (اختياري)</label>
-          <input type="date" id="cr-date">
-        </div>
-        <div class="fr"><label>ملاحظة</label>
-          <input type="text" id="cr-note" placeholder="اختياري">
-        </div>
-        <button class="btn btn-green" onclick="saveCashReceipt()">💵 قبض النقد</button>
-      </div>
-
-      <!-- Scrap -->
+      <!-- ── قبض كسر (tab مخفي — يُفعّل من scrap) ── -->
       <div id="scrap-sec" style="display:none">
+        <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;font-weight:700">
+          🗃️ قبض كسر / ذهب خام من عميل
+        </div>
         <div class="g2">
           <div class="fr"><label>العيار</label>
             <select id="sc-karat">
@@ -564,143 +560,120 @@ if(sessionStorage.getItem('auth')==='1'){
               <option value="24">عيار 24 صافي</option>
             </select>
           </div>
-          <div class="fr"><label>الوزن (جرام)</label><input type="number" id="sc-weight" placeholder="0.000" step="0.001" inputmode="decimal"></div>
-        </div>
-        <div class="fr"><label>يودع في صندوق</label>
-          <select id="sc-dest">
-            <option value="scrap">🗃️ صندوق الكسر</option>
-            <option value="pure24">✨ ذهب صافي 24</option>
-            <option value="khazina">🏦 الخزينة</option>
-            <option value="madan">⚙️ المعدن</option>
-            <option value="lava">🔥 لافا</option>
-          </select>
-        </div>
-        <div class="fr">
-          <label>العميل</label>
-          <div class="sw"><span class="si">🔍</span>
-            <input type="text" id="sc-cli-s" placeholder="ابحث..." autocomplete="off"
-              oninput="openCS('sc-cli-s','sc-cli-d','sc-cli-v')" onfocus="openCS('sc-cli-s','sc-cli-d','sc-cli-v')">
-            <input type="hidden" id="sc-cli-v">
-            <div class="sdrop" id="sc-cli-d"></div>
+          <div class="fr"><label>الوزن (جرام)</label>
+            <input type="number" id="sc-weight" placeholder="0.000" step="0.001" inputmode="decimal">
           </div>
         </div>
-        <div class="fr"><label>ملاحظات</label><input type="text" id="sc-notes" placeholder="اختياري"></div>
-        <div class="fr"><label>📅 التاريخ (اختياري)</label><input type="date" id="sc-date"></div>
-        <button class="btn btn-gold" onclick="saveScrap()">💾 حفظ</button>
+        <div class="g2">
+          <div class="fr"><label>يُودع في</label>
+            <select id="sc-dest">
+              <option value="scrap21">🗃️ كسر 21</option>
+              <option value="scrap18">🗃️ كسر 18</option>
+              <option value="pure24">✨ صافي 24</option>
+            </select>
+          </div>
+          <div class="fr"><label>👤 العميل</label>
+            <div class="sw"><span class="si">🔍</span>
+              <input type="text" id="sc-cli-s" placeholder="ابحث..." autocomplete="off"
+                oninput="openCS('sc-cli-s','sc-cli-d','sc-cli-v')" onfocus="openCS('sc-cli-s','sc-cli-d','sc-cli-v')">
+              <input type="hidden" id="sc-cli-v">
+              <div class="sdrop" id="sc-cli-d"></div>
+            </div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fr"><label>📝 ملاحظات</label><input type="text" id="sc-notes" placeholder="اختياري"></div>
+          <div class="fr"><label>📅 التاريخ</label><input type="date" id="sc-date"></div>
+        </div>
+        <button class="btn btn-gold" onclick="saveScrap()">💾 حفظ قبض الكسر</button>
       </div>
 
-      <!-- Main invoice (sell/buy) -->
-      <div id="inv-sec">
-
-        <!-- Invoice items -->
-        <div class="st" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span>أصناف الفاتورة</span>
-          <button class="btn-sm btn-gold" onclick="addItem()">＋ إضافة صنف</button>
+      <!-- ── مردود (tab مخفي) ── -->
+      <div id="ret-sec" style="display:none">
+        <div class="tg" style="margin-bottom:12px;grid-template-columns:1fr 1fr 1fr">
+          <div class="tb" id="rtb-inv"   onclick="setRetType('inv')">📋 مردود من فاتورة</div>
+          <div class="tb" id="rtb-scrap" onclick="setRetType('scrap')">🗃️ مردود كسر للزبون</div>
+          <div class="tb" id="rtb-supp"  onclick="setRetType('supp')">🏭 مردود للمورد</div>
         </div>
-
-        <div class="inv-items" id="inv-items-list"></div>
-
-        <!-- Invoice summary -->
-        <div class="inv-summary" id="inv-summary">
-          <div class="inv-sum-row"><span class="lbl">إجمالي الذهب (جرام)</span><span class="val" id="sum-gold">0 ريال</span></div>
-          <div class="inv-sum-row"><span class="lbl">إجمالي الأجور</span><span class="val" id="sum-ajour">0 ريال</span></div>
-          <div class="inv-sum-row total-row"><span class="lbl">الإجمالي الكلي</span><span class="val" id="sum-total">0 ريال</span></div>
-        </div>
-
-        <!-- ضريبة 15% -->
-        <div id="vat-row" style="margin-bottom:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px">
-            <div>
-              <div style="font-size:13px;font-weight:700">🧾 ضريبة القيمة المضافة</div>
-              <div style="font-size:11px;color:var(--text2)">15% من إجمالي الأجور</div>
+        <!-- مردود من فاتورة عميل -->
+        <div id="ret-inv-sec">
+          <div class="fr"><label>ابحث عن الفاتورة الأصلية</label>
+            <div class="sw"><span class="si">🔍</span>
+              <input type="text" id="ret-s" placeholder="اسم العميل أو المبلغ..." autocomplete="off"
+                oninput="searchRetInv()" onfocus="searchRetInv()">
+              <div class="sdrop" id="ret-d"></div>
             </div>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" id="vat-check" onchange="renderInvSummary()" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
-              <span id="vat-label" style="font-size:12px;color:var(--text2)">غير محتسبة</span>
-            </label>
           </div>
-          <div id="vat-preview" style="display:none;background:#fff8e1;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:12px;display:flex;justify-content:space-between">
-            <span style="color:#b45309">ضريبة 15%</span>
-            <span id="vat-amount" style="font-weight:700;color:#b45309">0 ريال</span>
+          <div id="ret-items-list"></div>
+          <div class="g2">
+            <div class="fr"><label>سبب الإرجاع</label><input type="text" id="ret-reason" placeholder="اختياري"></div>
+            <div class="fr"><label>📅 التاريخ</label><input type="date" id="ret-date"></div>
           </div>
+          <button class="btn" style="background:var(--purple);color:white" onclick="saveReturnInv()">↩️ تنفيذ الإرجاع</button>
         </div>
-
-        <!-- Payment type (sell only) -->
-        <div id="pay-type-row">
-          <div class="st">نوع البيع</div>
-          <div class="pt-grid">
-            <div class="ptb on" id="pt-cash" onclick="SPT('cash')">💵 فوري (كاش)</div>
-            <div class="ptb"    id="pt-debt" onclick="SPT('debt')">📅 آجل (دين)</div>
-          </div>
-          <div id="debt-row" style="display:none">
-            <div class="fr"><label>تاريخ الاستحقاق (اختياري)</label><input type="date" id="f-due"></div>
-          </div>
-          <input type="hidden" id="f-prepaid" value="0">
-        </div>
-        <!-- نوع الشراء (buy only) -->
-        <div id="buy-type-row" style="display:none">
-          <div class="st">نوع الشراء</div>
-          <div class="pt-grid">
-            <div class="ptb on" id="bt-cash" onclick="SBT('cash')">💵 فوري (كاش)</div>
-            <div class="ptb"    id="bt-debt" onclick="SBT('debt')">📅 آجل (دين للمورد)</div>
-          </div>
-          <div id="buy-debt-row" style="display:none">
-            <div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--orange)">
-              🏭 ستكون مدينًا للمورد بهذا المبلغ — يظهر في كشف حسابه وصفحة المديونيات
+        <!-- مردود كسر للزبون -->
+        <div id="ret-scrap-sec" style="display:none">
+          <div class="g2">
+            <div class="fr"><label>العيار</label>
+              <select id="rsc-karat">
+                <option value="21">عيار 21</option>
+                <option value="18">عيار 18</option>
+                <option value="24">عيار 24 صافي</option>
+              </select>
             </div>
-            <div class="fr"><label>تاريخ الاستحقاق (اختياري)</label><input type="date" id="f-buy-due"></div>
+            <div class="fr"><label>الوزن (جرام)</label>
+              <input type="number" id="rsc-weight" placeholder="0.000" step="0.001" inputmode="decimal">
+            </div>
           </div>
-        </div>
-
-        <!-- hidden cash/goldpay kept for save logic -->
-        <input type="hidden" id="f-cash" value="0">
-        <input type="hidden" id="f-goldpay" value="0">
-
-        <!-- Client -->
-        <div class="fr">
-          <label>العميل / المورد / الموزع</label>
-          <div class="sw"><span class="si">🔍</span>
-            <input type="text" id="f-cli-s" placeholder="ابحث بالاسم..." autocomplete="off"
-              oninput="openCS('f-cli-s','f-cli-d','f-cli-v')" onfocus="openCS('f-cli-s','f-cli-d','f-cli-v')"
-              onkeydown="navD(event,'f-cli-d','f-cli-s','f-cli-v')">
-            <input type="hidden" id="f-cli-v">
-            <div class="sdrop" id="f-cli-d"></div>
+          <div class="g2">
+            <div class="fr"><label>من صندوق</label>
+              <select id="rsc-from">
+                <option value="scrap21">🗃️ كسر 21</option>
+                <option value="scrap18">🗃️ كسر 18</option>
+                <option value="pure24">✨ صافي 24</option>
+              </select>
+            </div>
+            <div class="fr"><label>👤 للعميل</label>
+              <div class="sw"><span class="si">🔍</span>
+                <input type="text" id="rsc-cli-s" placeholder="ابحث..." autocomplete="off"
+                  oninput="openCS('rsc-cli-s','rsc-cli-d','rsc-cli-v')" onfocus="openCS('rsc-cli-s','rsc-cli-d','rsc-cli-v')">
+                <input type="hidden" id="rsc-cli-v">
+                <div class="sdrop" id="rsc-cli-d"></div>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <!-- Staff -->
-        <div class="fr">
-          <label>الموظف المسؤول</label>
-          <div class="sw"><span class="si">👤</span>
-            <input type="text" id="f-stf-s" placeholder="ابحث عن موظف..." autocomplete="off"
-              oninput="openCS('f-stf-s','f-stf-d','f-stf-v',['موظف'])" onfocus="openCS('f-stf-s','f-stf-d','f-stf-v',['موظف'])">
-            <input type="hidden" id="f-stf-v">
-            <div class="sdrop" id="f-stf-d"></div>
+          <div class="g2">
+            <div class="fr"><label>السبب</label><input type="text" id="rsc-reason" placeholder="اختياري"></div>
+            <div class="fr"><label>ملاحظة</label><input type="text" id="rsc-note" placeholder="اختياري"></div>
           </div>
+          <button class="btn" style="background:var(--orange);color:white" onclick="saveScrapReturn()">↩️ مردود كسر</button>
         </div>
-
-        <div class="fr">
-          <label>🏷️ خصم (ريال) — يضاف لصندوق الخصم تلقائياً</label>
-          <input type="number" id="f-discount" inputmode="decimal" placeholder="0" style="background:#FFF0E0" oninput="calcDiscount()">
+        <!-- مردود للمورد -->
+        <div id="ret-supp-sec" style="display:none">
+          <div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--orange)">
+            🏭 إرجاع ذهب للمورد — يُخصم من صناديقنا ويُقلل الدين
+          </div>
+          <div class="fr"><label>ابحث عن فاتورة الشراء الأصلية</label>
+            <div class="sw"><span class="si">🔍</span>
+              <input type="text" id="rsupp-s" placeholder="اسم المورد..." autocomplete="off"
+                oninput="searchSuppRet()" onfocus="searchSuppRet()">
+              <div class="sdrop" id="rsupp-d"></div>
+            </div>
+          </div>
+          <div id="rsupp-items-list"></div>
+          <div class="g2">
+            <div class="fr"><label>سبب الإرجاع</label><input type="text" id="rsupp-reason" placeholder="اختياري"></div>
+            <div class="fr"><label>📅 التاريخ</label><input type="date" id="rsupp-date"></div>
+          </div>
+          <button class="btn" style="background:var(--orange);color:white" onclick="saveSupplierReturn()">↩️ تنفيذ مردود المورد</button>
         </div>
-        <div id="discount-preview" style="display:none;background:var(--orange-bg);border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:10px;justify-content:space-between">
-          <span style="color:var(--orange)">بعد الخصم</span>
-          <span id="disc-after" style="font-weight:700;color:var(--orange)"></span>
-        </div>
-        <div class="fr">
-          <label>📅 تاريخ الفاتورة</label>
-          <input type="date" id="f-date">
-          <div style="font-size:11px;color:var(--text2);margin-top:3px">اتركه فارغاً لاستخدام تاريخ اليوم تلقائياً</div>
-        </div>
-        <div class="fr"><label>ملاحظات الفاتورة</label><input type="text" id="f-notes" placeholder="اختياري..."></div>
-        <button class="btn btn-gold" onclick="saveInvoice()">💾 حفظ الفاتورة</button>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- HISTORY -->
+
 <div id="pg-hist" class="pg">
   <div class="card">
     <div class="ch">📋 سجل الفواتير والمعاملات</div>
@@ -1437,23 +1410,37 @@ function selStmt(val,label){
 // ── Type selector ─────────────────────────────────────────────────
 function ST(t){
   selType=t;
-  ['sell','buy','scrap','tf'].forEach(k=>{
-    const el=document.getElementById('tb-'+k);
-    el.className='tb';
-    if(k===t)el.classList.add({sell:'s-sell',buy:'s-buy',scrap:'s-scrap',tf:'s-tf'}[k]);
+  // إخفاء كل الأقسام
+  ['inv-sec','tf-sec','pay-sec','ret-sec','cashrcv-sec','scrap-sec'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
   });
-  document.getElementById('tf-sec').style.display=t==='tf'?'block':'none';
-  document.getElementById('pay-sec').style.display=t==='pay'?'block':'none';
-  document.getElementById('ret-sec').style.display=t==='ret'?'block':'none';
-  if(t==='ret') setRetType('inv');
-  document.getElementById('cashrcv-sec').style.display=t==='cashrcv'?'block':'none';
-  if(t==='cashrcv') fillCrDrops();
-  document.getElementById('scrap-sec').style.display=t==='scrap'?'block':'none';
-  document.getElementById('inv-sec').style.display=(t==='sell'||t==='buy')?'block':'none';
+  // تفعيل التبويب المناسب
+  ['sell','buy','pay','cashrcv','tf'].forEach(k=>{
+    const el=document.getElementById('tb-'+k);
+    if(el){
+      el.className='tb';
+      if(k===t) el.classList.add({sell:'s-sell',buy:'s-buy',pay:'s-tf',cashrcv:'s-scrap',tf:'s-tf'}[k]||'s-sell');
+    }
+  });
+  // إظهار القسم المناسب
   if(t==='sell'||t==='buy'){
+    document.getElementById('inv-sec').style.display='block';
     document.getElementById('pay-type-row').style.display=t==='sell'?'block':'none';
     document.getElementById('buy-type-row').style.display=t==='buy'?'block':'none';
-    if(t==='buy'){ SBT('cash'); }
+    if(t==='buy') SBT('cash');
+  } else if(t==='pay'){
+    document.getElementById('pay-sec').style.display='block';
+  } else if(t==='cashrcv'){
+    document.getElementById('cashrcv-sec').style.display='block';
+    fillCrDrops();
+  } else if(t==='tf'){
+    document.getElementById('tf-sec').style.display='block';
+  } else if(t==='ret'){
+    document.getElementById('ret-sec').style.display='block';
+    setRetType('inv');
+  } else if(t==='scrap'){
+    document.getElementById('scrap-sec').style.display='block';
   }
 }
 ST('sell');
@@ -1779,33 +1766,17 @@ function doTransfer(){
   const txType=toCli?'payment':(fromCli?'cash-receipt':'transfer');
   const tfKarat=document.getElementById('tf-karat')?.value||null;
 
-  // تحديد نوع التحويل: تلقائي أو يدوي
-  const fromKey2 = fromKey||from;
-  const fromSafeType = SM[fromKey2]?.type || (
-    ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(fromKey2)?'gold':'cash'
-  );
-  const userSel = document.getElementById('tf-type-sel')?.value||'auto';
-  let finalAmt, finalGAmt, finalUnit;
-  if(userSel==='cash'){
-    // المستخدم اختار نقد صراحةً
-    finalAmt=amt; finalGAmt=0; finalUnit='ريال';
-  } else if(userSel==='gold'){
-    // المستخدم اختار ذهب صراحةً
-    finalAmt=0; finalGAmt=amt; finalUnit='جرام';
-  } else {
-    // تلقائي حسب نوع الصندوق
-    finalAmt  = fromSafeType==='gold' ? 0 : amt;
-    finalGAmt = fromSafeType==='gold' ? amt : 0;
-    finalUnit = fromSafeType==='gold' ? 'جرام' : 'ريال';
-  }
-
+  // الخانتان مستقلتان: amt=نقد، gAmt=ذهب
+  // نسجل معاملة واحدة تحمل الاثنين
   S.transactions.unshift({
     id:Date.now(), date:tfISO, type:txType,
     fromSafe:fromKey||from, toSafe:toKey||to,
-    amount:finalAmt, goldAmount:finalGAmt, unit:finalUnit,
+    amount:amt,        // نقد بالريال
+    goldAmount:gAmt,   // ذهب بالجرام
+    goldKarat:tfKarat||'21',
+    unit: gAmt>0&&amt<=0 ? 'جرام' : 'ريال',
     notes:note||'تحويل',
-    goldKarat:tfKarat,
-    client:cliName, items:[], total:finalAmt||finalGAmt, cash:txType==='cash-receipt'?finalAmt:0, goldPay:0
+    client:cliName, items:[], total:amt||gAmt, cash:txType==='cash-receipt'?amt:0, goldPay:gAmt
   });
   sv(); renderAll();
   document.getElementById('tf-amt').value='';
@@ -2945,49 +2916,63 @@ function calcDiscount(){
 
 // ── Render ALL ─────────────────────────────────────────────────────
 function fillCrDrops(){
-  const sel=document.getElementById('cr-to');
-  if(!sel) return;
-  sel.innerHTML='';
-  Object.entries(SM).forEach(([k,s])=>{
-    if(s.unit==='ريال'){
-      const o=document.createElement('option');
-      o.value=k; o.textContent=s.label;
-      sel.appendChild(o);
-    }
-  });
+  // صندوق النقد
+  const selCash = document.getElementById('cr-to');
+  if(selCash){
+    selCash.innerHTML = Object.entries(SM)
+      .filter(([k,s])=>s.type==='cash'||s.type==='both')
+      .map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');
+  }
+  // صندوق الذهب
+  const selGold = document.getElementById('cr-gold-to');
+  if(selGold){
+    selGold.innerHTML = Object.entries(SM)
+      .filter(([k,s])=>s.type==='gold'||s.type==='both')
+      .map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');
+  }
 }
 
 function saveCashReceipt(){
-  const amount=parseFloat(document.getElementById('cr-amount').value)||0;
-  const toSafe=document.getElementById('cr-to').value;
-  const client=document.getElementById('cr-cli-v').value||document.getElementById('cr-cli-s').value;
-  const note=document.getElementById('cr-note').value;
-  const crDate=document.getElementById('cr-date')?.value;
-  const crISO=crDate?new Date(crDate).toISOString():new Date().toISOString();
+  const amount    = parseFloat(document.getElementById('cr-amount')?.value)||0;
+  const goldAmt   = parseFloat(document.getElementById('cr-gold-amount')?.value)||0;
+  const goldKarat = document.getElementById('cr-gold-karat')?.value||'21';
+  const toSafe    = document.getElementById('cr-to')?.value||'cash';
+  const goldToSafe= document.getElementById('cr-gold-to')?.value||'scrap21';
+  const client    = document.getElementById('cr-cli-v')?.value||document.getElementById('cr-cli-s')?.value||'';
+  const note      = document.getElementById('cr-note')?.value||'';
+  const crDate    = document.getElementById('cr-date')?.value;
+  const crISO     = crDate?new Date(crDate).toISOString():new Date().toISOString();
 
-  if(!amount||amount<=0){toast('⚠️ أدخل المبلغ');return;}
-  if(!toSafe){toast('⚠️ اختر الصندوق');return;}
+  if(amount<=0 && goldAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
 
-  // الصندوق يُحسب في calcSafes
+  // نقد
+  if(amount>0){
+    S.transactions.unshift({
+      id:Date.now(), date:crISO, type:'cash-receipt',
+      amount, toSafe, client,
+      notes:'📥 قبض نقد'+(note?' — '+note:''),
+      items:[], total:amount, cash:amount, goldPay:0
+    });
+  }
+  // ذهب
+  if(goldAmt>0){
+    S.transactions.unshift({
+      id:Date.now()+1, date:crISO, type:'scrap',
+      karat:goldKarat, weight:goldAmt, dest:goldToSafe, client,
+      notes:'📥 قبض ذهب'+(note?' — '+note:''),
+      items:[], total:0, cash:0, goldPay:0
+    });
+  }
 
-  S.transactions.unshift({
-    id:Date.now(),
-    date:crISO,
-    type:'cash-receipt',
-    amount,
-    toSafe,
-    client:client||'',
-    notes:'💵 قبض نقد'+(note?' — '+note:''),
-    items:[],total:amount,cash:amount,goldPay:0
+  sv(); renderAll();
+  ['cr-amount','cr-gold-amount','cr-note','cr-date'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
   });
-
-  sv();renderAll();
-  document.getElementById('cr-amount').value='';
-  document.getElementById('cr-note').value='';
-  document.getElementById('cr-cli-s').value='';
-  document.getElementById('cr-cli-v').value='';
-  document.getElementById('cr-date').value='';
-  toast('✅ تم قبض '+fmt(amount)+' ريال');
+  ['cr-cli-s','cr-cli-v'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const msg = [amount>0?fmt(amount)+' ريال':'', goldAmt>0?fmtG(goldAmt)+' ج ع'+goldKarat:''].filter(Boolean).join(' + ');
+  toast('✅ تم القبض: '+msg);
 }
 
 function appConfirm(msg, cb){
