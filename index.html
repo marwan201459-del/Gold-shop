@@ -1106,42 +1106,42 @@ function calcSafes(){
     }
 
     // ── تحويل بين صناديق ──
-    // القاعدة الذهبية: المرسِل ينقص، المستقبِل يزيد — دائماً
+    // القاعدة: amt=نقد يطرح/يضيف من الجانب النقدي
+    //          gAmt=ذهب يطرح/يضيف من الجانب الذهبي
+    // المرسل ينقص، المستقبل يزيد — دائماً
     else if(t.type==='transfer'){
       const fk=t.fromSafe, tk=t.toSafe;
-      const amt=t.amount||0;      // نقد بالريال
-      const gAmt=t.goldAmount||0; // ذهب بالجرام
+      const amt =t.amount||0;      // نقد بالريال
+      const gAmt=t.goldAmount||0;  // ذهب بالجرام
 
-      const getSafeGoldKey = k => k.startsWith('cs_')?(k+'_gold'):(k+'Gold');
-      const isBothSafe = k => SM[k]?.type==='both';
-      const isGoldSafe = k => SM[k]?.type==='gold' ||
-        ['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(k);
+      // دالة مساعدة: تعطي مفتاح النقد ومفتاح الذهب لأي صندوق
+      const getKeys = k => {
+        const type = SM[k]?.type ||
+          (['scrap21','scrap18','pure24','worked21','worked18','madan','lava'].includes(k)?'gold':'cash');
+        const goldKeys = {
+          // صناديق نقدية بجانب ذهبي
+          khazina:'khazinaGold', madan:'madanGold', lava:'lavaGold',
+          cash:'cashGold'
+        };
+        const goldKey = k.startsWith('cs_') ? (k+'_gold') : (goldKeys[k]||k);
+        return {
+          cashKey: (type==='gold') ? null : k,       // مفتاح النقد (null إن لا يقبل نقد)
+          goldKey: (type==='cash') ? (goldKeys[k]||null) : (type==='gold' ? k : goldKey)
+        };
+      };
 
       // ── من (خروج) ──
-      if(fk && !fk.startsWith('__cli__') && safes[fk]!=null){
-        if(isBothSafe(fk)){
-          // صندوق مختلط: نقد من الرصيد النقدي، ذهب من الرصيد الذهبي
-          if(amt>0) safes[fk] -= amt;
-          if(gAmt>0){ const gk=getSafeGoldKey(fk); if(safes[gk]!=null) safes[gk]-=gAmt; }
-        } else if(isGoldSafe(fk)){
-          // صندوق ذهبي: اطرح gAmt (أو amt كـ fallback لو المستخدم وضعه هناك)
-          safes[fk] -= (gAmt>0 ? gAmt : amt);
-        } else {
-          // صندوق نقدي: اطرح amt (أو gAmt كـ fallback)
-          safes[fk] -= (amt>0 ? amt : gAmt);
-        }
+      if(fk && !fk.startsWith('__cli__')){
+        const {cashKey:fCash, goldKey:fGold} = getKeys(fk);
+        if(amt>0 && fCash && safes[fCash]!=null) safes[fCash] -= amt;
+        if(gAmt>0 && fGold && safes[fGold]!=null) safes[fGold] -= gAmt;
       }
 
       // ── إلى (دخول) ──
-      if(tk && !tk.startsWith('__cli__') && safes[tk]!=null){
-        if(isBothSafe(tk)){
-          if(amt>0) safes[tk] += amt;
-          if(gAmt>0){ const gk=getSafeGoldKey(tk); if(safes[gk]!=null) safes[gk]+=gAmt; }
-        } else if(isGoldSafe(tk)){
-          safes[tk] += (gAmt>0 ? gAmt : amt);
-        } else {
-          safes[tk] += (amt>0 ? amt : gAmt);
-        }
+      if(tk && !tk.startsWith('__cli__')){
+        const {cashKey:tCash, goldKey:tGold} = getKeys(tk);
+        if(amt>0 && tCash && safes[tCash]!=null) safes[tCash] += amt;
+        if(gAmt>0 && tGold && safes[tGold]!=null) safes[tGold] += gAmt;
       }
     }
 
@@ -2820,9 +2820,16 @@ function getClientBalance(cli){
   // نقد سدده العميل (payment)
   const clientPayCash = txs.filter(t=>t.type==='payment')
                            .reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
-  // نقد قبضناه (cash-receipt)
-  const cashRcvd = txs.filter(t=>t.type==='cash-receipt')
-                      .reduce((a,t)=>a+(t.amount||0),0);
+  // نقد قبضناه (cash-receipt أو تحويل من العميل إلى صندوقنا)
+  const cashRcvd = txs.filter(t=>
+      t.type==='cash-receipt' ||
+      (t.type==='transfer' && t.fromSafe===('__cli__'+cli))
+    ).reduce((a,t)=>a+(t.amount||0),0);
+
+  // نقد دفعناه للعميل (تحويل من صندوقنا إلى العميل)
+  const cashPaidToCli = txs.filter(t=>
+      t.type==='transfer' && t.toSafe===('__cli__'+cli)
+    ).reduce((a,t)=>a+(t.amount||0),0);
   // أجور مردود من عميل (تُخصم مما عليه)
   const retAjour = txs.filter(t=>t.type==='return')
                       .reduce((a,t)=>a+(t.ajTotal||0),0);
@@ -2844,6 +2851,7 @@ function getClientBalance(cli){
   const cashOwed = Math.round((
     (sellAjTotal - retAjour)          // أجور البيع - مردودات
     - (sellCashPaid + prepaid + clientPayCash + cashRcvd)  // ما استلمناه
+    + cashPaidToCli                   // ما دفعناه للعميل (تحويل)
     - (buyDebtCash - supplierPayCash - suppRetAjour)       // دين المورد الصافي
   )*100)/100;
 
@@ -3926,10 +3934,11 @@ function renderStmt(){
     const goldBal24 = goldDet24 ? goldDet24.balance24 : 0;
 
     const txs=S.transactions.filter(t=>{
-      if(t.type==='transfer') return t.fromSafe===k||t.toSafe===k;
-      if(t.type==='payment') return t.fromSafe===k;
-      if(t.type==='supplier-payment') return t.fromSafe===k;
-      if(t.type==='cash-receipt') return t.toSafe===k;
+      // كل التحويلات التي تمر بهذا الصندوق
+      if(t.type==='transfer')         return t.fromSafe===k || t.toSafe===k;
+      if(t.type==='payment')          return t.fromSafe===k; // يدخل من fromSafe
+      if(t.type==='supplier-payment') return t.fromSafe===k; // يخرج من fromSafe
+      if(t.type==='cash-receipt')     return t.toSafe===k;   // يدخل إلى toSafe
       return false;
     }).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
@@ -3949,44 +3958,39 @@ function renderStmt(){
     txs.forEach(t=>{
       const dt=fmtDate(t.date);
       const lbl=TLBL[t.type]||t.type;
-      let isOut=false, amt=0, unit='ريال';
+      const isOut_tf = t.fromSafe===k; // للتحويل: خرج من هنا؟
+
+      // بناء سطر الحركة
+      const makeRow = (isOut, amount, unit, extra='') => {
+        if(amount<=0) return '';
+        const clr = isOut?'var(--red)':'var(--green)';
+        const amtFmt = unit==='جرام' ? fmtG(amount) : fmt(amount);
+        return `<div class="stmt-row">
+          <div>
+            <div style="font-size:12px;font-weight:700">${lbl}${t.client?' — '+t.client:''}${extra}</div>
+            ${t.notes&&t.notes!=='تحويل'?`<div style="font-size:10px;color:var(--gold)">📝 ${t.notes}</div>`:''}
+            <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
+          </div>
+          <span style="font-weight:700;color:${clr}">${isOut?'−':'+'}${amtFmt} ${unit}</span>
+        </div>`;
+      };
 
       if(t.type==='transfer'){
-        isOut = (t.fromSafe===k);
-        // نوع الصندوق يحدد أي قيمة نعرض
-        if(safeT==='gold'){
-          amt = t.goldAmount>0 ? t.goldAmount : t.amount||0;
-          unit = 'جرام';
-        } else {
-          amt = t.amount||0;
-          unit = 'ريال';
-        }
+        // عرض النقد والذهب كلٌّ على حدة
+        const cashAmt = t.amount||0;
+        const goldAmt = t.goldAmount||0;
+        if(cashAmt>0) html += makeRow(isOut_tf, cashAmt, 'ريال', cashAmt>0&&goldAmt>0?' 💵':'');
+        if(goldAmt>0) html += makeRow(isOut_tf, goldAmt, 'جرام', cashAmt>0&&goldAmt>0?' 🥇':'');
+        if(cashAmt<=0 && goldAmt<=0) return;
       } else if(t.type==='payment'){
-        // سداد العميل → نقد يدخل صندوقنا = +
-        isOut = false;
-        amt = t.ajourPaid||t.amount||0;
-        unit = 'ريال';
+        const amt = t.ajourPaid||t.amount||0;
+        html += makeRow(false, amt, 'ريال'); // سداد عميل → يدخل = +
       } else if(t.type==='supplier-payment'){
-        // سداد المورد → نقد يخرج = -
-        isOut = true;
-        amt = t.ajourPaid||t.amount||0;
-        unit = 'ريال';
+        const amt = t.ajourPaid||t.amount||0;
+        html += makeRow(true, amt, 'ريال');  // سداد مورد → يخرج = -
       } else if(t.type==='cash-receipt'){
-        isOut = false;
-        amt = t.amount||0;
-        unit = 'ريال';
+        html += makeRow(false, t.amount||0, 'ريال');
       }
-      if(amt<=0) return;
-      const clr = isOut?'var(--red)':'var(--green)';
-      const amtFmt = unit==='جرام' ? fmtG(amt) : fmt(amt);
-      html+=`<div class="stmt-row">
-        <div>
-          <div style="font-size:12px;font-weight:700">${lbl}${t.client?' — '+t.client:''}</div>
-          ${t.notes&&t.notes!=='تحويل'?`<div style="font-size:10px;color:var(--gold)">📝 ${t.notes}</div>`:''}
-          <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
-        </div>
-        <span style="font-weight:700;color:${clr}">${isOut?'−':'+'}${amtFmt} ${unit}</span>
-      </div>`;
     });
     // لو صندوق مختلط — أضف كشف الذهب بعيار 24
     if(safeT==='both' && goldDet24 && goldDet24.rows && goldDet24.rows.length>0){
