@@ -446,15 +446,17 @@ if(sessionStorage.getItem('auth')==='1'){
             <input type="number" id="pay-ajour" inputmode="decimal" placeholder="0" oninput="calcPaySummary()">
           </div>
           <div class="fr" style="display:flex;flex-direction:column;gap:4px">
-            <label>🥇 ذهب (جرام)</label>
-            <div style="display:flex;gap:4px">
-              <input type="number" id="pay-gold-weight" inputmode="decimal" placeholder="0.000" style="flex:2" oninput="calcPaySummary()">
-              <select id="pay-gold-karat" style="flex:1" onchange="calcPaySummary()">
-                <option value="21">ع21</option>
-                <option value="18">ع18</option>
-                <option value="24">ع24</option>
-              </select>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <label>🥇 أصناف الذهب</label>
+              <button type="button" onclick="addPayGoldItem()"
+                style="font-size:11px;background:var(--gold);color:#1C1208;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit;font-weight:700">
+                ＋ إضافة صنف
+              </button>
             </div>
+            <div id="pay-gold-items-list"></div>
+            <!-- حقول مخفية للتوافق مع الكود القديم -->
+            <input type="hidden" id="pay-gold-weight" value="0">
+            <input type="hidden" id="pay-gold-karat" value="21">
           </div>
         </div>
         <!-- خصم وفكة -->
@@ -469,12 +471,9 @@ if(sessionStorage.getItem('auth')==='1'){
             <div id="pay-change-hint" style="font-size:10px;color:var(--text2);margin-top:3px">← تُضاف/تُخصم من الصندوق</div>
           </div>
         </div>
-        <!-- صندوق الذهب — يظهر عند إدخال ذهب -->
-        <div class="fr">
-          <label id="pay-gold-safe-lbl">🥇 صندوق الذهب</label>
-          <select id="pay-gold-safe"></select>
-        </div>
+        <!-- صناديق الذهب لكل صنف — تُعرض في pay-gold-items-list -->
         <div id="pay-gold-safe-row" style="display:none"><!-- فارغ للتوافق --></div>
+        <input type="hidden" id="pay-gold-safe" value="scrap21">
         <!-- تحويل العيارات -->
         <div id="pay-karat-convert" style="display:none;background:var(--teal-bg);border-radius:10px;padding:10px;margin-bottom:8px"></div>
         <!-- ملخص -->
@@ -1141,9 +1140,21 @@ function calcSafes(){
       if((t.change||0)>0 && t.fromSafe && safes[t.fromSafe]!=null)
         safes[t.fromSafe] += (t.change||0);
       // discount: لا أثر هنا — يُعالج في getClientBalance كتسوية
-      // ذهب يدخل كسرنا
-      if(t.goldWeight && t.goldWeight > 0){
-        const w = t.goldWeight, gk = t.goldKarat||'18';
+      // ذهب يدخل صناديقنا — يدعم أكثر من صنف
+      const pItems = t.goldItems||[];
+      if(pItems.length>0){
+        // أصناف متعددة
+        pItems.forEach(gi=>{
+          const w=gi.weight||0, gk=gi.karat||'18';
+          const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+          if(w>0 && safes[dest]!=null) safes[dest] += w;
+          if(k21(gk)) safes.debt21 -= w;
+          else if(k18(gk)) safes.debt18 -= w;
+          else if(k24(gk)) safes.debt24 -= w;
+        });
+      } else if(t.goldWeight && t.goldWeight>0){
+        // توافق مع السجلات القديمة (صنف واحد)
+        const w=t.goldWeight, gk=t.goldKarat||'18';
         if(t.goldDest && safes[t.goldDest]!=null) safes[t.goldDest] += w;
         if(k21(gk)) safes.debt21 -= w;
         else if(k18(gk)) safes.debt18 -= w;
@@ -1163,11 +1174,18 @@ function calcSafes(){
         if(safes[sf]!=null) safes[sf] -= (t.change||0);
       }
       // discount: لا أثر هنا — يُعالج في getClientBalance كتسوية
-      // ذهب يخرج من الصندوق المحدد
-      if(t.goldWeight && t.goldWeight > 0){
-        const w   = t.goldWeight;
-        const gk  = t.goldKarat||'21';
-        const dest= t.goldSafe||(gk==='21'?'scrap21':gk==='24'?'pure24':'scrap18');
+      // ذهب يخرج من الصناديق المحددة — يدعم أكثر من صنف
+      const sItems = t.goldItems||[];
+      if(sItems.length>0){
+        sItems.forEach(gi=>{
+          const w=gi.weight||0, gk=gi.karat||'21';
+          const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+          if(w>0 && safes[dest]!=null) safes[dest] -= w;
+        });
+      } else if(t.goldWeight && t.goldWeight>0){
+        // توافق مع السجلات القديمة
+        const w=t.goldWeight, gk=t.goldKarat||'21';
+        const dest=t.goldSafe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
         if(safes[dest]!=null) safes[dest] -= w;
       }
     }
@@ -1501,6 +1519,8 @@ function ST(t){
     document.getElementById('pay-sec').style.display='block';
     // إعادة تعيين الخيار عند فتح الشاشة
     currentPayType = null;
+    payGoldItems = []; payGoldCounter = 0;
+    renderPayGoldItems();
     ['pay-type-receipt','pay-type-payment'].forEach(id=>{
       const el=document.getElementById(id);
       if(el){el.style.border='2px solid var(--border)';el.style.background='var(--surface2)';}
@@ -2759,6 +2779,103 @@ function delCustomSafe(id){
 // ── Payment / Sedad ────────────────────────────────────────────────
 // متغير عالمي لنوع العملية — لا شيء محدد ابتداءً
 let currentPayType = null;
+let payGoldItems = []; // مصفوفة أصناف الذهب في السداد
+let payGoldCounter = 0;
+
+function addPayGoldItem(){
+  payGoldCounter++;
+  const id = payGoldCounter;
+  const gSM = getSM();
+  // بناء قائمة صناديق الذهب
+  const safeOpts = Object.entries(gSM)
+    .filter(([k,v])=> v.type==='gold' && !k.startsWith('debt'))
+    .map(([k,v])=>`<option value="${k}">${v.label} (${fmtG(S.safes[k]||0)}ج)</option>`)
+    .join('');
+
+  payGoldItems.push({id, karat:'21', weight:0, safe:'scrap21'});
+  renderPayGoldItems();
+}
+
+function removePayGoldItem(id){
+  payGoldItems = payGoldItems.filter(i=>i.id!==id);
+  renderPayGoldItems();
+  calcPaySummary();
+}
+
+function updatePayGoldItem(id, field, val){
+  const item = payGoldItems.find(i=>i.id===id);
+  if(!item) return;
+  if(field==='weight') item.weight = parseFloat(val)||0;
+  else item[field] = val;
+  // تحديث الصندوق الافتراضي عند تغيير العيار
+  if(field==='karat'){
+    if(val==='21') item.safe='scrap21';
+    else if(val==='18') item.safe='scrap18';
+    else item.safe='pure24';
+  }
+  renderPayGoldItems();
+  calcPaySummary();
+}
+
+function renderPayGoldItems(){
+  const el = document.getElementById('pay-gold-items-list');
+  if(!el) return;
+
+  if(!payGoldItems.length){
+    el.innerHTML = `<div style="font-size:11px;color:var(--text2);padding:6px 0">لا توجد أصناف ذهب — اضغط "＋ إضافة صنف"</div>`;
+    return;
+  }
+
+  const isReceipt = currentPayType === 'receipt';
+  const dirLabel  = isReceipt ? '+' : '−';
+  const dirClr    = isReceipt ? 'var(--green)' : 'var(--red)';
+  const gSM = getSM();
+  const safeOpts = k => Object.entries(gSM)
+    .filter(([sk,v])=> v.type==='gold' && !sk.startsWith('debt'))
+    .map(([sk,v])=>`<option value="${sk}" ${sk===k?'selected':''}>${v.label}</option>`)
+    .join('');
+
+  el.innerHTML = payGoldItems.map((item,idx)=>{
+    const as24 = Math.round(item.weight * parseFloat(item.karat)/24 * 1000)/1000;
+    return `<div style="background:var(--surface2);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:700;color:var(--text2)">صنف ${idx+1}</span>
+        <button type="button" onclick="removePayGoldItem(${item.id})"
+          style="background:var(--red);color:white;border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px;margin-right:auto">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+        <div>
+          <div style="font-size:10px;color:var(--text2);margin-bottom:2px">العيار</div>
+          <select style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+            onchange="updatePayGoldItem(${item.id},'karat',this.value)">
+            <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
+            <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
+            <option value="24" ${item.karat==='24'?'selected':''}>عيار 24</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الوزن (جرام)</div>
+          <input type="number" value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
+            style="width:100%;padding:6px;border-radius:6px;border:1.5px solid var(--gold);background:var(--surface);font-family:inherit;box-sizing:border-box"
+            oninput="updatePayGoldItem(${item.id},'weight',this.value)">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الصندوق</div>
+        <select style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+          onchange="updatePayGoldItem(${item.id},'safe',this.value)">
+          ${safeOpts(item.safe)}
+        </select>
+      </div>
+      ${as24>0?`<div style="margin-top:6px;font-size:11px;text-align:left">
+        <span style="color:var(--text2)">= </span>
+        <span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+
 
 function setPayType(type){
   currentPayType = type;
@@ -2900,15 +3017,21 @@ function getClientBalance(cli){
   txs.filter(t=>t.type==='transfer' && t.toSafe===('__cli__'+cli) && (t.goldAmount||0)>0)
      .forEach(t=>{ goldTransferOut24+=to24(t.goldAmount,t.goldKarat||'21'); });
 
-  // ذهب سدده لنا (سداد عميل)
+  // ذهب سدده لنا (سداد عميل) — يدعم goldItems وgoldWeight
   let payGoldIn24=0;
-  txs.filter(t=>t.type==='payment')
-     .forEach(t=>{ payGoldIn24+=to24(t.goldWeight,t.goldKarat||'21'); });
+  txs.filter(t=>t.type==='payment').forEach(t=>{
+    if(t.goldItems&&t.goldItems.length>0)
+      t.goldItems.forEach(gi=>{ payGoldIn24+=to24(gi.weight,gi.karat||'21'); });
+    else payGoldIn24+=to24(t.goldWeight,t.goldKarat||'21');
+  });
 
-  // ذهب سددناه له (سداد مورد)
+  // ذهب سددناه له (سداد مورد) — يدعم goldItems وgoldWeight
   let payGoldOut24=0;
-  txs.filter(t=>t.type==='supplier-payment')
-     .forEach(t=>{ payGoldOut24+=to24(t.goldWeight,t.goldKarat||'21'); });
+  txs.filter(t=>t.type==='supplier-payment').forEach(t=>{
+    if(t.goldItems&&t.goldItems.length>0)
+      t.goldItems.forEach(gi=>{ payGoldOut24+=to24(gi.weight,gi.karat||'21'); });
+    else payGoldOut24+=to24(t.goldWeight,t.goldKarat||'21');
+  });
 
   // ذهب مرجوع من عميل
   let retGold24=0;
@@ -3085,7 +3208,8 @@ function calcPaySummary(){
   // ── ملخص السداد ──
   const sumBox  = document.getElementById('pay-summary');
   const sumRows = document.getElementById('pay-summary-rows');
-  const hasAny = ajour>0 || goldW>0 || disc>0 || change>0;
+  const payGoldTotal = payGoldItems.reduce((a,i)=>a+(i.weight||0),0); // إجمالي من المصفوفة
+  const hasAny = ajour>0 || payGoldTotal>0 || disc>0 || change>0;
   if(hasAny){
     let html = '';
     // الإجمالي الكلي
@@ -3095,7 +3219,26 @@ function calcPaySummary(){
     if(ajour>0)  html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>💵 نقد مدفوع (يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--green)">${fmt(ajour)} ريال</span></div>`;
     if(change>0) html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🪙 فكة (${isSupp?'تُخصم':'تُضاف'} من الصندوق)</span><span style="font-weight:700;color:${isSupp?'var(--red)':'var(--green)'}"> ${isSupp?'-':'+'} ${fmt(change)} ريال</span></div>`;
     if(disc>0)   html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🏷️ خصم تسوية (لا يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--orange)">${fmt(disc)} ريال</span></div>`;
-    if(goldW>0)  html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🏅 ذهب عيار ${goldK}</span><span style="font-weight:700;color:var(--gold)">${fmtG(goldW)} جرام</span></div>`;
+    // أصناف الذهب
+    if(payGoldItems.length>0){
+      const totalGold24 = payGoldItems.reduce((a,i)=>a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000,0);
+      payGoldItems.forEach(i=>{
+        if(i.weight>0){
+          const as24=Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000;
+          html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
+            <span>🥇 ذهب عيار ${i.karat} → ${getSM()[i.safe]?.label||i.safe}</span>
+            <span style="font-weight:700;color:var(--gold)">${fmtG(i.weight)} ج (${fmtG(as24)} ع24)</span>
+          </div>`;
+        }
+      });
+      if(payGoldItems.filter(i=>i.weight>0).length>1){
+        const tot24=payGoldItems.reduce((a,i)=>a+(i.weight>0?Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000:0),0);
+        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-top:1px solid var(--border);margin-top:2px">
+          <span style="font-weight:700">📊 إجمالي الذهب</span>
+          <span style="font-weight:900;color:var(--gold)">${fmtG(Math.round(tot24*1000)/1000)} ج ع24</span>
+        </div>`;
+      }
+    }
     sumRows.innerHTML = html;
     sumBox.style.display = 'block';
   } else {
@@ -3122,8 +3265,11 @@ function doPayment(){
 
   const client  = document.getElementById('pay-cli-v').value||document.getElementById('pay-cli-s').value;
   const ajour   = parseFloat(document.getElementById('pay-ajour').value)||0;
-  const goldW   = parseFloat(document.getElementById('pay-gold-weight').value)||0;
-  const goldK   = document.getElementById('pay-gold-karat').value||'21';
+  // أصناف الذهب من المصفوفة (تدعم أكثر من عيار)
+  const goldItems = payGoldItems.filter(i=>(i.weight||0)>0);
+  // للتوافق مع الكود القديم — إجمالي الوزن والعيار الأول
+  const goldW = goldItems.reduce((a,i)=>a+(i.weight||0),0);
+  const goldK = goldItems.length===1 ? goldItems[0].karat : '24'; // عيار 24 للإجمالي
   const discount= parseFloat(document.getElementById('pay-discount')?.value)||0;
   const change  = parseFloat(document.getElementById('pay-change')?.value)||0;
   const note    = document.getElementById('pay-note').value;
@@ -3131,14 +3277,15 @@ function doPayment(){
   const payISO  = payDate ? new Date(payDate).toISOString() : new Date().toISOString();
 
   if(!client){ toast('⚠️ اختر الجهة'); return; }
-  if(!ajour&&!goldW&&!discount&&!change){ toast('⚠️ أدخل المبلغ أو الخصم'); return; }
+  if(!ajour&&goldItems.length===0&&!discount&&!change){ toast('⚠️ أدخل المبلغ أو أضف صنف ذهب'); return; }
 
   // الصندوق المستخدم
   const cashSafe = document.getElementById('pay-cash-safe')?.value || 'cash';
-  const goldSafe = document.getElementById('pay-gold-safe')?.value ||
-                   (goldK==='21'?'scrap21': goldK==='24'?'pure24':'scrap18');
-  const goldDest = isReceipt ? goldSafe : goldSafe; // القبض: يضيف | الدفع: يطرح
-  const goldAs24 = goldW * parseFloat(goldK)/24;
+  // goldSafe للتوافق (لصنف واحد) — goldItems تحمل صناديقها الخاصة
+  const goldSafe = goldItems.length===1 ? goldItems[0].safe :
+                   (goldItems.length>0 ? goldItems[0].safe : 'scrap21');
+  const goldDest = goldSafe;
+  const goldAs24 = goldItems.reduce((a,i)=>a+i.weight*parseFloat(i.karat)/24,0);
 
   // النوع المحاسبي:
   //   payment          = قبض (نقد يدخل، صندوق+)
@@ -3150,6 +3297,7 @@ function doPayment(){
     type: txType,
     fromSafe:cashSafe, goldDest, goldSafe,
     goldKarat:goldK, goldWeight:goldW, goldAs24,
+    goldItems: goldItems.map(i=>({karat:i.karat, weight:i.weight, safe:i.safe})),
     client,
     ajourPaid:ajour, amount:ajour,
     discount,   // خصم تسوية — لا يؤثر على الصندوق
@@ -3165,6 +3313,8 @@ function doPayment(){
   // مسح الحقول
   ['pay-ajour','pay-gold-weight','pay-note','pay-discount','pay-change','pay-cli-s','pay-cli-v','pay-date']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  payGoldItems = []; payGoldCounter = 0;
+  renderPayGoldItems();
   document.getElementById('pay-balance-box').style.display='none';
   document.getElementById('pay-summary').style.display='none';
   document.getElementById('pay-content').style.display='none';
