@@ -390,9 +390,34 @@ if(sessionStorage.getItem('auth')==='1'){
 
       <!-- ── سداد (عميل أو مورد) ── -->
       <div id="pay-sec" style="display:none">
-        <div style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--green);font-weight:700">
-          💵 سداد دين — عميل يسدد لنا أو نحن نسدد لمورد
+        <!-- ══ نوع العملية — إلزامي ══ -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">
+            📌 نوع العملية <span style="color:var(--red)">*</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button type="button" id="pay-type-receipt"
+              onclick="setPayType('receipt')"
+              style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit">
+              <div style="font-size:20px;margin-bottom:4px">📥</div>
+              <div style="font-size:13px;font-weight:700;color:var(--green)">قبض</div>
+              <div style="font-size:10px;color:var(--text2)">نقد يدخل إلينا</div>
+              <div style="font-size:10px;color:var(--green);margin-top:2px">الصندوق +</div>
+            </button>
+            <button type="button" id="pay-type-payment"
+              onclick="setPayType('payment')"
+              style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit">
+              <div style="font-size:20px;margin-bottom:4px">📤</div>
+              <div style="font-size:13px;font-weight:700;color:var(--red)">دفع</div>
+              <div style="font-size:10px;color:var(--text2)">نقد يخرج منا</div>
+              <div style="font-size:10px;color:var(--red);margin-top:2px">الصندوق −</div>
+            </button>
+          </div>
+          <!-- شرح العملية -->
+          <div id="pay-type-hint" style="display:none;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:11px;font-weight:700"></div>
         </div>
+        <!-- ══ محتوى السداد (يظهر بعد اختيار النوع) ══ -->
+        <div id="pay-content" style="display:none">
         <!-- العميل/المورد -->
         <div class="fr"><label>👤 العميل / المورد</label>
           <div class="sw"><span class="si">🔍</span>
@@ -409,16 +434,12 @@ if(sessionStorage.getItem('auth')==='1'){
           <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">💳 الرصيد الحالي</div>
           <div id="pay-balance-rows"></div>
         </div>
-        <!-- بانر مورد -->
-        <div id="pay-supplier-banner" style="display:none;background:var(--orange-bg);border:1px solid var(--orange);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--orange);font-weight:700">
-          🏭 سداد لمورد — النقد يخرج من صناديقنا، الذهب يخرج من مخزوننا
+        <!-- صندوق النقد — يظهر دائماً -->
+        <div class="fr">
+          <label id="pay-cash-safe-lbl">💵 صندوق النقد</label>
+          <select id="pay-cash-safe"></select>
         </div>
-        <!-- صندوق النقد (للمورد) -->
-        <div id="pay-cash-safe-row" style="display:none">
-          <div class="fr"><label>💵 صندوق النقد (يُخصم منه)</label>
-            <select id="pay-cash-safe"></select>
-          </div>
-        </div>
+        <div id="pay-cash-safe-row" style="display:none"><!-- فارغ للتوافق --></div>
         <!-- المبالغ -->
         <div class="g2">
           <div class="fr"><label>💵 نقد مدفوع (ريال)</label>
@@ -448,12 +469,12 @@ if(sessionStorage.getItem('auth')==='1'){
             <div id="pay-change-hint" style="font-size:10px;color:var(--text2);margin-top:3px">← تُضاف/تُخصم من الصندوق</div>
           </div>
         </div>
-        <!-- صندوق الذهب (للمورد) -->
-        <div id="pay-gold-safe-row" style="display:none">
-          <div class="fr"><label>🥇 صندوق الذهب (يُخصم منه)</label>
-            <select id="pay-gold-safe"></select>
-          </div>
+        <!-- صندوق الذهب — يظهر عند إدخال ذهب -->
+        <div class="fr">
+          <label id="pay-gold-safe-lbl">🥇 صندوق الذهب</label>
+          <select id="pay-gold-safe"></select>
         </div>
+        <div id="pay-gold-safe-row" style="display:none"><!-- فارغ للتوافق --></div>
         <!-- تحويل العيارات -->
         <div id="pay-karat-convert" style="display:none;background:var(--teal-bg);border-radius:10px;padding:10px;margin-bottom:8px"></div>
         <!-- ملخص -->
@@ -465,7 +486,8 @@ if(sessionStorage.getItem('auth')==='1'){
           <div class="fr"><label>📝 ملاحظة</label><input type="text" id="pay-note" placeholder="اختياري"></div>
           <div class="fr"><label>📅 التاريخ</label><input type="date" id="pay-date"></div>
         </div>
-        <button class="btn btn-green" onclick="doPayment()">✅ تسجيل السداد</button>
+        <button class="btn btn-green" id="pay-submit-btn" onclick="doPayment()">✅ تسجيل</button>
+        </div><!-- end pay-content -->
       </div>
 
       <!-- ── قبض نقد أو ذهب ── -->
@@ -1477,6 +1499,15 @@ function ST(t){
     if(t==='buy') SBT('cash');
   } else if(t==='pay'){
     document.getElementById('pay-sec').style.display='block';
+    // إعادة تعيين الخيار عند فتح الشاشة
+    currentPayType = null;
+    ['pay-type-receipt','pay-type-payment'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){el.style.border='2px solid var(--border)';el.style.background='var(--surface2)';}
+    });
+    const pc=document.getElementById('pay-content'); if(pc) pc.style.display='none';
+    const ph=document.getElementById('pay-type-hint'); if(ph) ph.style.display='none';
+    loadClientBalance();
   } else if(t==='cashrcv'){
     document.getElementById('cashrcv-sec').style.display='block';
     fillCrDrops();
@@ -2726,40 +2757,86 @@ function delCustomSafe(id){
 }
 
 // ── Payment / Sedad ────────────────────────────────────────────────
+// متغير عالمي لنوع العملية — لا شيء محدد ابتداءً
+let currentPayType = null;
+
+function setPayType(type){
+  currentPayType = type;
+  const isReceipt = type === 'receipt';
+
+  // تمييز الزر المختار
+  const rBtn = document.getElementById('pay-type-receipt');
+  const pBtn = document.getElementById('pay-type-payment');
+  if(rBtn){
+    rBtn.style.border    = isReceipt ? '2px solid var(--green)' : '2px solid var(--border)';
+    rBtn.style.background= isReceipt ? 'var(--green-bg)' : 'var(--surface2)';
+  }
+  if(pBtn){
+    pBtn.style.border    = !isReceipt ? '2px solid var(--red)' : '2px solid var(--border)';
+    pBtn.style.background= !isReceipt ? 'var(--red-bg)' : 'var(--surface2)';
+  }
+
+  // إظهار hint
+  const hint = document.getElementById('pay-type-hint');
+  if(hint){
+    hint.style.display = 'block';
+    if(isReceipt){
+      hint.style.background = 'var(--green-bg)';
+      hint.style.border     = '1px solid var(--green)';
+      hint.style.color      = 'var(--green)';
+      hint.textContent      = '📥 قبض: سيتم إضافة المبلغ إلى الصندوق (+)';
+    } else {
+      hint.style.background = 'var(--red-bg)';
+      hint.style.border     = '1px solid var(--red)';
+      hint.style.color      = 'var(--red)';
+      hint.textContent      = '📤 دفع: سيتم خصم المبلغ من الصندوق (−)';
+    }
+  }
+
+  // إظهار محتوى السداد
+  const content = document.getElementById('pay-content');
+  if(content) content.style.display = 'block';
+
+  // تحديث زر الإرسال
+  const btn = document.getElementById('pay-submit-btn');
+  if(btn){
+    btn.textContent  = isReceipt ? '📥 تسجيل القبض' : '📤 تسجيل الدفع';
+    btn.style.background = isReceipt ? 'var(--green)' : 'var(--red)';
+  }
+
+  // تحديث ملخص السداد
+  calcPaySummary();
+}
+
 function loadClientBalance(){
   const cli=document.getElementById('pay-cli-v').value||document.getElementById('pay-cli-s').value;
   if(!cli){document.getElementById('pay-balance-box').style.display='none';return;}
   
-  // كشف نوع الجهة
-  const clientObj = S.clients.find(c=>c.name===cli);
-  const isSupplier = clientObj && (clientObj.type==='مورد'||clientObj.type==='موزع');
-  
-  // بانر المورد + خانة الصناديق
-  document.getElementById('pay-supplier-banner').style.display = isSupplier ? 'block' : 'none';
-  document.getElementById('pay-cash-safe-row').style.display   = isSupplier ? 'block' : 'none';
-  document.getElementById('pay-gold-safe-row').style.display   = isSupplier ? 'block' : 'none';
-
-  if(isSupplier){
-    const gSM = window.getSM ? window.getSM() : {};
-    // صناديق النقد — كل صناديق الريال
-    const cashSel = document.getElementById('pay-cash-safe');
-    if(cashSel){
-      const prevC = cashSel.value||'cash';
-      cashSel.innerHTML = Object.entries(gSM)
-        .filter(([k,v])=> v.unit==='ريال' && !k.startsWith('debt') && k!=='discount')
-        .map(([k,v])=>`<option value="${k}" ${prevC===k?'selected':''}>${v.label}</option>`)
-        .join('');
-    }
-    // صناديق الذهب — كل صناديق الجرام بدون debt
-    const goldSel = document.getElementById('pay-gold-safe');
-    if(goldSel){
-      const prevG = goldSel.value||'scrap21';
-      goldSel.innerHTML = Object.entries(gSM)
-        .filter(([k,v])=> v.unit==='جرام' && !k.startsWith('debt'))
-        .map(([k,v])=>`<option value="${k}" ${prevG===k?'selected':''}>${v.label}</option>`)
-        .join('');
-    }
+  // ── ملء الصناديق دائماً (بغض النظر عن نوع الجهة) ──
+  const gSM = window.getSM ? window.getSM() : SM;
+  const cashSel = document.getElementById('pay-cash-safe');
+  if(cashSel){
+    const prevC = cashSel.value||'cash';
+    cashSel.innerHTML = Object.entries(gSM)
+      .filter(([k,v])=> (v.type==='cash'||v.type==='both') && !k.startsWith('debt') && k!=='discount')
+      .map(([k,v])=>`<option value="${k}" ${prevC===k?'selected':''}>${v.label} (${fmt(S.safes[k]||0)} ر)</option>`)
+      .join('');
   }
+  const goldSel = document.getElementById('pay-gold-safe');
+  if(goldSel){
+    const prevG = goldSel.value||'scrap21';
+    goldSel.innerHTML = Object.entries(gSM)
+      .filter(([k,v])=> v.type==='gold' && !k.startsWith('debt'))
+      .map(([k,v])=>`<option value="${k}" ${prevG===k?'selected':''}>${v.label} (${fmtG(S.safes[k]||0)} ج)</option>`)
+      .join('');
+  }
+
+  // تحديث label الصناديق حسب نوع العملية (لو محدد)
+  const isRcpt = currentPayType==='receipt';
+  const cashLbl = document.getElementById('pay-cash-safe-lbl');
+  const goldLbl = document.getElementById('pay-gold-safe-lbl');
+  if(cashLbl) cashLbl.textContent = isRcpt ? '💵 صندوق النقد (يُضاف إليه +)' : '💵 صندوق النقد (يُخصم منه −)';
+  if(goldLbl) goldLbl.textContent = isRcpt ? '🥇 صندوق الذهب (يُضاف إليه +)' : '🥇 صندوق الذهب (يُخصم منه −)';
   
   const bal=getClientBalance(cli);
   const box=document.getElementById('pay-balance-box');
@@ -2989,8 +3066,8 @@ function calcPaySummary(){
   const disc   = parseFloat(document.getElementById('pay-discount')?.value)||0;
   const change = parseFloat(document.getElementById('pay-change')?.value)||0;
 
-  // تحديث hint الفكة حسب نوع الجهة
-  const isSupp = document.getElementById('pay-supplier-banner')?.style.display!=='none';
+  // الاتجاه بناءً على نوع العملية المختار صريحاً
+  const isSupp = currentPayType === 'payment'; // دفع = صندوق ينقص
   const hint = document.getElementById('pay-change-hint');
   const lbl  = document.getElementById('pay-change-lbl');
   if(hint){
@@ -3028,66 +3105,81 @@ function calcPaySummary(){
 
 
 function doPayment(){
-  const client=document.getElementById('pay-cli-v').value||document.getElementById('pay-cli-s').value;
+  // ── التحقق من اختيار نوع العملية أولاً ──
+  if(!currentPayType){
+    toast('⚠️ اختر نوع العملية أولاً: قبض أو دفع');
+    // تلميح بصري
+    const rBtn=document.getElementById('pay-type-receipt');
+    const pBtn=document.getElementById('pay-type-payment');
+    if(rBtn){ rBtn.style.animation='none'; setTimeout(()=>rBtn.style.border='2px solid var(--orange)',0); }
+    if(pBtn){ pBtn.style.border='2px solid var(--orange)'; }
+    return;
+  }
+
+  const isReceipt = currentPayType === 'receipt'; // قبض ← الصندوق يزيد
+  // isReceipt=true  → payment         (نقد يدخل، مثل: عميل يسدد)
+  // isReceipt=false → supplier-payment (نقد يخرج، مثل: نسدد لمورد)
+
+  const client  = document.getElementById('pay-cli-v').value||document.getElementById('pay-cli-s').value;
   const ajour   = parseFloat(document.getElementById('pay-ajour').value)||0;
   const goldW   = parseFloat(document.getElementById('pay-gold-weight').value)||0;
-  const goldK   = document.getElementById('pay-gold-karat').value;
+  const goldK   = document.getElementById('pay-gold-karat').value||'21';
   const discount= parseFloat(document.getElementById('pay-discount')?.value)||0;
   const change  = parseFloat(document.getElementById('pay-change')?.value)||0;
   const note    = document.getElementById('pay-note').value;
-  const payDate=document.getElementById('pay-date')?.value;
-  const payISO=payDate?new Date(payDate).toISOString():new Date().toISOString();
-  if(!client){toast('⚠️ اختر العميل');return;}
-  if(!ajour&&!goldW&&!discount&&!change){toast('⚠️ أدخل المبلغ أو الخصم');return;}
+  const payDate = document.getElementById('pay-date')?.value;
+  const payISO  = payDate ? new Date(payDate).toISOString() : new Date().toISOString();
 
-  const clientObj = S.clients.find(c=>c.name===client);
-  const isSupplier = clientObj && (clientObj.type==='مورد'||clientObj.type==='موزع');
+  if(!client){ toast('⚠️ اختر الجهة'); return; }
+  if(!ajour&&!goldW&&!discount&&!change){ toast('⚠️ أدخل المبلغ أو الخصم'); return; }
 
-  // صندوق النقد
-  const cashSafe = isSupplier
-    ? (document.getElementById('pay-cash-safe')?.value||'cash')
-    : 'cash';
-
-  // صندوق الذهب المحدد للخصم
-  let goldDest, goldSafe;
-  if(isSupplier){
-    goldSafe = document.getElementById('pay-gold-safe')?.value || 'scrap21';
-    goldDest = goldSafe; // للمورد: الخصم من الصندوق المحدد
-  } else {
-    goldDest = goldK==='21'?'scrap21':goldK==='24'?'pure24':'scrap18';
-    goldSafe = goldDest;
-  }
-
-  // تحويل الوزن لعيار 24 للحسابات
+  // الصندوق المستخدم
+  const cashSafe = document.getElementById('pay-cash-safe')?.value || 'cash';
+  const goldSafe = document.getElementById('pay-gold-safe')?.value ||
+                   (goldK==='21'?'scrap21': goldK==='24'?'pure24':'scrap18');
+  const goldDest = isReceipt ? goldSafe : goldSafe; // القبض: يضيف | الدفع: يطرح
   const goldAs24 = goldW * parseFloat(goldK)/24;
 
-  // المعاملة تتضمن: نقد مدفوع + خصم تسوية + فكة
-  // القاعدة:
-  //   ajourPaid = النقد الفعلي (يؤثر على الصندوق)
-  //   discount  = خصم تسوية (لا يؤثر على الصندوق، يُقلل الرصيد مباشرة)
-  //   change    = فكة نقدية (تُضاف/تُخصم من الصندوق)
+  // النوع المحاسبي:
+  //   payment          = قبض (نقد يدخل، صندوق+)
+  //   supplier-payment = دفع (نقد يخرج، صندوق-)
+  const txType = isReceipt ? 'payment' : 'supplier-payment';
+
   S.transactions.unshift({
     id:Date.now(), date:payISO,
-    type: isSupplier ? 'supplier-payment' : 'payment',
-    fromSafe:cashSafe, goldDest, goldSafe, goldKarat:goldK, goldWeight:goldW, goldAs24,
-    client, ajourPaid:ajour, amount:ajour,
-    discount,   // خصم تسوية — يُقلل الرصيد بدون أي حركة صندوق
-    change,     // فكة/كسر نقدي — تؤثر على الصندوق
-    isSupplier, unit:'ريال', notes:note||(isSupplier?'سداد مورد':'سداد'),
+    type: txType,
+    fromSafe:cashSafe, goldDest, goldSafe,
+    goldKarat:goldK, goldWeight:goldW, goldAs24,
+    client,
+    ajourPaid:ajour, amount:ajour,
+    discount,   // خصم تسوية — لا يؤثر على الصندوق
+    change,     // فكة — تؤثر على الصندوق
+    isReceipt,  // لحفظ الاتجاه صريحاً في السجل
+    unit:'ريال',
+    notes: note || (isReceipt ? 'قبض' : 'دفع'),
     items:[], total:ajour+discount+change, cash:ajour+change, goldPay:goldW, weight:goldW
   });
-  sv();renderAll();
-  document.getElementById('pay-ajour').value='';
-  document.getElementById('pay-gold-weight').value='';
-  document.getElementById('pay-note').value='';
-  const pdEl=document.getElementById('pay-discount'); if(pdEl)pdEl.value='';
-  const pcEl=document.getElementById('pay-change');   if(pcEl)pcEl.value='';
-  document.getElementById('pay-cli-s').value='';
-  document.getElementById('pay-cli-v').value='';
-  if(document.getElementById('pay-date')) document.getElementById('pay-date').value='';
+
+  sv(); renderAll();
+
+  // مسح الحقول
+  ['pay-ajour','pay-gold-weight','pay-note','pay-discount','pay-change','pay-cli-s','pay-cli-v','pay-date']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pay-balance-box').style.display='none';
   document.getElementById('pay-summary').style.display='none';
-  toast('✅ تم السداد — أجور: '+fmt(ajour)+' ر · ذهب: '+fmtG(goldW)+' جرام');
+  document.getElementById('pay-content').style.display='none';
+
+  // إعادة تعيين نوع العملية
+  ['pay-type-receipt','pay-type-payment'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.style.border='2px solid var(--border)'; el.style.background='var(--surface2)'; }
+  });
+  const hint=document.getElementById('pay-type-hint');
+  if(hint) hint.style.display='none';
+  currentPayType = null;
+
+  const action = isReceipt ? 'قبض' : 'دفع';
+  toast(`✅ تم ${action} — نقد: ${fmt(ajour)} ر · ذهب: ${fmtG(goldW)} ج`);
 }
 
 // ── Discount calc ──────────────────────────────────────────────────
