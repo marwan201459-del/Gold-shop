@@ -2045,7 +2045,14 @@ function updateEditItem(id,field,val){
   if(!item)return;
   if(field==='isWorked'){item[field]=!!val;return;}
   item[field]=field==='karat'||field==='desc'?val:parseFloat(val)||0;
-  renderEditItems();
+  // تحديث الإجمالي فقط بدون إعادة بناء الحقول
+  const gAmt=item.weight*item.price, aAmt=item.weight*item.ajour;
+  const totEl=document.querySelector(`#edit-items-list [data-id="${id}"] .item-total`);
+  if(totEl) totEl.textContent=fmt(gAmt+aAmt)+' ر';
+  const detEl=document.querySelector(`#edit-items-list [data-id="${id}"] .item-detail`);
+  if(detEl) detEl.textContent=`ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}`;
+  // renderEditItems فقط عند تغيير العيار (يغير الـ label فقط)
+  if(field==='karat') renderEditItems();
 }
 
 function renderEditItems(){
@@ -2053,11 +2060,11 @@ function renderEditItems(){
   if(!el)return;
   el.innerHTML=editItems.map((item,idx)=>{
     const gAmt=item.weight*item.price, aAmt=item.weight*item.ajour;
-    return `<div class="inv-item" style="margin-bottom:8px">
+    return `<div class="inv-item" data-id="${item.id}" style="margin-bottom:8px">
       <div class="inv-item-head">
         <span class="item-num">📦 صنف ${idx+1}</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="item-total">${fmt(gAmt+aAmt)} ر</span>
+          <span class="item-total" data-id="${item.id}">${fmt(gAmt+aAmt)} ر</span>
           <button class="del-item" onclick="removeEditItem(${item.id})">✕</button>
         </div>
       </div>
@@ -2094,8 +2101,8 @@ function renderEditItems(){
               oninput="updateEditItem(${item.id},'ajour',parseFloat(this.value)||0)">
           </div>
         </div>
-        <div style="background:var(--gold-pale);border-radius:7px;padding:6px 10px;font-size:11px;display:flex;justify-content:space-between">
-          <span style="color:var(--text2)">ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}</span>
+        <div class="item-detail-box" style="background:var(--gold-pale);border-radius:7px;padding:6px 10px;font-size:11px;display:flex;justify-content:space-between">
+          <span class="item-detail" style="color:var(--text2)">ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}</span>
           <span style="font-weight:700;color:var(--gold)">${fmt(gAmt+aAmt)} ريال</span>
         </div>
       </div>
@@ -2805,16 +2812,35 @@ function removePayGoldItem(id){
 function updatePayGoldItem(id, field, val){
   const item = payGoldItems.find(i=>i.id===id);
   if(!item) return;
+
   if(field==='weight') item.weight = parseFloat(val)||0;
   else item[field] = val;
+
   // تحديث الصندوق الافتراضي عند تغيير العيار
   if(field==='karat'){
     if(val==='21') item.safe='scrap21';
     else if(val==='18') item.safe='scrap18';
     else item.safe='pure24';
+    // تحديث الـ select للصندوق بدون إعادة بناء
+    const safeEl = document.getElementById('pgi-safe-'+id);
+    if(safeEl) safeEl.value = item.safe;
   }
-  renderPayGoldItems();
+
+  // تحديث عنصر as24 فقط — بدون إعادة بناء الـ HTML
+  const as24 = Math.round(item.weight * parseFloat(item.karat)/24 * 1000)/1000;
+  const as24El = document.getElementById('pgi-as24-'+id);
+  if(as24El){
+    const isReceipt = currentPayType === 'receipt';
+    const dirLabel  = isReceipt ? '+' : '−';
+    const dirClr    = isReceipt ? 'var(--green)' : 'var(--red)';
+    as24El.style.display = as24>0 ? 'block' : 'none';
+    as24El.innerHTML = as24>0
+      ? `<span style="color:var(--text2)">= </span><span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>`
+      : '';
+  }
+
   calcPaySummary();
+  // لا renderPayGoldItems() هنا ← هذا هو سبب الإصلاح
 }
 
 function renderPayGoldItems(){
@@ -2835,6 +2861,8 @@ function renderPayGoldItems(){
     .map(([sk,v])=>`<option value="${sk}" ${sk===k?'selected':''}>${v.label}</option>`)
     .join('');
 
+  // نبني الـ HTML كاملاً (يُستدعى فقط عند الإضافة/الحذف)
+  // كل عنصر له id ثابت لتحديثه لاحقاً بدون إعادة بناء
   el.innerHTML = payGoldItems.map((item,idx)=>{
     const as24 = Math.round(item.weight * parseFloat(item.karat)/24 * 1000)/1000;
     return `<div style="background:var(--surface2);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid var(--border)">
@@ -2846,7 +2874,8 @@ function renderPayGoldItems(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
         <div>
           <div style="font-size:10px;color:var(--text2);margin-bottom:2px">العيار</div>
-          <select style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+          <select id="pgi-karat-${item.id}"
+            style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
             onchange="updatePayGoldItem(${item.id},'karat',this.value)">
             <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
             <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
@@ -2855,26 +2884,26 @@ function renderPayGoldItems(){
         </div>
         <div>
           <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الوزن (جرام)</div>
-          <input type="number" value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
+          <input type="number" id="pgi-weight-${item.id}"
+            value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
             style="width:100%;padding:6px;border-radius:6px;border:1.5px solid var(--gold);background:var(--surface);font-family:inherit;box-sizing:border-box"
             oninput="updatePayGoldItem(${item.id},'weight',this.value)">
         </div>
       </div>
       <div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الصندوق</div>
-        <select style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+        <select id="pgi-safe-${item.id}"
+          style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
           onchange="updatePayGoldItem(${item.id},'safe',this.value)">
           ${safeOpts(item.safe)}
         </select>
       </div>
-      ${as24>0?`<div style="margin-top:6px;font-size:11px;text-align:left">
-        <span style="color:var(--text2)">= </span>
-        <span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>
-      </div>`:''}
+      <div id="pgi-as24-${item.id}" style="margin-top:6px;font-size:11px;text-align:left;${as24>0?'':'display:none'}">
+        ${as24>0?`<span style="color:var(--text2)">= </span><span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>`:''}
+      </div>
     </div>`;
   }).join('');
 }
-
 
 
 function setPayType(type){
