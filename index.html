@@ -7,113 +7,161 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --gold:#C9922A;--gold-l:#F0C050;--gold-pale:#FDF6E3;
-  --dark:#1C1208;--surface:#FFFDF7;--surface2:#F7F0DC;
-  --text:#2A1F0A;--text2:#7A6540;--border:#E8D9AA;
-  --green:#2D7A4F;--green-bg:#EAF7EF;
-  --red:#B83232;--red-bg:#FDEAEA;
-  --blue:#1A5FAD;--blue-bg:#EAF1FB;
-  --purple:#6B3FBF;--purple-bg:#F0EBFF;
-  --teal:#1A7A7A;--teal-bg:#E6F7F7;
-  --orange:#C06820;--orange-bg:#FFF0E0;
-  --r:16px;--sh:0 2px 16px rgba(180,130,30,.10);
+  /* ─ ألوان ذهبية ─ */
+  --gold:#B8860B;--gold-l:#DAA520;--gold-pale:#FFFBF0;--gold-mid:#F5E6B0;
+  /* ─ خلفيات ─ */
+  --surface:#FFFFFF;--surface2:#F8F9FA;--bg:#F0F2F5;
+  /* ─ نصوص ─ */
+  --text:#1A1A2E;--text2:#6B7280;--text3:#9CA3AF;
+  /* ─ حدود ─ */
+  --border:#E5E7EB;--border2:#D1D5DB;
+  /* ─ ألوان الحالة ─ */
+  --green:#059669;--green-bg:#ECFDF5;--green-border:#A7F3D0;
+  --red:#DC2626;--red-bg:#FEF2F2;--red-border:#FECACA;
+  --blue:#2563EB;--blue-bg:#EFF6FF;--blue-border:#BFDBFE;
+  --purple:#7C3AED;--purple-bg:#F5F3FF;--purple-border:#DDD6FE;
+  --teal:#0891B2;--teal-bg:#ECFEFF;--teal-border:#A5F3FC;
+  --orange:#EA580C;--orange-bg:#FFF7ED;--orange-border:#FED7AA;
+  /* ─ ظل وحواف ─ */
+  --r:14px;--r-sm:10px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+  --sh-md:0 4px 16px rgba(0,0,0,.10);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Tajawal',sans-serif;background:#EDE0B8;min-height:100vh;color:var(--text)}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
 
-.hdr{background:linear-gradient(135deg,#1C1208,#3A2810);padding:16px 16px 0;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+/* ── Header ── */
+.hdr{background:#FFFFFF;padding:14px 16px 0;position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 0 var(--border),0 4px 12px rgba(0,0,0,.06)}
 .hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.hdr h1{font-size:18px;font-weight:900;color:var(--gold-l);line-height:1.3}
-.hdr-date{font-size:10px;color:#B89A60;text-align:left;line-height:1.6}
-.tabs{display:flex;overflow-x:auto;gap:4px;scrollbar-width:none}
+.hdr h1{font-size:17px;font-weight:900;color:var(--text);line-height:1.3}
+.hdr h1 span{color:var(--gold)}
+.hdr-date{font-size:10px;color:var(--text3);text-align:left;line-height:1.6}
+.tabs{display:flex;overflow-x:auto;gap:2px;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex-shrink:0;padding:8px 13px;border:none;border-radius:10px 10px 0 0;font-family:'Tajawal',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.08);color:#B89A60}
-.tab.on{background:var(--surface);color:var(--gold)}
+.tab{flex-shrink:0;padding:9px 14px;border:none;border-radius:10px 10px 0 0;
+  font-family:'Tajawal',sans-serif;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .18s;background:transparent;color:var(--text3)}
+.tab:hover{background:var(--surface2);color:var(--text2)}
+.tab.on{background:var(--bg);color:var(--gold);font-weight:700;
+  box-shadow:inset 0 -2px 0 var(--gold)}
 
-.pg{display:none;padding:13px;animation:fu .25s ease}
+/* ── Pages ── */
+.pg{display:none;padding:14px;animation:fu .2s ease}
 .pg.on{display:block}
-@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
-.ch{padding:12px 16px;background:linear-gradient(90deg,#1C1208,#3A2810);color:var(--gold-l);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
-.cb{padding:13px}
+/* ── Cards ── */
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);
+  border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
+.ch{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);
+  color:var(--text);font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:space-between}
+.ch::before{content:'';display:inline-block;width:3px;height:16px;
+  background:var(--gold);border-radius:2px;margin-left:8px;flex-shrink:0}
+.cb{padding:14px}
 
+/* ── Grid ── */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 
-.sb{border-radius:12px;padding:11px;text-align:center;border:1.5px solid}
-.sb .v{font-size:18px;font-weight:900}
-.sb .l{font-size:10px;color:var(--text2);margin-top:2px;font-weight:500}
-.sb.gold{background:var(--gold-pale);border-color:var(--gold)}.sb.gold .v{color:var(--gold)}
-.sb.green{background:var(--green-bg);border-color:var(--green)}.sb.green .v{color:var(--green)}
-.sb.red{background:var(--red-bg);border-color:var(--red)}.sb.red .v{color:var(--red)}
-.sb.blue{background:var(--blue-bg);border-color:var(--blue)}.sb.blue .v{color:var(--blue)}
-.sb.purple{background:var(--purple-bg);border-color:var(--purple)}.sb.purple .v{color:var(--purple)}
-.sb.teal{background:var(--teal-bg);border-color:var(--teal)}.sb.teal .v{color:var(--teal)}
+/* ── Stat Boxes ── */
+.sb{border-radius:var(--r-sm);padding:12px;text-align:center;
+  border:1px solid var(--border);background:var(--surface)}
+.sb .v{font-size:17px;font-weight:900;margin-bottom:2px}
+.sb .l{font-size:10px;color:var(--text2);font-weight:500}
+.sb.gold{background:var(--gold-pale);border-color:var(--gold-mid)}.sb.gold .v{color:var(--gold)}
+.sb.green{background:var(--green-bg);border-color:var(--green-border)}.sb.green .v{color:var(--green)}
+.sb.red{background:var(--red-bg);border-color:var(--red-border)}.sb.red .v{color:var(--red)}
+.sb.blue{background:var(--blue-bg);border-color:var(--blue-border)}.sb.blue .v{color:var(--blue)}
+.sb.purple{background:var(--purple-bg);border-color:var(--purple-border)}.sb.purple .v{color:var(--purple)}
+.sb.teal{background:var(--teal-bg);border-color:var(--teal-border)}.sb.teal .v{color:var(--teal)}
 
+/* ── Form ── */
 .fr{margin-bottom:10px;position:relative}
-.fr label{display:block;font-size:11px;color:var(--text2);font-weight:700;margin-bottom:4px}
-.fr input,.fr select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:14px;color:var(--text);background:var(--surface2);transition:border-color .2s;outline:none}
-.fr input:focus,.fr select:focus{border-color:var(--gold);background:white}
+.fr label{display:block;font-size:11px;color:var(--text2);font-weight:700;margin-bottom:4px;letter-spacing:.3px}
+.fr input,.fr select{width:100%;padding:10px 12px;border:1.5px solid var(--border);
+  border-radius:var(--r-sm);font-family:'Tajawal',sans-serif;font-size:14px;
+  color:var(--text);background:var(--surface2);transition:all .18s;outline:none}
+.fr input:focus,.fr select:focus{border-color:var(--gold);background:white;
+  box-shadow:0 0 0 3px rgba(184,134,11,.12)}
 
-/* Search dropdown */
+/* ── Search dropdown ── */
 .sw{position:relative}
 .sw input{padding-right:12px;padding-left:34px}
 .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
-.sdrop{position:absolute;top:calc(100% + 2px);right:0;left:0;background:white;border:1.5px solid var(--gold);border-radius:10px;z-index:50;max-height:170px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none}
+.sdrop{position:absolute;top:calc(100% + 4px);right:0;left:0;background:white;
+  border:1px solid var(--border);border-radius:var(--r-sm);z-index:50;
+  max-height:170px;overflow-y:auto;box-shadow:var(--sh-md);display:none}
 .sdrop.open{display:block}
-.sdi{padding:10px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.sdi{padding:10px 13px;font-size:13px;cursor:pointer;
+  border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
 .sdi:last-child{border-bottom:none}
 .sdi:hover,.sdi.foc{background:var(--gold-pale)}
 .sdi .sdn{font-weight:700}.sdi .sdt{font-size:10px;color:var(--text2)}
 .sde{padding:10px;text-align:center;color:var(--text2);font-size:12px}
 
-.btn{width:100%;padding:13px;border:none;border-radius:12px;font-family:'Tajawal',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
-.btn:active{transform:scale(.98)}
-.btn-gold{background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208}
-.btn-green{background:linear-gradient(135deg,#2D7A4F,#3DAA6A);color:white}
-.btn-red{background:linear-gradient(135deg,#B83232,#D94444);color:white}
-.btn-blue{background:linear-gradient(135deg,#1A5FAD,#2878D4);color:white}
-.btn-sm{width:auto;padding:7px 14px;font-size:13px;border-radius:9px}
-.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2);width:auto;padding:7px 13px;font-size:12px;border-radius:9px}
+/* ── Buttons ── */
+.btn{width:100%;padding:12px;border:none;border-radius:var(--r-sm);
+  font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:active{transform:scale(.98);opacity:.92}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#1A1A00;
+  box-shadow:0 2px 8px rgba(184,134,11,.30)}
+.btn-green{background:var(--green);color:white;box-shadow:0 2px 8px rgba(5,150,105,.25)}
+.btn-red{background:var(--red);color:white;box-shadow:0 2px 8px rgba(220,38,38,.25)}
+.btn-blue{background:var(--blue);color:white;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.btn-sm{width:auto;padding:7px 14px;font-size:12px;border-radius:8px}
+.btn-outline{background:white;border:1.5px solid var(--border);color:var(--text2);
+  width:auto;padding:7px 13px;font-size:12px;border-radius:8px;cursor:pointer}
 
-/* Type tabs */
+/* ── Type tabs ── */
 .tg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
-.tb{padding:11px 6px;border:2px solid var(--border);border-radius:10px;background:white;font-family:'Tajawal',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:var(--text2);transition:all .15s}
+.tb{padding:11px 6px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface2);font-family:'Tajawal',sans-serif;font-size:12px;
+  font-weight:700;cursor:pointer;text-align:center;color:var(--text2);transition:all .15s}
 .tb.s-sell{border-color:var(--green);background:var(--green-bg);color:var(--green)}
 .tb.s-buy{border-color:var(--red);background:var(--red-bg);color:var(--red)}
 .tb.s-scrap{border-color:var(--gold);background:var(--gold-pale);color:var(--gold)}
 .tb.s-tf{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
 
-/* Payment tabs */
-.pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.ptb{padding:9px;border:2px solid var(--border);border-radius:10px;background:white;font-family:'Tajawal',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:var(--text2);transition:all .15s}
+/* ── Payment type buttons ── */
+.ptb{padding:9px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface2);font-family:'Tajawal',sans-serif;font-size:12px;
+  font-weight:700;cursor:pointer;text-align:center;color:var(--text2);transition:all .15s}
 .ptb.on{border-color:var(--gold);background:var(--gold-pale);color:var(--gold)}
 
-/* ── INVOICE ITEMS ── */
+/* ── Invoice Items ── */
 .inv-items{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-.inv-item{background:white;border-radius:12px;border:1.5px solid var(--border);overflow:hidden}
-.inv-item-head{padding:9px 12px;background:linear-gradient(90deg,#2A1F0A,#4A3520);display:flex;justify-content:space-between;align-items:center}
-.inv-item-head .item-num{color:var(--gold-l);font-size:12px;font-weight:700}
-.inv-item-head .item-total{color:var(--gold-l);font-size:13px;font-weight:900}
+.inv-item{background:white;border-radius:var(--r-sm);border:1.5px solid var(--border);overflow:hidden}
+.inv-item-head{padding:9px 12px;background:var(--surface2);border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center}
+.inv-item-head .item-num{color:var(--text2);font-size:12px;font-weight:700}
+.inv-item-head .item-total{color:var(--gold);font-size:13px;font-weight:900}
 .inv-item-body{padding:10px}
-.del-item{background:none;border:none;color:#B89A60;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
+.del-item{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;
+  padding:2px 6px;border-radius:6px;transition:.15s}
 .del-item:hover{color:var(--red);background:var(--red-bg)}
 
 /* Invoice summary */
-.inv-summary{background:linear-gradient(135deg,#1C1208,#3A2810);border-radius:14px;padding:14px;margin-bottom:12px}
-.inv-sum-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.inv-summary{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:12px;margin-bottom:12px}
+.inv-sum-row{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid var(--border)}
 .inv-sum-row:last-child{border-bottom:none}
-.inv-sum-row .lbl{font-size:12px;color:#B89A60}
-.inv-sum-row .val{font-size:14px;font-weight:700;color:var(--gold-l)}
-.inv-sum-row.total-row .lbl{font-size:14px;font-weight:700;color:white}
-.inv-sum-row.total-row .val{font-size:18px;font-weight:900;color:var(--gold-l)}
+.inv-sum-row .lbl{font-size:12px;color:var(--text2)}
+.inv-sum-row .val{font-size:14px;font-weight:700;color:var(--text)}
+.inv-sum-row.total-row{background:var(--gold-pale);margin:4px -12px -12px;padding:10px 12px;border-radius:0 0 var(--r-sm) var(--r-sm)}
+.inv-sum-row.total-row .lbl{font-size:14px;font-weight:700;color:var(--text)}
+.inv-sum-row.total-row .val{font-size:18px;font-weight:900;color:var(--gold)}
 
 /* TX items */
-.tx-list{display:flex;flex-direction:column;gap:7px}
-.txi{background:white;border-radius:12px;padding:11px 12px;border-right:4px solid;box-shadow:0 1px 5px rgba(0,0,0,.06)}
-.txi.sell{border-color:var(--green)}.txi.buy{border-color:var(--red)}
-.txi.scrap{border-color:var(--gold)}.txi.debt{border-color:var(--purple)}.txi.transfer{border-color:var(--blue)}
+.tx-list{display:flex;flex-direction:column;gap:6px}
+.txi{background:white;border-radius:var(--r-sm);padding:11px 12px;
+  border:1px solid var(--border);border-right:3px solid;box-shadow:var(--sh)}
+.txi.sell{border-right-color:var(--green)}.txi.buy{border-right-color:var(--red)}
+.txi.scrap{border-right-color:var(--gold)}.txi.debt{border-right-color:var(--purple)}
+.txi.transfer{border-right-color:var(--blue)}
 .txi-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .txi .tm{font-size:13px;font-weight:700}
 .txi .ts{font-size:10px;color:var(--text2);margin-top:2px}
@@ -122,66 +170,86 @@ body{font-family:'Tajawal',sans-serif;background:#EDE0B8;min-height:100vh;color:
 .txi.buy .am{color:var(--red)}.txi.debt .am{color:var(--purple)}.txi.transfer .am{color:var(--blue)}
 .txi .tv .gr{font-size:10px;color:var(--text2)}
 .txi-acts{display:flex;gap:3px;flex-shrink:0}
-.ib{background:none;border:none;font-size:14px;cursor:pointer;padding:3px 5px;border-radius:6px;color:var(--text2)}
-.ib:hover{background:var(--surface2)}
+.ib{background:none;border:none;font-size:14px;cursor:pointer;padding:3px 5px;border-radius:6px;color:var(--text3)}
+.ib:hover{background:var(--surface2);color:var(--red)}
 
-/* Invoice items preview inside tx */
+/* Invoice preview */
 .inv-preview{margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
 .inv-preview-item{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:var(--text2)}
 .inv-preview-item .ipi-name{font-weight:600;color:var(--text)}
 .inv-preview-item .ipi-val{color:var(--gold)}
 
 /* Date line */
-.date-line{font-size:10px;color:var(--text2);margin-top:3px;display:flex;gap:5px;flex-wrap:wrap}
-.date-line span{background:var(--surface2);border-radius:4px;padding:1px 5px}
+.date-line{font-size:10px;color:var(--text3);margin-top:3px;display:flex;gap:4px;flex-wrap:wrap}
+.date-line span{background:var(--surface2);border-radius:4px;padding:1px 5px;border:1px solid var(--border)}
 
 /* Client items */
-.cli{background:white;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 1px 5px rgba(0,0,0,.06);border:1px solid var(--border)}
+.cli{background:white;border-radius:var(--r-sm);padding:13px;margin-bottom:8px;
+  box-shadow:var(--sh);border:1px solid var(--border)}
 .cli .cn{font-size:15px;font-weight:700}.cli .ct{font-size:10px;color:var(--text2)}
-.cli-stats{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
-.cs{background:var(--surface2);border-radius:7px;padding:4px 8px;font-size:11px}
+.cli-stats{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.cs{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px}
 .cs span{font-weight:700}
 
 /* Safes */
-.sfc{border-radius:14px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border:1.5px solid}
-.sfc.cash{background:var(--green-bg);border-color:var(--green)}
-.sfc.s21{background:var(--gold-pale);border-color:var(--gold)}
-.sfc.s18{background:#FFF8EE;border-color:#C87941}
-.sfc.p24{background:var(--blue-bg);border-color:var(--blue)}
-.sfc.khz{background:var(--purple-bg);border-color:var(--purple)}
-.sfc.mdn{background:var(--teal-bg);border-color:var(--teal)}
-.sfc.lava{background:#FFF0E0;border-color:#C06820}
-.sfc .sl{font-size:13px;font-weight:700}.sfc .su{font-size:10px;color:var(--text2)}
-.sfc .sv{font-size:21px;font-weight:900}
-.sfc.cash .sv{color:var(--green)}.sfc.s21 .sv{color:var(--gold)}.sfc.s18 .sv{color:#C87941}
-.sfc.p24 .sv{color:var(--blue)}.sfc.khz .sv{color:var(--purple)}.sfc.mdn .sv{color:var(--teal)}.sfc.lava .sv{color:#C06820}
+.sfc{border-radius:var(--r-sm);padding:12px 14px;display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:8px;border:1px solid var(--border);background:var(--surface2)}
+.sfc.cash{background:var(--green-bg);border-color:var(--green-border)}
+.sfc.s21{background:var(--gold-pale);border-color:var(--gold-mid)}
+.sfc.s18{background:#FFFBF0;border-color:#F0D070}
+.sfc.p24{background:var(--blue-bg);border-color:var(--blue-border)}
+.sfc.khz{background:var(--purple-bg);border-color:var(--purple-border)}
+.sfc.mdn{background:var(--teal-bg);border-color:var(--teal-border)}
+.sfc.lava{background:var(--orange-bg);border-color:var(--orange-border)}
+.sfc .sl{font-size:13px;font-weight:700;color:var(--text)}
+.sfc .su{font-size:10px;color:var(--text2)}
+.sfc .sv{font-size:20px;font-weight:900}
+.sfc.cash .sv{color:var(--green)}.sfc.s21 .sv{color:var(--gold)}.sfc.s18 .sv{color:#B8860B}
+.sfc.p24 .sv{color:var(--blue)}.sfc.khz .sv{color:var(--purple)}.sfc.mdn .sv{color:var(--teal)}
+.sfc.lava .sv{color:var(--orange)}
 
-.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
-.bg-green{background:var(--green-bg);color:var(--green)}.bg-red{background:var(--red-bg);color:var(--red)}
-.bg-gold{background:var(--gold-pale);color:var(--gold)}.bg-blue{background:var(--blue-bg);color:var(--blue)}
-.bg-purple{background:var(--purple-bg);color:var(--purple)}.bg-teal{background:var(--teal-bg);color:var(--teal)}
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.bg-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.bg-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.bg-gold{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-mid)}
+.bg-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.bg-purple{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.bg-teal{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)}
+.bg-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 
-.st{font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 6px}
+.st{font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 6px;
+  text-transform:uppercase;letter-spacing:.5px}
 .div{height:1px;background:var(--border);margin:10px 0}
 
 /* Modal */
-.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:flex-end;justify-content:center}
-.mo.on{display:flex}
-.mp{background:white;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:18px 18px 32px;max-height:92vh;overflow-y:auto;animation:su .3s ease}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);
+  z-index:200;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.mbox{background:white;width:100%;max-width:480px;border-radius:20px 20px 0 0;
+  padding:20px 18px 36px;max-height:92vh;overflow-y:auto;animation:su .28s ease}
 @keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.mh h3{font-size:17px;font-weight:800}
-.xbtn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)}
+.mh{display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--border)}
+.mh h3,.mh>span{font-size:16px;font-weight:800;color:var(--text)}
+.mc{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.mc:hover{background:var(--surface2)}
 
-.empty{text-align:center;padding:28px 16px;color:var(--text2)}
-.empty .ei{font-size:40px;margin-bottom:8px}.empty p{font-size:13px}
+.empty{text-align:center;padding:32px 16px;color:var(--text2)}
+.empty .ei{font-size:44px;margin-bottom:10px}.empty p{font-size:13px}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#1C1208;color:var(--gold-l);padding:10px 22px;border-radius:28px;font-family:'Tajawal',sans-serif;font-size:13px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);
+  background:var(--text);color:white;padding:10px 22px;border-radius:28px;
+  font-family:'Tajawal',sans-serif;font-size:13px;font-weight:600;
+  z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:var(--sh-md)}
 .toast.on{transform:translateX(-50%) translateY(0)}
 
-.stmt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.stmt-row{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .stmt-row:last-child{border-bottom:none}
-.stmt-total{display:flex;justify-content:space-between;padding:10px;background:var(--surface2);border-radius:10px;font-weight:700;font-size:14px;margin-top:6px}
+.stmt-total{display:flex;justify-content:space-between;padding:10px;
+  background:var(--gold-pale);border-radius:var(--r-sm);font-weight:700;font-size:14px;margin-top:6px}
 
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
@@ -241,7 +309,7 @@ if(sessionStorage.getItem('auth')==='1'){
 
 <div class="hdr">
   <div class="hdr-top">
-    <span style="font-size:22px;font-weight:900;background:linear-gradient(135deg,#FFE082,#C9922A);-webkit-background-clip:text;-webkit-text-fill-color:transparent">جوهرة كيان الرائده</span>
+    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:var(--text)">جوهرة كيان</div><div style="font-size:10px;color:var(--text3);font-weight:500">الرائده للذهب والمجوهرات</div></div></div>
     <div class="hdr-date" id="hdr-date"></div></div>
   <div class="tabs">
     <button class="tab on"  onclick="P('home',this)">🏠 الرئيسية</button>
@@ -257,6 +325,7 @@ if(sessionStorage.getItem('auth')==='1'){
     <button class="tab"     onclick="P('backup',this)">💾 النسخ الاحتياطي</button>
     <button class="tab"     onclick="P('analytics',this)">📊 التحليلات</button>
     <button class="tab"     onclick="P('salary',this)">💰 الرواتب</button>
+    <button class="tab"     onclick="P('pending',this)">📌 المعلّقات</button>
   </div>
 </div>
 
@@ -911,6 +980,130 @@ if(sessionStorage.getItem('auth')==='1'){
 </div>
 
 
+<div id="pg-pending" class="pg">
+  <!-- فلتر الحالة -->
+  <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
+    <button onclick="filterPending('all')" id="pf-all"
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--gold);background:var(--gold);color:white;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+      الكل
+    </button>
+    <button onclick="filterPending('pending')" id="pf-pending"
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)">
+      📌 معلّقة
+    </button>
+    <button onclick="filterPending('sold')" id="pf-sold"
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)">
+      ✅ تم البيع
+    </button>
+    <button onclick="filterPending('returned')" id="pf-returned"
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)">
+      ↩️ تم الإرجاع
+    </button>
+  </div>
+  <!-- ملخص -->
+  <div id="pending-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px"></div>
+  <!-- القطع -->
+  <div id="pending-list"></div>
+  <!-- زر إضافة -->
+  <button class="btn btn-gold" onclick="openPendingModal()"
+    style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:auto;padding:13px 28px;border-radius:28px;box-shadow:0 4px 20px rgba(184,134,11,.4);z-index:50;white-space:nowrap">
+    ＋ إضافة قطعة معلّقة
+  </button>
+  <div style="height:70px"></div>
+</div>
+
+<!-- Modal المعلّقات -->
+<div id="m-pending" class="modal">
+  <div class="mbox">
+    <div class="mh">
+      <span id="pending-modal-title">📌 تسجيل قطعة معلّقة</span>
+      <button class="mc" onclick="closeM('m-pending')">✕</button>
+    </div>
+    <div class="mb" id="pending-modal-body">
+      <!-- العميل -->
+      <div class="fr"><label>👤 العميل / رقمه</label>
+        <div class="sw"><span class="si">🔍</span>
+          <input type="text" id="pnd-cli-s" placeholder="ابحث أو اكتب..." autocomplete="off"
+            oninput="openCS('pnd-cli-s','pnd-cli-d','pnd-cli-v')"
+            onfocus="openCS('pnd-cli-s','pnd-cli-d','pnd-cli-v')">
+          <input type="hidden" id="pnd-cli-v">
+          <div class="sdrop" id="pnd-cli-d"></div>
+        </div>
+      </div>
+      <!-- القطعة -->
+      <div style="background:var(--gold-pale);border:1px solid var(--gold-mid);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">🏅 تفاصيل القطعة</div>
+        <div class="g2">
+          <div class="fr">
+            <label>العيار</label>
+            <select id="pnd-karat">
+              <option value="21">عيار 21</option>
+              <option value="18">عيار 18</option>
+              <option value="24">عيار 24</option>
+              <option value="mixed">مختلط</option>
+            </select>
+          </div>
+          <div class="fr">
+            <label>الوزن (جرام)</label>
+            <input type="number" id="pnd-weight" placeholder="0.000" step="0.001" inputmode="decimal">
+          </div>
+        </div>
+        <div class="fr">
+          <label>الوصف (نوع القطعة)</label>
+          <input type="text" id="pnd-desc" placeholder="مثال: خاتم، سلسلة، حلق...">
+        </div>
+        <div class="g2">
+          <div class="fr">
+            <label>السعر التقديري (ريال)</label>
+            <input type="number" id="pnd-price" placeholder="0" inputmode="decimal">
+          </div>
+          <div class="fr">
+            <label>📅 تاريخ الأخذ</label>
+            <input type="date" id="pnd-date">
+          </div>
+        </div>
+      </div>
+      <div class="fr">
+        <label>📝 ملاحظات إضافية</label>
+        <input type="text" id="pnd-notes" placeholder="اختياري">
+      </div>
+      <button class="btn btn-gold" onclick="savePending()">📌 حفظ القطعة المعلّقة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal تغيير الحالة -->
+<div id="m-pending-status" class="modal">
+  <div class="mbox">
+    <div class="mh">
+      <span>تحديث حالة القطعة</span>
+      <button class="mc" onclick="closeM('m-pending-status')">✕</button>
+    </div>
+    <div class="mb">
+      <div id="pending-status-info" style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="updatePendingStatus('pending')"
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--orange-border);background:var(--orange-bg);color:var(--orange);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          📌 معلّقة — القطعة لا تزال مع العميل
+        </button>
+        <button onclick="updatePendingStatus('sold')"
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--green-border);background:var(--green-bg);color:var(--green);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          ✅ تم البيع — العميل اشترى القطعة
+        </button>
+        <button onclick="updatePendingStatus('returned')"
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--blue-border);background:var(--blue-bg);color:var(--blue);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          ↩️ تم الإرجاع — رجعت القطعة للمخزن
+        </button>
+        <button onclick="deletePending()"
+          style="padding:10px;border-radius:10px;border:1.5px solid var(--red-border);background:var(--red-bg);color:var(--red);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center">
+          🗑️ حذف القطعة
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div id="pg-backup" class="pg">
   <div class="card">
     <div class="ch">💾 النسخ الاحتياطي</div>
@@ -1060,7 +1253,7 @@ if(sessionStorage.getItem('auth')==='1'){
 
 <script>
 // ── State ─────────────────────────────────────────────────────────
-const DEF={transactions:[],clients:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}]};
+const DEF={transactions:[],clients:[],pendingItems:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}]};
 let S={...DEF}; // سيُستبدل من Firebase فور الاتصال
 ['khazina','madan','lava','discount'].forEach(k=>{if(S.safes[k]==null)S.safes[k]=0;});
 if(!S.customSafes)S.customSafes=[];
@@ -4322,6 +4515,212 @@ function saveSalary(){
   toast(`✅ تم ${labels[currentSalType]} — ${fmt(amount)} ريال للموظف ${emp}`);
 }
 
+// ── نظام المعلّقات (قطع عهدة عند العميل) ─────────────────────────
+let pendingFilter = 'all';
+let currentPendingId = null;
+
+function openPendingModal(id=null){
+  currentPendingId = id;
+  const titleEl = document.getElementById('pending-modal-title');
+  if(id){
+    // تعديل
+    const item = (S.pendingItems||[]).find(p=>p.id===id);
+    if(!item) return;
+    if(titleEl) titleEl.textContent = '✏️ تعديل القطعة';
+    document.getElementById('pnd-cli-s').value  = item.client||'';
+    document.getElementById('pnd-cli-v').value  = item.client||'';
+    document.getElementById('pnd-karat').value  = item.karat||'21';
+    document.getElementById('pnd-weight').value = item.weight||'';
+    document.getElementById('pnd-desc').value   = item.desc||'';
+    document.getElementById('pnd-price').value  = item.price||'';
+    document.getElementById('pnd-notes').value  = item.notes||'';
+    document.getElementById('pnd-date').value   = item.date?item.date.substring(0,10):'';
+  } else {
+    if(titleEl) titleEl.textContent = '📌 تسجيل قطعة معلّقة';
+    ['pnd-cli-s','pnd-cli-v','pnd-weight','pnd-desc','pnd-price','pnd-notes','pnd-date']
+      .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('pnd-karat').value = '21';
+  }
+  openM('m-pending');
+}
+
+function savePending(){
+  const client = document.getElementById('pnd-cli-v').value||document.getElementById('pnd-cli-s').value;
+  const karat  = document.getElementById('pnd-karat').value;
+  const weight = parseFloat(document.getElementById('pnd-weight').value)||0;
+  const desc   = document.getElementById('pnd-desc').value.trim();
+  const price  = parseFloat(document.getElementById('pnd-price').value)||0;
+  const notes  = document.getElementById('pnd-notes').value;
+  const dateV  = document.getElementById('pnd-date').value;
+  const dateISO= dateV?new Date(dateV).toISOString():new Date().toISOString();
+
+  if(!client){ toast('⚠️ أدخل اسم العميل'); return; }
+  if(!desc)  { toast('⚠️ أدخل وصف القطعة'); return; }
+
+  if(!S.pendingItems) S.pendingItems = [];
+
+  if(currentPendingId){
+    // تعديل
+    const item = S.pendingItems.find(p=>p.id===currentPendingId);
+    if(item){ Object.assign(item,{client,karat,weight,desc,price,notes,date:dateISO}); }
+  } else {
+    S.pendingItems.push({
+      id: Date.now(),
+      client, karat, weight, desc, price, notes,
+      date: dateISO,
+      status: 'pending', // pending | sold | returned
+      statusDate: null
+    });
+  }
+  sv(); renderPending(); closeM('m-pending');
+  toast(`✅ تم حفظ القطعة — ${desc} (${client})`);
+}
+
+function openPendingStatus(id){
+  currentPendingId = id;
+  const item = (S.pendingItems||[]).find(p=>p.id===id);
+  if(!item) return;
+  const infoEl = document.getElementById('pending-status-info');
+  if(infoEl){
+    infoEl.innerHTML = `
+      <div style="font-weight:700;margin-bottom:4px">📌 ${item.desc}</div>
+      <div style="font-size:12px;color:var(--text2)">${item.client} · ع${item.karat} · ${fmtG(item.weight)}ج</div>
+      ${item.price>0?`<div style="font-size:12px;color:var(--gold)">السعر التقديري: ${fmt(item.price)} ريال</div>`:''}
+    `;
+  }
+  openM('m-pending-status');
+}
+
+function updatePendingStatus(status){
+  const item = (S.pendingItems||[]).find(p=>p.id===currentPendingId);
+  if(!item) return;
+  item.status = status;
+  item.statusDate = new Date().toISOString();
+  sv(); renderPending(); closeM('m-pending-status');
+  const labels={pending:'معلّقة',sold:'تم البيع',returned:'تم الإرجاع'};
+  toast(`✅ تم تحديث الحالة: ${labels[status]}`);
+}
+
+function deletePending(){
+  appConfirm('حذف هذه القطعة نهائياً؟', ()=>{
+    S.pendingItems = (S.pendingItems||[]).filter(p=>p.id!==currentPendingId);
+    sv(); renderPending(); closeM('m-pending-status');
+    toast('🗑️ تم الحذف');
+  });
+}
+
+function filterPending(f){
+  pendingFilter = f;
+  ['all','pending','sold','returned'].forEach(k=>{
+    const btn = document.getElementById('pf-'+k);
+    if(!btn) return;
+    const isActive = k===f;
+    btn.style.background = isActive ? 'var(--gold)' : 'white';
+    btn.style.color      = isActive ? 'white' : 'var(--text2)';
+    btn.style.borderColor= isActive ? 'var(--gold)' : 'var(--border)';
+  });
+  renderPending();
+}
+
+function renderPending(){
+  const el = document.getElementById('pending-list');
+  const sumEl = document.getElementById('pending-summary');
+  if(!el) return;
+
+  const items = S.pendingItems||[];
+  // ملخص
+  const counts = {pending:0,sold:0,returned:0};
+  items.forEach(i=>{ counts[i.status]=(counts[i.status]||0)+1; });
+  if(sumEl){
+    sumEl.innerHTML = [
+      {k:'pending',l:'📌 معلّقة',   clr:'var(--orange)',bg:'var(--orange-bg)',bd:'var(--orange-border)'},
+      {k:'sold',   l:'✅ تم البيع', clr:'var(--green)', bg:'var(--green-bg)', bd:'var(--green-border)'},
+      {k:'returned',l:'↩️ مُرجعة',  clr:'var(--blue)',  bg:'var(--blue-bg)',  bd:'var(--blue-border)'},
+    ].map(s=>`<div style="background:${s.bg};border:1px solid ${s.bd};border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="filterPending('${s.k}')">
+      <div style="font-size:20px;font-weight:900;color:${s.clr}">${counts[s.k]||0}</div>
+      <div style="font-size:10px;color:var(--text2);font-weight:600">${s.l}</div>
+    </div>`).join('');
+  }
+
+  // فلترة
+  const filtered = pendingFilter==='all' ? items : items.filter(i=>i.status===pendingFilter);
+  // ترتيب: المعلّقة أولاً ثم الأحدث
+  filtered.sort((a,b)=>{
+    const order = {pending:0,sold:1,returned:2};
+    if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
+    return new Date(b.date)-new Date(a.date);
+  });
+
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty"><div class="ei">📌</div><p>لا توجد قطع في هذه الفئة</p></div>`;
+    return;
+  }
+
+  const statusStyles = {
+    pending:  {bg:'var(--orange-bg)',bd:'var(--orange)',lbl:'📌 معلّقة',   clr:'var(--orange)'},
+    sold:     {bg:'var(--green-bg)', bd:'var(--green)', lbl:'✅ تم البيع',  clr:'var(--green)'},
+    returned: {bg:'var(--blue-bg)', bd:'var(--blue)',  lbl:'↩️ تم الإرجاع',clr:'var(--blue)'},
+  };
+
+  el.innerHTML = filtered.map(item=>{
+    const dt  = fmtDate(item.date);
+    const st  = statusStyles[item.status]||statusStyles.pending;
+    const as24= item.karat!=='mixed'? Math.round(item.weight*parseFloat(item.karat)/24*1000)/1000 : 0;
+    const daysAgo = Math.floor((Date.now()-new Date(item.date))/(86400000));
+    const daysClr = daysAgo>14&&item.status==='pending'?'var(--red)':'var(--text3)';
+
+    return `<div style="background:white;border-radius:var(--r-sm);border:1px solid var(--border);
+        border-right:3px solid ${st.bd};margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)"
+        onclick="openPendingStatus(${item.id})">
+      <!-- حالة + معلومات -->
+      <div style="padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <span style="background:${st.bg};color:${st.clr};border:1px solid ${st.bd};
+              border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">${st.lbl}</span>
+            <div style="font-size:15px;font-weight:700;margin-top:5px">${item.desc}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">👤 ${item.client}</div>
+          </div>
+          <div style="text-align:left">
+            <button onclick="event.stopPropagation();openPendingModal(${item.id})"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+              padding:4px 10px;font-family:inherit;font-size:11px;cursor:pointer;color:var(--text2)">
+              ✏️ تعديل
+            </button>
+          </div>
+        </div>
+        <!-- تفاصيل القطعة -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:var(--gold-pale);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">العيار</div>
+            <div style="font-size:14px;font-weight:900;color:var(--gold)">
+              ${item.karat==='mixed'?'مختلط':item.karat}</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">الوزن</div>
+            <div style="font-size:14px;font-weight:900">${fmtG(item.weight)} ج</div>
+          </div>
+          ${as24>0?`<div style="background:var(--blue-bg);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">عيار 24</div>
+            <div style="font-size:14px;font-weight:900;color:var(--blue)">${fmtG(as24)} ج</div>
+          </div>`:`<div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--text2)">السعر</div>
+            <div style="font-size:13px;font-weight:700;color:var(--green)">${item.price>0?fmt(item.price)+' ر':'—'}</div>
+          </div>`}
+        </div>
+        <!-- تاريخ وملاحظة -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:11px;color:var(--text3)">📅 ${dt.ar}</div>
+          <div style="font-size:11px;color:${daysClr};font-weight:600">
+            ${item.status==='pending'?`${daysAgo===0?'اليوم':daysAgo===1?'أمس':daysAgo+' يوم'}`:''}
+          </div>
+        </div>
+        ${item.notes?`<div style="font-size:11px;color:var(--text3);margin-top:4px;border-top:1px solid var(--border);padding-top:4px">📝 ${item.notes}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderSalary(){
   const el = document.getElementById('salary-body');
   if(!el) return;
@@ -4529,7 +4928,7 @@ function renderAll(){
   Object.keys(computed).forEach(k=>{ S.safes[k]=computed[k]; });
   renderHome();renderHist();renderClients();renderSafes();renderStmt();renderTfDrops();
   renderUsers();
-  renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();
+  renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();
 }
 
 function renderHome(){
