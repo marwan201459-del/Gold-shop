@@ -253,6 +253,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);min-height:100vh;colo
 
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── توافق modal القديم ── */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);
+  z-index:200;align-items:flex-end;justify-content:center}
+.mo.on{display:flex}
+.mp{background:white;width:100%;max-width:480px;border-radius:20px 20px 0 0;
+  padding:20px 18px 36px;max-height:92vh;overflow-y:auto;animation:su .28s ease}
+.xbtn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.xbtn:hover{background:var(--surface2)}
+.mh h3{font-size:16px;font-weight:800;color:var(--text)}
 </style>
 </head>
 <body>
@@ -917,68 +928,6 @@ if(sessionStorage.getItem('auth')==='1'){
   </div>
 </div>
 
-<!-- Modal الراتب -->
-<div id="m-salary" class="modal">
-  <div class="mbox">
-    <div class="mh">
-      <span id="salary-modal-title">💰 تسجيل راتب / عهدة</span>
-      <button class="mc" onclick="closeM('m-salary')">✕</button>
-    </div>
-    <div class="mb">
-      <!-- نوع العملية -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        <button type="button" id="sal-type-salary" onclick="setSalType('salary')"
-          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:16px">💵</div>
-          <div style="font-size:11px;font-weight:700;color:var(--green)">راتب</div>
-          <div style="font-size:9px;color:var(--text2)">صندوق −</div>
-        </button>
-        <button type="button" id="sal-type-custody" onclick="setSalType('custody')"
-          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:16px">🤝</div>
-          <div style="font-size:11px;font-weight:700;color:var(--blue)">عهدة</div>
-          <div style="font-size:9px;color:var(--text2)">موظف أودع</div>
-        </button>
-        <button type="button" id="sal-type-deduction" onclick="setSalType('deduction')"
-          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:16px">✂️</div>
-          <div style="font-size:11px;font-weight:700;color:var(--orange)">خصم</div>
-          <div style="font-size:9px;color:var(--text2)">من الراتب</div>
-        </button>
-      </div>
-      <div id="sal-type-hint" style="display:none;border-radius:8px;padding:8px;margin-bottom:10px;font-size:11px;font-weight:700"></div>
-      <!-- الموظف -->
-      <div class="fr"><label>👤 الموظف</label>
-        <div class="sw"><span class="si">🔍</span>
-          <input type="text" id="sal-emp-s" placeholder="ابحث عن موظف..." autocomplete="off"
-            oninput="openCS('sal-emp-s','sal-emp-d','sal-emp-v',['موظف'])"
-            onfocus="openCS('sal-emp-s','sal-emp-d','sal-emp-v',['موظف'])">
-          <input type="hidden" id="sal-emp-v">
-          <div class="sdrop" id="sal-emp-d"></div>
-        </div>
-      </div>
-      <!-- المبلغ والصندوق -->
-      <div class="g2">
-        <div class="fr"><label>💵 المبلغ (ريال)</label>
-          <input type="number" id="sal-amount" inputmode="decimal" placeholder="0">
-        </div>
-        <div class="fr"><label id="sal-safe-lbl">🏦 من صندوق</label>
-          <select id="sal-safe"></select>
-        </div>
-      </div>
-      <div class="g2">
-        <div class="fr"><label>📅 التاريخ</label>
-          <input type="date" id="sal-date">
-        </div>
-        <div class="fr"><label>📝 ملاحظة</label>
-          <input type="text" id="sal-note" placeholder="اختياري">
-        </div>
-      </div>
-      <button class="btn btn-gold" id="sal-submit-btn" onclick="saveSalary()" style="width:100%;margin-top:4px">💾 حفظ</button>
-    </div>
-  </div>
-</div>
-
 
 <div id="pg-pending" class="pg">
   <!-- فلتر الحالة -->
@@ -1011,98 +960,6 @@ if(sessionStorage.getItem('auth')==='1'){
   </button>
   <div style="height:70px"></div>
 </div>
-
-<!-- Modal المعلّقات -->
-<div id="m-pending" class="modal">
-  <div class="mbox">
-    <div class="mh">
-      <span id="pending-modal-title">📌 تسجيل قطعة معلّقة</span>
-      <button class="mc" onclick="closeM('m-pending')">✕</button>
-    </div>
-    <div class="mb" id="pending-modal-body">
-      <!-- العميل -->
-      <div class="fr"><label>👤 العميل / رقمه</label>
-        <div class="sw"><span class="si">🔍</span>
-          <input type="text" id="pnd-cli-s" placeholder="ابحث أو اكتب..." autocomplete="off"
-            oninput="openCS('pnd-cli-s','pnd-cli-d','pnd-cli-v')"
-            onfocus="openCS('pnd-cli-s','pnd-cli-d','pnd-cli-v')">
-          <input type="hidden" id="pnd-cli-v">
-          <div class="sdrop" id="pnd-cli-d"></div>
-        </div>
-      </div>
-      <!-- القطعة -->
-      <div style="background:var(--gold-pale);border:1px solid var(--gold-mid);border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">🏅 تفاصيل القطعة</div>
-        <div class="g2">
-          <div class="fr">
-            <label>العيار</label>
-            <select id="pnd-karat">
-              <option value="21">عيار 21</option>
-              <option value="18">عيار 18</option>
-              <option value="24">عيار 24</option>
-              <option value="mixed">مختلط</option>
-            </select>
-          </div>
-          <div class="fr">
-            <label>الوزن (جرام)</label>
-            <input type="number" id="pnd-weight" placeholder="0.000" step="0.001" inputmode="decimal">
-          </div>
-        </div>
-        <div class="fr">
-          <label>الوصف (نوع القطعة)</label>
-          <input type="text" id="pnd-desc" placeholder="مثال: خاتم، سلسلة، حلق...">
-        </div>
-        <div class="g2">
-          <div class="fr">
-            <label>السعر التقديري (ريال)</label>
-            <input type="number" id="pnd-price" placeholder="0" inputmode="decimal">
-          </div>
-          <div class="fr">
-            <label>📅 تاريخ الأخذ</label>
-            <input type="date" id="pnd-date">
-          </div>
-        </div>
-      </div>
-      <div class="fr">
-        <label>📝 ملاحظات إضافية</label>
-        <input type="text" id="pnd-notes" placeholder="اختياري">
-      </div>
-      <button class="btn btn-gold" onclick="savePending()">📌 حفظ القطعة المعلّقة</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal تغيير الحالة -->
-<div id="m-pending-status" class="modal">
-  <div class="mbox">
-    <div class="mh">
-      <span>تحديث حالة القطعة</span>
-      <button class="mc" onclick="closeM('m-pending-status')">✕</button>
-    </div>
-    <div class="mb">
-      <div id="pending-status-info" style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px"></div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button onclick="updatePendingStatus('pending')"
-          style="padding:13px;border-radius:10px;border:1.5px solid var(--orange-border);background:var(--orange-bg);color:var(--orange);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
-          📌 معلّقة — القطعة لا تزال مع العميل
-        </button>
-        <button onclick="updatePendingStatus('sold')"
-          style="padding:13px;border-radius:10px;border:1.5px solid var(--green-border);background:var(--green-bg);color:var(--green);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
-          ✅ تم البيع — العميل اشترى القطعة
-        </button>
-        <button onclick="updatePendingStatus('returned')"
-          style="padding:13px;border-radius:10px;border:1.5px solid var(--blue-border);background:var(--blue-bg);color:var(--blue);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
-          ↩️ تم الإرجاع — رجعت القطعة للمخزن
-        </button>
-        <button onclick="deletePending()"
-          style="padding:10px;border-radius:10px;border:1.5px solid var(--red-border);background:var(--red-bg);color:var(--red);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center">
-          🗑️ حذف القطعة
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 <div id="pg-backup" class="pg">
   <div class="card">
@@ -1185,6 +1042,150 @@ if(sessionStorage.getItem('auth')==='1'){
   <div class="mp">
     <div class="mh"><h3>🧾 تفاصيل الفاتورة</h3><button class="xbtn" onclick="closeM('m-inv')">✕</button></div>
     <div id="m-inv-body"></div>
+  </div>
+</div>
+
+<!-- Modal الراتب -->
+<div id="m-salary" class="mo" onclick="OMO(event,'m-salary')">
+  <div class="mp">
+    <div class="mh"><h3 id="salary-modal-title">💰 تسجيل راتب / عهدة</h3><button class="xbtn" onclick="closeM('m-salary')">✕</button></div>
+    <div class="mb">
+      <!-- نوع العملية -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <button type="button" id="sal-type-salary" onclick="setSalType('salary')"
+          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
+          <div style="font-size:16px">💵</div>
+          <div style="font-size:11px;font-weight:700;color:var(--green)">راتب</div>
+          <div style="font-size:9px;color:var(--text2)">صندوق −</div>
+        </button>
+        <button type="button" id="sal-type-custody" onclick="setSalType('custody')"
+          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
+          <div style="font-size:16px">🤝</div>
+          <div style="font-size:11px;font-weight:700;color:var(--blue)">عهدة</div>
+          <div style="font-size:9px;color:var(--text2)">موظف أودع</div>
+        </button>
+        <button type="button" id="sal-type-deduction" onclick="setSalType('deduction')"
+          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
+          <div style="font-size:16px">✂️</div>
+          <div style="font-size:11px;font-weight:700;color:var(--orange)">خصم</div>
+          <div style="font-size:9px;color:var(--text2)">من الراتب</div>
+        </button>
+      </div>
+      <div id="sal-type-hint" style="display:none;border-radius:8px;padding:8px;margin-bottom:10px;font-size:11px;font-weight:700"></div>
+      <!-- الموظف -->
+      <div class="fr"><label>👤 الموظف</label>
+        <div class="sw"><span class="si">🔍</span>
+          <input type="text" id="sal-emp-s" placeholder="ابحث عن موظف..." autocomplete="off"
+            oninput="openCS('sal-emp-s','sal-emp-d','sal-emp-v',['موظف'])"
+            onfocus="openCS('sal-emp-s','sal-emp-d','sal-emp-v',['موظف'])">
+          <input type="hidden" id="sal-emp-v">
+          <div class="sdrop" id="sal-emp-d"></div>
+        </div>
+      </div>
+      <!-- المبلغ والصندوق -->
+      <div class="g2">
+        <div class="fr"><label>💵 المبلغ (ريال)</label>
+          <input type="number" id="sal-amount" inputmode="decimal" placeholder="0">
+        </div>
+        <div class="fr"><label id="sal-safe-lbl">🏦 من صندوق</label>
+          <select id="sal-safe"></select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fr"><label>📅 التاريخ</label>
+          <input type="date" id="sal-date">
+        </div>
+        <div class="fr"><label>📝 ملاحظة</label>
+          <input type="text" id="sal-note" placeholder="اختياري">
+        </div>
+      </div>
+      <button class="btn btn-gold" id="sal-submit-btn" onclick="saveSalary()" style="width:100%;margin-top:4px">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal المعلّقات -->
+<div id="m-pending" class="mo" onclick="OMO(event,'m-pending')">
+  <div class="mp">
+    <div class="mh"><h3 id="pending-modal-title">📌 تسجيل قطعة معلّقة</h3><button class="xbtn" onclick="closeM('m-pending')">✕</button></div>
+    <div class="mb" id="pending-modal-body">
+      <!-- العميل -->
+      <div class="fr"><label>👤 العميل / رقمه</label>
+        <div class="sw"><span class="si">🔍</span>
+          <input type="text" id="pnd-cli-s" placeholder="ابحث أو اكتب..." autocomplete="off"
+            oninput="openCS('pnd-cli-s','pnd-cli-d','pnd-cli-v')"
+            onfocus="openCS('pnd-cli-s','pnd-cli-d','pnd-cli-v')">
+          <input type="hidden" id="pnd-cli-v">
+          <div class="sdrop" id="pnd-cli-d"></div>
+        </div>
+      </div>
+      <!-- القطعة -->
+      <div style="background:var(--gold-pale);border:1px solid var(--gold-mid);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">🏅 تفاصيل القطعة</div>
+        <div class="g2">
+          <div class="fr">
+            <label>العيار</label>
+            <select id="pnd-karat">
+              <option value="21">عيار 21</option>
+              <option value="18">عيار 18</option>
+              <option value="24">عيار 24</option>
+              <option value="mixed">مختلط</option>
+            </select>
+          </div>
+          <div class="fr">
+            <label>الوزن (جرام)</label>
+            <input type="number" id="pnd-weight" placeholder="0.000" step="0.001" inputmode="decimal">
+          </div>
+        </div>
+        <div class="fr">
+          <label>الوصف (نوع القطعة)</label>
+          <input type="text" id="pnd-desc" placeholder="مثال: خاتم، سلسلة، حلق...">
+        </div>
+        <div class="g2">
+          <div class="fr">
+            <label>السعر التقديري (ريال)</label>
+            <input type="number" id="pnd-price" placeholder="0" inputmode="decimal">
+          </div>
+          <div class="fr">
+            <label>📅 تاريخ الأخذ</label>
+            <input type="date" id="pnd-date">
+          </div>
+        </div>
+      </div>
+      <div class="fr">
+        <label>📝 ملاحظات إضافية</label>
+        <input type="text" id="pnd-notes" placeholder="اختياري">
+      </div>
+      <button class="btn btn-gold" onclick="savePending()">📌 حفظ القطعة المعلّقة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal تغيير الحالة -->
+<div id="m-pending-status" class="mo" onclick="OMO(event,'m-pending-status')">
+  <div class="mp">
+    <div class="mh"><h3>تحديث حالة القطعة</h3><button class="xbtn" onclick="closeM('m-pending-status')">✕</button></div>
+    <div class="mb">
+      <div id="pending-status-info" style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="updatePendingStatus('pending')"
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--orange-border);background:var(--orange-bg);color:var(--orange);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          📌 معلّقة — القطعة لا تزال مع العميل
+        </button>
+        <button onclick="updatePendingStatus('sold')"
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--green-border);background:var(--green-bg);color:var(--green);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          ✅ تم البيع — العميل اشترى القطعة
+        </button>
+        <button onclick="updatePendingStatus('returned')"
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--blue-border);background:var(--blue-bg);color:var(--blue);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          ↩️ تم الإرجاع — رجعت القطعة للمخزن
+        </button>
+        <button onclick="deletePending()"
+          style="padding:10px;border-radius:10px;border:1.5px solid var(--red-border);background:var(--red-bg);color:var(--red);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center">
+          🗑️ حذف القطعة
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
