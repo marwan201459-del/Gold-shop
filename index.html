@@ -1624,7 +1624,17 @@ body{
 <script>
 // ── State ─────────────────────────────────────────────────────────
 const DEF={transactions:[],clients:[],pendingItems:[],activityLog:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}]};
-let S={...DEF}; // سيُستبدل من Firebase فور الاتصال
+let S={...DEF};
+
+// ── منع التكرار (Anti-Duplicate) ──
+let _saving = false;
+function acquireSave(){
+  if(_saving){ toast('⏳ جارٍ الحفظ...'); return false; }
+  _saving = true;
+  setTimeout(()=>{ _saving=false; }, 3000); // timeout ضمان
+  return true;
+}
+function releaseSave(){ _saving=false; } // سيُستبدل من Firebase فور الاتصال
 ['khazina','madan','lava','discount'].forEach(k=>{if(S.safes[k]==null)S.safes[k]=0;});
 if(!S.customSafes)S.customSafes=[];
 let selType='sell', selPay='cash';
@@ -2436,10 +2446,56 @@ function renderDraftItems(){
 }
 
 // ── Save Invoice ───────────────────────────────────────────────────
+
+// ── التحقق من كفاية المخزون ──────────────
+function checkStock(items, type){
+  if(type!=='sell' && type!=='sell-debt') return null;
+  const safes = calcSafes();
+  for(const i of items){
+    const w = i.weight||0;
+    if(w<=0) continue;
+    let available = 0;
+    if(i.isWorked){
+      available = (i.karat==='21') ? (safes.worked21||0) : (safes.worked18||0);
+    } else {
+      if(i.karat==='21')      available = safes.scrap21||0;
+      else if(i.karat==='18') available = safes.scrap18||0;
+      else if(i.karat==='24') available = safes.pure24||0;
+    }
+    if(w > available + 0.001){
+      const type_label = i.isWorked ? 'مشغول' : 'كسر';
+      return `❌ مخزون غير كافٍ — عيار ${i.karat} (${type_label})\nمتاح: ${fmtG(available)}ج | مطلوب: ${fmtG(w)}ج`;
+    }
+  }
+  return null;
+}
+
+// ── التحقق من صحة رصيد السداد ──────────────
+function checkPaymentBalance(clientName, payAmount, isSupplier){
+  if(payAmount<=0) return null;
+  const bal = getClientBalance(clientName);
+  if(isSupplier){
+    // سداد مورد: لا نسدد أكثر مما عليه
+    const owed = Math.abs(bal.cashOwed);
+    if(payAmount > owed + 0.01)
+      return `❌ المبلغ أكبر من المستحق — المورد له ${fmt(owed)} ر فقط`;
+  } else {
+    // استلام من عميل: لا نستلم أكثر مما عليه
+    if(payAmount > bal.cashOwed + 0.01)
+      return `❌ المبلغ أكبر من المستحق — العميل عليه ${fmt(bal.cashOwed)} ر فقط`;
+  }
+  return null;
+}
+
 function saveInvoice(){
-  if(!draftItems.length){toast('⚠️ أضف صنفاً واحداً على الأقل');return;}
+  if(!acquireSave()) return;
+  if(!draftItems.length){releaseSave();toast('⚠️ أضف صنفاً واحداً على الأقل');return;}
   const hasWeight=draftItems.every(i=>i.weight>0);
-  if(!hasWeight){toast('⚠️ أدخل الوزن لكل صنف');return;}
+  if(!hasWeight){releaseSave();toast('⚠️ أدخل الوزن لكل صنف');return;}
+
+  // ── التحقق من المخزون قبل البيع ──
+  const stockErr = checkStock(draftItems, selType);
+  if(stockErr){ releaseSave(); toast(stockErr); return; }
 
   const goldTotal =draftItems.reduce((a,i)=>a+i.weight*i.price,0);
   const ajTotal   =draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
@@ -2475,7 +2531,7 @@ function saveInvoice(){
 
   // الصناديق تُحسب تلقائياً في calcSafes() عند renderAll
 
-  sv(); clearInvForm(); renderAll();
+  sv(); clearInvForm(); renderAll(); releaseSave();
   toast('✅ تم حفظ الفاتورة');
 }
 
@@ -4542,12 +4598,18 @@ function renderDebts(){
       ? (b.goldAs24<0?'نحن مدينون بذهب':'ذهب مستحق لنا منه')
       : (b.goldAs24>0?'ذهب عليه':'ذهب له');
     // عرض "له / عليه" بدل الإشارات
+    // ── له / عليه واضح ──
+    const absC = Math.abs(b.cashOwed||0);
     const cashLbl = isSupp
-      ? (b.cashOwed<0 ? '📍 علينا له' : b.cashOwed>0 ? '✅ له عندنا' : '✅ مسوى')
-      : (b.cashOwed>0 ? '📍 عليه لنا' : b.cashOwed<0 ? '✅ له عندنا' : '✅ مسوى');
+      ? (b.cashOwed<0 ? `له علينا ${fmt(absC)} ر`
+                      : b.cashOwed>0 ? `له عندنا فائض ${fmt(absC)} ر`
+                      : '✅ مسوى')
+      : (b.cashOwed>0 ? `عليه لنا ${fmt(absC)} ر`
+                      : b.cashOwed<0 ? `له عندنا فائض ${fmt(absC)} ر`
+                      : '✅ مسوى');
     const cashSign = isSupp
-      ? (b.cashOwed<0 ? 'علينا' : b.cashOwed>0 ? 'له' : '')
-      : (b.cashOwed>0 ? 'عليه' : b.cashOwed<0 ? 'له' : '');
+      ? (b.cashOwed<0 ? 'له' : 'له عندنا')
+      : (b.cashOwed>0 ? 'عليه' : 'له');
     return `<div style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:8px;border:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center"
          onclick="selStmt('${b.name.replace(/'/g,"\'")}','${b.name.replace(/'/g,"\'")}');P('stmt',document.querySelector('.tab:nth-child(6)'))">
       <div>
@@ -6006,6 +6068,7 @@ function calcReturnSummary(){
 }
 
 function saveReturn(){
+  if(!acquireSave()) return;
   if(!currentReturnType){toast('⚠️ اختر نوع المرتجع');return;}
   const validItems = returnItems.filter(i=>i.weight>0);
   const cash = parseFloat(document.getElementById('ret-cash')?.value)||0;
@@ -6030,7 +6093,7 @@ function saveReturn(){
   logActivity('add',
     `${TLBL[currentReturnType]}: ${cli} — ${fmtG(total24)}ج ع24 ${cash>0?'+ '+fmt(cash)+' ر':''}`,
     String(tx.id));
-  sv(); renderAll();
+  sv(); renderAll(); releaseSave();
 
   // تنظيف
   returnItems=[]; returnCounter=0;
@@ -6074,6 +6137,7 @@ function renderReturns(){
 //   المصروفات — Expenses System
 // ═══════════════════════════════════════════════
 function saveExpense(){
+  if(!acquireSave()) return;
   const amount = parseFloat(document.getElementById('exp-amount')?.value)||0;
   if(amount<=0){toast('⚠️ أدخل المبلغ');return;}
   const safe  = document.getElementById('exp-safe')?.value||'cash';
@@ -6092,7 +6156,7 @@ function saveExpense(){
   };
   S.transactions.unshift(tx);
   logActivity('add',`مصروف: ${typeLabels[type]||type} — ${fmt(amount)} ريال${desc?' — '+desc:''}`,String(tx.id));
-  sv(); renderAll();
+  sv(); renderAll(); releaseSave();
   ['exp-amount','exp-desc','exp-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -6740,11 +6804,17 @@ function renderStmt(){
     const sign=bal.cashOwed>0;
     // عرض له/عليه بوضوح حسب نوع الطرف
     const isSupplier = (S.clients||[]).find(cl=>cl.name===selName)?.type==='مورد';
+    // ── له / عليه — موحد ──
+    // مورد: cashOwed موجب = دفعنا أكثر (نادر) | سالب = له علينا
+    // عميل: cashOwed موجب = عليه لنا | سالب = له عندنا (نادر)
+    const absOwed = Math.abs(bal.cashOwed);
     const cashLabel = isSupplier
-      ? (sign ? 'نحن مدينون له' : 'له عندنا فائض')
-      : (sign ? 'عليه لنا'       : 'له عندنا فائض');
+      ? (sign  ? `له عندنا فائض ${fmt(absOwed)} ريال`
+               : `المورد له علينا ${fmt(absOwed)} ريال`)
+      : (!sign ? `له عندنا فائض ${fmt(absOwed)} ريال`
+               : `العميل عليه لنا ${fmt(absOwed)} ريال`);
     const cashColor = isSupplier
-      ? (sign ? 'var(--no)' : 'var(--ok)')
+      ? (sign ? 'var(--ok)' : 'var(--no)')
       : (sign ? 'var(--no)' : 'var(--ok)');
     balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:13px">💵 ${cashLabel}</span>
