@@ -4078,9 +4078,9 @@ function getClientBalance(cli){
       t.type==='transfer' && t.toSafe===('__cli__'+cli)
     ).reduce((a,t)=>a+(t.amount||0),0);
   // أجور مردود من عميل (تُخصم مما عليه)
-  // مرتجع مبيعات قديم (return) + مرتجع مبيعات جديد (sales-return)
+  // مرتجع مبيعات — يخصم الأجور + النقد المسترد
   const retAjour = txs.filter(t=>t.type==='return'||t.type==='sales-return')
-                      .reduce((a,t)=>a+(t.ajTotal||t.cashRefund||0),0);
+                      .reduce((a,t)=>a+(t.ajTotal||0)+(t.retAjour||0),0);
   // نقد مُسترد في مرتجع المبيعات
   const salesRetCash = txs.filter(t=>t.type==='sales-return')
                            .reduce((a,t)=>a+(t.cashRefund||0),0);
@@ -4099,9 +4099,9 @@ function getClientBalance(cli){
   const supplierDiscount = txs.filter(t=>t.type==='supplier-payment')
                               .reduce((a,t)=>a+(t.discount||0),0);
   // أجور مردود للمورد (تُقلل ما علينا)
-  // مرتجع مشتريات قديم (supplier-return) + جديد (purchase-return)
+  // مرتجع مشتريات — يخصم الأجور + النقد المسترد
   const suppRetAjour = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
-                           .reduce((a,t)=>a+(t.ajTotal||0),0);
+                           .reduce((a,t)=>a+(t.ajTotal||0)+(t.retAjour||0),0);
   // نقد أرجعه المورد في مرتجع المشتريات
   const purchRetCash = txs.filter(t=>t.type==='purchase-return')
                            .reduce((a,t)=>a+(t.cashRefund||0),0);
@@ -5987,7 +5987,7 @@ function setReturnType(type){
 
 function addReturnItem(){
   returnCounter++;
-  returnItems.push({id:returnCounter, karat:'21', weight:0, isWorked:false});
+  returnItems.push({id:returnCounter, karat:'21', weight:0, isWorked:false, ajour:0});
   renderReturnItems();
 }
 
@@ -6026,7 +6026,7 @@ function renderReturnItems(){
           style="background:var(--no);color:white;border:none;border-radius:4px;
             padding:2px 8px;cursor:pointer;font-size:11px">✕</button>
       </div>
-      <div class="g2" style="margin-bottom:6px">
+      <div class="g3" style="margin-bottom:6px">
         <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">العيار</div>
           <select onchange="updateReturnItem(${item.id},'karat',this.value)"
             style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);
@@ -6043,9 +6043,16 @@ function renderReturnItems(){
               background:var(--c1);color:var(--tx1);font-family:inherit"
             oninput="updateReturnItem(${item.id},'weight',this.value)">
         </div>
+        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">أجور/جرام</div>
+          <input type="number" id="ri-ajour-${item.id}" value="${item.ajour||''}" placeholder="0"
+            inputmode="decimal"
+            style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);
+              background:var(--c1);color:var(--tx1);font-family:inherit"
+            oninput="updateReturnItem(${item.id},'ajour',parseFloat(this.value)||0);calcReturnSummary()">
+        </div>
       </div>
       <div id="ri-as24-${item.id}" style="font-size:11px;color:var(--g1);font-weight:700">
-        ${as24>0?`= ${fmtG(as24)} ج ع24`:''}
+        ${as24>0?`= ${fmtG(as24)} ج ع24`:''}${item.ajour>0?` | أجور: ${fmt(Math.round(item.weight*(item.ajour||0)*100)/100)} ر`:''}
       </div>
     </div>`;
   }).join('');
@@ -6056,13 +6063,21 @@ function calcReturnSummary(){
   if(!el) return;
   const total24 = returnItems.reduce((a,i)=>
     a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000, 0);
+  const totalAjour = returnItems.reduce((a,i)=>{
+    const aj=parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||i.ajour||0;
+    return a+Math.round(i.weight*aj*100)/100;
+  },0);
   const cash = parseFloat(document.getElementById('ret-cash')?.value)||0;
-  if(total24>0||cash>0){
+  const grandTotal = cash + totalAjour;
+  if(total24>0||cash>0||totalAjour>0){
     el.style.display='block';
     el.innerHTML = `
-      <div style="font-weight:700;margin-bottom:6px">📊 ملخص المرتجع:</div>
-      ${total24>0?`<div>✨ إجمالي الذهب: <b>${fmtG(Math.round(total24*1000)/1000)} ج ع24</b></div>`:''}
-      ${cash>0?`<div>💵 نقد مسترد: <b>${fmt(cash)} ريال</b></div>`:''}
+      <div style="font-weight:700;margin-bottom:6px;color:var(--g1)">📊 ملخص المرتجع:</div>
+      ${total24>0?`<div style="margin-bottom:3px">✨ ذهب: <b>${fmtG(Math.round(total24*1000)/1000)} ج ع24</b></div>`:''}
+      ${totalAjour>0?`<div style="margin-bottom:3px">⚙️ أجور مرتجعة: <b>${fmt(totalAjour)} ريال</b></div>`:''}
+      ${cash>0?`<div style="margin-bottom:3px">💵 نقد مسترد: <b>${fmt(cash)} ريال</b></div>`:''}
+      ${grandTotal>0?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--g5);font-size:14px">
+        💰 الإجمالي المسترد: <b style="color:var(--g1)">${fmt(grandTotal)} ريال</b></div>`:''}
     `;
   } else el.style.display='none';
 }
@@ -6079,14 +6094,27 @@ function saveReturn(){
   const dateISO = dateV?new Date(dateV).toISOString():new Date().toISOString();
 
   const total24 = validItems.reduce((a,i)=>a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000,0);
+  // حساب أجور المرتجع من الأصناف
+  const retAjour = validItems.reduce((a,i)=>{
+    const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
+    return a + (i.weight||0)*ajour;
+  }, 0);
+  const retTotal = cash + retAjour;  // النقد المسترد + الأجور
+
   const tx = {
     id:Date.now(), date:dateISO,
     type:currentReturnType,
     client:cli, notes,
-    items:validItems.map(i=>({karat:i.karat,weight:i.weight,isWorked:false})),
+    items:validItems.map(i=>{
+      const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
+      return {karat:i.karat, weight:i.weight, isWorked:false, ajour};
+    }),
     cashRefund:cash,
+    retAjour:Math.round(retAjour*100)/100,
+    ajTotal:Math.round(retTotal*100)/100,
+    total:Math.round(retTotal*100)/100,
+    cash,
     total24:Math.round(total24*1000)/1000,
-    ajTotal:cash, total:cash, cash,
   };
 
   S.transactions.unshift(tx);
@@ -6799,6 +6827,58 @@ function renderStmt(){
   const isSettled=Math.abs(bal.cashOwed)<0.01&&Math.abs(bal.goldOwedAs24||0)<0.001;
 
   // ── بطاقة الرصيد ──
+  // ══ بطاقة الملخص المباشر — تظهر دون طباعة ══
+  const isSupp = (S.clients||[]).find(cl=>cl.name===selName)?.type==='مورد';
+  const absOwedQ = Math.abs(bal.cashOwed);
+  const stateLabel = isSupp
+    ? (bal.cashOwed<0 ? 'له علينا' : bal.cashOwed>0 ? 'له عندنا فائض' : 'مسوى')
+    : (bal.cashOwed>0 ? 'عليه لنا' : bal.cashOwed<0 ? 'له عندنا' : 'مسوى');
+  const stateColor = isSupp
+    ? (bal.cashOwed<0 ? 'var(--no)' : 'var(--ok)')
+    : (bal.cashOwed>0 ? 'var(--no)' : 'var(--ok)');
+  const stateIcon = Math.abs(bal.cashOwed)<0.01 ? '✅' : isSupp
+    ? (bal.cashOwed<0 ? '🔴' : '🟢') : (bal.cashOwed>0 ? '🔴' : '🟢');
+
+  // بطاقة ملخص سريع
+  const summaryCard = `
+    <div style="background:var(--c2);border-radius:var(--rb);
+      border:1px solid var(--b2);padding:14px 16px;margin-bottom:12px;
+      display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+      <!-- الإجمالي المستحق -->
+      <div style="border-left:1px solid var(--b1);padding-left:10px">
+        <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">
+          إجمالي مستحق
+        </div>
+        <div style="font-size:18px;font-weight:900;color:var(--g1)">
+          ${fmt(bal.ajTotal||0)}
+          <span style="font-size:10px;font-weight:400;color:var(--tx2)">ريال</span>
+        </div>
+      </div>
+      <!-- المسدد -->
+      <div style="border-left:1px solid var(--b1);padding-left:10px">
+        <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">
+          تم السداد
+        </div>
+        <div style="font-size:18px;font-weight:900;color:var(--ok)">
+          ${fmt(bal.totalNaqd||0)}
+          <span style="font-size:10px;font-weight:400;color:var(--tx2)">ريال</span>
+        </div>
+      </div>
+      <!-- الرصيد النهائي -->
+      <div>
+        <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">
+          الرصيد النهائي
+        </div>
+        <div style="font-size:22px;font-weight:900;color:${stateColor}">
+          ${stateIcon} ${absOwedQ>0.01?fmt(absOwedQ):'صفر'}
+        </div>
+        <div style="font-size:11px;font-weight:700;color:${stateColor};margin-top:2px">
+          ${stateLabel}
+        </div>
+      </div>
+    </div>
+  `;
+
   let balRows='';
   if(Math.abs(bal.cashOwed)>0.01){
     const sign=bal.cashOwed>0;
@@ -6841,10 +6921,16 @@ function renderStmt(){
     // تغيير النقد
     let dCash = 0;
     if(t.type==='sell'&&!t.isDebt)         dCash = t.ajTotal||0;       // أجور دخلت
+    else if(t.type==='sell-debt')           dCash = t.ajTotal||0;       // آجل: مستحق عليه
     else if(t.type==='payment')             dCash = t.ajourPaid||t.amount||0;
     else if(t.type==='supplier-payment')    dCash = -(t.ajourPaid||t.amount||0);
     else if(t.type==='cash-receipt')        dCash = t.amount||0;
     else if(t.type==='buy')                 dCash = -(t.ajTotal||t.total||0);
+    else if(t.type==='buy-debt')            dCash = -(t.ajTotal||t.total||0); // مستحق له
+    else if(t.type==='sales-return')        dCash = -(t.ajTotal||t.cashRefund||0); // عكس البيع
+    else if(t.type==='purchase-return')     dCash = (t.ajTotal||0); // عكس الشراء
+    else if(t.type==='return')              dCash = -(t.ajTotal||t.cashRefund||0);
+    else if(t.type==='supplier-return')     dCash = (t.ajTotal||0);
     else if(t.type==='transfer'){
       if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;  // العميل أعطانا
       if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
@@ -6858,10 +6944,10 @@ function renderStmt(){
     else if(t.type==='scrap')               dGold24 = -to24rb(t.weight,t.karat||'21');
     else if(t.type==='payment')             dGold24 = -to24rb(t.goldWeight,t.goldKarat||'21');
     else if(t.type==='supplier-payment')    dGold24 = to24rb(t.goldWeight,t.goldKarat||'21');
-    else if(t.type==='return')
-      (t.items||[]).forEach(i=>{ dGold24 -= to24rb(i.weight,i.karat); });
-    else if(t.type==='supplier-return')
-      (t.items||[]).forEach(i=>{ dGold24 += to24rb(i.weight,i.karat); });
+    else if(t.type==='return'||t.type==='sales-return')
+      (t.items||[]).forEach(i=>{ dGold24 -= to24rb(i.weight,i.karat); }); // ذهب عاد لمخزوننا
+    else if(t.type==='supplier-return'||t.type==='purchase-return')
+      (t.items||[]).forEach(i=>{ dGold24 += to24rb(i.weight,i.karat); }); // ذهب رجع للمورد
     else if(t.type==='transfer'){
       if(t.fromSafe===('__cli__'+v)) dGold24 = to24rb(t.goldAmount,t.goldKarat||'21');
       if(t.toSafe===('__cli__'+v))   dGold24 = -to24rb(t.goldAmount,t.goldKarat||'21');
@@ -6874,10 +6960,19 @@ function renderStmt(){
   let txRows=txsWithBalance.map(({t, dCash, dGold24, runCash, runGold24})=>{
     const dt=fmtDate(t.date);
     const lbl=TLBL[t.type]||t.type;
+    // له / عليه لهذه العملية
+    const txDir = dCash>0.01
+      ? (isSupp?'نحن ندفع له':'عليه لنا')
+      : dCash<-0.01
+      ? (isSupp?'له عندنا':'له عندنا')
+      : '';
+    const txDirColor = dCash>0.01
+      ? (isSupp?'var(--no)':'var(--no)')
+      : 'var(--ok)';
     // تفاصيل العملية
     let detail='';
     if(t.items&&t.items.length)
-      detail=t.items.map(i=>`${kNames[i.karat]||i.karat}: ${fmtG(i.weight)}ج · ${fmt(i.ajour)}/ج أجور`).join(' | ');
+      detail=t.items.map(i=>`${kNames[i.karat]||i.karat}: ${fmtG(i.weight)}ج${i.ajour>0?' · '+fmt(i.ajour)+'/ج':''}`).join(' | ');
     if(t.type==='payment'){
       const parts=[`نقد: ${fmt(t.ajourPaid||0)} ر`];
       if(t.change>0)   parts.push(`فكة: ${fmt(t.change)} ر`);
@@ -6935,7 +7030,11 @@ function renderStmt(){
           ${dCash!==0?`<div style="font-size:12px;font-weight:700;color:${cashClr}">${dCash>0?'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${fmt(Math.abs(dCash))} ر</div>`:''}
           ${dGold24!==0?`<div style="font-size:12px;font-weight:700;color:${goldClr}">${dGold24>0?'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${fmtG(Math.abs(dGold24))}ج ع24</div>`:''}
           <div style="font-size:10px;margin-top:3px;border-top:1px dashed var(--border);padding-top:3px">
-            ${runCash!==0?`<span style="color:${balCashClr};font-weight:600">${fmt(Math.abs(runCash))} ر</span> `:''}
+            ${runCash!==0?`<span style="color:${balCashClr};font-weight:700">${
+              isSupp
+                ? (runCash<0?'له':'له عندنا')
+                : (runCash>0?'عليه':'له')
+            }: ${fmt(Math.abs(runCash))} ر</span> `:''}
             ${runGold24!==0?`<span style="color:${balGoldClr};font-weight:600">${fmtG(Math.abs(runGold24))}ج</span>`:''}
           </div>
         </div>
@@ -6947,10 +7046,11 @@ function renderStmt(){
   let html=`
   <!-- الرصيد الحالي -->
   <div class="card" style="border:2px solid ${isSettled?'var(--green)':'var(--gold)'}">
-    <div class="ch" style="background:${isSettled?'var(--green)':'var(--gold)'}">
-      ${isSettled?'✅ الحساب مسدد':'💳 الرصيد الحالي على '+v}
+    <div class="ch" style="background:${isSettled?'var(--ok)':'var(--g1)'}">
+      ${isSettled?'✅ الحساب مسدد':'💳 ملخص حساب: '+v}
     </div>
     <div class="cb">
+      ${summaryCard}
       ${isSettled
         ?`<div style="text-align:center;padding:20px;font-size:15px;font-weight:900;color:var(--green)">
             ✅ تم تسديد الحساب كامل<br>
