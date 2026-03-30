@@ -2487,6 +2487,160 @@ function checkPaymentBalance(clientName, payAmount, isSupplier){
   return null;
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+//   محرك القواعد المحاسبية — Accounting Rules Engine
+//   دستور النظام — لا يمكن تجاوز هذه القواعد
+// ═══════════════════════════════════════════════════════════════
+
+const ACC_RULES = {
+
+  // ق1: كل عملية يجب أن يكون لها تأثير محاسبي
+  hasAccountingEffect(tx){
+    const hasAmount  = (tx.ajTotal||0)+(tx.total||0)+(tx.amount||0)+(tx.cashRefund||0) > 0;
+    const hasItems   = (tx.items||[]).some(i=>(i.weight||0)>0);
+    const hasGold    = (tx.weight||0)>0 || (tx.goldWeight||0)>0;
+    const hasPayment = (tx.ajourPaid||0)>0 || (tx.amount||0)>0;
+    if(!hasAmount && !hasItems && !hasGold && !hasPayment)
+      return '❌ القاعدة 1: لا يوجد تأثير محاسبي — أضف قيمة أو وزن';
+    return null;
+  },
+
+  // ق2: نوع العملية مطلوب ومعروف
+  hasValidType(tx){
+    const validTypes = [
+      'sell','sell-debt','buy','buy-debt','scrap','transfer',
+      'payment','supplier-payment','return','scrap-return',
+      'cash-receipt','supplier-return','adjustment','discount-adj',
+      'salary-pay','salary-custody','salary-deduction',
+      'sales-return','purchase-return','expense','inventory-adj',
+    ];
+    if(!tx.type) return '❌ القاعدة 2: نوع العملية غير محدد';
+    if(!validTypes.includes(tx.type))
+      return `❌ القاعدة 2: نوع غير معروف "${tx.type}"`;
+    return null;
+  },
+
+  // ق3: القيم يجب أن تكون منطقية (لا سالبة)
+  hasPositiveValues(tx){
+    const checks = [
+      [tx.ajTotal,    'الأجور الكلية'],
+      [tx.total,      'الإجمالي'],
+      [tx.amount,     'المبلغ'],
+      [tx.cashRefund, 'النقد المسترد'],
+      [tx.ajourPaid,  'المبلغ المسدد'],
+      [tx.vatAmt,     'الضريبة'],
+    ];
+    for(const [val, name] of checks){
+      if(val !== undefined && val !== null && val < -0.001)
+        return `❌ القاعدة 3: ${name} لا يمكن أن يكون سالباً (${val})`;
+    }
+    for(const i of (tx.items||[])){
+      if((i.weight||0) < 0)
+        return `❌ القاعدة 3: الوزن لا يمكن أن يكون سالباً`;
+      if((i.ajour||0) < 0)
+        return `❌ القاعدة 3: أجور الجرام لا يمكن أن تكون سالبة`;
+    }
+    return null;
+  },
+
+  // ق4: البيع يتطلب عميل
+  requiresClient(tx){
+    const needsClient = ['sell','sell-debt','payment','return','sales-return'];
+    const needsSupplier = ['buy','buy-debt','supplier-payment','supplier-return','purchase-return'];
+    if(needsClient.includes(tx.type) && !tx.client?.trim())
+      return '❌ القاعدة 4: البيع والقبض تتطلب تحديد العميل';
+    if(needsSupplier.includes(tx.type) && !tx.client?.trim())
+      return '❌ القاعدة 4: الشراء والسداد تتطلب تحديد المورد';
+    return null;
+  },
+
+  // ق5: المرتجع يجب أن يكون له أثر (وزن أو قيمة)
+  returnMustHaveEffect(tx){
+    const retTypes=['sales-return','purchase-return','return','supplier-return','scrap-return'];
+    if(!retTypes.includes(tx.type)) return null;
+    const hasItems = (tx.items||[]).some(i=>(i.weight||0)>0.001);
+    const hasCash  = (tx.cashRefund||0)>0.01;
+    const hasAjour = (tx.ajTotal||0)>0.01;
+    if(!hasItems && !hasCash && !hasAjour)
+      return '❌ القاعدة 5: المرتجع يجب أن يحتوي وزناً أو قيمة';
+    return null;
+  },
+
+  // ق6: الضريبة إما صفر أو 15% من الأساس
+  vatMustBeConsistent(tx){
+    if(!(tx.vatAmt > 0)) return null;
+    const base = (tx.ajTotal||0) + (tx.retAjour||0) + (tx.cashRefund||0);
+    // قبول نطاق ±1 ريال
+    const expectedMin = Math.round(base * 0.149 * 100) / 100;
+    const expectedMax = Math.round(base * 0.151 * 100) / 100;
+    if(tx.vatAmt < expectedMin || tx.vatAmt > expectedMax)
+      return `❌ القاعدة 6: الضريبة ${tx.vatAmt} ر لا تساوي 15% من الأساس ${fmt?fmt(base):base} ر`;
+    return null;
+  },
+
+  // ق7: المخزون كافٍ للبيع (تُستدعى checkStock خارجياً أيضاً)
+  stockSufficient(tx){
+    if(tx.type!=='sell' && tx.type!=='sell-debt') return null;
+    return checkStock(tx.items||[], tx.type); // يُعيد null أو رسالة خطأ
+  },
+
+  // ق8: الـ ID فريد
+  uniqueId(tx){
+    if(S.transactions.some(t=>t.id===tx.id))
+      return '❌ القاعدة 8: ID مكرر — تم رفض العملية';
+    return null;
+  },
+};
+
+/**
+ * validateTx — تحقق من جميع القواعد قبل الحفظ
+ * تُعيد null إذا كل شيء صح، أو رسالة الخطأ
+ */
+function validateTx(tx){
+  const rules = [
+    ACC_RULES.hasValidType,
+    ACC_RULES.hasAccountingEffect,
+    ACC_RULES.hasPositiveValues,
+    ACC_RULES.requiresClient,
+    ACC_RULES.returnMustHaveEffect,
+    ACC_RULES.vatMustBeConsistent,
+    ACC_RULES.stockSufficient,
+    ACC_RULES.uniqueId,
+  ];
+  for(const rule of rules){
+    const err = rule.call(ACC_RULES, tx);
+    if(err){
+      logActivity('validate_fail', err, String(tx.id||''));
+      return err;
+    }
+  }
+  return null;
+}
+
+/**
+ * safeSave — حفظ آمن مع التحقق
+ * تستبدل S.transactions.unshift(tx) + sv()
+ */
+function safeSave(tx){
+  const err = validateTx(tx);
+  if(err){
+    releaseSave();
+    toast(err);
+    return false;
+  }
+  S.transactions.unshift(tx);
+  logActivity('add',
+    `[${TLBL[tx.type]||tx.type}] ${tx.client||''} — ${
+      tx.ajTotal>0?fmt(tx.ajTotal)+' ر':''
+    }${(tx.items||[]).length?` | ${(tx.items||[]).reduce((a,i)=>a+(i.weight||0),0).toFixed(3)}ج`:''}`,
+    String(tx.id)
+  );
+  sv();
+  return true;
+}
+
+
 function saveInvoice(){
   if(!acquireSave()) return;
   if(!draftItems.length){releaseSave();toast('⚠️ أضف صنفاً واحداً على الأقل');return;}
@@ -2527,11 +2681,10 @@ function saveInvoice(){
     isDebt, isBuyDebt,
     client, staff, notes
   };
-  S.transactions.unshift(tx);
+  // ── التحقق والحفظ الآمن ──
+  if(!safeSave(tx)){ clearInvForm(); return; }
 
-  // الصناديق تُحسب تلقائياً في calcSafes() عند renderAll
-
-  sv(); clearInvForm(); renderAll(); releaseSave();
+  clearInvForm(); renderAll(); releaseSave();
   toast('✅ تم حفظ الفاتورة');
 }
 
@@ -2681,11 +2834,7 @@ function saveScrap(){
     client, notes,
     items:[], total:0, cash:0, goldPay:0
   };
-  S.transactions.unshift(tx);
-  logActivity('add',
-    `عملية جديدة: ${TLBL[tx.type]||tx.type} — ${tx.client||''} — ${fmt(tx.total||0)} ريال`,
-    String(tx.id));
-  sv();
+  if(!safeSave(tx)) return;
 
   // مسح الحقول
   scrapItems = []; scrapCounter = 0;
@@ -3070,11 +3219,8 @@ function saveEditInv(oldId){
   };
 
   // re-insert at same position approximately (unshift puts at top)
-  S.transactions.unshift(newTx);
-
-  // الصناديق تُحسب في calcSafes
-
-  sv(); closeM('m-inv'); renderAll(); toast('✅ تم تعديل الفاتورة');
+  if(!safeSave(newTx)) return;
+  closeM('m-inv'); renderAll(); toast('✅ تم تعديل الفاتورة');
 }
 
 function delTxFromModal(id){
@@ -3473,9 +3619,8 @@ function saveReturnInv(){
   // الصناديق تُحسب في calcSafes
 
   retOrigTx.hasPartialReturn = true;
-  S.transactions.unshift(retTx);
-  sv(); renderAll();
-
+  if(!safeSave(retTx)) return;
+  renderAll();
   selectedRetId = null; retOrigTx = null;
   document.getElementById('ret-s').value = '';
   document.getElementById('ret-reason').value = '';
@@ -3585,8 +3730,8 @@ function saveSupplierReturn(){
     notes: reason ? '↩️ مردود مورد: '+reason : '↩️ مردود مورد',
   };
   suppRetOrigTx.hasPartialReturn = true;
-  S.transactions.unshift(retTx);
-  sv(); renderAll();
+  if(!safeSave(retTx)) return;
+  renderAll();
   selectedSuppRetId = null; suppRetOrigTx = null;
   document.getElementById('rsupp-s').value = '';
   document.getElementById('rsupp-reason').value = '';
@@ -4050,8 +4195,9 @@ function getClientBalance(cli){
 
   // ── حساب رصيد النقد ──
   // أجور البيع المستحقة
+  // sellAjTotal يشمل الضريبة (vatAmt) لأنها جزء من الدين على العميل
   const sellAjTotal = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
-                         .reduce((a,t)=>a+(t.ajTotal||0),0);
+                         .reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
   // أجور البيع الكاش (دخلت الصندوق فعلاً)
   const sellCashPaid = txs.filter(t=>t.type==='sell'&&!t.isDebt)
                           .reduce((a,t)=>a+(t.ajTotal||0),0);
@@ -4078,9 +4224,9 @@ function getClientBalance(cli){
       t.type==='transfer' && t.toSafe===('__cli__'+cli)
     ).reduce((a,t)=>a+(t.amount||0),0);
   // أجور مردود من عميل (تُخصم مما عليه)
-  // مرتجع مبيعات — يخصم الأجور + النقد المسترد
+  // مرتجع مبيعات — يخصم الإجمالي + الضريبة إن وجدت
   const retAjour = txs.filter(t=>t.type==='return'||t.type==='sales-return')
-                      .reduce((a,t)=>a+(t.ajTotal||0)+(t.retAjour||0),0);
+                      .reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
   // نقد مُسترد في مرتجع المبيعات
   const salesRetCash = txs.filter(t=>t.type==='sales-return')
                            .reduce((a,t)=>a+(t.cashRefund||0),0);
@@ -4099,9 +4245,9 @@ function getClientBalance(cli){
   const supplierDiscount = txs.filter(t=>t.type==='supplier-payment')
                               .reduce((a,t)=>a+(t.discount||0),0);
   // أجور مردود للمورد (تُقلل ما علينا)
-  // مرتجع مشتريات — يخصم الأجور + النقد المسترد
+  // مرتجع مشتريات — الإجمالي فقط (بدون ازدواجية)
   const suppRetAjour = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
-                           .reduce((a,t)=>a+(t.ajTotal||0)+(t.retAjour||0),0);
+                           .reduce((a,t)=>a+(t.ajTotal||0),0);
   // نقد أرجعه المورد في مرتجع المشتريات
   const purchRetCash = txs.filter(t=>t.type==='purchase-return')
                            .reduce((a,t)=>a+(t.cashRefund||0),0);
@@ -4296,7 +4442,7 @@ function doPayment(){
     notes: note || (isReceipt ? 'قبض' : 'دفع'),
     items:[], total:ajour+discount+change, cash:ajour+change, goldPay:goldW, weight:goldW
   });
-
+  // التحقق عبر validateTx يدوياً قبل sv
   sv(); renderAll();
 
   // مسح الحقول
@@ -5074,8 +5220,8 @@ function saveSalary(){
     notes: note||(currentSalType==='salary'?'راتب':currentSalType==='custody'?'عهدة موظف':'خصم'),
     items:[], total:amount, cash:amount, goldPay:0
   };
-  S.transactions.unshift(tx);
-  sv(); renderAll();
+  if(!safeSave(tx)) return;
+  renderAll();
   closeM('m-salary');
   const labels={salary:'صرف الراتب',custody:'تسجيل العهدة',deduction:'تسجيل الخصم'};
   toast(`✅ تم ${labels[currentSalType]} — ${fmt(amount)} ريال للموظف ${emp}`);
@@ -6068,7 +6214,15 @@ function calcReturnSummary(){
     return a+Math.round(i.weight*aj*100)/100;
   },0);
   const cash = parseFloat(document.getElementById('ret-cash')?.value)||0;
-  const grandTotal = cash + totalAjour;
+  const vatOn   = document.getElementById('ret-vat')?.checked || false;
+  const vatBase = cash + totalAjour;
+  const vatAmt  = vatOn ? Math.round(vatBase*0.15*100)/100 : 0;
+  const grandTotal = vatBase + vatAmt;
+
+  // تحديث مبلغ الضريبة المعروض
+  const vatEl = document.getElementById('ret-vat-amount');
+  if(vatEl) vatEl.textContent = vatAmt>0 ? `ضريبة: ${fmt(vatAmt)} ريال` : '';
+
   if(total24>0||cash>0||totalAjour>0){
     el.style.display='block';
     el.innerHTML = `
@@ -6076,8 +6230,9 @@ function calcReturnSummary(){
       ${total24>0?`<div style="margin-bottom:3px">✨ ذهب: <b>${fmtG(Math.round(total24*1000)/1000)} ج ع24</b></div>`:''}
       ${totalAjour>0?`<div style="margin-bottom:3px">⚙️ أجور مرتجعة: <b>${fmt(totalAjour)} ريال</b></div>`:''}
       ${cash>0?`<div style="margin-bottom:3px">💵 نقد مسترد: <b>${fmt(cash)} ريال</b></div>`:''}
-      ${grandTotal>0?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--g5);font-size:14px">
-        💰 الإجمالي المسترد: <b style="color:var(--g1)">${fmt(grandTotal)} ريال</b></div>`:''}
+      ${vatAmt>0?`<div style="margin-bottom:3px;color:var(--io)">🧾 ضريبة 15%: <b>${fmt(vatAmt)} ريال</b></div>`:''}
+      ${grandTotal>0.01?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--g5);font-size:14px">
+        💰 إجمالي المرتجع: <b style="color:var(--g1)">${fmt(grandTotal)} ريال</b></div>`:''}
     `;
   } else el.style.display='none';
 }
@@ -6086,6 +6241,7 @@ function saveReturn(){
   if(!acquireSave()) return;
   if(!currentReturnType){toast('⚠️ اختر نوع المرتجع');return;}
   const validItems = returnItems.filter(i=>i.weight>0);
+  const vatOn = document.getElementById('ret-vat')?.checked || false;
   const cash = parseFloat(document.getElementById('ret-cash')?.value)||0;
   if(!validItems.length&&cash<=0){toast('⚠️ أضف أصناف أو مبلغ نقدي');return;}
   const cli   = document.getElementById('ret-cli-v')?.value||document.getElementById('ret-cli-s')?.value||'';
@@ -6101,6 +6257,8 @@ function saveReturn(){
   }, 0);
   const retTotal = cash + retAjour;  // النقد المسترد + الأجور
 
+  // ajTotal = المجموع الكلي المسترد (نقد + أجور)
+  // هذا هو المبلغ الذي يُطرح من رصيد العميل أو المورد
   const tx = {
     id:Date.now(), date:dateISO,
     type:currentReturnType,
@@ -6109,19 +6267,20 @@ function saveReturn(){
       const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
       return {karat:i.karat, weight:i.weight, isWorked:false, ajour};
     }),
-    cashRefund:cash,
-    retAjour:Math.round(retAjour*100)/100,
-    ajTotal:Math.round(retTotal*100)/100,
-    total:Math.round(retTotal*100)/100,
+    cashRefund:cash,                                   // النقد المسترد فعلياً
+    retAjour:Math.round(retAjour*100)/100,             // الأجور فقط
+    ajTotal:Math.round((cash+retAjour)*100)/100,       // الإجمالي = نقد + أجور
+    total:Math.round((cash+retAjour)*100)/100,
     cash,
     total24:Math.round(total24*1000)/1000,
+    vatAmt:vatOn ? Math.round((cash+retAjour)*0.15*100)/100 : 0,
+    // المجموع الكلي شامل الضريبة
+    grandTotal: Math.round((cash+retAjour+(vatOn?Math.round((cash+retAjour)*0.15*100)/100:0))*100)/100,
   };
 
-  S.transactions.unshift(tx);
-  logActivity('add',
-    `${TLBL[currentReturnType]}: ${cli} — ${fmtG(total24)}ج ع24 ${cash>0?'+ '+fmt(cash)+' ر':''}`,
-    String(tx.id));
-  sv(); renderAll(); releaseSave();
+  // ── التحقق والحفظ الآمن ──
+  if(!safeSave(tx)){ return; }
+  renderAll(); releaseSave();
 
   // تنظيف
   returnItems=[]; returnCounter=0;
@@ -6182,9 +6341,9 @@ function saveExpense(){
     notes:desc||typeLabels[type],
     client:'', total:amount, cash:amount,
   };
-  S.transactions.unshift(tx);
-  logActivity('add',`مصروف: ${typeLabels[type]||type} — ${fmt(amount)} ريال${desc?' — '+desc:''}`,String(tx.id));
-  sv(); renderAll(); releaseSave();
+  // ── التحقق والحفظ الآمن ──
+  if(!safeSave(tx)){ return; }
+  renderAll(); releaseSave();
   ['exp-amount','exp-desc','exp-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -6927,7 +7086,7 @@ function renderStmt(){
     else if(t.type==='cash-receipt')        dCash = t.amount||0;
     else if(t.type==='buy')                 dCash = -(t.ajTotal||t.total||0);
     else if(t.type==='buy-debt')            dCash = -(t.ajTotal||t.total||0); // مستحق له
-    else if(t.type==='sales-return')        dCash = -(t.ajTotal||t.cashRefund||0); // عكس البيع
+    else if(t.type==='sales-return')        dCash = -(t.ajTotal||t.cashRefund||0) - (t.vatAmt||0); // عكس البيع مع الضريبة
     else if(t.type==='purchase-return')     dCash = (t.ajTotal||0); // عكس الشراء
     else if(t.type==='return')              dCash = -(t.ajTotal||t.cashRefund||0);
     else if(t.type==='supplier-return')     dCash = (t.ajTotal||0);
