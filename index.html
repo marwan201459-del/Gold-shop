@@ -5647,27 +5647,76 @@ function renderAnalytics(){
   const peakCount = hourMap[peakHour];
 
   el.innerHTML = `
-    <!-- ملخص الفترة -->
-    <div style="background:linear-gradient(135deg,var(--gold),#C9922A);border-radius:12px;padding:14px;margin-bottom:12px;color:#1C1208">
-      <div style="font-size:11px;font-weight:700;margin-bottom:8px">📅 ${fromD.toLocaleDateString('ar-SA')} — ${toD.toLocaleDateString('ar-SA')}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px">إجمالي المبيعات</div>
-          <div style="font-size:16px;font-weight:900">${fmt(totalSell)} ر</div>
+    <!-- ملخص الفترة — 4 بطاقات واضحة الألوان -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+
+      <!-- المبيعات — أزرق -->
+      <div style="background:#1D4ED8;border-radius:12px;padding:14px;color:#fff">
+        <div style="font-size:10px;font-weight:700;opacity:.85;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💰 إجمالي المبيعات</div>
+        <div style="font-size:22px;font-weight:900">${fmt(totalSell)}</div>
+        <div style="font-size:11px;opacity:.75;margin-top:3px">ريال سعودي</div>
+      </div>
+
+      <!-- الربح — أخضر -->
+      <div style="background:${netProfit>=0?'#065F46':'#991B1B'};border-radius:12px;padding:14px;color:#fff">
+        <div style="font-size:10px;font-weight:700;opacity:.85;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">${netProfit>=0?'📈 صافي الربح':'📉 صافي الخسارة'}</div>
+        <div style="font-size:22px;font-weight:900">${fmt(Math.abs(netProfit))}</div>
+        <div style="font-size:11px;opacity:.75;margin-top:3px">ريال سعودي</div>
+      </div>
+
+      <!-- المشتريات — بنفسجي -->
+      <div style="background:#5B21B6;border-radius:12px;padding:14px;color:#fff">
+        <div style="font-size:10px;font-weight:700;opacity:.85;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">🛒 إجمالي المشتريات</div>
+        <div style="font-size:22px;font-weight:900">${fmt(totalBuy)}</div>
+        <div style="font-size:11px;opacity:.75;margin-top:3px">ريال سعودي</div>
+      </div>
+
+      <!-- الوزن — ذهبي -->
+      <div style="background:#92400E;border-radius:12px;padding:14px;color:#fff">
+        <div style="font-size:10px;font-weight:700;opacity:.85;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">⚖️ وزن مباع</div>
+        <div style="font-size:22px;font-weight:900">${fmtG(totalWt)}</div>
+        <div style="font-size:11px;opacity:.75;margin-top:3px">جرام</div>
+      </div>
+    </div>
+
+    <!-- شريط مقارنة: مبيعات vs مشتريات -->
+    <div style="background:var(--c1);border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--b2)">
+      <div style="font-weight:800;font-size:13px;margin-bottom:12px;color:var(--tx1)">📊 مقارنة المبيعات والمشتريات</div>
+      ${totalSell+totalBuy>0?`
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:11px;font-weight:700;color:#1D4ED8">💰 مبيعات</span>
+          <span style="font-size:12px;font-weight:900;color:#1D4ED8">${fmt(totalSell)} ر</span>
         </div>
-        <div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px">صافي الربح</div>
-          <div style="font-size:16px;font-weight:900;color:${netProfit>=0?'#1C1208':'#ff4444'}">${fmt(netProfit)} ر</div>
-        </div>
-        <div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px">إجمالي الوزن المباع</div>
-          <div style="font-size:16px;font-weight:900">${fmtG(totalWt)} ج</div>
-        </div>
-        <div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px">عدد الفواتير</div>
-          <div style="font-size:16px;font-weight:900">${sells.length}</div>
+        <div style="background:#E0E7FF;border-radius:4px;height:10px">
+          <div style="background:#1D4ED8;border-radius:4px;height:100%;width:${Math.min(100,totalSell/(totalSell+totalBuy)*100).toFixed(1)}%"></div>
         </div>
       </div>
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:11px;font-weight:700;color:#5B21B6">🛒 مشتريات</span>
+          <span style="font-size:12px;font-weight:900;color:#5B21B6">${fmt(totalBuy)} ر</span>
+        </div>
+        <div style="background:#EDE9FE;border-radius:4px;height:10px">
+          <div style="background:#5B21B6;border-radius:4px;height:100%;width:${Math.min(100,totalBuy/(totalSell+totalBuy)*100).toFixed(1)}%"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:4px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:11px;font-weight:700;color:${netProfit>=0?'#065F46':'#991B1B'}">${netProfit>=0?'📈 ربح':'📉 خسارة'}</span>
+          <span style="font-size:12px;font-weight:900;color:${netProfit>=0?'#065F46':'#991B1B'}">${fmt(Math.abs(netProfit))} ر</span>
+        </div>
+        <div style="background:${netProfit>=0?'#D1FAE5':'#FEE2E2'};border-radius:4px;height:10px">
+          <div style="background:${netProfit>=0?'#065F46':'#991B1B'};border-radius:4px;height:100%;width:${Math.min(100,(totalSell>0?Math.abs(netProfit)/totalSell*100:0)).toFixed(1)}%"></div>
+        </div>
+      </div>
+      `:'<div style="text-align:center;color:var(--tx3);padding:10px">لا توجد بيانات</div>'}
+    </div>
+
+    <!-- العيارات -->
+    <div style="background:var(--c1);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--b2)">
+      <div style="font-weight:800;font-size:13px;margin-bottom:8px;color:var(--tx1)">🏅 العيارات الأكثر مبيعاً</div>
+      ${karatRows}
     </div>
 
     <!-- العيارات -->
@@ -7345,17 +7394,28 @@ function renderStmt(){
                      t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||t.type==='scrap'?'var(--green)':
                      t.isDebt||t.isBuyDebt?'var(--purple)':'var(--green)';
 
+    // بادج الضريبة
+    const vatBadge = (t.vatAmt>0||t.hasVat)
+      ? '<span style="background:#F59E0B;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;margin-right:3px">🧾 ضريبة</span>'
+      : '<span style="background:var(--b1);color:var(--tx3);font-size:9px;padding:1px 5px;border-radius:4px;margin-right:3px">بدون ضريبة</span>';
+    const goldWeight = (t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+
     return `<tr style="border-bottom:1px solid var(--b1);transition:background .15s"
       onmouseover="this.style.background='var(--c3)'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;font-size:11px;color:var(--tx2);white-space:nowrap">${dt.ar}</td>
       <td style="padding:8px 10px">
-        <span class="badge ${TBDG[t.type]||'bg-gold'}" style="font-size:10px">${lbl}</span>
-        ${t.isDebt?'<span class="badge bg-purple" style="font-size:9px;margin-right:3px">آجل</span>':''}
-        ${detail?`<div style="font-size:10px;color:var(--g1);margin-top:3px">${detail}</div>`:''}
+        <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-bottom:3px">
+          <span class="badge ${TBDG[t.type]||'bg-gold'}" style="font-size:10px">${lbl}</span>
+          ${t.isDebt?'<span class="badge bg-purple" style="font-size:9px">آجل</span>':''}
+          ${vatBadge}
+        </div>
+        ${goldWeight>0?`<div style="font-size:11px;color:var(--g1);font-weight:700">🥇 ${fmtG(goldWeight)} ج</div>`:''}
+        ${detail?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">${detail}</div>`:''}
         ${t.notes?`<div style="font-size:10px;color:var(--tx3)">📝 ${t.notes}</div>`:''}
       </td>
       <td style="padding:8px 10px;text-align:left;font-size:12px;font-weight:700">
         ${dCash!==0?`<div style="color:${cashClr}">${dCash>0?'<span style="font-size:10px;background:var(--no-bg);color:var(--no);padding:1px 5px;border-radius:4px;margin-left:3px">عليه</span>':'<span style="font-size:10px;background:var(--ok-bg);color:var(--ok);padding:1px 5px;border-radius:4px;margin-left:3px">له</span>'}${fmt(Math.abs(dCash))} ر</div>`:'—'}
+        ${(t.vatAmt||0)>0?`<div style="font-size:10px;color:#F59E0B">ض: ${fmt(t.vatAmt)} ر</div>`:''}
         ${dGold24!==0?`<div style="font-size:11px;color:${goldClr}">${fmtG(Math.abs(dGold24))} ج ع24</div>`:''}
       </td>
       <td style="padding:8px 10px;text-align:left;font-size:12px;font-weight:900">
@@ -7365,6 +7425,13 @@ function renderStmt(){
             +' '+fmt(Math.abs(runCash))+' ر'}
         </div>
         ${Math.abs(runGold24)>0.001?`<div style="font-size:11px;color:${balGoldClr}">${fmtG(Math.abs(runGold24))} ج</div>`:''}
+      </td>
+      <td style="padding:6px 8px;text-align:center">
+        <button onclick="viewInv(${t.id})"
+          style="background:var(--g4);border:1px solid var(--g5);color:var(--g1);
+            border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;
+            cursor:pointer;font-family:inherit"
+          title="تعديل الفاتورة">✏️</button>
       </td>
     </tr>`;
   }).join('');
@@ -7401,6 +7468,7 @@ function renderStmt(){
           <th style="padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--tx2)">📌 العملية</th>
           <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--tx2)">💰 المبلغ (مدين/دائن)</th>
           <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--tx2)">⚖️ الرصيد</th>
+          <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--tx2)">تعديل</th>
         </tr>
       </thead>
       <tbody>${txRows}</tbody>
