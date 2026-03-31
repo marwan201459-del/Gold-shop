@@ -90,7 +90,7 @@
   --s2:0 8px 28px rgba(0,0,0,.55);
   --s3:0 16px 56px rgba(0,0,0,.65);
 }
-.theme-dark .txi{background:#16182A}
+.theme-dark .txi{background:var(--c1)}
 .theme-dark .txi:hover{background:var(--c2)}
 .theme-dark .cli,.theme-dark .sfc,.theme-dark .sb{background:var(--c2)}
 
@@ -133,12 +133,12 @@ body{
 @keyframes pgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* ── CARDS ── */
-.card{background:var(--c1);border-radius:var(--ra);border:1px solid var(--b1);
+.card{background:var(--c1);border-radius:var(--ra);border:1px solid var(--b2);
   box-shadow:var(--s1);overflow:hidden;margin-bottom:12px;transition:var(--tr)}
 .card:hover{border-color:var(--b2)}
 
-.ch{padding:12px 16px;background:var(--c2);border-bottom:1px solid var(--b1);
-  color:var(--tx1);font-size:13px;font-weight:700;
+.ch{padding:12px 16px;background:var(--c2);border-bottom:2px solid var(--b2);
+  color:var(--tx1);font-size:13px;font-weight:800;
   display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ch::before{content:'';flex-shrink:0;width:3px;height:15px;
   background:linear-gradient(to bottom,var(--g2),var(--g1));
@@ -156,7 +156,7 @@ body{
 .sb:hover{transform:translateY(-2px);box-shadow:var(--s2);border-color:var(--b2)}
 .sb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
 .sb .v{font-size:20px;font-weight:900;margin-bottom:3px;line-height:1}
-.sb .l{font-size:10px;color:var(--tx2);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.sb .l{font-size:10px;color:var(--tx1);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 
 .sb.gold {background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.06));border-color:var(--g5)}
 .sb.gold::after{background:var(--g1)}.sb.gold .v{color:var(--g1)}
@@ -173,10 +173,10 @@ body{
 
 /* ── FORM ── */
 .fr{margin-bottom:12px;position:relative}
-.fr label{display:block;font-size:11px;color:var(--tx2);font-weight:700;
-  margin-bottom:5px;letter-spacing:.3px;text-transform:uppercase}
+.fr label{display:block;font-size:11px;color:var(--tx1);font-weight:800;
+  margin-bottom:5px;letter-spacing:.3px}
 .fr input,.fr select{width:100%;padding:10px 13px;
-  background:var(--c3);border:1.5px solid var(--b2);border-radius:var(--rb);
+  background:var(--c1);border:1.5px solid var(--b2);border-radius:var(--rb);
   font-family:'Tajawal',sans-serif;font-size:14px;color:var(--tx1);
   outline:none;transition:var(--tr)}
 .fr input:focus,.fr select:focus{border-color:var(--g1);background:var(--c4);
@@ -1189,7 +1189,7 @@ body{
       <div class="fr"><label>👤 العميل / المورد</label>
         <div class="sw"><span class="si">🔍</span>
           <input type="text" id="ret-cli-s" placeholder="ابحث..." autocomplete="off"
-            oninput="openCS('ret-cli-s','ret-cli-d','ret-cli-v')"
+            oninput="openCS('ret-cli-s','ret-cli-d','ret-cli-v');renderRetCliInvoices()"
             onfocus="openCS('ret-cli-s','ret-cli-d','ret-cli-v')">
           <input type="hidden" id="ret-cli-v">
           <div class="sdrop" id="ret-cli-d"></div>
@@ -1222,6 +1222,31 @@ body{
 
       <div class="fr"><label>📝 ملاحظات</label>
         <input type="text" id="ret-notes" placeholder="اختياري">
+      </div>
+
+      <!-- ضريبة المرتجع -->
+      <div id="ret-vat-row" style="display:none;background:var(--c2);border-radius:var(--rb);
+        padding:11px 14px;margin-bottom:10px;border:1px solid var(--b2)">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0">
+          <input type="checkbox" id="ret-vat" onchange="calcReturnSummary()"
+            style="width:18px;height:18px;accent-color:var(--g1);cursor:pointer;flex-shrink:0">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--tx1)">🧾 تطبيق ضريبة 15%</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">
+              يُضاف للمرتجع إذا كانت الفاتورة الأصلية تحتوي ضريبة
+            </div>
+          </div>
+          <span id="ret-vat-amount" style="margin-right:auto;font-size:13px;
+            font-weight:800;color:var(--g1)"></span>
+        </label>
+      </div>
+
+      <!-- فواتير العميل للمرجعة -->
+      <div id="ret-cli-invoices" style="display:none;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;
+          text-transform:uppercase;letter-spacing:.4px">📋 فواتير العميل / المورد</div>
+        <div id="ret-cli-inv-list" style="max-height:180px;overflow-y:auto;
+          border-radius:var(--rb);border:1px solid var(--b2);background:var(--c1)"></div>
       </div>
 
       <!-- ملخص -->
@@ -2240,16 +2265,35 @@ function closeAllDrops(){document.querySelectorAll('.sdrop').forEach(d=>d.classL
 document.addEventListener('click',e=>{if(!e.target.closest('.sw'))closeAllDrops();});
 
 function openStmtS(){
-  const q=document.getElementById('stmt-s').value.trim().toLowerCase();
-  const d=document.getElementById('stmt-d');
+  const q  = document.getElementById('stmt-s').value.trim().toLowerCase();
+  const d  = document.getElementById('stmt-d');
+  const SM = getSM();
   let items=[];
-  S.clients.filter(c=>!q||c.name.toLowerCase().includes(q)).forEach(c=>{
-    items.push(`<div class="sdi" onclick="selStmt('${c.name.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><span class="sdn">${c.name}</span><span class="sdt">${c.type}</span></div>`);
+
+  S.clients.filter(cl=>!q||cl.name.toLowerCase().includes(q)).forEach(cl=>{
+    const bal    = getClientBalance(cl.name);
+    const isSupp = cl.type==='مورد'||cl.type==='موزع';
+    const abs    = Math.abs(bal.cashOwed||0);
+    const balTxt = abs<0.01 ? '<span style="color:var(--ok)">✅ مسوى</span>'
+      : isSupp
+        ? (bal.cashOwed<0
+            ? `<span style="color:var(--no)">له: ${fmt(abs)} ر</span>`
+            : `<span style="color:var(--ok)">له↑: ${fmt(abs)} ر</span>`)
+        : (bal.cashOwed>0
+            ? `<span style="color:var(--no)">عليه: ${fmt(abs)} ر</span>`
+            : `<span style="color:var(--ok)">له: ${fmt(abs)} ر</span>`);
+
+    items.push(`<div class="sdi" onclick="selStmt('${cl.name.replace(/'/g,"\'")}','${cl.name.replace(/'/g,"\'")}')">
+      <div style="flex:1"><span class="sdn">${cl.name}</span> <span class="sdt">${cl.type}</span></div>
+      <div style="font-size:11px;font-weight:700">${balTxt}</div>
+    </div>`);
   });
+
   Object.keys(SM).filter(k=>!q||SM[k].label.includes(q)).forEach(k=>{
     items.push(`<div class="sdi" onclick="selStmt('__safe__${k}','${SM[k].label}')"><span class="sdn">${SM[k].label}</span><span class="sdt">صندوق</span></div>`);
   });
-  d.innerHTML=items.length?items.join(''):`<div class="sde">لا نتائج</div>`;
+
+  d.innerHTML = items.length ? items.join('') : `<div class="sde">لا نتائج</div>`;
   d.classList.add('open');
 }
 function selStmt(val,label){
@@ -2462,8 +2506,10 @@ function renderDraftItems(){
 
 // ── التحقق من كفاية المخزون ──────────────
 function checkStock(items, type){
+  // تُعيد null (ok) أو رسالة تحذير فقط — لا تمنع البيع
   if(type!=='sell' && type!=='sell-debt') return null;
   const safes = calcSafes();
+  const warnings = [];
   for(const i of items){
     const w = i.weight||0;
     if(w<=0) continue;
@@ -2476,11 +2522,11 @@ function checkStock(items, type){
       else if(i.karat==='24') available = safes.pure24||0;
     }
     if(w > available + 0.001){
-      const type_label = i.isWorked ? 'مشغول' : 'كسر';
-      return `❌ مخزون غير كافٍ — عيار ${i.karat} (${type_label})\nمتاح: ${fmtG(available)}ج | مطلوب: ${fmtG(w)}ج`;
+      const lbl = i.isWorked ? 'مشغول' : 'كسر';
+      warnings.push(`⚠️ تحذير مخزون — عيار ${i.karat} (${lbl}): متاح ${fmtG(available)}ج | مطلوب ${fmtG(w)}ج — سيصبح المخزون بالسالب`);
     }
   }
-  return null;
+  return warnings.length ? {warning: warnings.join(' | ')} : null;
 }
 
 // ── التحقق من صحة رصيد السداد ──────────────
@@ -2592,10 +2638,12 @@ const ACC_RULES = {
     return null;
   },
 
-  // ق7: المخزون كافٍ للبيع (تُستدعى checkStock خارجياً أيضاً)
+  // ق7: المخزون — تحذير فقط لا رفض
   stockSufficient(tx){
     if(tx.type!=='sell' && tx.type!=='sell-debt') return null;
-    return checkStock(tx.items||[], tx.type); // يُعيد null أو رسالة خطأ
+    const result = checkStock(tx.items||[], tx.type);
+    // result.warning = تحذير غير مانع
+    return null; // لا نرفض البيع بسبب المخزون
   },
 
   // ق8: الـ ID فريد
@@ -2654,15 +2702,20 @@ function safeSave(tx){
 }
 
 
-function saveInvoice(){
+async function saveInvoice(){
   if(!acquireSave()) return;
   if(!draftItems.length){releaseSave();toast('⚠️ أضف صنفاً واحداً على الأقل');return;}
   const hasWeight=draftItems.every(i=>i.weight>0);
   if(!hasWeight){releaseSave();toast('⚠️ أدخل الوزن لكل صنف');return;}
 
-  // ── التحقق من المخزون قبل البيع ──
-  const stockErr = checkStock(draftItems, selType);
-  if(stockErr){ releaseSave(); toast(stockErr); return; }
+  // ── التحقق من المخزون — تحذير فقط لا منع ──
+  const stockCheck = checkStock(draftItems, selType);
+  if(stockCheck && stockCheck.warning){
+    // أظهر تحذير لكن استمر
+    toast('⚠️ ' + stockCheck.warning.split(' | ')[0]);
+    // تأخير صغير للمستخدم يشوف التحذير ثم يكمل تلقائياً
+    await new Promise(r=>setTimeout(r,100));
+  }
 
   const goldTotal =draftItems.reduce((a,i)=>a+i.weight*i.price,0);
   const ajTotal   =draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
@@ -6138,6 +6191,9 @@ function setReturnType(type){
     const btn = document.getElementById(`ret-type-${k}`);
     if(btn) btn.style.opacity = (k==='sales'&&isSales)||(k==='purchase'&&!isSales) ? '1' : '0.5';
   });
+  // إظهار صف الضريبة
+  const vatRow = document.getElementById('ret-vat-row');
+  if(vatRow) vatRow.style.display = 'block';
   // ملء الصناديق في المصروف
   const expSafe = document.getElementById('exp-safe');
   if(expSafe && !expSafe.options.length){
@@ -6145,6 +6201,77 @@ function setReturnType(type){
       .filter(([k,v])=>(v.type==='cash'||v.type==='both')&&!k.startsWith('debt')&&k!=='discount')
       .map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
   }
+  // عرض فواتير العميل/المورد للمرجعة
+  renderRetCliInvoices();
+}
+
+function renderRetCliInvoices(){
+  const cliName = document.getElementById('ret-cli-v')?.value
+                || document.getElementById('ret-cli-s')?.value || '';
+  const container = document.getElementById('ret-cli-invoices');
+  const listEl    = document.getElementById('ret-cli-inv-list');
+  if(!container || !listEl) return;
+  if(!cliName){ container.style.display='none'; return; }
+
+  const isSales = currentReturnType === 'sales-return';
+  const txTypes = isSales
+    ? ['sell','sell-debt']
+    : ['buy','buy-debt'];
+
+  const invs = (S.transactions||[]).filter(t=>
+    t.client===cliName && txTypes.includes(t.type)
+  ).slice(0,20);
+
+  if(!invs.length){ container.style.display='none'; return; }
+
+  container.style.display='block';
+  listEl.innerHTML = invs.map(t=>{
+    const dt = fmtDate(t.date);
+    const items = (t.items||[]).map(i=>
+      `${i.karat}ع: ${fmtG(i.weight)}ج × ${fmt(i.ajour)}/ج`
+    ).join(' | ');
+    const hasVat = (t.vatAmt||0)>0;
+    return `<div style="padding:9px 12px;border-bottom:1px solid var(--b1);
+      cursor:pointer;transition:background .15s"
+      onmouseover="this.style.background='var(--g4)'"
+      onmouseout="this.style.background=''"
+      onclick="applyReturnFromInv(${t.id})">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span class="badge bg-${t.type.includes('debt')?'purple':'green'}" style="font-size:10px;margin-left:5px">
+            ${TLBL[t.type]||t.type}
+          </span>
+          ${hasVat?'<span class="badge bg-orange" style="font-size:10px">ضريبة</span>':''}
+        </div>
+        <span style="font-size:11px;color:var(--tx2)">${dt.ar}</span>
+      </div>
+      ${items?`<div style="font-size:11px;color:var(--g1);margin-top:3px">${items}</div>`:''}
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-top:3px">
+        أجور: ${fmt(t.ajTotal||0)} ر
+        ${hasVat?`<span style="color:var(--io);font-size:11px"> + ضريبة ${fmt(t.vatAmt||0)} ر</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function applyReturnFromInv(txId){
+  const tx = (S.transactions||[]).find(t=>t.id===txId);
+  if(!tx) return;
+  // تطبيق الأصناف من الفاتورة الأصلية
+  if(tx.items && tx.items.length){
+    returnItems = tx.items.map((i,idx)=>({
+      id: idx+1, karat: i.karat||'21',
+      weight: i.weight||0, isWorked: i.isWorked||false,
+      ajour: i.ajour||0
+    }));
+    returnCounter = returnItems.length;
+    renderReturnItems();
+  }
+  // تطبيق الضريبة تلقائياً
+  const vatCb = document.getElementById('ret-vat');
+  if(vatCb) vatCb.checked = (tx.vatAmt||0)>0;
+  calcReturnSummary();
+  toast('✅ تم تطبيق بيانات الفاتورة — تحقق وعدّل إذا لزم');
 }
 
 function addReturnItem(){
@@ -7047,23 +7174,24 @@ function renderStmt(){
     <div style="background:var(--c2);border-radius:var(--rb);
       border:1px solid var(--b2);padding:14px 16px;margin-bottom:14px">
       <!-- الصف الأول: أرقام رئيسية -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;text-align:center">
+      <!-- ملخص الرصيد الصحيح -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;text-align:center">
         <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1px solid var(--b1)">
-          <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">إجمالي مستحق</div>
-          <div style="font-size:20px;font-weight:900;color:var(--g1)">${fmt(bal.ajTotal||0)}</div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;font-weight:700">إجمالي الأجور</div>
+          <div style="font-size:18px;font-weight:900;color:var(--g1)">${fmt(bal.ajTotal||0)}</div>
           <div style="font-size:10px;color:var(--tx3)">ريال</div>
         </div>
         <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1px solid var(--ok-bd)">
-          <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">تم السداد</div>
-          <div style="font-size:20px;font-weight:900;color:var(--ok)">${fmt(bal.totalNaqd||0)}</div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;font-weight:700">تم تحصيله</div>
+          <div style="font-size:18px;font-weight:900;color:var(--ok)">${fmt(Math.max(0,(bal.ajTotal||0)-Math.abs(bal.cashOwed||0)))}</div>
           <div style="font-size:10px;color:var(--tx3)">ريال</div>
         </div>
-        <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1px solid ${stateColor}">
-          <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">الرصيد النهائي</div>
-          <div style="font-size:22px;font-weight:900;color:${stateColor}">
+        <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1.5px solid ${stateColor}">
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;font-weight:700">الرصيد الحالي</div>
+          <div style="font-size:20px;font-weight:900;color:${stateColor}">
             ${stateIcon} ${absOwedQ>0.01?fmt(absOwedQ):'صفر'}
           </div>
-          <div style="font-size:11px;font-weight:700;color:${stateColor}">${stateLabel}</div>
+          <div style="font-size:11px;font-weight:800;color:${stateColor}">${stateLabel}</div>
         </div>
       </div>
       <!-- الصف الثاني: تفاصيل الذهب إن وجد -->
@@ -7424,13 +7552,16 @@ window.sv_save = function(){
   _lastSaveTime = Date.now();
   showSync('⟳ جاري الحفظ...');
   setDoc(REF, {
-    transactions: S.transactions || [],
-    clients:      S.clients      || [],
-    safes:        S.safes        || {},
-    customSafes:  S.customSafes  || [],
-    snapshots:    S.snapshots    || [],
-    users:        S.users        || [],
-    updatedAt:    _lastSaveTime
+    transactions:  S.transactions  || [],
+    clients:       S.clients       || [],
+    safes:         S.safes         || {},
+    customSafes:   S.customSafes   || [],
+    snapshots:     S.snapshots     || [],
+    users:         S.users         || [],
+    pendingItems:  S.pendingItems  || [],   // ✅ المعلقات
+    activityLog:   (S.activityLog||[]).slice(0,500), // ✅ سجل النشاط
+    safesBase:     S.safesBase     || {},   // ✅ الأرصدة الأساسية
+    updatedAt:     _lastSaveTime
   }).then(()=>{
     showSync('☁️ محفوظ', 2000);
   }).catch(e=>{
@@ -7452,6 +7583,9 @@ onSnapshot(REF, (snap) => {
     S.users        = (d.users && d.users.length)
       ? d.users
       : [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
+    S.pendingItems = d.pendingItems || [];   // ✅ المعلقات
+    S.activityLog  = d.activityLog  || [];   // ✅ سجل النشاط
+    if(d.safesBase) S.safesBase = d.safesBase; // ✅ الأرصدة الأساسية
     if(_firstLoad){ _firstLoad=false; showSync('☁️ متصل', 2000); }
     renderAll();
   } else {
