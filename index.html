@@ -48,34 +48,21 @@
   --ra:18px; --rb:12px; --rc:8px; --rd:6px;
   --tr:all .18s ease;
 
-  /* ── Compat ── */
+  /* ── Compat Aliases (kept for safety) ── */
   --gold:var(--g1);--gold-l:var(--g2);--gold-d:var(--g3);
   --gold-bg:var(--g4);--gold-pale:var(--g4);--gold-mid:var(--g5);--gold-bd:var(--g5);
-  --pos:var(--ok);--pos-bg:var(--ok-bg);--pos-bd:var(--ok-bd);
-  --neg:var(--no);--neg-bg:var(--no-bg);--neg-bd:var(--no-bd);
-  --inf:var(--in);--inf-bg:var(--in-bg);--inf-bd:var(--in-bd);
-  --acc:var(--pu);--acc-bg:var(--pu-bg);--acc-bd:var(--pu-bd);
   --green:var(--ok);--green-bg:var(--ok-bg);--green-border:var(--ok-bd);
   --red:var(--no);--red-bg:var(--no-bg);--red-border:var(--no-bd);
   --blue:var(--in);--blue-bg:var(--in-bg);--blue-border:var(--in-bd);
   --purple:var(--pu);--purple-bg:var(--pu-bg);--purple-border:var(--pu-bd);
-  --teal:#28C8D8;--teal-bg:rgba(40,200,216,.10);--teal-border:rgba(40,200,216,.25);
   --orange:var(--io);--orange-bg:var(--io-bg);--orange-border:var(--io-bd);
-  --warn:var(--io);
+  --teal:#28C8D8;--teal-bg:rgba(40,200,216,.10);--teal-border:rgba(40,200,216,.25);
   --surface:var(--c1);--surface2:var(--c2);--surface3:var(--c3);
   --text:var(--tx1);--text2:var(--tx2);--text3:var(--tx3);
   --border:var(--b1);--border2:var(--b2);
-  --t1:var(--tx1);--t2:var(--tx2);--t3:var(--tx3);
-  --bd:var(--b1);--bd2:var(--b2);
-  --s1-c:var(--c1);--s2-c:var(--c2);--s3-c:var(--c3);
   --card:var(--c1);--card2:var(--c2);--card3:var(--c3);
-  --ct:var(--tx1);--ct2:var(--tx2);--ct3:var(--tx3);
-  --sh:var(--s1);--sh-md:var(--s2);--sh-sm:var(--s1);
-  --r:var(--ra);--r-sm:var(--rb);--r1:var(--ra);--r2:var(--rb);--r3:var(--rc);--r4:var(--rd);
-  --rsm:var(--rb);--rxs:var(--rd);
-  --glass-bg:var(--c1);--glass-border:var(--b2);--glass-sh:var(--s1);
-  --hdr:var(--hd);--hdr-from:var(--hd);--hdr-to:var(--c1);
-  --pri:var(--g1);--pri-bg:var(--g4);--pri-bd:var(--g5);
+  --r:var(--ra);--r-sm:var(--rb);--rsm:var(--rb);--rxs:var(--rd);
+  --sh:var(--s1);--sh-md:var(--s2);
   --au1:var(--g1);--au2:var(--g2);--au3:var(--g3);--au4:var(--g4);--au5:var(--g5);
 }
 
@@ -97,6 +84,9 @@
 /* ================================================================ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
+/* login-screen */
+#login-screen{display:flex;align-items:center;justify-content:center}
+
 body{
   font-family:'Tajawal',sans-serif;
   background:var(--bg);color:var(--tx1);
@@ -106,26 +96,26 @@ body{
 /* ── HEADER ── */
 .hdr{
   background:var(--hd);
-  border-bottom:1px solid var(--b1);
+  border-bottom:1px solid rgba(255,255,255,.07);
   padding:12px 18px 0;
   position:sticky;top:0;z-index:100;
-  box-shadow:0 1px 0 var(--b1),var(--s2);
+  box-shadow:0 2px 16px rgba(0,0,0,.22);
 }
 .hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.hdr h1{font-size:16px;font-weight:900;color:var(--tx1);display:flex;align-items:center;gap:8px}
+.hdr h1{font-size:16px;font-weight:900;color:#EDF0FF;display:flex;align-items:center;gap:8px}
 .hdr h1 span{background:linear-gradient(135deg,var(--g3),var(--g1),var(--g2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hdr-date{font-size:10px;color:var(--tx3);text-align:left;line-height:1.7;
-  background:var(--b1);padding:4px 10px;border-radius:20px;border:1px solid var(--b1)}
+.hdr-date{font-size:10px;color:rgba(255,255,255,.50);text-align:left;line-height:1.7;
+  background:rgba(255,255,255,.08);padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
 
 /* ── TABS ── */
 .tabs{display:flex;overflow-x:auto;gap:2px;scrollbar-width:none;margin:0 -18px;padding:0 12px}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex-shrink:0;padding:9px 14px;border:none;border-bottom:2px solid transparent;
   font-family:'Tajawal',sans-serif;font-size:12px;font-weight:600;
-  cursor:pointer;transition:var(--tr);background:transparent;color:var(--tx3);white-space:nowrap}
-.tab:hover{color:var(--tx2);background:var(--b1)}
-.tab.on{color:var(--g1);font-weight:800;border-bottom-color:var(--g1);background:transparent}
+  cursor:pointer;transition:var(--tr);background:transparent;color:rgba(255,255,255,.45);white-space:nowrap}
+.tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.07)}
+.tab.on{color:var(--g2);font-weight:800;border-bottom-color:var(--g2);background:rgba(200,150,30,.08)}
 
 /* ── PAGES ── */
 .pg{display:none;padding:14px;animation:pgIn .2s ease}
@@ -383,6 +373,21 @@ body{
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
 ::-webkit-scrollbar-track{background:transparent}
 </style>
+<script>
+  // ── تحقق مبكر من الجلسة ──
+  (function(){
+    try {
+      const ok = (sessionStorage.getItem('auth')==='1' || localStorage.getItem('auth')==='1')
+                && (sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user'));
+      if(ok){
+        // إضافة style آمن بدون document.write
+        const st = document.createElement('style');
+        st.textContent = '#login-screen{display:none!important}';
+        document.head.appendChild(st);
+      }
+    } catch(e){}
+  })();
+</script>
 </head>
 <body>
 <!-- ══ شاشة تسجيل الدخول ══ -->
@@ -471,10 +476,19 @@ body{
     </div>
   </div>
 </div>
+<div id="app-wrap" style="display:none">
 <div class="hdr">
   <div class="hdr-top">
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:var(--text)">جوهرة كيان</div><div style="font-size:10px;color:var(--text3);font-weight:500">الرائده للذهب والمجوهرات</div></div></div>
-    <div class="hdr-date" id="hdr-date"></div></div>
+    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:#EDF0FF">جوهرة كيان</div><div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:500">الرائده للذهب والمجوهرات</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="hdr-date" id="hdr-date"></div>
+      <button onclick="logout()"
+        style="background:rgba(229,85,85,.20);color:#FF8080;border:1px solid rgba(229,85,85,.35);
+          border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;
+          cursor:pointer;font-family:inherit;white-space:nowrap">
+        🚪 خروج
+      </button>
+    </div></div>
   <div class="tabs">
     <button class="tab on"  onclick="P('home',this)">🏠 الرئيسية</button>
     <button class="tab"     onclick="P('tx',this)">➕ فاتورة</button>
@@ -504,7 +518,7 @@ body{
   <div class="card">
     <div class="ch" style="display:flex;justify-content:space-between;align-items:center">
       <span>📊 إحصائيات اليوم</span>
-      <span id="home-date" style="font-size:11px;color:var(--text2);font-weight:400"></span>
+      <span id="home-date" style="font-size:11px;color:var(--tx2);font-weight:400"></span>
     </div>
     <div class="cb">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -601,25 +615,25 @@ body{
           <div class="inv-sum-row"><span class="lbl">⚒️ إجمالي الأجور</span><span class="val" id="sum-ajour">0</span></div>
           <!-- ضريبة -->
           <div class="inv-sum-row" style="cursor:pointer" onclick="document.getElementById('vat-check').click()">
-            <span class="lbl">🧾 ضريبة 15% <span id="vat-label" style="font-size:10px;color:var(--text2)">غير محتسبة</span></span>
+            <span class="lbl">🧾 ضريبة 15% <span id="vat-label" style="font-size:10px;color:var(--tx2)">غير محتسبة</span></span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
               <input type="checkbox" id="vat-check" onchange="renderInvSummary()" style="width:16px;height:16px">
             </label>
           </div>
           <div class="inv-sum-row" id="vat-preview" style="display:none">
-            <span class="lbl" style="color:var(--orange)">مبلغ الضريبة</span>
-            <span class="val" id="vat-amount" style="color:var(--orange)">0</span>
+            <span class="lbl" style="color:var(--io)">مبلغ الضريبة</span>
+            <span class="val" id="vat-amount" style="color:var(--io)">0</span>
           </div>
           <!-- خصم -->
           <div class="inv-sum-row">
             <span class="lbl">🏷️ خصم</span>
             <input type="number" id="f-discount" inputmode="decimal" placeholder="0"
-              style="width:90px;text-align:left;border:1px solid var(--border);border-radius:6px;padding:4px 8px"
+              style="width:90px;text-align:left;border:1px solid var(--b1);border-radius:6px;padding:4px 8px"
               oninput="calcDiscount()">
           </div>
           <div class="inv-sum-row" id="discount-preview" style="display:none">
-            <span class="lbl" style="color:var(--green)">بعد الخصم</span>
-            <span class="val" id="disc-after" style="color:var(--green)">0</span>
+            <span class="lbl" style="color:var(--ok)">بعد الخصم</span>
+            <span class="val" id="disc-after" style="color:var(--ok)">0</span>
           </div>
           <div class="inv-sum-row total-row">
             <span class="lbl">💰 الإجمالي</span>
@@ -642,25 +656,25 @@ body{
       <div id="pay-sec" style="display:none">
         <!-- ══ نوع العملية — إلزامي ══ -->
         <div style="margin-bottom:12px">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">
-            📌 نوع العملية <span style="color:var(--red)">*</span>
+          <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:6px">
+            📌 نوع العملية <span style="color:var(--no)">*</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <button type="button" id="pay-type-receipt"
               onclick="setPayType('receipt')"
-              style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit">
+              style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
               <div style="font-size:20px;margin-bottom:4px">📥</div>
-              <div style="font-size:13px;font-weight:700;color:var(--green)">قبض</div>
-              <div style="font-size:10px;color:var(--text2)">نقد يدخل إلينا</div>
-              <div style="font-size:10px;color:var(--green);margin-top:2px">الصندوق +</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ok)">قبض</div>
+              <div style="font-size:10px;color:var(--tx2)">نقد يدخل إلينا</div>
+              <div style="font-size:10px;color:var(--ok);margin-top:2px">الصندوق +</div>
             </button>
             <button type="button" id="pay-type-payment"
               onclick="setPayType('payment')"
-              style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit">
+              style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
               <div style="font-size:20px;margin-bottom:4px">📤</div>
-              <div style="font-size:13px;font-weight:700;color:var(--red)">دفع</div>
-              <div style="font-size:10px;color:var(--text2)">نقد يخرج منا</div>
-              <div style="font-size:10px;color:var(--red);margin-top:2px">الصندوق −</div>
+              <div style="font-size:13px;font-weight:700;color:var(--no)">دفع</div>
+              <div style="font-size:10px;color:var(--tx2)">نقد يخرج منا</div>
+              <div style="font-size:10px;color:var(--no);margin-top:2px">الصندوق −</div>
             </button>
           </div>
           <!-- شرح العملية -->
@@ -680,8 +694,8 @@ body{
           </div>
         </div>
         <!-- رصيد العميل -->
-        <div id="pay-balance-box" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">💳 الرصيد الحالي</div>
+        <div id="pay-balance-box" style="display:none;background:var(--c2);border-radius:10px;padding:10px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">💳 الرصيد الحالي</div>
           <div id="pay-balance-rows"></div>
         </div>
         <!-- صندوق النقد — يظهر دائماً -->
@@ -699,7 +713,7 @@ body{
             <div style="display:flex;justify-content:space-between;align-items:center">
               <label>🥇 أصناف الذهب</label>
               <button type="button" onclick="addPayGoldItem()"
-                style="font-size:11px;background:var(--gold);color:#1C1208;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit;font-weight:700">
+                style="font-size:11px;background:var(--g1);color:#1C1208;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit;font-weight:700">
                 ＋ إضافة صنف
               </button>
             </div>
@@ -712,23 +726,23 @@ body{
         <!-- خصم وفكة -->
         <div class="g2">
           <div class="fr">
-            <label>🏷️ خصم تسوية (ريال) <span style="font-size:10px;color:var(--text2)">— لا يؤثر على الصندوق</span></label>
+            <label>🏷️ خصم تسوية (ريال) <span style="font-size:10px;color:var(--tx2)">— لا يؤثر على الصندوق</span></label>
             <input type="number" id="pay-discount" inputmode="decimal" placeholder="0" oninput="calcPaySummary()">
           </div>
           <div class="fr">
             <label id="pay-change-lbl">🪙 فكة/كسر نقدي (ريال)</label>
             <input type="number" id="pay-change" inputmode="decimal" placeholder="0" oninput="calcPaySummary()">
-            <div id="pay-change-hint" style="font-size:10px;color:var(--text2);margin-top:3px">← تُضاف/تُخصم من الصندوق</div>
+            <div id="pay-change-hint" style="font-size:10px;color:var(--tx2);margin-top:3px">← تُضاف/تُخصم من الصندوق</div>
           </div>
         </div>
         <!-- صناديق الذهب لكل صنف — تُعرض في pay-gold-items-list -->
         <div id="pay-gold-safe-row" style="display:none"><!-- فارغ للتوافق --></div>
         <input type="hidden" id="pay-gold-safe" value="scrap21">
         <!-- تحويل العيارات -->
-        <div id="pay-karat-convert" style="display:none;background:var(--teal-bg);border-radius:10px;padding:10px;margin-bottom:8px"></div>
+        <div id="pay-karat-convert" style="display:none;background:rgba(40,200,216,.10);border-radius:10px;padding:10px;margin-bottom:8px"></div>
         <!-- ملخص -->
-        <div id="pay-summary" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:10px;padding:10px;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">✅ ملخص السداد</div>
+        <div id="pay-summary" style="display:none;background:var(--ok-bg);border:1px solid var(--ok);border-radius:10px;padding:10px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--ok);margin-bottom:6px">✅ ملخص السداد</div>
           <div id="pay-summary-rows"></div>
         </div>
         <div class="g2">
@@ -741,7 +755,7 @@ body{
 
       <!-- ── قبض نقد أو ذهب ── -->
       <div id="cashrcv-sec" style="display:none">
-        <div style="background:var(--blue-bg,#EBF3FF);border:1.5px solid var(--blue);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--blue);font-weight:700">
+        <div style="background:var(--blue-bg,#EBF3FF);border:1.5px solid var(--in);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--in);font-weight:700">
           📥 قبض — استلام نقد أو ذهب من عميل أو مورد أو أي جهة
         </div>
         <div class="fr"><label>👤 الجهة (اختياري)</label>
@@ -782,7 +796,7 @@ body{
 
       <!-- ── تحويل بين صناديق ── -->
       <div id="tf-sec" style="display:none">
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--text2)">
+        <div style="background:var(--c2);border:1px solid var(--b1);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--tx2)">
           🔄 تحويل — نقل نقد أو ذهب من صندوق لصندوق آخر أو لعميل/مورد
         </div>
         <div class="g2">
@@ -793,7 +807,7 @@ body{
               <input type="hidden" id="tf-from">
               <div class="sdrop" id="tf-from-d"></div>
             </div>
-            <div id="tf-from-lbl" style="font-size:11px;color:var(--gold);margin-top:3px;font-weight:700"></div>
+            <div id="tf-from-lbl" style="font-size:11px;color:var(--g1);margin-top:3px;font-weight:700"></div>
           </div>
           <div class="fr"><label>📥 إلى</label>
             <div class="sw"><span class="si">🔍</span>
@@ -802,7 +816,7 @@ body{
               <input type="hidden" id="tf-to">
               <div class="sdrop" id="tf-to-d"></div>
             </div>
-            <div id="tf-to-lbl" style="font-size:11px;color:var(--gold);margin-top:3px;font-weight:700"></div>
+            <div id="tf-to-lbl" style="font-size:11px;color:var(--g1);margin-top:3px;font-weight:700"></div>
           </div>
         </div>
         <!-- المبالغ -->
@@ -825,14 +839,14 @@ body{
         </div>
         <!-- معاينة مصنع -->
         <div id="tf-karat-row" style="display:none">
-          <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--gold);font-weight:700">
+          <div style="background:var(--g4);border:1.5px solid var(--g1);border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--g1);font-weight:700">
             ⚙️ صندوق المصنع — حدد عيار الذهب
           </div>
         </div>
         <div id="tf-withdraw-info" style="display:none">
-          <div id="tf-madan-detail" style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px"></div>
+          <div id="tf-madan-detail" style="background:var(--c2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px"></div>
         </div>
-        <div id="tf-preview" style="display:none;background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:8px;font-size:12px"></div>
+        <div id="tf-preview" style="display:none;background:var(--c2);border-radius:10px;padding:10px;margin-bottom:8px;font-size:12px"></div>
         <div class="g2">
           <div class="fr"><label>📝 ملاحظة</label><input type="text" id="tf-note" placeholder="اختياري"></div>
           <div class="fr"><label>📅 التاريخ</label><input type="date" id="tf-date"></div>
@@ -842,23 +856,23 @@ body{
 
       <!-- ── قبض كسر (tab مخفي — يُفعّل من scrap) ── -->
       <div id="scrap-sec" style="display:none">
-        <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;font-weight:700">
+        <div style="background:var(--g4);border:1.5px solid var(--g1);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;font-weight:700">
           🗃️ قبض كسر / ذهب خام من عميل
         </div>
         <!-- أصناف الكسر - متعددة العيارات -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <span style="font-size:12px;font-weight:700">العيارات</span>
           <button type="button" onclick="addScrapItem()"
-            style="font-size:11px;background:var(--gold);color:#1C1208;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit;font-weight:700">
+            style="font-size:11px;background:var(--g1);color:#1C1208;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit;font-weight:700">
             ＋ إضافة عيار
           </button>
         </div>
         <div id="scrap-items-list"></div>
         <!-- إجمالي بعيار 24 -->
-        <div id="scrap-total-24" style="display:none;background:var(--gold-pale);border:1px solid var(--gold);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">
+        <div id="scrap-total-24" style="display:none;background:var(--g4);border:1px solid var(--g1);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">
           <div style="display:flex;justify-content:space-between">
             <span style="font-weight:700">✨ الإجمالي بعيار 24</span>
-            <span id="scrap-total-24-val" style="font-weight:900;color:var(--gold)">0 جرام</span>
+            <span id="scrap-total-24-val" style="font-weight:900;color:var(--g1)">0 جرام</span>
           </div>
         </div>
         <!-- حقول مخفية للتوافق -->
@@ -909,7 +923,7 @@ body{
             <div class="fr"><label>سبب الإرجاع</label><input type="text" id="ret-reason" placeholder="اختياري"></div>
             <div class="fr"><label>📅 التاريخ</label><input type="date" id="ret-date"></div>
           </div>
-          <button class="btn" style="background:var(--purple);color:white" onclick="saveReturnInv()">↩️ تنفيذ الإرجاع</button>
+          <button class="btn" style="background:var(--pu);color:white" onclick="saveReturnInv()">↩️ تنفيذ الإرجاع</button>
         </div>
         <!-- مردود كسر للزبون -->
         <div id="ret-scrap-sec" style="display:none">
@@ -946,11 +960,11 @@ body{
             <div class="fr"><label>السبب</label><input type="text" id="rsc-reason" placeholder="اختياري"></div>
             <div class="fr"><label>ملاحظة</label><input type="text" id="rsc-note" placeholder="اختياري"></div>
           </div>
-          <button class="btn" style="background:var(--orange);color:white" onclick="saveScrapReturn()">↩️ مردود كسر</button>
+          <button class="btn" style="background:var(--io);color:white" onclick="saveScrapReturn()">↩️ مردود كسر</button>
         </div>
         <!-- مردود للمورد -->
         <div id="ret-supp-sec" style="display:none">
-          <div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--orange)">
+          <div style="background:var(--io-bg);border:1.5px solid var(--io);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--io)">
             🏭 إرجاع ذهب للمورد — يُخصم من صناديقنا ويُقلل الدين
           </div>
           <div class="fr"><label>ابحث عن فاتورة الشراء الأصلية</label>
@@ -965,7 +979,7 @@ body{
             <div class="fr"><label>سبب الإرجاع</label><input type="text" id="rsupp-reason" placeholder="اختياري"></div>
             <div class="fr"><label>📅 التاريخ</label><input type="date" id="rsupp-date"></div>
           </div>
-          <button class="btn" style="background:var(--orange);color:white" onclick="saveSupplierReturn()">↩️ تنفيذ مردود المورد</button>
+          <button class="btn" style="background:var(--io);color:white" onclick="saveSupplierReturn()">↩️ تنفيذ مردود المورد</button>
         </div>
       </div>
 
@@ -1036,7 +1050,7 @@ body{
       <div class="sdrop" id="stmt-d"></div>
     </div>
   </div>
-  <button class="btn btn-blue" id="print-btn" style="display:none;margin-bottom:12px" onclick="printStmt()">
+  <button class="btn btn-blue" id="print-btn" style="display:none;margin-bottom:12px;border-radius:var(--rc)" onclick="printStmt()">
     🖨️ طباعة / تصدير PDF
   </button>
   <div id="stmt-body"></div>
@@ -1061,7 +1075,7 @@ body{
 <div id="pg-debts" class="pg">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <span class="st" style="margin:0">💳 المديونيات</span>
-    <select id="debts-filter" onchange="renderDebts()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:Tajawal,sans-serif;font-size:12px">
+    <select id="debts-filter" onchange="renderDebts()" style="border:1.5px solid var(--b1);border-radius:8px;padding:6px 10px;font-family:Tajawal,sans-serif;font-size:12px">
       <option value="all">الكل</option>
       <option value="gold">ذهب فقط</option>
       <option value="cash">نقد فقط</option>
@@ -1088,10 +1102,47 @@ body{
 
 
 <div id="pg-salary" class="pg">
+
+  <!-- أزرار الأقسام الثلاثة -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+
+    <!-- 1. عهدة: موظف → مكتب -->
+    <button onclick="openSalaryModal('custody')"
+      style="padding:13px 10px;border-radius:var(--rb);border:2px solid #065F46;
+        background:#D1FAE5;color:#065F46;font-family:inherit;font-size:12px;
+        font-weight:800;cursor:pointer;text-align:center">
+      🤝 إيداع عهدة<br>
+      <span style="font-size:10px;font-weight:400;opacity:.8">موظف → مكتب</span>
+    </button>
+
+    <!-- 2. صرف: مكتب → موظف -->
+    <button onclick="openSalaryModal('salary')"
+      style="padding:13px 10px;border-radius:var(--rb);border:2px solid #1D4ED8;
+        background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:12px;
+        font-weight:800;cursor:pointer;text-align:center">
+      💸 صرف نقد<br>
+      <span style="font-size:10px;font-weight:400;opacity:.8">مكتب → موظف</span>
+    </button>
+
+    <!-- 3. راتب -->
+    <button onclick="openSalaryModal('salary')"
+      style="padding:13px 10px;border-radius:var(--rb);border:2px solid #7C3AED;
+        background:#EDE9FE;color:#7C3AED;font-family:inherit;font-size:12px;
+        font-weight:800;cursor:pointer;text-align:center">
+      💰 راتب شهري<br>
+      <span style="font-size:10px;font-weight:400;opacity:.8">استلام الراتب</span>
+    </button>
+  </div>
+
+  <!-- سجل الرواتب -->
   <div class="card">
     <div class="ch" style="display:flex;justify-content:space-between;align-items:center">
-      <span>💰 إدارة الرواتب</span>
-      <button class="btn-sm btn-gold" onclick="openSalaryModal()">＋ صرف راتب / عهدة</button>
+      <span>📋 سجل الرواتب والعهد</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm btn-outline" onclick="filterSalary('all')" id="sal-f-all">الكل</button>
+        <button class="btn-sm" style="background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="filterSalary('custody')" id="sal-f-custody">عهدة</button>
+        <button class="btn-sm" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #93C5FD;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="filterSalary('salary')" id="sal-f-salary">صرف</button>
+      </div>
     </div>
     <div class="cb" id="salary-body"></div>
   </div>
@@ -1102,19 +1153,19 @@ body{
   <!-- فلتر الحالة -->
   <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
     <button onclick="filterPending('all')" id="pf-all"
-      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--gold);background:var(--gold);color:white;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--g1);background:var(--g1);color:white;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
       الكل
     </button>
     <button onclick="filterPending('pending')" id="pf-pending"
-      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)">
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--b1);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2)">
       📌 معلّقة
     </button>
     <button onclick="filterPending('sold')" id="pf-sold"
-      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)">
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--b1);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2)">
       ✅ تم البيع
     </button>
     <button onclick="filterPending('returned')" id="pf-returned"
-      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)">
+      style="flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--b1);background:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2)">
       ↩️ تم الإرجاع
     </button>
   </div>
@@ -1151,7 +1202,7 @@ body{
       <div class="g3" style="margin-bottom:12px" id="actlog-summary"></div>
       <!-- القائمة -->
       <div id="activity-log-list"
-        style="border-radius:var(--r2);overflow:hidden;border:1px solid var(--bdr)">
+        style="border-radius:var(--rb);overflow:hidden;border:1px solid var(--b1)">
       </div>
       <button class="btn btn-outline" style="margin-top:10px;width:100%"
         onclick="clearActivityLog()">🗑️ مسح السجل (مدير فقط)</button>
@@ -1324,22 +1375,22 @@ body{
     <div class="ch">💾 النسخ الاحتياطي</div>
     <div class="cb">
       <!-- تصدير -->
-      <div style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:6px">📤 تصدير البيانات</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px">حفظ نسخة كاملة من بياناتك (معاملات، عملاء، صناديق) كملف JSON</div>
-        <button class="btn" style="background:var(--green);color:white" onclick="exportBackup()">⬇️ تنزيل نسخة احتياطية</button>
+      <div style="background:var(--ok-bg);border:1.5px solid var(--ok);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700;color:var(--ok);margin-bottom:6px">📤 تصدير البيانات</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">حفظ نسخة كاملة من بياناتك (معاملات، عملاء، صناديق) كملف JSON</div>
+        <button class="btn" style="background:var(--ok);color:white" onclick="exportBackup()">⬇️ تنزيل نسخة احتياطية</button>
       </div>
       <!-- استيراد -->
-      <div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-size:14px;font-weight:700;color:var(--orange);margin-bottom:6px">📥 استيراد البيانات</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px">⚠️ تحذير: سيحل الملف محل البيانات الحالية كلها</div>
+      <div style="background:var(--io-bg);border:1.5px solid var(--io);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700;color:var(--io);margin-bottom:6px">📥 استيراد البيانات</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">⚠️ تحذير: سيحل الملف محل البيانات الحالية كلها</div>
         <input type="file" id="backup-file" accept=".json" onchange="importBackup(this)" style="display:none">
-        <button class="btn" style="background:var(--orange);color:white" onclick="document.getElementById('backup-file').click()">⬆️ استيراد من ملف</button>
+        <button class="btn" style="background:var(--io);color:white" onclick="document.getElementById('backup-file').click()">⬆️ استيراد من ملف</button>
       </div>
       <!-- معلومات -->
-      <div style="background:var(--surface2);border-radius:12px;padding:14px">
+      <div style="background:var(--c2);border-radius:12px;padding:14px">
         <div style="font-size:13px;font-weight:700;margin-bottom:8px">📊 معلومات البيانات الحالية</div>
-        <div id="backup-info" style="font-size:12px;color:var(--text2);line-height:2"></div>
+        <div id="backup-info" style="font-size:12px;color:var(--tx2);line-height:2"></div>
       </div>
     </div>
   </div>
@@ -1411,22 +1462,22 @@ body{
       <!-- نوع العملية -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
         <button type="button" id="sal-type-salary" onclick="setSalType('salary')"
-          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
+          style="padding:10px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
           <div style="font-size:16px">💵</div>
-          <div style="font-size:11px;font-weight:700;color:var(--green)">راتب</div>
-          <div style="font-size:9px;color:var(--text2)">صندوق −</div>
+          <div style="font-size:11px;font-weight:700;color:var(--ok)">راتب</div>
+          <div style="font-size:9px;color:var(--tx2)">صندوق −</div>
         </button>
         <button type="button" id="sal-type-custody" onclick="setSalType('custody')"
-          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
+          style="padding:10px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
           <div style="font-size:16px">🤝</div>
-          <div style="font-size:11px;font-weight:700;color:var(--blue)">عهدة</div>
-          <div style="font-size:9px;color:var(--text2)">موظف أودع</div>
+          <div style="font-size:11px;font-weight:700;color:var(--in)">عهدة</div>
+          <div style="font-size:9px;color:var(--tx2)">موظف أودع</div>
         </button>
         <button type="button" id="sal-type-deduction" onclick="setSalType('deduction')"
-          style="padding:10px 4px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;text-align:center">
+          style="padding:10px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
           <div style="font-size:16px">✂️</div>
-          <div style="font-size:11px;font-weight:700;color:var(--orange)">خصم</div>
-          <div style="font-size:9px;color:var(--text2)">من الراتب</div>
+          <div style="font-size:11px;font-weight:700;color:var(--io)">خصم</div>
+          <div style="font-size:9px;color:var(--tx2)">من الراتب</div>
         </button>
       </div>
       <div id="sal-type-hint" style="display:none;border-radius:8px;padding:8px;margin-bottom:10px;font-size:11px;font-weight:700"></div>
@@ -1478,8 +1529,8 @@ body{
         </div>
       </div>
       <!-- القطعة -->
-      <div style="background:var(--gold-pale);border:1px solid var(--gold-mid);border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">🏅 تفاصيل القطعة</div>
+      <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:8px">🏅 تفاصيل القطعة</div>
         <div class="g2">
           <div class="fr">
             <label>العيار</label>
@@ -1524,22 +1575,22 @@ body{
   <div class="mp">
     <div class="mh"><h3>تحديث حالة القطعة</h3><button class="xbtn" onclick="closeM('m-pending-status')">✕</button></div>
     <div class="mb">
-      <div id="pending-status-info" style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px"></div>
+      <div id="pending-status-info" style="background:var(--c2);border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px"></div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <button onclick="updatePendingStatus('pending')"
-          style="padding:13px;border-radius:10px;border:1.5px solid var(--orange-border);background:var(--orange-bg);color:var(--orange);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--io-bd);background:var(--io-bg);color:var(--io);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
           📌 معلّقة — القطعة لا تزال مع العميل
         </button>
         <button onclick="updatePendingStatus('sold')"
-          style="padding:13px;border-radius:10px;border:1.5px solid var(--green-border);background:var(--green-bg);color:var(--green);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--ok-bd);background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
           ✅ تم البيع — العميل اشترى القطعة
         </button>
         <button onclick="updatePendingStatus('returned')"
-          style="padding:13px;border-radius:10px;border:1.5px solid var(--blue-border);background:var(--blue-bg);color:var(--blue);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
+          style="padding:13px;border-radius:10px;border:1.5px solid var(--in-bd);background:var(--in-bg);color:var(--in);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right">
           ↩️ تم الإرجاع — رجعت القطعة للمخزن
         </button>
         <button onclick="deletePending()"
-          style="padding:10px;border-radius:10px;border:1.5px solid var(--red-border);background:var(--red-bg);color:var(--red);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center">
+          style="padding:10px;border-radius:10px;border:1.5px solid var(--no-bd);background:var(--no-bg);color:var(--no);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center">
           🗑️ حذف القطعة
         </button>
       </div>
@@ -1595,7 +1646,7 @@ body{
       </div>
       <div style="font-size:11px;color:var(--tx3);margin-top:6px;
         padding:8px;background:var(--s2);border-radius:8px;
-        border:1px solid var(--bd1)">
+        border:1px solid var(--b1)">
         💡 الوضع الحالي: <span id="theme-label" style="color:var(--g1);font-weight:700">الوضع الداكن</span>
       </div>
     </div>
@@ -1612,13 +1663,13 @@ body{
   <div class="card">
     <div class="ch">🛡️ جدول الصلاحيات</div>
     <div class="cb" style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--t1)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--tx1)">
         <thead>
-          <tr style="border-bottom:1px solid var(--bdr)">
-            <th style="padding:8px 12px;text-align:right;color:var(--t2)">الصلاحية</th>
-            <th style="padding:8px;text-align:center;color:var(--au1);font-size:13px">🔑 مدير</th>
+          <tr style="border-bottom:1px solid var(--b1)">
+            <th style="padding:8px 12px;text-align:right;color:var(--tx2)">الصلاحية</th>
+            <th style="padding:8px;text-align:center;color:var(--g1);font-size:13px">🔑 مدير</th>
             <th style="padding:8px;text-align:center;color:var(--g);font-size:13px">📊 محاسب</th>
-            <th style="padding:8px;text-align:center;color:var(--t2);font-size:13px">👤 موظف</th>
+            <th style="padding:8px;text-align:center;color:var(--tx2);font-size:13px">👤 موظف</th>
           </tr>
         </thead>
         <tbody id="perm-table-body"></tbody>
@@ -1658,6 +1709,7 @@ body{
   </div>
 </div>
 <div class="toast" id="toast"></div>
+</div><!-- /app-wrap -->
 
 <script>
 // ── State ─────────────────────────────────────────────────────────
@@ -2335,7 +2387,7 @@ function ST(t){
     renderPayGoldItems();
     ['pay-type-receipt','pay-type-payment'].forEach(id=>{
       const el=document.getElementById(id);
-      if(el){el.style.border='2px solid var(--border)';el.style.background='var(--surface2)';}
+      if(el){el.style.border='2px solid var(--b1)';el.style.background='var(--c2)';}
     });
     const pc=document.getElementById('pay-content'); if(pc) pc.style.display='none';
     const ph=document.getElementById('pay-type-hint'); if(ph) ph.style.display='none';
@@ -2439,13 +2491,13 @@ function renderInvSummary(){
   if(vatAmountEl) vatAmountEl.textContent = fmt(vatAmt)+' ريال';
 
   const elT = document.getElementById('sum-total');
-  if(elT) elT.textContent = fmt(totalWithVat)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--text2)">(شامل الضريبة)</span>':'');
+  if(elT) elT.textContent = fmt(totalWithVat)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
 }
 
 function renderDraftItems(){
   const el=document.getElementById('inv-items-list');
   if(!draftItems.length){
-    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text2);font-size:13px">اضغط "＋ إضافة صنف" لبدء الفاتورة</div>`;
+    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--tx2);font-size:13px">اضغط "＋ إضافة صنف" لبدء الفاتورة</div>`;
     renderInvSummary(); return;
   }
   el.innerHTML=draftItems.map((item,idx)=>`
@@ -2492,9 +2544,9 @@ function renderDraftItems(){
               oninput="updateItem(${item.id},'ajour',this.value)" style="background:#FFF8EE">
           </div>
         </div>
-        <div style="background:var(--gold-pale);border-radius:8px;padding:7px 10px;font-size:12px;display:flex;justify-content:space-between">
+        <div style="background:var(--g4);border-radius:8px;padding:7px 10px;font-size:12px;display:flex;justify-content:space-between">
           <span style="color:#7C2D12;">ذهب: ${fmt(item.weight*item.price)} · أجور: ${fmt(item.weight*item.ajour)}</span>
-          <span style="font-weight:700;color:var(--gold)">${fmt(item.weight*item.price+item.weight*item.ajour)} ريال</span>
+          <span style="font-weight:700;color:var(--g1)">${fmt(item.weight*item.price+item.weight*item.ajour)} ريال</span>
         </div>
       </div>
     </div>
@@ -2820,7 +2872,7 @@ function renderScrapItems(){
   const el = document.getElementById('scrap-items-list');
   if(!el) return;
   if(!scrapItems.length){
-    el.innerHTML = `<div style="font-size:11px;color:var(--text2);padding:6px 0">اضغط "＋ إضافة عيار" لإدخال الكسر</div>`;
+    el.innerHTML = `<div style="font-size:11px;color:var(--tx2);padding:6px 0">اضغط "＋ إضافة عيار" لإدخال الكسر</div>`;
     updateScrapTotal();
     return;
   }
@@ -2833,17 +2885,17 @@ function renderScrapItems(){
   };
   el.innerHTML = scrapItems.map((item,idx)=>{
     const as24 = Math.round(item.weight * parseFloat(item.karat)/24 * 1000)/1000;
-    return `<div style="background:var(--surface2);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid var(--gold)">
+    return `<div style="background:var(--c2);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid var(--g1)">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:var(--gold)">🗃️ عيار ${idx+1}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--g1)">🗃️ عيار ${idx+1}</span>
         <button type="button" onclick="removeScrapItem(${item.id})"
-          style="background:var(--red);color:white;border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px;margin-right:auto">✕</button>
+          style="background:var(--no);color:white;border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px;margin-right:auto">✕</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
         <div>
-          <div style="font-size:10px;color:var(--text2);margin-bottom:2px">العيار</div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">العيار</div>
           <select id="sc-karat-${item.id}"
-            style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+            style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--b1);background:var(--c1);font-family:inherit"
             onchange="updateScrapItem(${item.id},'karat',this.value)">
             <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
             <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
@@ -2851,22 +2903,22 @@ function renderScrapItems(){
           </select>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الوزن (جرام)</div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">الوزن (جرام)</div>
           <input type="number" id="sc-weight-${item.id}"
             value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
-            style="width:100%;padding:6px;border-radius:6px;border:1.5px solid var(--gold);background:var(--surface);font-family:inherit;box-sizing:border-box"
+            style="width:100%;padding:6px;border-radius:6px;border:1.5px solid var(--g1);background:var(--c1);font-family:inherit;box-sizing:border-box"
             oninput="updateScrapItem(${item.id},'weight',this.value)">
         </div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الصندوق</div>
+        <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">الصندوق</div>
         <select id="sc-dest-${item.id}"
-          style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+          style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--b1);background:var(--c1);font-family:inherit"
           onchange="updateScrapItem(${item.id},'dest',this.value)">
           ${destOpts(item.dest)}
         </select>
       </div>
-      <div id="sc-as24-${item.id}" style="font-size:11px;color:var(--gold);font-weight:700;margin-top:4px;text-align:left;${as24>0?'':'display:none'}">
+      <div id="sc-as24-${item.id}" style="font-size:11px;color:var(--g1);font-weight:700;margin-top:4px;text-align:left;${as24>0?'':'display:none'}">
         ${as24>0?`= ${fmtG(as24)} ج ع24`:''}
       </div>
     </div>`;
@@ -2940,18 +2992,18 @@ function onTfChange(){
     const depRows = Object.entries(d.deps).filter(([k,v])=>v>0)
       .map(([k,v])=>{
         const as24=Math.round(v*karat2factor(k)*1000)/1000;
-        return `<div>${kN[k]||k}: <b>${fmtG(v)}ج</b> ← <span style="color:var(--teal)">${fmtG(as24)}ج عيار24</span></div>`;
+        return `<div>${kN[k]||k}: <b>${fmtG(v)}ج</b> ← <span style="color:#28C8D8">${fmtG(as24)}ج عيار24</span></div>`;
       }).join('');
     const withRows = Object.entries(d.withs).filter(([k,v])=>v>0)
       .map(([k,v])=>{
         const as24=Math.round(v*karat2factor(k)*1000)/1000;
-        return `<div>${kN[k]||k}: <b>${fmtG(v)}ج</b> ← <span style="color:var(--red)">${fmtG(as24)}ج عيار24</span></div>`;
+        return `<div>${kN[k]||k}: <b>${fmtG(v)}ج</b> ← <span style="color:var(--no)">${fmtG(as24)}ج عيار24</span></div>`;
       }).join('');
     document.getElementById('tf-madan-detail').innerHTML =
-      `<div style="font-weight:700;color:var(--teal);margin-bottom:5px">${lbl2}</div>
-       ${depRows?`<div style="color:var(--green);font-size:10px;margin-bottom:2px">↑ إيداعات</div>${depRows}`:'<div style="color:var(--text2);font-size:11px">لا توجد إيداعات بعد</div>'}
-       ${withRows?`<div style="color:var(--red);font-size:10px;margin:4px 0 2px">↓ سحوبات</div>${withRows}`:''}
-       <div style="margin-top:6px;font-weight:700;color:var(--gold);border-top:1px solid var(--border);padding-top:5px">
+      `<div style="font-weight:700;color:#28C8D8;margin-bottom:5px">${lbl2}</div>
+       ${depRows?`<div style="color:var(--ok);font-size:10px;margin-bottom:2px">↑ إيداعات</div>${depRows}`:'<div style="color:var(--tx2);font-size:11px">لا توجد إيداعات بعد</div>'}
+       ${withRows?`<div style="color:var(--no);font-size:10px;margin:4px 0 2px">↓ سحوبات</div>${withRows}`:''}
+       <div style="margin-top:6px;font-weight:700;color:var(--g1);border-top:1px solid var(--b1);padding-top:5px">
          ✨ الرصيد المتاح عيار 24: ${fmtG(d.balance24)} جرام</div>`;
   }
   document.getElementById('tf-unit').value = 'جرام';
@@ -2973,11 +3025,11 @@ function onTfAmtChange(){
   let html = '';
 
   if(isMadanTo){
-    html = `💡 إيداع <b>${fmtG(amt)} جرام عيار ${karat}</b> = <b style="color:var(--teal)">${fmtG(as24)} جرام عيار 24</b>`;
+    html = `💡 إيداع <b>${fmtG(amt)} جرام عيار ${karat}</b> = <b style="color:#28C8D8">${fmtG(as24)} جرام عيار 24</b>`;
   } else if(isMadanFrom){
     const d = calcMadanDetail(from);
     const remaining = Math.round((d.balance24 - as24)*1000)/1000;
-    const clr = remaining >= 0 ? 'var(--green)' : 'var(--red)';
+    const clr = remaining >= 0 ? 'var(--ok)' : 'var(--no)';
     html = `سحب <b>${fmtG(amt)} جرام عيار ${karat}</b> (= ${fmtG(as24)} عيار 24) — يتبقى: <b style="color:${clr}">${fmtG(remaining)} جرام عيار 24</b>`;
   }
   if(html){ prev.innerHTML=html; prev.style.display='block'; }
@@ -3067,7 +3119,7 @@ function renderInvModal(tx,editing){
         <button class="btn btn-gold" style="flex:1;padding:10px" onclick="startEditInv(${tx.id})">✏️ تعديل الفاتورة</button>
         <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️</button>
       </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
+      <div style="background:var(--c2);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
           <span style="color:#7C2D12;">التاريخ</span><span style="font-weight:700">${dt.ar}</span>
         </div>
@@ -3082,20 +3134,20 @@ function renderInvModal(tx,editing){
       html+=`<div class="st">الأصناف</div>`;
       tx.items.forEach((item,i)=>{
         const gAmt=item.weight*item.price, aAmt=item.weight*item.ajour;
-        html+=`<div style="background:white;border-radius:10px;padding:10px;margin-bottom:7px;border:1px solid var(--border)">
+        html+=`<div style="background:white;border-radius:10px;padding:10px;margin-bottom:7px;border:1px solid var(--b1)">
           <div style="display:flex;justify-content:space-between;margin-bottom:5px">
             <span style="font-weight:700;font-size:13px">${item.isWorked?'💍':'🗃️'} ${i+1}. ${item.desc||'صنف'}</span>
             <span class="badge bg-gold">${kNames[item.karat]||item.karat}</span>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:11px;color:var(--text2)">
-            <div>الوزن: <b style="color:var(--text)">${fmtG(item.weight)} جرام</b></div>
-            <div>سعر الجرام: <b style="color:var(--text)">${fmt(item.price)} ر</b></div>
-            <div>أجور/جرام: <b style="color:var(--text)">${fmt(item.ajour)} ر</b></div>
-            <div>إجمالي الأجور: <b style="color:var(--orange)">${fmt(aAmt)} ر</b></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:11px;color:var(--tx2)">
+            <div>الوزن: <b style="color:var(--tx1)">${fmtG(item.weight)} جرام</b></div>
+            <div>سعر الجرام: <b style="color:var(--tx1)">${fmt(item.price)} ر</b></div>
+            <div>أجور/جرام: <b style="color:var(--tx1)">${fmt(item.ajour)} ر</b></div>
+            <div>إجمالي الأجور: <b style="color:var(--io)">${fmt(aAmt)} ر</b></div>
           </div>
-          <div style="background:var(--gold-pale);border-radius:6px;padding:5px 8px;margin-top:6px;display:flex;justify-content:space-between;font-size:12px">
+          <div style="background:var(--g4);border-radius:6px;padding:5px 8px;margin-top:6px;display:flex;justify-content:space-between;font-size:12px">
             <span style="color:#7C2D12;">ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}</span>
-            <span style="font-weight:700;color:var(--gold)">${fmt(gAmt+aAmt)} ر</span>
+            <span style="font-weight:700;color:var(--g1)">${fmt(gAmt+aAmt)} ر</span>
           </div>
         </div>`;
       });
@@ -3106,11 +3158,11 @@ function renderInvModal(tx,editing){
       <div class="inv-sum-row"><span class="lbl">إجمالي الأجور</span><span class="val">${fmt(tx.ajTotal||0)} ر</span></div>
       ${tx.cash?`<div class="inv-sum-row"><span class="lbl">نقد مستلم</span><span class="val">${fmt(tx.cash||0)} ر</span></div>`:''}
       ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">مدفوع مقدماً</span><span class="val">${fmt(tx.prepaid||0)} ر</span></div>`:''}
-      ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">دين متبقي</span><span class="val" style="color:var(--purple)">${fmt((tx.total||0)-(tx.prepaid||0))} ر</span></div>`:''}
+      ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">دين متبقي</span><span class="val" style="color:var(--pu)">${fmt((tx.total||0)-(tx.prepaid||0))} ر</span></div>`:''}
       ${tx.isDebt&&tx.due?`<div class="inv-sum-row"><span class="lbl">الاستحقاق</span><span class="val">${tx.due}</span></div>`:''}
       <div class="inv-sum-row total-row"><span class="lbl">الإجمالي الكلي</span><span class="val">${fmt(tx.total||0)} ر</span></div>
     </div>`;
-    if(tx.notes) html+=`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">📝 ${tx.notes}</div>`;
+    if(tx.notes) html+=`<div style="font-size:12px;color:var(--tx2);margin-bottom:8px">📝 ${tx.notes}</div>`;
     document.getElementById('m-inv-body').innerHTML=html;
 
   } else {
@@ -3119,7 +3171,7 @@ function renderInvModal(tx,editing){
     editItemCounter=200;
 
     let html=`
-      <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--red);font-weight:600">
+      <div style="background:var(--no-bg);border:1px solid var(--no);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--no);font-weight:600">
         ⚠️ التعديل يحذف الفاتورة القديمة ويحفظ الجديدة
       </div>
 
@@ -3246,9 +3298,9 @@ function renderEditItems(){
               oninput="updateEditItem(${item.id},'ajour',parseFloat(this.value)||0)">
           </div>
         </div>
-        <div class="item-detail-box" style="background:var(--gold-pale);border-radius:7px;padding:6px 10px;font-size:11px;display:flex;justify-content:space-between">
+        <div class="item-detail-box" style="background:var(--g4);border-radius:7px;padding:6px 10px;font-size:11px;display:flex;justify-content:space-between">
           <span class="item-detail" style="color:#7C2D12;">ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}</span>
-          <span style="font-weight:700;color:var(--gold)">${fmt(gAmt+aAmt)} ريال</span>
+          <span style="font-weight:700;color:var(--g1)">${fmt(gAmt+aAmt)} ريال</span>
         </div>
       </div>
     </div>`;
@@ -3332,7 +3384,7 @@ function printStmt(){
           <td>${dt.ar}<br><small>${dt.en}</small></td>
           <td>${TLBL[t.type]||t.type}</td>
           <td>${t.client||'—'}</td>
-          <td class="${isOut?'neg':'pos'}">${isOut?'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${fmt(amt)} ${unit}</td>
+          <td class="${isOut?'neg':'pos'}">${isOut?'<span style="background:var(--no);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--ok);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${fmt(amt)} ${unit}</td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -3349,19 +3401,19 @@ function printStmt(){
     if(isSettled){
       balRows=`<div style="text-align:center;padding:14px">
         <div style="font-size:28px;margin-bottom:6px">✅</div>
-        <div style="font-size:15px;font-weight:900;color:var(--green)">الحساب مسدد بالكامل</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:4px">لا يوجد أي رصيد متبقي</div>
+        <div style="font-size:15px;font-weight:900;color:var(--ok)">الحساب مسدد بالكامل</div>
+        <div style="font-size:11px;color:var(--tx2);margin-top:4px">لا يوجد أي رصيد متبقي</div>
       </div>`;
     } else {
       // نقد
       if(Math.abs(bal.cashOwed)>0.01){
         const weOwe = bal.cashOwed<0;  // سالب = نحن مدينون (لمورد أو نحن من أعطى)
         const label = weOwe ? '💵 نقد علينا (مدينون)' : '💵 نقد عليه لنا (دائنون)';
-        const clr   = weOwe ? 'var(--red)' : 'var(--green)';
-        balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        const clr   = weOwe ? 'var(--no)' : 'var(--ok)';
+        balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1)">
           <div>
             <div style="font-size:13px;font-weight:700">${label}</div>
-            <div style="font-size:10px;color:var(--text2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'}</div>
+            <div style="font-size:10px;color:var(--tx2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'}</div>
           </div>
           <div style="font-size:20px;font-weight:900;color:${clr}">${fmt(Math.abs(bal.cashOwed))} ر</div>
         </div>`;
@@ -3370,11 +3422,11 @@ function printStmt(){
       if(Math.abs(bal.goldOwedAs24||0)>0.001){
         const weOwe = bal.goldOwedAs24<0;
         const label = weOwe ? '🏅 ذهب علينا (مدينون)' : '🏅 ذهب عليه لنا (دائنون)';
-        const clr   = weOwe ? 'var(--red)' : 'var(--green)';
+        const clr   = weOwe ? 'var(--no)' : 'var(--ok)';
         balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
           <div>
             <div style="font-size:13px;font-weight:700">${label}</div>
-            <div style="font-size:10px;color:var(--text2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'} — بعيار 24</div>
+            <div style="font-size:10px;color:var(--tx2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'} — بعيار 24</div>
           </div>
           <div style="font-size:20px;font-weight:900;color:${clr}">${fmtG(Math.abs(bal.goldOwedAs24))} ج</div>
         </div>`;
@@ -3499,8 +3551,8 @@ function printStmt(){
       <div style="font-size:36px;margin-bottom:10px">⚠️</div>
       <div id="confirm-msg" style="font-size:15px;font-weight:700;margin-bottom:20px">هل أنت متأكد؟</div>
       <div style="display:flex;gap:10px">
-        <button class="btn" style="flex:1;background:var(--red);color:white" id="confirm-ok">تأكيد</button>
-        <button class="btn" style="flex:1;background:var(--surface2)" onclick="closeM('m-confirm')">إلغاء</button>
+        <button class="btn" style="flex:1;background:var(--no);color:white" id="confirm-ok">تأكيد</button>
+        <button class="btn" style="flex:1;background:var(--c2)" onclick="closeM('m-confirm')">إلغاء</button>
       </div>
     </div>
   </div>
@@ -3534,7 +3586,7 @@ function txHtml(t){
         <span class="ipi-val">${fmt(item.weight*item.price+item.weight*item.ajour)} ر</span>
       </div>`
     ).join('')}
-    ${t.ajTotal>0?`<div class="inv-preview-item" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)"><span style="color:#7C2D12;">أجور الصياغة</span><span class="ipi-val">${fmt(t.ajTotal)} ر</span></div>`:''}
+    ${t.ajTotal>0?`<div class="inv-preview-item" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--b1)"><span style="color:#7C2D12;">أجور الصياغة</span><span class="ipi-val">${fmt(t.ajTotal)} ر</span></div>`:''}
     </div>`;
   }
 
@@ -3544,12 +3596,12 @@ function txHtml(t){
   return `<div class="txi ${cls}" onclick="viewInv(${t.id})" style="cursor:pointer">
     <div class="txi-row">
       <div style="flex:1">
-        <div class="tm">${debtTag}<span class="badge ${TBDG[t.type]||'bg-gold'}">${TLBL[t.type]||t.type}</span>${t.items&&t.items.length>1?` <span style="font-size:10px;color:var(--text2)">(${t.items.length} أصناف)</span>`:''}</div>
+        <div class="tm">${debtTag}<span class="badge ${TBDG[t.type]||'bg-gold'}">${TLBL[t.type]||t.type}</span>${t.items&&t.items.length>1?` <span style="font-size:10px;color:var(--tx2)">(${t.items.length} أصناف)</span>`:''}</div>
         <div class="ts">${sub}</div>
         <div class="date-line"><span>${dt.ar}</span><span>${dt.en}</span><span>${dt.time}</span></div>
-        ${t.isReturned?'<div class="ts" style="color:var(--purple)">↩️ تم الإرجاع</div>':''}
-      ${t.notes?`<div class="ts" style="color:var(--gold)">📝 ${t.notes}</div>`:''}
-        ${t.discount?`<div class="ts" style="color:var(--orange)">🏷️ خصم: ${fmt(t.discount)} ر</div>`:''}
+        ${t.isReturned?'<div class="ts" style="color:var(--pu)">↩️ تم الإرجاع</div>':''}
+      ${t.notes?`<div class="ts" style="color:var(--g1)">📝 ${t.notes}</div>`:''}
+        ${t.discount?`<div class="ts" style="color:var(--io)">🏷️ خصم: ${fmt(t.discount)} ر</div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="tv" style="text-align:left">
@@ -3590,12 +3642,12 @@ function searchRetInv(){
     ? list.map(function(t){
         const dt = fmtDate(t.date);
         const items = (t.items||[]).map(function(i){return kNames[i.karat]+' '+fmtG(i.weight)+'ج';}).join(' | ');
-        const retBadge = t.hasPartialReturn ? ' <span style="color:var(--orange)">(فيه مردود جزئي)</span>' : '';
+        const retBadge = t.hasPartialReturn ? ' <span style="color:var(--io)">(فيه مردود جزئي)</span>' : '';
         return '<div class="sdi" onclick="selectRetInv('+t.id+')">'+
           '<div style="display:flex;flex-direction:column;gap:2px">'+
           '<span class="sdn">'+(t.client||'بدون عميل')+' — '+fmt(t.total)+' ريال'+retBadge+'</span>'+
           '<span class="sdt">'+dt.ar+' · '+(TLBL[t.type]||t.type)+'</span>'+
-          (items?'<span class="sdt" style="color:var(--gold)">'+items+'</span>':'')+
+          (items?'<span class="sdt" style="color:var(--g1)">'+items+'</span>':'')+
           '</div></div>';
       }).join('')
     : '<div class="sde">لا توجد فواتير مطابقة</div>';
@@ -3616,20 +3668,20 @@ function selectRetInv(id){
   list.innerHTML = '<div class="st" style="margin-top:8px">حدد الكميات المرجعة</div>' +
     (retOrigTx.items||[]).map(function(item, i){
       const maxW = item.weight;
-      return '<div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--border)">'+
+      return '<div style="background:var(--c2);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--b1)">'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;font-weight:700">'+
         '<span>'+(kNames[item.karat]||item.karat)+(item.desc?' — '+item.desc:'')+'</span>'+
         '<span style="color:#7C2D12;">الأصلي: '+fmtG(maxW)+' جرام</span>'+
         '</div>'+
         '<div class="g2">'+
         '<div class="fr"><label>الوزن المرجوع (جرام)</label>'+
-        '<input type="number" id="ret-w-'+i+'" placeholder="0.000" step="0.001" inputmode="decimal" max="'+maxW+'" style="border:1.5px solid var(--purple)">'+
+        '<input type="number" id="ret-w-'+i+'" placeholder="0.000" step="0.001" inputmode="decimal" max="'+maxW+'" style="border:1.5px solid var(--pu)">'+
         '</div>'+
         '<div class="fr"><label>سعر الجرام للرد</label>'+
         '<input type="number" id="ret-p-'+i+'" value="'+item.price+'" inputmode="decimal">'+
         '</div>'+
         '<div class="fr"><label>الأجور (ريال/جرام)</label>'+
-        '<input type="number" id="ret-aj-'+i+'" value="'+item.ajour+'" inputmode="decimal" style="border:1.5px solid var(--gold)">'+
+        '<input type="number" id="ret-aj-'+i+'" value="'+item.ajour+'" inputmode="decimal" style="border:1.5px solid var(--g1)">'+
         '</div></div>'+
         '</div>';
     }).join('');
@@ -3710,12 +3762,12 @@ function searchSuppRet(){
     ? list.map(function(t){
         const dt = fmtDate(t.date);
         const items = (t.items||[]).map(function(i){return kNames[i.karat]+' '+fmtG(i.weight)+'ج';}).join(' | ');
-        const typeLbl = t.type==='buy-debt' ? ' <span style="color:var(--orange)">[آجل]</span>' : ' <span style="color:var(--red)">[فوري]</span>';
+        const typeLbl = t.type==='buy-debt' ? ' <span style="color:var(--io)">[آجل]</span>' : ' <span style="color:var(--no)">[فوري]</span>';
         return '<div class="sdi" onclick="selectSuppRetInv('+t.id+')">'+
           '<div style="display:flex;flex-direction:column;gap:2px">'+
           '<span class="sdn">'+(t.client||'بدون مورد')+' — '+fmt(t.total)+' ريال'+typeLbl+'</span>'+
           '<span class="sdt">'+dt.ar+' · '+(TLBL[t.type]||t.type)+'</span>'+
-          (items?'<span class="sdt" style="color:var(--gold)">'+items+'</span>':'')+
+          (items?'<span class="sdt" style="color:var(--g1)">'+items+'</span>':'')+
           '</div></div>';
       }).join('')
     : '<div class="sde">لا توجد فواتير شراء مطابقة</div>';
@@ -3734,20 +3786,20 @@ function selectSuppRetInv(id){
   list.innerHTML = '<div class="st" style="margin-top:8px">حدد الكميات المرجعة للمورد</div>' +
     (suppRetOrigTx.items||[]).map(function(item, i){
       const maxW = item.weight;
-      return '<div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--border)">'+
+      return '<div style="background:var(--c2);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--b1)">'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;font-weight:700">'+
         '<span>'+(kNames[item.karat]||item.karat)+(item.desc?' — '+item.desc:'')+'</span>'+
         '<span style="color:#7C2D12;">الأصلي: '+fmtG(maxW)+' جرام</span>'+
         '</div>'+
         '<div class="g2">'+
         '<div class="fr"><label>الوزن المرجوع (جرام)</label>'+
-        '<input type="number" id="rsupp-w-'+i+'" placeholder="0.000" step="0.001" inputmode="decimal" max="'+maxW+'" style="border:1.5px solid var(--orange)">'+
+        '<input type="number" id="rsupp-w-'+i+'" placeholder="0.000" step="0.001" inputmode="decimal" max="'+maxW+'" style="border:1.5px solid var(--io)">'+
         '</div>'+
         '<div class="fr"><label>سعر الجرام</label>'+
         '<input type="number" id="rsupp-p-'+i+'" value="'+item.price+'" inputmode="decimal">'+
         '</div>'+
         '<div class="fr"><label>الأجور (ريال/جرام)</label>'+
-        '<input type="number" id="rsupp-aj-'+i+'" value="'+(item.ajour||0)+'" inputmode="decimal" style="border:1.5px solid var(--gold)">'+
+        '<input type="number" id="rsupp-aj-'+i+'" value="'+(item.ajour||0)+'" inputmode="decimal" style="border:1.5px solid var(--g1)">'+
         '</div></div>'+
         '</div>';
     }).join('');
@@ -3982,7 +4034,7 @@ function updatePayGoldItem(id, field, val){
   if(as24El){
     const isReceipt = currentPayType === 'receipt';
     const dirLabel  = isReceipt ? '+' : '−';
-    const dirClr    = isReceipt ? 'var(--green)' : 'var(--red)';
+    const dirClr    = isReceipt ? 'var(--ok)' : 'var(--no)';
     as24El.style.display = as24>0 ? 'block' : 'none';
     as24El.innerHTML = as24>0
       ? `<span style="color:#7C2D12;">= </span><span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>`
@@ -3998,13 +4050,13 @@ function renderPayGoldItems(){
   if(!el) return;
 
   if(!payGoldItems.length){
-    el.innerHTML = `<div style="font-size:11px;color:var(--text2);padding:6px 0">لا توجد أصناف ذهب — اضغط "＋ إضافة صنف"</div>`;
+    el.innerHTML = `<div style="font-size:11px;color:var(--tx2);padding:6px 0">لا توجد أصناف ذهب — اضغط "＋ إضافة صنف"</div>`;
     return;
   }
 
   const isReceipt = currentPayType === 'receipt';
   const dirLabel  = isReceipt ? '+' : '−';
-  const dirClr    = isReceipt ? 'var(--green)' : 'var(--red)';
+  const dirClr    = isReceipt ? 'var(--ok)' : 'var(--no)';
   const gSM = getSM();
   const safeOpts = k => Object.entries(gSM)
     .filter(([sk,v])=> v.type==='gold' && !sk.startsWith('debt'))
@@ -4015,17 +4067,17 @@ function renderPayGoldItems(){
   // كل عنصر له id ثابت لتحديثه لاحقاً بدون إعادة بناء
   el.innerHTML = payGoldItems.map((item,idx)=>{
     const as24 = Math.round(item.weight * parseFloat(item.karat)/24 * 1000)/1000;
-    return `<div style="background:var(--surface2);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid var(--border)">
+    return `<div style="background:var(--c2);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid var(--b1)">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:var(--text2)">صنف ${idx+1}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--tx2)">صنف ${idx+1}</span>
         <button type="button" onclick="removePayGoldItem(${item.id})"
-          style="background:var(--red);color:white;border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px;margin-right:auto">✕</button>
+          style="background:var(--no);color:white;border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px;margin-right:auto">✕</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
         <div>
-          <div style="font-size:10px;color:var(--text2);margin-bottom:2px">العيار</div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">العيار</div>
           <select id="pgi-karat-${item.id}"
-            style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+            style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--b1);background:var(--c1);font-family:inherit"
             onchange="updatePayGoldItem(${item.id},'karat',this.value)">
             <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
             <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
@@ -4033,17 +4085,17 @@ function renderPayGoldItems(){
           </select>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الوزن (جرام)</div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">الوزن (جرام)</div>
           <input type="number" id="pgi-weight-${item.id}"
             value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
-            style="width:100%;padding:6px;border-radius:6px;border:1.5px solid var(--gold);background:var(--surface);font-family:inherit;box-sizing:border-box"
+            style="width:100%;padding:6px;border-radius:6px;border:1.5px solid var(--g1);background:var(--c1);font-family:inherit;box-sizing:border-box"
             oninput="updatePayGoldItem(${item.id},'weight',this.value)">
         </div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--text2);margin-bottom:2px">الصندوق</div>
+        <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">الصندوق</div>
         <select id="pgi-safe-${item.id}"
-          style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-family:inherit"
+          style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--b1);background:var(--c1);font-family:inherit"
           onchange="updatePayGoldItem(${item.id},'safe',this.value)">
           ${safeOpts(item.safe)}
         </select>
@@ -4064,12 +4116,12 @@ function setPayType(type){
   const rBtn = document.getElementById('pay-type-receipt');
   const pBtn = document.getElementById('pay-type-payment');
   if(rBtn){
-    rBtn.style.border    = isReceipt ? '2px solid var(--green)' : '2px solid var(--border)';
-    rBtn.style.background= isReceipt ? 'var(--green-bg)' : 'var(--surface2)';
+    rBtn.style.border    = isReceipt ? '2px solid var(--ok)' : '2px solid var(--b1)';
+    rBtn.style.background= isReceipt ? 'var(--ok-bg)' : 'var(--c2)';
   }
   if(pBtn){
-    pBtn.style.border    = !isReceipt ? '2px solid var(--red)' : '2px solid var(--border)';
-    pBtn.style.background= !isReceipt ? 'var(--red-bg)' : 'var(--surface2)';
+    pBtn.style.border    = !isReceipt ? '2px solid var(--no)' : '2px solid var(--b1)';
+    pBtn.style.background= !isReceipt ? 'var(--no-bg)' : 'var(--c2)';
   }
 
   // إظهار hint
@@ -4077,14 +4129,14 @@ function setPayType(type){
   if(hint){
     hint.style.display = 'block';
     if(isReceipt){
-      hint.style.background = 'var(--green-bg)';
-      hint.style.border     = '1px solid var(--green)';
-      hint.style.color      = 'var(--green)';
+      hint.style.background = 'var(--ok-bg)';
+      hint.style.border     = '1px solid var(--ok)';
+      hint.style.color      = 'var(--ok)';
       hint.textContent      = '📥 قبض: سيتم إضافة المبلغ إلى الصندوق (+)';
     } else {
-      hint.style.background = 'var(--red-bg)';
-      hint.style.border     = '1px solid var(--red)';
-      hint.style.color      = 'var(--red)';
+      hint.style.background = 'var(--no-bg)';
+      hint.style.border     = '1px solid var(--no)';
+      hint.style.color      = 'var(--no)';
       hint.textContent      = '📤 دفع: سيتم خصم المبلغ من الصندوق (−)';
     }
   }
@@ -4097,7 +4149,7 @@ function setPayType(type){
   const btn = document.getElementById('pay-submit-btn');
   if(btn){
     btn.textContent  = isReceipt ? '📥 تسجيل القبض' : '📤 تسجيل الدفع';
-    btn.style.background = isReceipt ? 'var(--green)' : 'var(--red)';
+    btn.style.background = isReceipt ? 'var(--ok)' : 'var(--no)';
   }
 
   // تحديث ملخص السداد
@@ -4144,17 +4196,17 @@ function loadClientBalance(){
   const theyOwe = bal.cashOwed>0.01; // هو مدين (عميل)
   if(theyOwe) html+=`<div style="display:flex;justify-content:space-between;padding:4px 0">
     <span style="font-size:12px">💵 نقد عليه لنا</span>
-    <span style="font-weight:900;color:var(--red)">${fmt(bal.cashOwed)} ريال</span>
+    <span style="font-weight:900;color:var(--no)">${fmt(bal.cashOwed)} ريال</span>
   </div>`;
   if(weOwe) html+=`<div style="display:flex;justify-content:space-between;padding:4px 0">
     <span style="font-size:12px">💵 نقد علينا له</span>
-    <span style="font-weight:900;color:var(--orange)">${fmt(Math.abs(bal.cashOwed))} ريال</span>
+    <span style="font-weight:900;color:var(--io)">${fmt(Math.abs(bal.cashOwed))} ريال</span>
   </div>`;
   if(Math.abs(bal.goldOwedAs24)>0.001){
     const goldWeOwe=bal.goldOwedAs24<0;
     html+=`<div style="display:flex;justify-content:space-between;padding:4px 0">
       <span style="font-size:12px">🏅 ذهب ${goldWeOwe?'علينا له':'عليه لنا'}</span>
-      <span style="font-weight:900;color:${goldWeOwe?'var(--orange)':'var(--red)'}">
+      <span style="font-weight:900;color:${goldWeOwe?'var(--io)':'var(--no)'}">
         ${fmtG(Math.abs(bal.goldOwedAs24))} ج ع24
       </span>
     </div>`;
@@ -4346,7 +4398,16 @@ function getClientBalance(cli){
     goldOwed[k] = sold - buy - scr - payG - ret;
   });
 
-  return {cashOwed, goldOwed, goldOwedAs24, ajTotal:sellAjTotal, totalNaqd:sellCashPaid+prepaid+clientPayCash+cashRcvd};
+  // ── للموظفين: العهدة (إيداع) + الراتب (صرف) ──
+  const custodyIn  = txs.filter(t=>t.type==='salary-custody')
+                        .reduce((a,t)=>a+(t.amount||0),0);
+  const salaryOut  = txs.filter(t=>t.type==='salary-pay')
+                        .reduce((a,t)=>a+(t.amount||0),0);
+
+  return {cashOwed, goldOwed, goldOwedAs24,
+    ajTotal:sellAjTotal,
+    totalNaqd:sellCashPaid+prepaid+clientPayCash+cashRcvd,
+    custodyIn, salaryOut};
 }
 
 
@@ -4363,22 +4424,22 @@ function calcPaySummary(){
     const as18   = Math.round(as24/(18/24)*1000)/1000;
     const as24r  = Math.round(as24*1000)/1000;
     cvBox.innerHTML = `
-      <div style="font-weight:700;color:var(--teal);margin-bottom:8px">⚖️ ${fmtG(goldW)} جرام عيار ${goldK} يعادل:</div>
+      <div style="font-weight:700;color:#28C8D8;margin-bottom:8px">⚖️ ${fmtG(goldW)} جرام عيار ${goldK} يعادل:</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
-        <div style="background:white;border-radius:8px;padding:7px;border:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--text2)">عيار 18</div>
-          <div style="font-size:15px;font-weight:900;color:var(--gold)">${fmtG(as18)}</div>
-          <div style="font-size:10px;color:var(--text2)">جرام</div>
+        <div style="background:white;border-radius:8px;padding:7px;border:1px solid var(--b1)">
+          <div style="font-size:10px;color:var(--tx2)">عيار 18</div>
+          <div style="font-size:15px;font-weight:900;color:var(--g1)">${fmtG(as18)}</div>
+          <div style="font-size:10px;color:var(--tx2)">جرام</div>
         </div>
-        <div style="background:white;border-radius:8px;padding:7px;border:2px solid var(--gold)">
-          <div style="font-size:10px;color:var(--text2)">عيار 21</div>
-          <div style="font-size:15px;font-weight:900;color:var(--gold)">${fmtG(as21)}</div>
-          <div style="font-size:10px;color:var(--text2)">جرام</div>
+        <div style="background:white;border-radius:8px;padding:7px;border:2px solid var(--g1)">
+          <div style="font-size:10px;color:var(--tx2)">عيار 21</div>
+          <div style="font-size:15px;font-weight:900;color:var(--g1)">${fmtG(as21)}</div>
+          <div style="font-size:10px;color:var(--tx2)">جرام</div>
         </div>
-        <div style="background:white;border-radius:8px;padding:7px;border:1px solid var(--teal)">
-          <div style="font-size:10px;color:var(--text2)">عيار 24</div>
-          <div style="font-size:15px;font-weight:900;color:var(--teal)">${fmtG(as24r)}</div>
-          <div style="font-size:10px;color:var(--text2)">جرام</div>
+        <div style="background:white;border-radius:8px;padding:7px;border:1px solid #28C8D8">
+          <div style="font-size:10px;color:var(--tx2)">عيار 24</div>
+          <div style="font-size:15px;font-weight:900;color:#28C8D8">${fmtG(as24r)}</div>
+          <div style="font-size:10px;color:var(--tx2)">جرام</div>
         </div>
       </div>`;
     cvBox.style.display = 'block';
@@ -4397,11 +4458,11 @@ function calcPaySummary(){
   if(hint){
     if(isSupp){
       hint.textContent = '← تُخصم من الصندوق (خرجت معك)';
-      hint.style.color = 'var(--red)';
+      hint.style.color = 'var(--no)';
       if(lbl) lbl.textContent = '🪙 فكة/كسر نقدي (ريال)';
     } else {
       hint.textContent = '← تُضاف إلى الصندوق (دخلت معه)';
-      hint.style.color = 'var(--green)';
+      hint.style.color = 'var(--ok)';
       if(lbl) lbl.textContent = '🪙 فكة/كسر نقدي (ريال)';
     }
   }
@@ -4415,11 +4476,11 @@ function calcPaySummary(){
     let html = '';
     // الإجمالي الكلي
     const total = ajour + disc + change;
-    if(total>0) html += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px"><span style="font-weight:700">📊 إجمالي التسوية</span><span style="font-weight:900;color:var(--gold)">${fmt(total)} ريال</span></div>`;
+    if(total>0) html += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--b1);margin-bottom:4px"><span style="font-weight:700">📊 إجمالي التسوية</span><span style="font-weight:900;color:var(--g1)">${fmt(total)} ريال</span></div>`;
     // تفاصيل
-    if(ajour>0)  html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>💵 نقد مدفوع (يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--green)">${fmt(ajour)} ريال</span></div>`;
-    if(change>0) html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🪙 فكة (${isSupp?'تُخصم':'تُضاف'} من الصندوق)</span><span style="font-weight:700;color:${isSupp?'var(--red)':'var(--green)'}"> ${isSupp?'-':'+'} ${fmt(change)} ريال</span></div>`;
-    if(disc>0)   html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🏷️ خصم تسوية (لا يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--orange)">${fmt(disc)} ريال</span></div>`;
+    if(ajour>0)  html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>💵 نقد مدفوع (يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--ok)">${fmt(ajour)} ريال</span></div>`;
+    if(change>0) html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🪙 فكة (${isSupp?'تُخصم':'تُضاف'} من الصندوق)</span><span style="font-weight:700;color:${isSupp?'var(--no)':'var(--ok)'}"> ${isSupp?'-':'+'} ${fmt(change)} ريال</span></div>`;
+    if(disc>0)   html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🏷️ خصم تسوية (لا يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--io)">${fmt(disc)} ريال</span></div>`;
     // أصناف الذهب
     if(payGoldItems.length>0){
       const totalGold24 = payGoldItems.reduce((a,i)=>a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000,0);
@@ -4428,15 +4489,15 @@ function calcPaySummary(){
           const as24=Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000;
           html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
             <span>🥇 ذهب عيار ${i.karat} → ${getSM()[i.safe]?.label||i.safe}</span>
-            <span style="font-weight:700;color:var(--gold)">${fmtG(i.weight)} ج (${fmtG(as24)} ع24)</span>
+            <span style="font-weight:700;color:var(--g1)">${fmtG(i.weight)} ج (${fmtG(as24)} ع24)</span>
           </div>`;
         }
       });
       if(payGoldItems.filter(i=>i.weight>0).length>1){
         const tot24=payGoldItems.reduce((a,i)=>a+(i.weight>0?Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000:0),0);
-        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-top:1px solid var(--border);margin-top:2px">
+        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-top:1px solid var(--b1);margin-top:2px">
           <span style="font-weight:700">📊 إجمالي الذهب</span>
-          <span style="font-weight:900;color:var(--gold)">${fmtG(Math.round(tot24*1000)/1000)} ج ع24</span>
+          <span style="font-weight:900;color:var(--g1)">${fmtG(Math.round(tot24*1000)/1000)} ج ع24</span>
         </div>`;
       }
     }
@@ -4455,8 +4516,8 @@ function doPayment(){
     // تلميح بصري
     const rBtn=document.getElementById('pay-type-receipt');
     const pBtn=document.getElementById('pay-type-payment');
-    if(rBtn){ rBtn.style.animation='none'; setTimeout(()=>rBtn.style.border='2px solid var(--orange)',0); }
-    if(pBtn){ pBtn.style.border='2px solid var(--orange)'; }
+    if(rBtn){ rBtn.style.animation='none'; setTimeout(()=>rBtn.style.border='2px solid var(--io)',0); }
+    if(pBtn){ pBtn.style.border='2px solid var(--io)'; }
     return;
   }
 
@@ -4523,7 +4584,7 @@ function doPayment(){
   // إعادة تعيين نوع العملية
   ['pay-type-receipt','pay-type-payment'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el){ el.style.border='2px solid var(--border)'; el.style.background='var(--surface2)'; }
+    if(el){ el.style.border='2px solid var(--b1)'; el.style.background='var(--c2)'; }
   });
   const hint=document.getElementById('pay-type-hint');
   if(hint) hint.style.display='none';
@@ -4661,7 +4722,7 @@ function renderInventory(){
   let html = `
     <div style="background:linear-gradient(135deg,#1C1208,#3A2810);border-radius:12px;padding:14px;margin-bottom:14px;color:white">
       <div style="font-size:11px;color:#B89A60;margin-bottom:4px">إجمالي الذهب الفعلي</div>
-      <div style="font-size:26px;font-weight:900;color:var(--gold-l)">${fmtG(totalGold24)} <span style="font-size:14px">جرام عيار 24</span></div>
+      <div style="font-size:26px;font-weight:900;color:var(--g2)">${fmtG(totalGold24)} <span style="font-size:14px">جرام عيار 24</span></div>
       <div style="font-size:11px;color:#B89A60;margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
         🗃️ كسر: <b style="color:#FFD700">${fmtG(totalScrap24)} ج ع٢٤</b>
         &nbsp;|&nbsp; 💍 مشغول: <b style="color:#81D4FA">${fmtG(totalWorked24)} ج ع٢٤</b>
@@ -4676,14 +4737,14 @@ function renderInventory(){
   rows.forEach(r=>{
     if(!r.val || r.val==='0' || r.val==='٠') return;
     html += `
-      <div style="background:white;border-radius:10px;padding:11px 14px;border:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="background:white;border-radius:10px;padding:11px 14px;border:1.5px solid var(--b1);display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:13px;font-weight:700">${r.label}</div>
-          ${r.sub?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${r.sub}</div>`:''}
+          ${r.sub?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">${r.sub}</div>`:''}
         </div>
         <div style="text-align:left">
           <span style="font-size:17px;font-weight:900;color:var(--${r.cls||'gold'})">${r.val}</span>
-          <span style="font-size:11px;color:var(--text2);margin-right:3px">${r.unit}</span>
+          <span style="font-size:11px;color:var(--tx2);margin-right:3px">${r.unit}</span>
         </div>
       </div>`;
   });
@@ -4697,13 +4758,13 @@ function renderInventory(){
     if(!snaps.length){ snapEl.innerHTML='<div class="empty"><p>لا توجد تسويات بعد</p></div>'; return; }
     snapEl.innerHTML = snaps.map(sn=>{
       const dt = fmtDate(sn.date);
-      return `<div style="background:white;border-radius:10px;padding:10px 13px;margin-bottom:8px;border:1px solid var(--border)">
+      return `<div style="background:white;border-radius:10px;padding:10px 13px;margin-bottom:8px;border:1px solid var(--b1)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
-            <span style="font-size:12px;font-weight:700;color:var(--gold)">${dt.ar}</span>
-            <span style="font-size:11px;color:var(--text2);margin-right:6px">${dt.time}</span>
+            <span style="font-size:12px;font-weight:700;color:var(--g1)">${dt.ar}</span>
+            <span style="font-size:11px;color:var(--tx2);margin-right:6px">${dt.time}</span>
           </div>
-          <button onclick="event.stopPropagation();deleteSnapshot(${sn.id})" style="background:var(--red);color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:Tajawal,sans-serif">🗑️ حذف</button>
+          <button onclick="event.stopPropagation();deleteSnapshot(${sn.id})" style="background:var(--no);color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:Tajawal,sans-serif">🗑️ حذف</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
           <div>💵 نقد: <b>${fmt(sn.cash||0)} ر</b></div>
@@ -4712,11 +4773,11 @@ function renderInventory(){
           <div>✨ صافي 24: <b>${fmtG(sn.pure24||0)} ج</b></div>
           <div>💍 مشغول 21: <b>${fmtG(sn.worked21||0)} ج</b></div>
           <div>💍 مشغول 18: <b>${fmtG(sn.worked18||0)} ج</b></div>
-          <div style="grid-column:1/-1;margin-top:3px;color:var(--teal);font-weight:700">
+          <div style="grid-column:1/-1;margin-top:3px;color:#28C8D8;font-weight:700">
             إجمالي ذهب: ${fmtG(sn.totalGold24||0)} جرام عيار 24
           </div>
         </div>
-        ${sn.notes?`<div style="font-size:10px;color:var(--text2);margin-top:4px">📝 ${sn.notes}</div>`:''}
+        ${sn.notes?`<div style="font-size:10px;color:var(--tx2);margin-top:4px">📝 ${sn.notes}</div>`:''}
       </div>`;
     }).join('');
   }
@@ -4801,11 +4862,11 @@ function renderDebts(){
     function balCard(b,i){
     const isSupp = b.type==='مورد'||b.type==='موزع';
     const goldClr = isSupp
-      ? (b.goldAs24<0?'var(--red)':b.goldAs24>0?'var(--green)':'var(--text2)')
-      : (b.goldAs24>0?'var(--red)':b.goldAs24<0?'var(--green)':'var(--text2)');
+      ? (b.goldAs24<0?'var(--no)':b.goldAs24>0?'var(--ok)':'var(--tx2)')
+      : (b.goldAs24>0?'var(--no)':b.goldAs24<0?'var(--ok)':'var(--tx2)');
     const cashClr = isSupp
-      ? (b.cashOwed<0?'var(--red)':b.cashOwed>0?'var(--green)':'var(--text2)')
-      : (b.cashOwed>0?'var(--red)':b.cashOwed<0?'var(--green)':'var(--text2)');
+      ? (b.cashOwed<0?'var(--no)':b.cashOwed>0?'var(--ok)':'var(--tx2)')
+      : (b.cashOwed>0?'var(--no)':b.cashOwed<0?'var(--ok)':'var(--tx2)');
     const goldLbl = isSupp
       ? (b.goldAs24<0?'نحن مدينون بذهب':'ذهب مستحق لنا منه')
       : (b.goldAs24>0?'ذهب عليه':'ذهب له');
@@ -4822,11 +4883,11 @@ function renderDebts(){
     const cashSign = isSupp
       ? (b.cashOwed<0 ? 'له' : 'له عندنا')
       : (b.cashOwed>0 ? 'عليه' : 'له');
-    return `<div style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:8px;border:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center"
+    return `<div style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:8px;border:1.5px solid var(--b1);display:flex;justify-content:space-between;align-items:center"
          onclick="selStmt('${b.name.replace(/'/g,"\'")}','${b.name.replace(/'/g,"\'")}');P('stmt',document.querySelector('.tab:nth-child(6)'))">
       <div>
-        <div style="font-weight:700;font-size:13px">${overdueClients.has(b.name)?'<span style="color:var(--red)">⚠️</span> ':''}${i+1}. ${b.name}</div>
-        <div style="font-size:10px;color:var(--text2)">${b.type}</div>
+        <div style="font-weight:700;font-size:13px">${overdueClients.has(b.name)?'<span style="color:var(--no)">⚠️</span> ':''}${i+1}. ${b.name}</div>
+        <div style="font-size:10px;color:var(--tx2)">${b.type}</div>
       </div>
       <div style="text-align:left">
         ${Math.abs(b.goldAs24)>0.001?`<div style="font-size:13px;font-weight:900;color:${goldClr}">${fmtG(Math.abs(b.goldAs24))} ج ع24</div><div style="font-size:9px;color:${goldClr};margin-top:1px">${goldLbl}</div>`:''}
@@ -4928,7 +4989,7 @@ function renderPermTable(){
     ['📋 سجل النشاط',           true,  true,  false],
   ];
   el.innerHTML = rows.map(([label,a,b,u])=>`
-    <tr style="border-bottom:1px solid var(--bdr)">
+    <tr style="border-bottom:1px solid var(--b1)">
       <td style="padding:9px 12px;font-weight:600">${label}</td>
       <td style="text-align:center;padding:9px">${a?'<span style="color:var(--g);font-size:16px">✓</span>':'<span style="color:var(--r);font-size:14px">✕</span>'}</td>
       <td style="text-align:center;padding:9px">${b?'<span style="color:var(--g);font-size:16px">✓</span>':'<span style="color:var(--r);font-size:14px">✕</span>'}</td>
@@ -4946,11 +5007,11 @@ function renderUsers(){
     const roleLabel = u.role==='admin' ? '🔑 مدير' :
                    u.role==='accountant' ? '📊 محاسب' : '👤 موظف';
     const roleColor = u.role==='admin' ? 'var(--au1)' :
-                      u.role==='accountant' ? 'var(--g)' : 'var(--t2)';
-    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface2);border-radius:12px;margin-bottom:8px;border:1px solid var(--border)">
+                      u.role==='accountant' ? 'var(--g)' : 'var(--tx2)';
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--c2);border-radius:12px;margin-bottom:8px;border:1px solid var(--b1)">
       <div>
-        <div style="font-weight:700;font-size:14px">${u.label||u.username} ${isMe?'<span style="font-size:11px;color:var(--teal)">(أنت)</span>':''}</div>
-        <div style="font-size:11px;color:var(--text2)">@${u.username} · ${roleLabel}</div>
+        <div style="font-weight:700;font-size:14px">${u.label||u.username} ${isMe?'<span style="font-size:11px;color:#28C8D8">(أنت)</span>':''}</div>
+        <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${roleLabel}</div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="ib" onclick="openUserModal(${i})">✏️</button>
@@ -5144,16 +5205,16 @@ function renderProfit(){
     const boughtVal = buyTxs.reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+i.weight*i.price,a),0);
     const profit = soldVal - boughtVal;
     if(soldW===0&&boughtW===0) return '';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b1)">
       <div>
         <span style="font-weight:700">عيار ${k}</span>
-        <span style="font-size:11px;color:var(--text2);margin-right:8px">بيع: ${fmtG(soldW)}ج | شراء: ${fmtG(boughtW)}ج</span>
+        <span style="font-size:11px;color:var(--tx2);margin-right:8px">بيع: ${fmtG(soldW)}ج | شراء: ${fmtG(boughtW)}ج</span>
       </div>
-      <span style="font-weight:900;color:${profit>=0?'var(--green)':'var(--red)'}">${fmt(profit)} ر</span>
+      <span style="font-weight:900;color:${profit>=0?'var(--ok)':'var(--no)'}">${fmt(profit)} ر</span>
     </div>`;
   }).join('');
 
-  const profitClr = totalProfit>=0 ? 'var(--green)' : 'var(--red)';
+  const profitClr = totalProfit>=0 ? 'var(--ok)' : 'var(--no)';
 
   el.innerHTML = `
     <!-- بطاقة الربح الإجمالي -->
@@ -5172,28 +5233,28 @@ function renderProfit(){
       <div class="sb teal"><div class="v" style="font-size:16px">${buyCount}</div><div class="l">فواتير شراء</div></div>
     </div>
     <!-- ربح الأجور -->
-    <div style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+    <div style="background:var(--ok-bg);border:1.5px solid var(--ok);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--green)">⚒️ ربح الأجور</div>
-        <div style="font-size:11px;color:var(--text2)">أجور البيع − أجور الشراء</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ok)">⚒️ ربح الأجور</div>
+        <div style="font-size:11px;color:var(--tx2)">أجور البيع − أجور الشراء</div>
       </div>
-      <div style="font-size:20px;font-weight:900;color:${ajProfit>=0?'var(--green)':'var(--red)'}">${fmt(ajProfit)} ر</div>
+      <div style="font-size:20px;font-weight:900;color:${ajProfit>=0?'var(--ok)':'var(--no)'}">${fmt(ajProfit)} ر</div>
     </div>
     <!-- ربح الذهب -->
-    <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+    <div style="background:var(--g4);border:1.5px solid var(--g1);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--gold)">🏅 ربح الذهب</div>
-        <div style="font-size:11px;color:var(--text2)">فرق سعر البيع والشراء</div>
+        <div style="font-size:13px;font-weight:700;color:var(--g1)">🏅 ربح الذهب</div>
+        <div style="font-size:11px;color:var(--tx2)">فرق سعر البيع والشراء</div>
       </div>
-      <div style="font-size:20px;font-weight:900;color:${goldProfit>=0?'var(--green)':'var(--red)'}">${fmt(goldProfit)} ر</div>
+      <div style="font-size:20px;font-weight:900;color:${goldProfit>=0?'var(--ok)':'var(--no)'}">${fmt(goldProfit)} ر</div>
     </div>
-    ${totalDiscount>0?`<div style="background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:var(--orange)">🏷️ إجمالي الخصومات</div>
-      <div style="font-size:18px;font-weight:900;color:var(--orange)">− ${fmt(totalDiscount)} ر</div>
+    ${totalDiscount>0?`<div style="background:var(--io-bg);border:1.5px solid var(--io);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;font-weight:700;color:var(--io)">🏷️ إجمالي الخصومات</div>
+      <div style="font-size:18px;font-weight:900;color:var(--io)">− ${fmt(totalDiscount)} ر</div>
     </div>`:''}
     <!-- تفصيل بالعيار -->
-    ${karatRows?`<div style="background:white;border-radius:12px;padding:12px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📊 الربح حسب العيار</div>
+    ${karatRows?`<div style="background:white;border-radius:12px;padding:12px;border:1px solid var(--b1)">
+      <div style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:8px">📊 الربح حسب العيار</div>
       ${karatRows}
     </div>`:''}
   `;
@@ -5204,7 +5265,7 @@ let currentSalType = null;
 
 function setSalType(type){
   currentSalType = type;
-  const colors = {salary:'var(--green)',custody:'var(--blue)',deduction:'var(--orange)'};
+  const colors = {salary:'var(--ok)',custody:'var(--in)',deduction:'var(--io)'};
   const hints  = {
     salary:    '💵 راتب: سيُخصم من الصندوق المحدد',
     custody:   '🤝 عهدة: الموظف أودع مبلغاً في الصندوق',
@@ -5214,8 +5275,8 @@ function setSalType(type){
   ['salary','custody','deduction'].forEach(t=>{
     const btn = document.getElementById('sal-type-'+t);
     if(btn){
-      btn.style.border = t===type ? `2px solid ${colors[t]}` : '2px solid var(--border)';
-      btn.style.background = t===type ? 'var(--surface2)' : 'var(--surface2)';
+      btn.style.border = t===type ? `2px solid ${colors[t]}` : '2px solid var(--b1)';
+      btn.style.background = t===type ? 'var(--c2)' : 'var(--c2)';
       btn.style.opacity = t===type ? '1' : '0.6';
     }
   });
@@ -5247,12 +5308,14 @@ function setSalType(type){
   }
 }
 
-function openSalaryModal(){
+function openSalaryModal(preType){
   currentSalType = null;
   ['salary','custody','deduction'].forEach(t=>{
     const btn=document.getElementById('sal-type-'+t);
-    if(btn){btn.style.border='2px solid var(--border)';btn.style.opacity='1';}
+    if(btn){btn.style.border='2px solid var(--b1)';btn.style.opacity='1';}
   });
+  // تفعيل نوع افتراضي إذا تم التحديد
+  if(preType) setTimeout(()=>setSalType(preType),50);
   const hint=document.getElementById('sal-type-hint');if(hint)hint.style.display='none';
   ['sal-amount','sal-note','sal-emp-s','sal-emp-v','sal-date'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
@@ -5362,8 +5425,8 @@ function openPendingStatus(id){
   if(infoEl){
     infoEl.innerHTML = `
       <div style="font-weight:700;margin-bottom:4px">📌 ${item.desc}</div>
-      <div style="font-size:12px;color:var(--text2)">${item.client} · ع${item.karat} · ${fmtG(item.weight)}ج</div>
-      ${item.price>0?`<div style="font-size:12px;color:var(--gold)">السعر التقديري: ${fmt(item.price)} ريال</div>`:''}
+      <div style="font-size:12px;color:var(--tx2)">${item.client} · ع${item.karat} · ${fmtG(item.weight)}ج</div>
+      ${item.price>0?`<div style="font-size:12px;color:var(--g1)">السعر التقديري: ${fmt(item.price)} ريال</div>`:''}
     `;
   }
   openM('m-pending-status');
@@ -5393,9 +5456,9 @@ function filterPending(f){
     const btn = document.getElementById('pf-'+k);
     if(!btn) return;
     const isActive = k===f;
-    btn.style.background = isActive ? 'var(--gold)' : 'white';
-    btn.style.color      = isActive ? 'white' : 'var(--text2)';
-    btn.style.borderColor= isActive ? 'var(--gold)' : 'var(--border)';
+    btn.style.background = isActive ? 'var(--g1)' : 'white';
+    btn.style.color      = isActive ? 'white' : 'var(--tx2)';
+    btn.style.borderColor= isActive ? 'var(--g1)' : 'var(--b1)';
   });
   renderPending();
 }
@@ -5411,12 +5474,12 @@ function renderPending(){
   items.forEach(i=>{ counts[i.status]=(counts[i.status]||0)+1; });
   if(sumEl){
     sumEl.innerHTML = [
-      {k:'pending',l:'📌 معلّقة',   clr:'var(--orange)',bg:'var(--orange-bg)',bd:'var(--orange-border)'},
-      {k:'sold',   l:'✅ تم البيع', clr:'var(--green)', bg:'var(--green-bg)', bd:'var(--green-border)'},
-      {k:'returned',l:'↩️ مُرجعة',  clr:'var(--blue)',  bg:'var(--blue-bg)',  bd:'var(--blue-border)'},
+      {k:'pending',l:'📌 معلّقة',   clr:'var(--io)',bg:'var(--io-bg)',bd:'var(--io-bd)'},
+      {k:'sold',   l:'✅ تم البيع', clr:'var(--ok)', bg:'var(--ok-bg)', bd:'var(--ok-bd)'},
+      {k:'returned',l:'↩️ مُرجعة',  clr:'var(--in)',  bg:'var(--in-bg)',  bd:'var(--in-bd)'},
     ].map(s=>`<div style="background:${s.bg};border:1px solid ${s.bd};border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="filterPending('${s.k}')">
       <div style="font-size:20px;font-weight:900;color:${s.clr}">${counts[s.k]||0}</div>
-      <div style="font-size:10px;color:var(--text2);font-weight:600">${s.l}</div>
+      <div style="font-size:10px;color:var(--tx2);font-weight:600">${s.l}</div>
     </div>`).join('');
   }
 
@@ -5435,9 +5498,9 @@ function renderPending(){
   }
 
   const statusStyles = {
-    pending:  {bg:'var(--orange-bg)',bd:'var(--orange)',lbl:'📌 معلّقة',   clr:'var(--orange)'},
-    sold:     {bg:'var(--green-bg)', bd:'var(--green)', lbl:'✅ تم البيع',  clr:'var(--green)'},
-    returned: {bg:'var(--blue-bg)', bd:'var(--blue)',  lbl:'↩️ تم الإرجاع',clr:'var(--blue)'},
+    pending:  {bg:'var(--io-bg)',bd:'var(--io)',lbl:'📌 معلّقة',   clr:'var(--io)'},
+    sold:     {bg:'var(--ok-bg)', bd:'var(--ok)', lbl:'✅ تم البيع',  clr:'var(--ok)'},
+    returned: {bg:'var(--in-bg)', bd:'var(--in)',  lbl:'↩️ تم الإرجاع',clr:'var(--in)'},
   };
 
   el.innerHTML = filtered.map(item=>{
@@ -5445,10 +5508,10 @@ function renderPending(){
     const st  = statusStyles[item.status]||statusStyles.pending;
     const as24= item.karat!=='mixed'? Math.round(item.weight*parseFloat(item.karat)/24*1000)/1000 : 0;
     const daysAgo = Math.floor((Date.now()-new Date(item.date))/(86400000));
-    const daysClr = daysAgo>14&&item.status==='pending'?'var(--red)':'var(--text3)';
+    const daysClr = daysAgo>14&&item.status==='pending'?'var(--no)':'var(--tx3)';
 
-    return `<div style="background:white;border-radius:var(--r-sm);border:1px solid var(--border);
-        border-right:3px solid ${st.bd};margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)"
+    return `<div style="background:white;border-radius:var(--rb);border:1px solid var(--b1);
+        border-right:3px solid ${st.bd};margin-bottom:10px;overflow:hidden;box-shadow:var(--s1)"
         onclick="openPendingStatus(${item.id})">
       <!-- حالة + معلومات -->
       <div style="padding:12px">
@@ -5457,53 +5520,67 @@ function renderPending(){
             <span style="background:${st.bg};color:${st.clr};border:1px solid ${st.bd};
               border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">${st.lbl}</span>
             <div style="font-size:15px;font-weight:700;margin-top:5px">${item.desc}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px">👤 ${item.client}</div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:2px">👤 ${item.client}</div>
           </div>
           <div style="text-align:left">
             <button onclick="event.stopPropagation();openPendingModal(${item.id})"
-              style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;
-              padding:4px 10px;font-family:inherit;font-size:11px;cursor:pointer;color:var(--text2)">
+              style="background:var(--c2);border:1px solid var(--b1);border-radius:6px;
+              padding:4px 10px;font-family:inherit;font-size:11px;cursor:pointer;color:var(--tx2)">
               ✏️ تعديل
             </button>
           </div>
         </div>
         <!-- تفاصيل القطعة -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-          <div style="background:var(--gold-pale);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">العيار</div>
-            <div style="font-size:14px;font-weight:900;color:var(--gold)">
+          <div style="background:var(--g4);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">العيار</div>
+            <div style="font-size:14px;font-weight:900;color:var(--g1)">
               ${item.karat==='mixed'?'مختلط':item.karat}</div>
           </div>
-          <div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">الوزن</div>
+          <div style="background:var(--c2);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">الوزن</div>
             <div style="font-size:14px;font-weight:900">${fmtG(item.weight)} ج</div>
           </div>
-          ${as24>0?`<div style="background:var(--blue-bg);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">عيار 24</div>
-            <div style="font-size:14px;font-weight:900;color:var(--blue)">${fmtG(as24)} ج</div>
-          </div>`:`<div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">السعر</div>
-            <div style="font-size:13px;font-weight:700;color:var(--green)">${item.price>0?fmt(item.price)+' ر':'—'}</div>
+          ${as24>0?`<div style="background:var(--in-bg);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">عيار 24</div>
+            <div style="font-size:14px;font-weight:900;color:var(--in)">${fmtG(as24)} ج</div>
+          </div>`:`<div style="background:var(--c2);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">السعر</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ok)">${item.price>0?fmt(item.price)+' ر':'—'}</div>
           </div>`}
         </div>
         <!-- تاريخ وملاحظة -->
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:11px;color:var(--text3)">📅 ${dt.ar}</div>
+          <div style="font-size:11px;color:var(--tx3)">📅 ${dt.ar}</div>
           <div style="font-size:11px;color:${daysClr};font-weight:600">
             ${item.status==='pending'?`${daysAgo===0?'اليوم':daysAgo===1?'أمس':daysAgo+' يوم'}`:''}
           </div>
         </div>
-        ${item.notes?`<div style="font-size:11px;color:var(--text3);margin-top:4px;border-top:1px solid var(--border);padding-top:4px">📝 ${item.notes}</div>`:''}
+        ${item.notes?`<div style="font-size:11px;color:var(--tx3);margin-top:4px;border-top:1px solid var(--b1);padding-top:4px">📝 ${item.notes}</div>`:''}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderSalary(){
+
+function filterSalary(type){
+  const txs = (S.transactions||[]).filter(t=>t.type&&t.type.startsWith('salary-'));
+  const filtered = type==='all' ? txs
+    : type==='custody' ? txs.filter(t=>t.salaryType==='custody')
+    : txs.filter(t=>t.salaryType==='salary'||t.salaryType==='deduction');
+  // تحديث سجل الرواتب بنفس renderSalary لكن مع الفلتر
+  renderSalary(filtered);
+  // تمييز الزر النشط
+  ['all','custody','salary'].forEach(k=>{
+    const btn=document.getElementById('sal-f-'+k);
+    if(btn) btn.style.fontWeight = k===type?'900':'600';
+  });
+}
+function renderSalary(filteredTxs){
   const el = document.getElementById('salary-body');
   if(!el) return;
 
-  const txs = S.transactions.filter(t=>t.type&&t.type.startsWith('salary-'));
+  const txs = filteredTxs || S.transactions.filter(t=>t.type&&t.type.startsWith('salary-'));
 
   // كشف لكل موظف
   const empMap = {};
@@ -5523,45 +5600,55 @@ function renderSalary(){
 
   el.innerHTML = Object.entries(empMap).map(([emp,data])=>{
     const net = data.custody - data.salaries - data.deductions;
-    const netClr = net>0?'var(--green)':net<0?'var(--red)':'var(--text2)';
+    const netClr = net>0?'var(--ok)':net<0?'var(--no)':'var(--tx2)';
     const txRows = data.txs.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=>{
       const dt=fmtDate(t.date);
       const typeLabels={'salary-pay':'💵 راتب','salary-custody':'🤝 عهدة','salary-deduction':'✂️ خصم'};
-      const typeClrs={'salary-pay':'var(--red)','salary-custody':'var(--green)','salary-deduction':'var(--orange)'};
+      const typeClrs={'salary-pay':'var(--no)','salary-custody':'var(--ok)','salary-deduction':'var(--io)'};
       const isIn = t.salaryType==='custody';
-      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border)">
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--b1)">
         <div>
-          <span class="badge" style="background:${typeClrs[t.type]||'var(--gold)'};color:white;font-size:9px">${typeLabels[t.type]||t.type}</span>
-          <div style="font-size:10px;color:var(--text2);margin-top:2px">${dt.ar}</div>
-          ${t.notes?`<div style="font-size:10px;color:var(--text2)">📝 ${t.notes}</div>`:''}
+          <span class="badge" style="background:${typeClrs[t.type]||'var(--g1)'};color:white;font-size:9px">${typeLabels[t.type]||t.type}</span>
+          <div style="font-size:10px;color:var(--tx2);margin-top:2px">${dt.ar}</div>
+          ${t.notes?`<div style="font-size:10px;color:var(--tx2)">📝 ${t.notes}</div>`:''}
         </div>
-        <span style="font-weight:700;color:${isIn?'var(--green)':'var(--red)'}">${isIn?'+':'-'}${fmt(t.amount||0)} ر</span>
+        <span style="font-weight:700;color:${isIn?'var(--ok)':'var(--no)'}">${isIn?'+':'-'}${fmt(t.amount||0)} ر</span>
       </div>`;
     }).join('');
 
-    return `<div style="background:var(--surface);border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:14px;font-weight:700">👤 ${emp}</span>
-        <span style="font-size:12px;font-weight:900;color:${netClr}">
+    return `<div style="background:var(--c1);border-radius:12px;padding:14px;margin-bottom:12px;
+      border:1px solid var(--b2);box-shadow:var(--s1)">
+      <!-- رأس الموظف -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:800;color:var(--tx1)">👤 ${emp}</span>
+        <span style="font-size:13px;font-weight:900;padding:4px 12px;border-radius:20px;
+          background:${net>0?'#D1FAE5':net<0?'#FEE2E2':'var(--c2)'};
+          color:${net>0?'#065F46':net<0?'#991B1B':'var(--tx2)'}">
           ${net>0?'له':net<0?'عليه':'مسوى'}: ${fmt(Math.abs(net))} ر
         </span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-        <div style="background:var(--red-bg);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:10px;color:var(--text2)">💵 رواتب مصروفة</div>
-          <div style="font-weight:900;color:var(--red)">${fmt(data.salaries)} ر</div>
+      <!-- 3 بطاقات واضحة الألوان -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:#FEE2E2;border-radius:10px;padding:10px;text-align:center;border:1px solid #FCA5A5">
+          <div style="font-size:10px;font-weight:700;color:#991B1B;margin-bottom:4px">💸 صرف للموظف</div>
+          <div style="font-size:18px;font-weight:900;color:#DC2626">${fmt(data.salaries)}</div>
+          <div style="font-size:10px;color:#991B1B">ريال</div>
         </div>
-        <div style="background:var(--green-bg);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:10px;color:var(--text2)">🤝 عهد مودعة</div>
-          <div style="font-weight:900;color:var(--green)">${fmt(data.custody)} ر</div>
+        <div style="background:#D1FAE5;border-radius:10px;padding:10px;text-align:center;border:1px solid #6EE7B7">
+          <div style="font-size:10px;font-weight:700;color:#065F46;margin-bottom:4px">🤝 إيداع عهدة</div>
+          <div style="font-size:18px;font-weight:900;color:#059669">${fmt(data.custody)}</div>
+          <div style="font-size:10px;color:#065F46">ريال</div>
         </div>
-        <div style="background:var(--orange-bg);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:10px;color:var(--text2)">✂️ خصومات</div>
-          <div style="font-weight:900;color:var(--orange)">${fmt(data.deductions)} ر</div>
+        <div style="background:#FEF3C7;border-radius:10px;padding:10px;text-align:center;border:1px solid #FCD34D">
+          <div style="font-size:10px;font-weight:700;color:#92400E;margin-bottom:4px">✂️ خصومات</div>
+          <div style="font-size:18px;font-weight:900;color:#D97706">${fmt(data.deductions)}</div>
+          <div style="font-size:10px;color:#92400E">ريال</div>
         </div>
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">سجل الحركات</div>
-      ${txRows||'<div style="color:var(--text2);font-size:11px">لا توجد حركات</div>'}
+      <!-- سجل الحركات -->
+      <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:6px;
+        text-transform:uppercase;letter-spacing:.4px">سجل الحركات</div>
+      ${txRows||'<div style="color:var(--tx3);font-size:11px;padding:8px">لا توجد حركات</div>'}
     </div>`;
   }).join('');
 }
@@ -5600,28 +5687,28 @@ function renderAnalytics(){
   }));
   const karatRows = Object.entries(karatSales).filter(([,v])=>v.wt>0)
     .sort((a,b)=>b[1].wt-a[1].wt)
-    .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+    .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1)">
         <span>عيار ${k}</span>
         <span>${fmtG(v.wt)} ج — <b>${fmt(v.val)} ر</b></span>
-      </div>`).join('') || '<div style="color:var(--text2);font-size:12px">لا توجد مبيعات</div>';
+      </div>`).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد مبيعات</div>';
 
   // ── 3. أفضل العملاء ──
   const cliMap = {};
   sells.forEach(t=>{ if(t.client){ cliMap[t.client]=(cliMap[t.client]||{n:0,v:0}); cliMap[t.client].n++; cliMap[t.client].v+=t.total||0; }});
   const topCli = Object.entries(cliMap).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
-  const cliRows = topCli.map(([n,v],i)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+  const cliRows = topCli.map(([n,v],i)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b1)">
       <span>${['🥇','🥈','🥉','4️⃣','5️⃣'][i]} ${n}</span>
       <span>${v.n} فاتورة — <b>${fmt(v.v)} ر</b></span>
-    </div>`).join('') || '<div style="color:var(--text2);font-size:12px">لا توجد بيانات</div>';
+    </div>`).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد بيانات</div>';
 
   // ── 4. الموردين ──
   const suppMap = {};
   buys.forEach(t=>{ if(t.client){ suppMap[t.client]=(suppMap[t.client]||{n:0,v:0}); suppMap[t.client].n++; suppMap[t.client].v+=t.total||0; }});
   const topSupp = Object.entries(suppMap).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
-  const suppRows = topSupp.map(([n,v],i)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+  const suppRows = topSupp.map(([n,v],i)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b1)">
       <span>${['🥇','🥈','🥉','4️⃣','5️⃣'][i]} ${n}</span>
       <span>${v.n} فاتورة — <b>${fmt(v.v)} ر</b></span>
-    </div>`).join('') || '<div style="color:var(--text2);font-size:12px">لا توجد بيانات</div>';
+    </div>`).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد بيانات</div>';
 
   // ── 5. توزيع المبيعات على أيام الأسبوع ──
   const dayNames = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -5632,10 +5719,10 @@ function renderAnalytics(){
     const pct = Math.round(dayMap[i]/maxDay*100);
     return `<div style="margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
-        <span>${d}</span><span style="color:var(--gold)">${fmt(dayMap[i])} ر</span>
+        <span>${d}</span><span style="color:var(--g1)">${fmt(dayMap[i])} ر</span>
       </div>
-      <div style="background:var(--surface2);border-radius:4px;height:6px">
-        <div style="background:var(--gold);width:${pct}%;height:100%;border-radius:4px"></div>
+      <div style="background:var(--c2);border-radius:4px;height:6px">
+        <div style="background:var(--g1);width:${pct}%;height:100%;border-radius:4px"></div>
       </div>
     </div>`;
   }).join('');
@@ -5720,28 +5807,28 @@ function renderAnalytics(){
     </div>
 
     <!-- العيارات -->
-    <div style="background:var(--surface);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border)">
+    <div style="background:var(--c1);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--b1)">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">🏅 العيارات الأكثر مبيعاً</div>
       ${karatRows}
     </div>
 
     <!-- توزيع الأيام -->
-    <div style="background:var(--surface);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border)">
+    <div style="background:var(--c1);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--b1)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-weight:700;font-size:13px">📅 توزيع المبيعات على أيام الأسبوع</span>
-        ${peakCount>0?`<span style="font-size:11px;color:var(--gold)">ذروة: ${dayNames[peakHour<7?peakHour:0]}</span>`:''}
+        ${peakCount>0?`<span style="font-size:11px;color:var(--g1)">ذروة: ${dayNames[peakHour<7?peakHour:0]}</span>`:''}
       </div>
       ${dayRows}
     </div>
 
     <!-- أفضل العملاء -->
-    <div style="background:var(--surface);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border)">
+    <div style="background:var(--c1);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--b1)">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">🏆 أفضل العملاء</div>
       ${cliRows}
     </div>
 
     <!-- أفضل الموردين -->
-    <div style="background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--border)">
+    <div style="background:var(--c1);border-radius:12px;padding:12px;border:1px solid var(--b1)">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">🏭 أكثر الموردين توريداً</div>
       ${suppRows}
     </div>
@@ -5758,9 +5845,14 @@ function doLogin(){
   const found = users.find(x => x.username === u && x.password === p);
   if(found){
     document.getElementById('login-screen').style.display = 'none';
+    const _aw=document.getElementById('app-wrap');
+    if(_aw) _aw.style.display='block';
     sessionStorage.setItem('auth','1');
     sessionStorage.setItem('auth-user', found.username);
     sessionStorage.setItem('auth-role', found.role||'user');
+    localStorage.setItem('auth','1');
+    localStorage.setItem('auth-user', found.username);
+    localStorage.setItem('auth-role', found.role||'user');
     // سجل الدخول بعد تحميل البيانات
     setTimeout(()=>logActivity('login',`تسجيل دخول من دور: ${found.role||'user'}`),2000);
   } else {
@@ -5768,6 +5860,22 @@ function doLogin(){
     document.getElementById('li-pass').value = '';
     document.getElementById('li-pass').focus();
   }
+}
+
+function logout(){
+  // مسح الجلسة
+  sessionStorage.clear();
+  localStorage.removeItem('auth');
+  localStorage.removeItem('auth-user');
+  localStorage.removeItem('auth-role');
+  // إظهار شاشة الدخول
+  const ls = document.getElementById('login-screen');
+  if(ls){ ls.style.display='flex'; }
+  const _aw2=document.getElementById('app-wrap'); if(_aw2) _aw2.style.display='none';
+  // مسح الحقول
+  const u=document.getElementById('li-user'); if(u) u.value='';
+  const p=document.getElementById('li-pass'); if(p) p.value='';
+  const e=document.getElementById('li-err');  if(e) e.style.display='none';
 }
 
 
@@ -5872,27 +5980,27 @@ function renderActivityLog(filterUser='', filterDate=''){
     login:'🔑 دخول', approve:'✅ اعتماد',
   };
   const roleColors = {
-    admin:'var(--au1)', accountant:'var(--g)', user:'var(--t2)',
+    admin:'var(--au1)', accountant:'var(--g)', user:'var(--tx2)',
   };
   el.innerHTML = logs.map(l=>{
     const dt  = new Date(l.ts);
     const dStr= dt.toLocaleDateString('ar-SA');
     const tStr= dt.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
     const roleInfo = ROLES[l.role] || {label:l.role};
-    return `<div style="padding:10px 14px;border-bottom:1px solid var(--bdr);display:flex;gap:10px;align-items:flex-start">
+    return `<div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;gap:10px;align-items:flex-start">
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-          <span style="font-size:11px;font-weight:700;color:${roleColors[l.role]||'var(--t2)'}">
+          <span style="font-size:11px;font-weight:700;color:${roleColors[l.role]||'var(--tx2)'}">
             ${roleInfo.label}
           </span>
-          <span style="font-size:12px;font-weight:700;color:var(--t1)">${l.user}</span>
-          <span style="font-size:11px;color:var(--t2)">${actionLabels[l.action]||l.action}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx1)">${l.user}</span>
+          <span style="font-size:11px;color:var(--tx2)">${actionLabels[l.action]||l.action}</span>
         </div>
-        <div style="font-size:12px;color:var(--t2)">${l.details}</div>
+        <div style="font-size:12px;color:var(--tx2)">${l.details}</div>
       </div>
       <div style="text-align:left;flex-shrink:0">
-        <div style="font-size:10px;color:var(--t3)">${dStr}</div>
-        <div style="font-size:10px;color:var(--t3)">${tStr}</div>
+        <div style="font-size:10px;color:var(--tx3)">${dStr}</div>
+        <div style="font-size:10px;color:var(--tx3)">${tStr}</div>
       </div>
     </div>`;
   }).join('');
@@ -6474,14 +6582,22 @@ function saveReturn(){
   if(!safeSave(tx)){ return; }
   renderAll(); releaseSave();
 
-  // تنظيف
-  returnItems=[]; returnCounter=0;
+  // تنظيف كامل
+  returnItems=[]; returnCounter=0; currentReturnType=null;
   renderReturnItems();
   ['ret-cli-s','ret-cli-v','ret-cash','ret-notes','ret-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  document.getElementById('return-summary').style.display='none';
-  toast(`✅ تم حفظ ${TLBL[currentReturnType]}`);
+  const vatCbR=document.getElementById('ret-vat'); if(vatCbR) vatCbR.checked=false;
+  const vatRowR=document.getElementById('ret-vat-row'); if(vatRowR) vatRowR.style.display='none';
+  const hintR=document.getElementById('return-type-hint'); if(hintR) hintR.style.display='none';
+  const submR=document.getElementById('ret-submit'); if(submR) submR.style.display='none';
+  const invListR=document.getElementById('ret-cli-invoices'); if(invListR) invListR.style.display='none';
+  const sumR=document.getElementById('return-summary'); if(sumR) sumR.style.display='none';
+  ['sales','purchase'].forEach(k=>{
+    const btn=document.getElementById('ret-type-'+k); if(btn) btn.style.opacity='1';
+  });
+  toast(`✅ تم حفظ ${TLBL[currentReturnType]||'المرتجع'}`);
 }
 
 function renderReturns(){
@@ -6711,8 +6827,8 @@ function renderHome(){
   if(alertEl){
     if(overdueTxs.length>0){
       const names = [...new Set(overdueTxs.map(t=>t.client||'غير محدد'))];
-      alertEl.innerHTML = `<div style="background:#3D1515;border:1.5px solid var(--red);border-radius:12px;padding:12px;margin-bottom:12px;cursor:pointer" onclick="P('debts',document.querySelector('.tab:nth-child(5)'))">
-        <div style="font-size:13px;font-weight:700;color:var(--red)">⚠️ ${overdueTxs.length} فاتورة آجلة متأخرة!</div>
+      alertEl.innerHTML = `<div style="background:#3D1515;border:1.5px solid var(--no);border-radius:12px;padding:12px;margin-bottom:12px;cursor:pointer" onclick="P('debts',document.querySelector('.tab:nth-child(5)'))">
+        <div style="font-size:13px;font-weight:700;color:var(--no)">⚠️ ${overdueTxs.length} فاتورة آجلة متأخرة!</div>
         <div style="font-size:11px;color:#ff9999;margin-top:4px">${names.join(' · ')}</div>
       </div>`;
       alertEl.style.display='block';
@@ -6736,7 +6852,7 @@ function renderHome(){
     ${hasKhz?`<div class="sb khz">
       <div class="v" style="font-size:13px">
         ${khzCash?`<div>${fmt(khzCash)} <span style="font-size:10px">ريال</span></div>`:''}
-        ${khzGold24?`<div style="color:var(--gold)">${fmtG(Math.abs(khzGold24))} <span style="font-size:10px">ج ع٢٤</span></div>`:''}
+        ${khzGold24?`<div style="color:var(--g1)">${fmtG(Math.abs(khzGold24))} <span style="font-size:10px">ج ع٢٤</span></div>`:''}
       </div>
       <div class="l">🏦 الخزينة</div>
     </div>`:''}
@@ -6818,9 +6934,9 @@ function renderHome(){
   const topClients = Object.entries(clientSales).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const topEl = document.getElementById('home-top-clients');
   if(topEl && topClients.length){
-    topEl.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">🏆 أفضل عملاء اليوم</div>`
+    topEl.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">🏆 أفضل عملاء اليوم</div>`
       + topClients.map(([n,v],i)=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0">
-          <span>${['🥇','🥈','🥉'][i]} ${n}</span><span style="font-weight:700;color:var(--gold)">${fmt(v)} ر</span>
+          <span>${['🥇','🥈','🥉'][i]} ${n}</span><span style="font-weight:700;color:var(--g1)">${fmt(v)} ر</span>
         </div>`).join('');
   } else if(topEl){ topEl.innerHTML=''; }
 
@@ -6868,7 +6984,7 @@ function renderClients(){
         <div class="cli-stats">
           <div class="cs">مبيعات: <span>${fmt(s)} ر</span></div>
           <div class="cs">شراء: <span>${fmt(b)} ر</span></div>
-          ${debt>0?`<div class="cs">دين: <span style="color:var(--purple)">${fmt(debt)} ر</span></div>`:''}
+          ${debt>0?`<div class="cs">دين: <span style="color:var(--pu)">${fmt(debt)} ر</span></div>`:''}
           <div class="cs">عدد: <span>${txs.length}</span></div>
         </div>
       </div>`;
@@ -6897,7 +7013,7 @@ function renderSafes(){
     } else if(t==='both'){
       valHtml=`<div style="text-align:left">
         <div class="sv" style="font-size:14px">${fmt(cashVal)} <span style="font-size:10px">ريال</span></div>
-        <div class="sv" style="font-size:13px;color:var(--gold)">${fmtG(goldVal)} <span style="font-size:10px">جرام</span></div>
+        <div class="sv" style="font-size:13px;color:var(--g1)">${fmtG(goldVal)} <span style="font-size:10px">جرام</span></div>
       </div>`;
     }
 
@@ -6905,10 +7021,10 @@ function renderSafes(){
       <div style="flex:1">
         <div class="sl">${SM[k].label}</div>
         <div class="su">${t==='cash'?'ريال':t==='gold'?'جرام':'نقد + ذهب'}</div>
-        ${madanDetail?`<div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.9">
-          ${madanDetail.depRows.map(r=>`<div>↑ إيداع عيار ${r.k}: <b>${fmtG(r.w)}ج</b> = <span style="color:var(--teal)">${fmtG(r.as24)}ج ع٢٤</span></div>`).join('')}
-          ${madanDetail.withRows.map(r=>`<div style="color:var(--red)">↓ سحب عيار ${r.k}: <b>${fmtG(r.w)}ج</b> = <span>${fmtG(r.as24)}ج ع٢٤</span></div>`).join('')}
-          <div style="font-weight:900;color:var(--gold);margin-top:3px;font-size:12px">✨ الإجمالي: ${fmtG(madanDetail.balance24)} ج عيار 24</div>
+        ${madanDetail?`<div style="margin-top:6px;font-size:11px;color:var(--tx2);line-height:1.9">
+          ${madanDetail.depRows.map(r=>`<div>↑ إيداع عيار ${r.k}: <b>${fmtG(r.w)}ج</b> = <span style="color:#28C8D8">${fmtG(r.as24)}ج ع٢٤</span></div>`).join('')}
+          ${madanDetail.withRows.map(r=>`<div style="color:var(--no)">↓ سحب عيار ${r.k}: <b>${fmtG(r.w)}ج</b> = <span>${fmtG(r.as24)}ج ع٢٤</span></div>`).join('')}
+          <div style="font-weight:900;color:var(--g1);margin-top:3px;font-size:12px">✨ الإجمالي: ${fmtG(madanDetail.balance24)} ج عيار 24</div>
         </div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:6px">
@@ -6999,9 +7115,9 @@ function searchTfSafe(side){
     if(x.type==='safe' && x.val in S.safes){
       const t = SM[x.val]?.type||'cash';
       const gk = x.val.startsWith('cs_')?(x.val+'_gold'):(x.val+'Gold');
-      if(t==='cash')       balStr=`<span style="float:left;color:var(--green);font-size:11px">${fmt(S.safes[x.val]||0)} ر</span>`;
-      else if(t==='gold')  balStr=`<span style="float:left;color:var(--gold);font-size:11px">${fmtG(S.safes[x.val]||0)} ج</span>`;
-      else if(t==='both')  balStr=`<span style="float:left;font-size:11px"><span style="color:var(--green)">${fmt(S.safes[x.val]||0)}ر</span> <span style="color:var(--gold)">${fmtG(S.safes[gk]||0)}ج</span></span>`;
+      if(t==='cash')       balStr=`<span style="float:left;color:var(--ok);font-size:11px">${fmt(S.safes[x.val]||0)} ر</span>`;
+      else if(t==='gold')  balStr=`<span style="float:left;color:var(--g1);font-size:11px">${fmtG(S.safes[x.val]||0)} ج</span>`;
+      else if(t==='both')  balStr=`<span style="float:left;font-size:11px"><span style="color:var(--ok)">${fmt(S.safes[x.val]||0)}ر</span> <span style="color:var(--g1)">${fmtG(S.safes[gk]||0)}ج</span></span>`;
     }
     return `<div class="sdi" onclick="selTfSafe('${side}','${x.val.replace(/'/g,"\'")}','${x.lbl.replace(/'/g,"\'")}')">
       ${x.lbl}${balStr}
@@ -7037,7 +7153,8 @@ function updateTfAmtLabel(){
 function renderStmt(){
   const v=document.getElementById('stmt-v')?.value;
   const body=document.getElementById('stmt-body');
-  if(!v){body.innerHTML='<div class="empty"><p>اختر جهة أو صندوق من البحث</p></div>';return;}
+  if(!v){body.innerHTML='<div class="empty"><div class="ei">📊</div><p>اختر جهة أو صندوق من البحث</p></div>';return;}
+  const SM = getSM(); // إصلاح: تعريف محلي
 
   // ── كشف صندوق ──
   if(v.startsWith('__safe__')){
@@ -7055,19 +7172,19 @@ function renderStmt(){
             <div class="sl">الرصيد الكلي</div>
             <div class="su">جرام عيار 24</div>
           </div>
-          <div class="sv" style="color:${bal24>=0?'var(--green)':'var(--red)'}">${fmtG(Math.abs(bal24))} ${bal24<0?'−':''}</div>
+          <div class="sv" style="color:${bal24>=0?'var(--ok)':'var(--no)'}">${fmtG(Math.abs(bal24))} ${bal24<0?'−':''}</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-          <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">إجمالي الدخول</div>
-            <div style="font-weight:900;color:var(--green)">${fmtG(det.totalDep24)} ج</div>
+          <div style="background:var(--ok-bg);border:1px solid var(--ok);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">إجمالي الدخول</div>
+            <div style="font-weight:900;color:var(--ok)">${fmtG(det.totalDep24)} ج</div>
           </div>
-          <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">إجمالي الخروج</div>
-            <div style="font-weight:900;color:var(--red)">${fmtG(det.totalWith24)} ج</div>
+          <div style="background:var(--no-bg);border:1px solid var(--no);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">إجمالي الخروج</div>
+            <div style="font-weight:900;color:var(--no)">${fmtG(det.totalWith24)} ج</div>
           </div>
         </div>
-        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📋 تفصيل الحركات</div>`;
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">📋 تفصيل الحركات</div>`;
 
       if(!det.rows||!det.rows.length){
         html+=`<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>`;
@@ -7075,16 +7192,16 @@ function renderStmt(){
         // عرض الحركات من الأحدث للأقدم مع الرصيد المتراكم
         [...det.rows].reverse().forEach(r=>{
           const dt=fmtDate(r.date);
-          const clr = r.isIn?'var(--green)':'var(--red)';
+          const clr = r.isIn?'var(--ok)':'var(--no)';
           html+=`<div class="stmt-row" style="align-items:flex-start">
             <div style="flex:1">
               <div style="font-size:12px;font-weight:700">${r.label}${r.note?' — '+r.note:''}</div>
-              <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
-              <div style="font-size:11px;color:var(--text2)">عيار ${r.karat}: ${fmtG(r.weight)}ج = <b>${fmtG(r.as24)}ج ع24</b></div>
+              <div style="font-size:10px;color:var(--tx2)">${dt.ar} · ${dt.en}</div>
+              <div style="font-size:11px;color:var(--tx2)">عيار ${r.karat}: ${fmtG(r.weight)}ج = <b>${fmtG(r.as24)}ج ع24</b></div>
             </div>
             <div style="text-align:left;min-width:80px">
-              <div style="font-weight:700;color:${clr}">${r.isIn?'<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>':'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>'}${fmtG(r.as24)} ج</div>
-              <div style="font-size:10px;color:var(--text2)">رصيد: ${fmtG(r.running24)} ج</div>
+              <div style="font-weight:700;color:${clr}">${r.isIn?'<span style="background:var(--ok);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>':'<span style="background:var(--no);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>'}${fmtG(r.as24)} ج</div>
+              <div style="font-size:10px;color:var(--tx2)">رصيد: ${fmtG(r.running24)} ج</div>
             </div>
           </div>`;
         });
@@ -7111,7 +7228,7 @@ function renderStmt(){
     let balHtml = safeT==='both'
       ? `<div style="text-align:left">
            <div class="sv" style="font-size:14px">${fmt(cashBal)} <span style="font-size:10px">ريال</span></div>
-           ${goldBal24?`<div style="font-size:13px;color:var(--gold)">${fmtG(Math.abs(goldBal24))} <span style="font-size:10px">ج ع٢٤</span></div>`:''}
+           ${goldBal24?`<div style="font-size:13px;color:var(--g1)">${fmtG(Math.abs(goldBal24))} <span style="font-size:10px">ج ع٢٤</span></div>`:''}
          </div>`
       : `<div class="sv">${fmt(cashBal)} ريال</div>`;
 
@@ -7142,47 +7259,47 @@ function renderStmt(){
       const dt=fmtDate(t.date);
       const lbl=TLBL[t.type]||t.type;
       const isOut = delta<0;
-      const clr = isOut?'var(--red)':'var(--green)';
+      const clr = isOut?'var(--no)':'var(--ok)';
       const amtFmt = fmt(Math.abs(delta));
-      const balClr = runningCash>=0?'var(--green)':'var(--red)';
+      const balClr = runningCash>=0?'var(--ok)':'var(--no)';
       html+=`<div class="stmt-row" style="align-items:flex-start">
         <div style="flex:1">
           <div style="font-size:12px;font-weight:700">${lbl}${t.client?' — '+t.client:''}</div>
-          ${t.notes&&t.notes!=='تحويل'?`<div style="font-size:10px;color:var(--gold)">📝 ${t.notes}</div>`:''}
-          <div style="font-size:10px;color:var(--text2)">${dt.ar} · ${dt.en}</div>
+          ${t.notes&&t.notes!=='تحويل'?`<div style="font-size:10px;color:var(--g1)">📝 ${t.notes}</div>`:''}
+          <div style="font-size:10px;color:var(--tx2)">${dt.ar} · ${dt.en}</div>
         </div>
         <div style="text-align:left;min-width:120px">
-          <div style="font-weight:700;color:${clr}">${isOut?'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${amtFmt} ريال</div>
+          <div style="font-weight:700;color:${clr}">${isOut?'<span style="background:var(--no);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--ok);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${amtFmt} ريال</div>
           <div style="font-size:10px;color:${balClr};font-weight:600">رصيد: ${fmt(runningCash)} ر</div>
         </div>
       </div>`;
     });
     // لو صندوق مختلط — أضف كشف الذهب بعيار 24
     if(safeT==='both' && goldDet24 && goldDet24.rows && goldDet24.rows.length>0){
-      html+=`<div style="margin-top:14px;border-top:2px solid var(--gold);padding-top:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">🏅 حركات الذهب — إجمالي عيار 24</div>
+      html+=`<div style="margin-top:14px;border-top:2px solid var(--g1);padding-top:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:8px">🏅 حركات الذهب — إجمالي عيار 24</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-          <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">إجمالي الدخول</div>
-            <div style="font-weight:900;color:var(--green)">${fmtG(goldDet24.totalDep24)} ج</div>
+          <div style="background:var(--ok-bg);border:1px solid var(--ok);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">إجمالي الدخول</div>
+            <div style="font-weight:900;color:var(--ok)">${fmtG(goldDet24.totalDep24)} ج</div>
           </div>
-          <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:10px;color:var(--text2)">إجمالي الخروج</div>
-            <div style="font-weight:900;color:var(--red)">${fmtG(goldDet24.totalWith24)} ج</div>
+          <div style="background:var(--no-bg);border:1px solid var(--no);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:10px;color:var(--tx2)">إجمالي الخروج</div>
+            <div style="font-weight:900;color:var(--no)">${fmtG(goldDet24.totalWith24)} ج</div>
           </div>
         </div>`;
       [...goldDet24.rows].reverse().forEach(r=>{
         const dt2=fmtDate(r.date);
-        const clr2=r.isIn?'var(--green)':'var(--red)';
+        const clr2=r.isIn?'var(--ok)':'var(--no)';
         html+=`<div class="stmt-row" style="align-items:flex-start">
           <div style="flex:1">
             <div style="font-size:12px;font-weight:700">${r.label}${r.note?' — '+r.note:''}</div>
-            <div style="font-size:10px;color:var(--text2)">${dt2.ar} · ${dt2.en}</div>
-            <div style="font-size:11px;color:var(--text2)">عيار ${r.karat}: ${fmtG(r.weight)}ج = <b>${fmtG(r.as24)}ج ع24</b></div>
+            <div style="font-size:10px;color:var(--tx2)">${dt2.ar} · ${dt2.en}</div>
+            <div style="font-size:11px;color:var(--tx2)">عيار ${r.karat}: ${fmtG(r.weight)}ج = <b>${fmtG(r.as24)}ج ع24</b></div>
           </div>
           <div style="text-align:left;min-width:80px">
-            <div style="font-weight:700;color:${clr2}">${r.isIn?'<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>':'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>'}${fmtG(r.as24)} ج</div>
-            <div style="font-size:10px;color:var(--text2)">رصيد: ${fmtG(r.running24)} ج</div>
+            <div style="font-weight:700;color:${clr2}">${r.isIn?'<span style="background:var(--ok);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>':'<span style="background:var(--no);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>'}${fmtG(r.as24)} ج</div>
+            <div style="font-size:10px;color:var(--tx2)">رصيد: ${fmtG(r.running24)} ج</div>
           </div>
         </div>`;
       });
@@ -7195,8 +7312,9 @@ function renderStmt(){
   }
 
   // ── كشف عميل / جهة ──
-  const kNames={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 18K'};
+  const kNames={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 14K'};
   const bal=getClientBalance(v);
+  const clientObj=(S.clients||[]).find(cl=>cl.name===v);
   const txs=S.transactions.filter(t=>t.client===v).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sellTxs=txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
   const buyTxs=txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
@@ -7207,7 +7325,7 @@ function renderStmt(){
 
   // ── بطاقة الرصيد ──
   // ══ بطاقة الملخص المباشر — تظهر دون طباعة ══
-  const isSupp = (S.clients||[]).find(cl=>cl.name===selName)?.type==='مورد';
+  const isSupp = clientObj?.type==='مورد' || clientObj?.type==='موزع';
   const absOwedQ = Math.abs(bal.cashOwed);
   const stateLabel = isSupp
     ? (bal.cashOwed<0 ? 'له علينا' : bal.cashOwed>0 ? 'له عندنا فائض' : 'مسوى')
@@ -7255,6 +7373,18 @@ function renderStmt(){
           </span>
         </span>
       </div>`:''}
+      ${(bal.custodyIn||0)>0.01?`
+      <div style="padding:8px;background:#D1FAE5;border-radius:var(--rc);border:1px solid #6EE7B7;
+        display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <span style="font-size:12px;font-weight:700;color:#065F46">🤝 عهدة أودعها</span>
+        <span style="font-size:14px;font-weight:900;color:#065F46">${fmt(bal.custodyIn)} ر</span>
+      </div>`:''}
+      ${(bal.salaryOut||0)>0.01?`
+      <div style="padding:8px;background:#FEE2E2;border-radius:var(--rc);border:1px solid #FCA5A5;
+        display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <span style="font-size:12px;font-weight:700;color:#991B1B">💵 راتب مصروف</span>
+        <span style="font-size:14px;font-weight:900;color:#991B1B">${fmt(bal.salaryOut)} ر</span>
+      </div>`:''}
     </div>
   `;
 
@@ -7262,7 +7392,7 @@ function renderStmt(){
   if(Math.abs(bal.cashOwed)>0.01){
     const sign=bal.cashOwed>0;
     // عرض له/عليه بوضوح حسب نوع الطرف
-    const isSupplier = (S.clients||[]).find(cl=>cl.name===selName)?.type==='مورد';
+    const isSupplier = (S.clients||[]).find(cl=>cl.name===v)?.type==='مورد';
     // ── له / عليه — موحد ──
     // مورد: cashOwed موجب = دفعنا أكثر (نادر) | سالب = له علينا
     // عميل: cashOwed موجب = عليه لنا | سالب = له عندنا (نادر)
@@ -7275,7 +7405,7 @@ function renderStmt(){
     const cashColor = isSupplier
       ? (sign ? 'var(--ok)' : 'var(--no)')
       : (sign ? 'var(--no)' : 'var(--ok)');
-    balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+    balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b1)">
       <span style="font-size:13px">💵 ${cashLabel}</span>
       <span style="font-size:18px;font-weight:900;color:${cashColor}">
         ${cashLabel}: ${fmt(Math.abs(bal.cashOwed))} ريال</span></div>`;
@@ -7283,9 +7413,9 @@ function renderStmt(){
   // رقم واحد فقط بعيار 24
   if(Math.abs(bal.goldOwedAs24||0)>0.001){
     const sign=bal.goldOwedAs24>0;
-    balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+    balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b1)">
       <span style="font-size:13px">🏅 ذهب ${sign?'عليه':'له (زيادة)'}</span>
-      <span style="font-size:18px;font-weight:900;color:${sign?'var(--red)':'var(--green)'}">
+      <span style="font-size:18px;font-weight:900;color:${sign?'var(--no)':'var(--ok)'}">
         ${sign?'عليه ':'له '}${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`;
   }
 
@@ -7310,6 +7440,9 @@ function renderStmt(){
     else if(t.type==='purchase-return')     dCash = (t.ajTotal||0); // عكس الشراء
     else if(t.type==='return')              dCash = -(t.ajTotal||t.cashRefund||0);
     else if(t.type==='supplier-return')     dCash = (t.ajTotal||0);
+    else if(t.type==='salary-custody')   dCash = (t.amount||0);  // الموظف أودع ← له المبلغ
+    else if(t.type==='salary-pay')        dCash = -(t.amount||0); // صرفنا راتب ← خصم منه
+    else if(t.type==='salary-deduction')  dCash = (t.amount||0);  // خصم ← يُقلل ما عليه
     else if(t.type==='transfer'){
       if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;  // العميل أعطانا
       if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
@@ -7385,14 +7518,14 @@ function renderStmt(){
     }
 
     // عرض التغير
-    const cashClr  = dCash>0?'var(--green)':dCash<0?'var(--red)':'var(--text2)';
-    const goldClr  = dGold24>0?'var(--green)':dGold24<0?'var(--red)':'var(--text2)';
-    const balCashClr = runCash>0?'var(--green)':runCash<0?'var(--orange)':'var(--text2)';
-    const balGoldClr = runGold24>0?'var(--green)':runGold24<0?'var(--orange)':'var(--text2)';
-    const typeClr  = t.type==='buy'||t.type==='buy-debt'?'var(--red)':
-                     t.type==='supplier-return'?'var(--orange)':
-                     t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||t.type==='scrap'?'var(--green)':
-                     t.isDebt||t.isBuyDebt?'var(--purple)':'var(--green)';
+    const cashClr  = dCash>0?'var(--ok)':dCash<0?'var(--no)':'var(--tx2)';
+    const goldClr  = dGold24>0?'var(--ok)':dGold24<0?'var(--no)':'var(--tx2)';
+    const balCashClr = runCash>0?'var(--ok)':runCash<0?'var(--io)':'var(--tx2)';
+    const balGoldClr = runGold24>0?'var(--ok)':runGold24<0?'var(--io)':'var(--tx2)';
+    const typeClr  = t.type==='buy'||t.type==='buy-debt'?'var(--no)':
+                     t.type==='supplier-return'?'var(--io)':
+                     t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||t.type==='scrap'?'var(--ok)':
+                     t.isDebt||t.isBuyDebt?'var(--pu)':'var(--ok)';
 
     // بادج الضريبة
     const vatBadge = (t.vatAmt>0||t.hasVat)
@@ -7437,20 +7570,73 @@ function renderStmt(){
   }).join('');
 ;
 
+
+  // ── بطاقة معلومات الجهة ──
+  const typeIcons={'عميل':'👤','مورد':'🏭','موظف':'👷','موزع':'🚚'};
+  const typeColors={'عميل':'var(--in)','مورد':'var(--io)','موظف':'var(--pu)','موزع':'var(--ok)'};
+  const entityType=clientObj?.type||'جهة';
+  const entityIcon=typeIcons[entityType]||'👤';
+  const entityColor=typeColors[entityType]||'var(--g1)';
+  const entityPhone=clientObj?.phone||'';
+  const entityNotes=clientObj?.notes||'';
+  const totalSell=txs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.ajTotal||0),0);
+  const totalBuy=txs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.ajTotal||t.total||0),0);
+  const totalPay=txs.filter(t=>t.type==='payment'||t.type==='supplier-payment').reduce((a,t)=>a+(t.ajourPaid||t.amount||0),0);
+  const totalGoldW=txs.reduce((a,t)=>a+(t.items||[]).reduce((b,i)=>b+(i.weight||0),0),0);
+  const entityCard=`<div style="background:var(--c1);border-radius:var(--ra);border:2px solid ${entityColor};box-shadow:var(--s2);margin-bottom:14px;overflow:hidden">
+    <div style="background:linear-gradient(135deg,${entityColor}22,${entityColor}08);border-bottom:1px solid ${entityColor}33;padding:14px 16px;display:flex;align-items:center;gap:12px">
+      <div style="width:54px;height:54px;border-radius:14px;flex-shrink:0;background:linear-gradient(135deg,${entityColor}30,${entityColor}15);border:2px solid ${entityColor}40;display:flex;align-items:center;justify-content:center;font-size:26px">${entityIcon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:19px;font-weight:900;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+          <span style="background:${entityColor};color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">${entityType}</span>
+          ${entityPhone?`<span style="font-size:11px;color:var(--tx2)">📞 ${entityPhone}</span>`:''}
+        </div>
+        ${entityNotes?`<div style="font-size:11px;color:var(--tx3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📝 ${entityNotes}</div>`:''}
+      </div>
+      <div style="text-align:center;flex-shrink:0;padding:8px 12px;background:${isSettled?'var(--ok-bg)':'var(--g4)'};border-radius:var(--rb);border:1px solid ${isSettled?'var(--ok-bd)':'var(--g5)'}">
+        <div style="font-size:22px">${isSettled?'✅':'💳'}</div>
+        <div style="font-size:10px;font-weight:800;color:${isSettled?'var(--ok)':'var(--g1)'};">${isSettled?'مسدد':'له رصيد'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--b1)">
+      <div style="padding:10px 8px;text-align:center;border-left:1px solid var(--b1)">
+        <div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:3px">الفواتير</div>
+        <div style="font-size:20px;font-weight:900;color:var(--tx1)">${txs.length}</div>
+      </div>
+      <div style="padding:10px 8px;text-align:center;border-left:1px solid var(--b1)">
+        <div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:3px">${isSupp?'المشتريات':'المبيعات'}</div>
+        <div style="font-size:13px;font-weight:900;color:${isSupp?'var(--no)':'var(--ok)'}">${fmt(isSupp?totalBuy:totalSell)}</div>
+        <div style="font-size:9px;color:var(--tx3)">ريال</div>
+      </div>
+      <div style="padding:10px 8px;text-align:center;border-left:1px solid var(--b1)">
+        <div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:3px">المدفوع</div>
+        <div style="font-size:13px;font-weight:900;color:var(--ok)">${fmt(totalPay)}</div>
+        <div style="font-size:9px;color:var(--tx3)">ريال</div>
+      </div>
+      <div style="padding:10px 8px;text-align:center">
+        <div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:3px">الذهب</div>
+        <div style="font-size:13px;font-weight:900;color:var(--g1)">${fmtG(totalGoldW)}</div>
+        <div style="font-size:9px;color:var(--tx3)">جرام</div>
+      </div>
+    </div>
+  </div>`;
+
   let html=`
+  ${entityCard}
   <!-- الرصيد الحالي -->
-  <div class="card" style="border:2px solid ${isSettled?'var(--green)':'var(--gold)'}">
+  <div class="card" style="border:2px solid ${isSettled?'var(--ok)':'var(--g1)'}">
     <div class="ch" style="background:${isSettled?'var(--ok)':'var(--g1)'}">
       ${isSettled?'✅ الحساب مسدد':'💳 ملخص حساب: '+v}
     </div>
     <div class="cb">
       ${summaryCard}
       ${isSettled
-        ?`<div style="text-align:center;padding:20px;font-size:15px;font-weight:900;color:var(--green)">
+        ?`<div style="text-align:center;padding:20px;font-size:15px;font-weight:900;color:var(--ok)">
             ✅ تم تسديد الحساب كامل<br>
-            <span style="font-size:12px;color:var(--text2)">لا يوجد أي رصيد نقدي أو ذهبي متبقي</span>
+            <span style="font-size:12px;color:var(--tx2)">لا يوجد أي رصيد نقدي أو ذهبي متبقي</span>
           </div>`
-        :balRows||'<div style="padding:10px;color:var(--text2)">لا توجد معاملات</div>'
+        :balRows||'<div style="padding:10px;color:var(--tx2)">لا توجد معاملات</div>'
       }
     </div>
   </div>
@@ -7674,7 +7860,23 @@ setTimeout(()=>{
   renderAll();
 }, 6000);
 // تهيئة الثيم عند التحميل
-window.addEventListener('load', initTheme);
+window.addEventListener('load', ()=>{
+  initTheme();
+  // ── تحقق من الجلسة عند تحميل الصفحة ──
+  const savedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
+  const savedUser = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user');
+  const savedRole = sessionStorage.getItem('auth-role') || localStorage.getItem('auth-role') || 'user';
+  if(savedAuth === '1' && savedUser){
+    // استعادة الجلسة
+    sessionStorage.setItem('auth', '1');
+    sessionStorage.setItem('auth-user', savedUser);
+    sessionStorage.setItem('auth-role', savedRole);
+    const ls = document.getElementById('login-screen');
+    if(ls) ls.style.display = 'none';
+    const _aw3=document.getElementById('app-wrap');
+    if(_aw3) _aw3.style.display='block';
+  }
+});
 </script>
 </body>
 </html>
