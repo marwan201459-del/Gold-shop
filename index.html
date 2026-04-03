@@ -848,6 +848,12 @@ body{
           <div id="tf-madan-detail" style="background:var(--c2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px"></div>
         </div>
         <div id="tf-preview" style="display:none;background:var(--c2);border-radius:10px;padding:10px;margin-bottom:8px;font-size:12px"></div>
+        <!-- أجور التحويل (اختياري) -->
+        <div style="background:var(--g4);border:1px solid var(--g5);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--g1);margin-bottom:6px">⚒️ أجور صياغة (اختياري)</div>
+          <input type="number" id="tf-ajour" inputmode="decimal" placeholder="0 — اتركه فارغاً إن لم يكن هناك أجور"
+            style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--g5);background:var(--c1);font-family:inherit;font-size:13px">
+        </div>
         <div class="g2">
           <div class="fr"><label>📝 ملاحظة</label><input type="text" id="tf-note" placeholder="اختياري"></div>
           <div class="fr"><label>📅 التاريخ</label><input type="date" id="tf-date"></div>
@@ -1401,7 +1407,7 @@ body{
     <div class="ch">👥 حسابات العملاء والموردين</div>
     <div class="cb">
       <div style="font-size:11px;color:var(--tx2);margin-bottom:12px;padding:8px 10px;background:var(--c2);border-radius:var(--rc);border:1px solid var(--b1)">
-        💡 <b>للعميل</b>: موجب = عليه لنا | سالب = له عندنا &nbsp;·&nbsp; <b>للمورد</b>: موجب = له علينا | سالب = عندنا فائض
+        💡 <b>للعميل</b>: اختر "عليه لنا" إذا عنده دين · اختر "له عندنا" إذا دفع زيادة &nbsp;·&nbsp; <b>للمورد</b>: اختر "له علينا" إذا عندنا دين له
       </div>
       <div class="fr" style="margin-bottom:6px">
         <label>🔍 ابحث عن جهة وأضفها</label>
@@ -3100,6 +3106,7 @@ function doTransfer(){
   const to=document.getElementById('tf-to').value;
   const amt=parseFloat(document.getElementById('tf-amt').value)||0;
   const gAmt=parseFloat(document.getElementById('tf-gold-amt')?.value)||0;
+  const ajour=parseFloat(document.getElementById('tf-ajour')?.value)||0;
   const note=document.getElementById('tf-note').value;
   if(!from||!to){toast('⚠️ اختر المصدر والوجهة');return;}
   if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
@@ -3107,46 +3114,38 @@ function doTransfer(){
 
   const fromCli=from.startsWith('__cli__')?from.replace('__cli__',''):null;
   const toCli=to.startsWith('__cli__')?to.replace('__cli__',''):null;
-  const fromKey=fromCli?null:from;
-  const toKey=toCli?null:to;
   const cliName=fromCli||toCli||'';
 
   const tfDate=document.getElementById('tf-date')?.value;
   const tfISO=tfDate?new Date(tfDate).toISOString():new Date().toISOString();
   const tfKarat=document.getElementById('tf-karat')?.value||'21';
 
-  // نحرص أن fromSafe وtoSafe لا تكون undefined أبداً
-  const fromSafe = fromCli ? ('__cli__'+fromCli) : (fromKey || from || 'cash');
-  const toSafe   = toCli   ? ('__cli__'+toCli)   : (toKey   || to   || 'cash');
-  // label لعرض واضح في السجل
-  const fromLabel = fromCli ? fromCli : (getSM()[from]?.label || from || '');
-  const toLabel   = toCli   ? toCli   : (getSM()[to]?.label   || to   || '');
+  const fromSafe = fromCli?('__cli__'+fromCli):(from||'cash');
+  const toSafe   = toCli  ?('__cli__'+toCli  ):(to  ||'cash');
+  const _SM=getSM();
+  const fromLabel = fromCli?fromCli:(_SM[from]?.label||from||'');
+  const toLabel   = toCli  ?toCli  :(_SM[to]  ?.label||to  ||'');
 
-  S.transactions.unshift({
+  const tx={
     id:Date.now(), date:tfISO, type:'transfer',
-    fromSafe, toSafe,
-    fromLabel, toLabel,
-    amount:amt,
-    goldAmount:gAmt,
-    goldKarat:tfKarat,
-    unit: gAmt>0 && amt<=0 ? 'جرام' : 'ريال',
+    fromSafe, toSafe, fromLabel, toLabel,
+    amount:amt, goldAmount:gAmt, goldKarat:tfKarat,
+    ajour,          // أجور الصياغة (اختياري)
+    unit:gAmt>0&&amt<=0?'جرام':'ريال',
     notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
-    client:cliName, items:[], total:amt||gAmt,
-    cash:amt, goldPay:gAmt
-  });
+    client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
+    cash:amt, goldPay:gAmt, weight:gAmt
+  };
+  S.transactions.unshift(tx);
   sv(); renderAll();
-  ['tf-amt','tf-gold-amt','tf-note','tf-from-s','tf-to-s'].forEach(id=>{
+  ['tf-amt','tf-gold-amt','tf-ajour','tf-note','tf-from-s','tf-to-s'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  ['tf-from','tf-to'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
+  ['tf-from','tf-to'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const tfd=document.getElementById('tf-date');if(tfd)tfd.value='';
-  ['tf-from-lbl','tf-to-lbl'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent='';
-  });
-  const amtMsg=[amt>0?fmt(amt)+' ريال':'', gAmt>0?fmtG(gAmt)+' جرام':''].filter(Boolean).join(' + ');
-  toast('✅ تم التحويل: '+amtMsg+` (${fromLabel} → ${toLabel})`);
+  ['tf-from-lbl','tf-to-lbl'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=''; });
+  const amtMsg=[amt>0?fmt(amt)+' ريال':'', gAmt>0?fmtG(gAmt)+' جرام ع'+tfKarat:'', ajour>0?'أجور: '+fmt(ajour)+' ر':''].filter(Boolean).join(' · ');
+  toast('✅ تم التحويل: '+amtMsg);
 }
 
 // ── Delete TX ──────────────────────────────────────────────────────
@@ -3179,6 +3178,50 @@ function renderInvModal(tx,editing){
 
   if(!editing){
     // ── VIEW MODE ──
+    // ── للتحويل — عرض خاص ──
+    if(tx.type==='transfer'){
+      const _SM=getSM();
+      const fLbl=tx.fromLabel||(_SM[tx.fromSafe]?.label||tx.fromSafe||'—');
+      const tLbl=tx.toLabel  ||(_SM[tx.toSafe]  ?.label||tx.toSafe  ||'—');
+      let html=`
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-red btn-sm" style="flex:0;padding:10px 14px" onclick="delTxFromModal(${tx.id})">🗑️</button>
+        </div>
+        <div style="background:var(--in-bg);border:1.5px solid var(--in);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:6px">🔄 عملية تحويل</div>
+          <div style="font-size:14px;font-weight:800;color:var(--in)">${fLbl} ← ${tLbl}</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px">${dt.ar} · ${dt.en}</div>
+        </div>
+        <div style="background:var(--c2);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--b2)">`;
+      if((tx.goldAmount||0)>0){
+        html+=`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1)">
+          <span style="color:var(--tx2);font-weight:700">🥇 ذهب محوّل</span>
+          <span style="font-weight:900;color:var(--g1)">${fmtG(tx.goldAmount)} جرام عيار ${tx.goldKarat||'21'}</span>
+        </div>`;
+      }
+      if((tx.amount||0)>0){
+        html+=`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1)">
+          <span style="color:var(--tx2);font-weight:700">💵 نقد محوّل</span>
+          <span style="font-weight:900;color:var(--ok)">${fmt(tx.amount)} ريال</span>
+        </div>`;
+      }
+      if((tx.ajour||0)>0){
+        html+=`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1)">
+          <span style="color:var(--tx2);font-weight:700">⚒️ أجور صياغة</span>
+          <span style="font-weight:900;color:var(--io)">${fmt(tx.ajour)} ريال</span>
+        </div>`;
+      }
+      if((tx.goldAmount||0)<=0&&(tx.amount||0)<=0){
+        html+=`<div style="color:var(--tx2);font-size:12px;text-align:center;padding:8px">لا توجد قيمة مسجلة</div>`;
+      }
+      html+=`</div>`;
+      if(tx.notes&&tx.notes!==`تحويل من ${fLbl} إلى ${tLbl}`){
+        html+=`<div style="font-size:12px;color:var(--tx2);padding:8px;background:var(--c2);border-radius:8px;border:1px solid var(--b1)">📝 ${tx.notes}</div>`;
+      }
+      document.getElementById('m-inv-body').innerHTML=html;
+      return;
+    }
+
     const goldWeight = (tx.items||[]).reduce((a,i)=>a+(i.weight||0),0);
     const by21 = (tx.items||[]).filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
     const by18 = (tx.items||[]).filter(i=>i.karat==='18').reduce((a,i)=>a+(i.weight||0),0);
@@ -3444,234 +3487,216 @@ function delTxFromModal(id){
 function printStmt(){
   const v=document.getElementById('stmt-v')?.value;
   if(!v){toast('⚠️ اختر جهة أولاً');return;}
-  const kN={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 18K'};
+  const _SM=getSM();
+  const kN={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 14K'};
   const isClient=!v.startsWith('__safe__');
-  const title=isClient?`كشف حساب — ${v}`:`${SM[v.replace('__safe__','')]?.label||''} — كشف الصندوق`;
+  const entityName=isClient?v:(_SM[v.replace('__safe__','')]?.label||'');
+  const title=isClient?`كشف حساب — ${entityName}`:`كشف الصندوق — ${entityName}`;
   const printDate=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
   const printDateEn=new Date().toLocaleDateString('en-GB');
   let bodyHtml='';
 
   if(!isClient){
     const k=v.replace('__safe__','');
+    const safeInfo=_SM[k]||{};
+    const safeBal=S.safes[k]||0;
     const txs=S.transactions.filter(t=>
       (t.type==='transfer'&&(t.fromSafe===k||t.toSafe===k))||
       (t.type==='payment'&&(t.fromSafe===k||t.goldDest===k))||
       (t.type==='cash-receipt'&&t.toSafe===k)
-    ).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    ).sort((a,b)=>new Date(a.date)-new Date(b.date));
     bodyHtml=`
     <div class="bal-card">
       <div class="bal-title">💰 الرصيد الحالي</div>
       <div class="bal-row">
-        <span>${SM[k]?.label||k}</span>
-        <span class="bal-val">${fmt(S.safes[k]||0)} ${SM[k]?.unit||'ريال'}</span>
+        <span>${safeInfo.label||k}</span>
+        <span class="bal-val" style="color:#C9922A">${safeInfo.type==='gold'?fmtG(safeBal):fmt(safeBal)} ${safeInfo.unit||'ريال'}</span>
       </div>
     </div>
-    <div class="section-title">📋 سجل الحركات (${txs.length})</div>
-    <table>
-      <thead><tr><th>التاريخ</th><th>النوع</th><th>الجهة</th><th>الحركة</th></tr></thead>
-      <tbody>
-      ${txs.map(t=>{
-        const dt=fmtDate(t.date);
-        const isOut=t.fromSafe===k;
-        const amt=t.type==='payment'&&t.goldDest===k?(t.goldWeight||0):(t.amount||t.total||0);
-        const unit=t.type==='payment'&&t.goldDest===k?'جرام':'ريال';
-        return `<tr>
-          <td>${dt.ar}<br><small>${dt.en}</small></td>
-          <td>${TLBL[t.type]||t.type}</td>
-          <td>${t.client||'—'}</td>
-          <td class="${isOut?'neg':'pos'}">${isOut?'<span style="background:var(--no);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">عليه</span>':'<span style="background:var(--ok);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px">له</span>'}${fmt(amt)} ${unit}</td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>`;
+    <div class="section-title">سجل الحركات (${txs.length})</div>
+    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>الجهة</th><th>الحركة</th></tr></thead><tbody>
+    ${txs.map(t=>{
+      const dt=fmtDate(t.date);
+      const isOut=t.fromSafe===k;
+      const amt=t.type==='payment'&&t.goldDest===k?(t.goldWeight||0):(t.amount||t.total||0);
+      const unit=t.type==='payment'&&t.goldDest===k?'جرام':'ريال';
+      return `<tr><td>${dt.ar}<br><small>${dt.en}</small></td><td>${TLBL[t.type]||t.type}</td><td>${t.client||'—'}</td>
+        <td class="${isOut?'neg':'pos'}">${isOut?'<span class="dir-out">عليه</span>':'<span class="dir-in">له</span>'} ${fmt(amt)} ${unit}</td></tr>`;
+    }).join('')}
+    </tbody></table>`;
   } else {
     const bal=getClientBalance(v);
-    const txs=S.transactions.filter(t=>t.client===v).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const clientObj=(S.clients||[]).find(cl=>cl.name===v);
+    const isSupp=clientObj?.type==='مورد'||clientObj?.type==='موزع';
     const isSettled=Math.abs(bal.cashOwed)<0.01&&Math.abs(bal.goldOwedAs24||0)<0.001;
-
-    // ── بطاقة الرصيد الواضحة ──
-    // cashOwed: موجب=عليه لنا | سالب=لنا عليه (أو علينا للمورد)
-    // goldOwedAs24: موجب=ذهب عليه | سالب=ذهب علينا
+    const _obEntry=(S.openingBalance?.clients)?S.openingBalance.clients[v]:null;
     let balRows='';
     if(isSettled){
-      balRows=`<div style="text-align:center;padding:14px">
-        <div style="font-size:28px;margin-bottom:6px">✅</div>
-        <div style="font-size:15px;font-weight:900;color:var(--ok)">الحساب مسدد بالكامل</div>
-        <div style="font-size:11px;color:var(--tx2);margin-top:4px">لا يوجد أي رصيد متبقي</div>
-      </div>`;
+      balRows=`<div class="settled">الحساب مسدد بالكامل</div>`;
     } else {
-      // نقد
       if(Math.abs(bal.cashOwed)>0.01){
-        const weOwe = bal.cashOwed<0;  // سالب = نحن مدينون (لمورد أو نحن من أعطى)
-        const label = weOwe ? '💵 نقد علينا (مدينون)' : '💵 نقد عليه لنا (دائنون)';
-        const clr   = weOwe ? 'var(--no)' : 'var(--ok)';
-        balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1)">
-          <div>
-            <div style="font-size:13px;font-weight:700">${label}</div>
-            <div style="font-size:10px;color:var(--tx2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'}</div>
-          </div>
-          <div style="font-size:20px;font-weight:900;color:${clr}">${fmt(Math.abs(bal.cashOwed))} ر</div>
-        </div>`;
+        const neg=isSupp?(bal.cashOwed<0):(bal.cashOwed>0);
+        balRows+=`<div class="bal-row"><span>رصيد نقدي</span>
+          <span class="bal-val ${neg?'neg':'pos'}">${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال</span></div>`;
       }
-      // ذهب بعيار 24
       if(Math.abs(bal.goldOwedAs24||0)>0.001){
-        const weOwe = bal.goldOwedAs24<0;
-        const label = weOwe ? '🏅 ذهب علينا (مدينون)' : '🏅 ذهب عليه لنا (دائنون)';
-        const clr   = weOwe ? 'var(--no)' : 'var(--ok)';
-        balRows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
-          <div>
-            <div style="font-size:13px;font-weight:700">${label}</div>
-            <div style="font-size:10px;color:var(--tx2)">${weOwe?'يجب أن ندفعه':'يجب أن يدفعه'} — بعيار 24</div>
-          </div>
-          <div style="font-size:20px;font-weight:900;color:${clr}">${fmtG(Math.abs(bal.goldOwedAs24))} ج</div>
-        </div>`;
+        const neg=bal.goldOwedAs24>0;
+        balRows+=`<div class="bal-row"><span>رصيد ذهب</span>
+          <span class="bal-val ${neg?'neg':'pos'}">${neg?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`;
       }
     }
-
-    // ── تفصيل الحركات ──
-    const txRows=txs.map(t=>{
+    const to24rb=(w,k)=>(w||0)*parseFloat(k||'21')/24;
+    const txs=S.transactions.filter(t=>t.client===v).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    let runCash=_obEntry?(_obEntry.cash||0):0;
+    let runGold24=_obEntry?(_obEntry.gold24||0):0;
+    const rows=txs.map(t=>{
       const dt=fmtDate(t.date);
-      const lbl=TLBL[t.type]||t.type;
-      const isIn=t.type==='payment'||t.type==='supplier-payment'||t.type==='scrap'||t.type==='cash-receipt'||t.type==='buy'||t.type==='buy-debt'||t.type==='supplier-return';
-      const clr=isIn?'pos':'neg';
-
-      // تفاصيل كل نوع
-      let detail='';
-      let amtStr='';
-      let wtStr='';
-
-      if(t.type==='sell'||t.type==='sell-debt'){
-        detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج بـ${fmt(i.price)}/ج · أجور ${fmt(i.ajour)}/ج`).join('<br>');
-        amtStr=`<span class="neg">${fmt(t.total||0)} ريال</span>`;
-        wtStr=`${fmtG(t.weight||0)} جرام`;
-        if(t.isDebt&&t.prepaid) detail+=`<br>مقدم: ${fmt(t.prepaid)} ريال`;
-      } else if(t.type==='buy'){
-        detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>');
-        amtStr=`<span class="pos">${fmt(t.total||0)} ريال</span>`;
-        wtStr=`${fmtG(t.weight||0)} جرام`;
-      } else if(t.type==='scrap'){
-        if(t.scrapItems&&t.scrapItems.length>0){
-          const parts=t.scrapItems.filter(si=>si.weight>0).map(si=>`${kN[si.karat]||si.karat}: ${fmtG(si.weight)}ج`);
-          const tot24=t.total24||0;
-          detail=parts.join(' + ')+(tot24>0?`<br>✨ الإجمالي بعيار 24: <b>${fmtG(tot24)}ج</b>`:'');
-        } else {
-          detail=`${kN[t.karat]||t.karat}: ${fmtG(t.weight||0)} جرام`;
-        }
-        amtStr=`<span class="pos">${fmt(t.total||0)} ريال</span>`;
-        wtStr=`${fmtG(t.weight||0)} جرام`;
-      } else if(t.type==='payment'){
-        detail=`أجور: ${fmt(t.ajourPaid||t.amount||0)} ريال`;
-        if(t.goldWeight) detail+=`<br>ذهب ${kN[t.goldKarat]||t.goldKarat}: ${fmtG(t.goldWeight)} جرام`;
-        amtStr=`<span class="pos">${fmt(t.ajourPaid||t.amount||0)} ريال</span>`;
-        wtStr=t.goldWeight?`${fmtG(t.goldWeight)} جرام`:'—';
-      } else if(t.type==='cash-receipt'){
-        detail=`نقد مستلم: ${fmt(t.amount||0)} ريال`;
-        amtStr=`<span class="pos">${fmt(t.amount||0)} ريال</span>`;
-        wtStr='—';
-      } else if(t.type==='return'){
-        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>');
-        amtStr=`<span class="neg">${fmt(t.total||0)} ريال</span>`;
-        wtStr=`${fmtG(t.weight||0)} جرام`;
-      } else {
-        amtStr=fmt(t.total||0)+' ريال';
-        wtStr='—';
+      let dCash=0;
+      if(t.type==='sell'||t.type==='sell-debt') dCash=t.ajTotal||0;
+      else if(t.type==='payment') dCash=-(t.ajourPaid||t.amount||0);
+      else if(t.type==='supplier-payment') dCash=t.ajourPaid||t.amount||0;
+      else if(t.type==='buy'||t.type==='buy-debt') dCash=-(t.ajTotal||t.total||0);
+      else if(t.type==='sales-return'||t.type==='return') dCash=-(t.ajTotal||t.cashRefund||0);
+      else if(t.type==='purchase-return'||t.type==='supplier-return') dCash=t.ajTotal||0;
+      else if(t.type==='cash-receipt') dCash=-(t.amount||0);
+      else if(t.type==='transfer'){
+        if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
+        if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
       }
-
-      return `<tr>
-        <td>${dt.ar}<br><small>${dt.en}</small></td>
-        <td><b>${lbl}</b>${t.isDebt?'<br><small>آجل</small>':''}</td>
+      runCash=Math.round((runCash+dCash)*100)/100;
+      let detail='',amtStr='',wtStr='—';
+      if(t.type==='sell'||t.type==='sell-debt'){
+        detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · سعر ${fmt(i.price)}/ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>');
+        amtStr=`<span class="neg">${fmt(t.ajTotal||0)} ر</span>`;
+        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+      } else if(t.type==='buy'||t.type==='buy-debt'){
+        detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>');
+        amtStr=`<span class="pos">${fmt(t.ajTotal||t.total||0)} ر</span>`;
+        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+      } else if(t.type==='payment'){
+        detail=`نقد: ${fmt(t.ajourPaid||0)} ر`+(t.goldWeight>0?`<br>ذهب ${t.goldKarat||''}: ${fmtG(t.goldWeight)}ج`:'');
+        amtStr=`<span class="pos">${fmt(t.ajourPaid||t.amount||0)} ر</span>`;
+        if(t.goldWeight>0) wtStr=fmtG(t.goldWeight)+' ج';
+      } else if(t.type==='supplier-payment'){
+        detail=`نقد: ${fmt(t.ajourPaid||0)} ر`;
+        amtStr=`<span class="neg">${fmt(t.ajourPaid||t.amount||0)} ر</span>`;
+      } else if(t.type==='scrap'){
+        const parts=t.scrapItems?.length?t.scrapItems.filter(si=>si.weight>0).map(si=>`${kN[si.karat]||si.karat}: ${fmtG(si.weight)}ج`):[`${kN[t.karat]||t.karat}: ${fmtG(t.weight||0)}ج`];
+        detail=parts.join(' + ');
+        wtStr=fmtG(t.weight||0)+' ج';
+        amtStr='—';
+      } else if(t.type==='sales-return'||t.type==='return'){
+        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>');
+        amtStr=`<span class="pos">${fmt(t.ajTotal||t.cashRefund||0)} ر</span>`;
+        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+      } else if(t.type==='purchase-return'||t.type==='supplier-return'){
+        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>');
+        amtStr=`<span class="neg">${fmt(t.ajTotal||0)} ر</span>`;
+        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+      } else if(t.type==='transfer'){
+        const fLbl=t.fromLabel||(t.fromSafe||'');
+        const tLbl=t.toLabel  ||(t.toSafe  ||'');
+        detail=`${fLbl} → ${tLbl}`;
+        if(t.goldAmount>0){detail+=`<br>ذهب: ${fmtG(t.goldAmount)}ج ع${t.goldKarat||''}`;wtStr=fmtG(t.goldAmount)+' ج';}
+        if(t.ajour>0) detail+=`<br>أجور: ${fmt(t.ajour)} ر`;
+        amtStr=t.amount>0?`${fmt(t.amount)} ر`:'—';
+      } else if(t.type==='cash-receipt'){
+        detail=`قبض نقد: ${fmt(t.amount||0)} ر`;
+        amtStr=`<span class="pos">${fmt(t.amount||0)} ر</span>`;
+      } else if(t.type==='expense'){
+        detail=t.notes||'مصروف';
+        amtStr=`<span class="neg">${fmt(t.amount||0)} ر</span>`;
+      } else {
+        amtStr=fmt(t.total||0)+' ر';
+      }
+      const balLabel=Math.abs(runCash)<0.01?'مسوى':`${isSupp?(runCash<0?'له':'له↑'):(runCash>0?'عليه':'له')} ${fmt(Math.abs(runCash))} ر`;
+      return `<tr><td style="white-space:nowrap">${dt.ar}<br><small>${dt.en}</small></td>
+        <td><b>${TLBL[t.type]||t.type}</b>${t.isDebt?'<br><small class="badge-debt">آجل</small>':''}</td>
         <td style="font-size:11px">${detail||'—'}</td>
         <td>${amtStr}</td>
-        <td>${wtStr}</td>
-      </tr>`;
+        <td style="font-size:11px">${wtStr}</td>
+        <td class="${Math.abs(runCash)>0.01?(isSupp?(runCash<0?'neg':'pos'):(runCash>0?'neg':'pos')):''}" style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
     }).join('');
-
+    const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?`
+      <tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
+        <td>—<br><small>رصيد مرحّل</small></td>
+        <td><b>🏁 رصيد افتتاحي</b>${_obEntry.note?`<br><small>${_obEntry.note}</small>`:''}</td>
+        <td>${Math.abs(_obEntry.cash||0)>0.01?`${_obEntry.cash>0?'عليه':'له'} ${fmt(Math.abs(_obEntry.cash))} ر`:''}${Math.abs(_obEntry.gold24||0)>0.001?`<br>${fmtG(Math.abs(_obEntry.gold24))} ج ع24`:''}</td>
+        <td>${Math.abs(_obEntry.cash||0)>0.01?`<span class="${_obEntry.cash>0?'neg':'pos'}">${fmt(Math.abs(_obEntry.cash))} ر</span>`:'—'}</td>
+        <td>${Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—'}</td>
+        <td>—</td></tr>`:'';
     bodyHtml=`
     <div class="bal-card ${isSettled?'settled-card':''}">
-      <div class="bal-title">${isSettled?'✅ الحساب مسدد':'💳 الرصيد الحالي'}</div>
-      ${isSettled
-        ?`<div class="settled">✅ تم تسديد الحساب كامل — لا يوجد أي رصيد متبقي</div>`
-        :balRows}
+      <div class="bal-title">${isSettled?'الحساب مسدد':'الرصيد الحالي'}</div>
+      ${isSettled?`<div class="settled">✅ الحساب مسدد بالكامل</div>`:balRows}
     </div>
-
-    <div class="section-title">📋 تفصيل الحركات (${txs.length})</div>
-    <table>
-      <thead>
-        <tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن</th></tr>
-      </thead>
-      <tbody>
-        ${(_obEntry2&&(Math.abs(_obEntry2.cash||0)>0.01||Math.abs(_obEntry2.gold24||0)>0.001))?`
-        <tr style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border-bottom:2px solid var(--g5)">
-          <td style="padding:8px 10px;font-size:11px;color:var(--tx2);white-space:nowrap">—</td>
-          <td style="padding:8px 10px">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="background:var(--g1);color:#060300;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">🏁 رصيد افتتاحي</span>
-            </div>
-            <div style="font-size:10px;color:var(--tx2);margin-top:3px">الرصيد المرحّل قبل بداية النظام</div>
-          </td>
-          <td style="padding:8px 10px;text-align:left;font-weight:700">
-            ${Math.abs(_obEntry2.cash||0)>0.01?`<div style="color:${_obEntry2.cash>0?'var(--no)':'var(--ok)'}">${_obEntry2.cash>0?'<span style="font-size:10px;background:var(--no-bg);color:var(--no);padding:1px 5px;border-radius:4px;margin-left:3px">عليه</span>':'<span style="font-size:10px;background:var(--ok-bg);color:var(--ok);padding:1px 5px;border-radius:4px;margin-left:3px">له</span>'}${fmt(Math.abs(_obEntry2.cash))} ر</div>`:'—'}
-            ${Math.abs(_obEntry2.gold24||0)>0.001?`<div style="font-size:11px;color:var(--g1)">${fmtG(Math.abs(_obEntry2.gold24))} ج ع24</div>`:''}
-          </td>
-          <td style="padding:8px 10px;text-align:left;font-weight:900;color:var(--g1)">
-            <div>${fmt(Math.abs(_obEntry2.cash||0)>0.01?Math.abs(_obEntry2.cash):0)} ر</div>
-          </td>
-          <td style="padding:6px 8px;text-align:center">—</td>
-        </tr>`:``}
-        ${txRows}</tbody>
-    </table>`;
+    <div class="section-title">تفصيل الحركات (${txs.length} عملية)</div>
+    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن</th><th>الرصيد المتراكم</th></tr></thead>
+    <tbody>${obRow}${rows}</tbody></table>
+    <div class="final-summary">
+      <div class="fs-title">الملخص النهائي</div>
+      <div class="fs-row"><span>الرصيد النقدي</span>
+        <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
+      ${Math.abs(bal.goldOwedAs24||0)>0.001?`<div class="fs-row"><span>الرصيد الذهبي</span>
+        <span class="fs-val ${bal.goldOwedAs24>0?'neg':'pos'}">${bal.goldOwedAs24>0?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`:''}
+    </div>`;
   }
 
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+  const printHTML=`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
   <meta charset="UTF-8"><title>${title}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff}
+    body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff;direction:rtl}
     .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
-    .header h1{font-size:22px;font-weight:900;color:#C9922A}
-    .header h2{font-size:17px;font-weight:700;margin-top:4px}
+    .header h1{font-size:20px;font-weight:900;color:#C9922A}
+    .header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
     .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-    .bal-card{border:2px solid #C9922A;border-radius:12px;padding:14px;margin-bottom:18px;background:#FDF6E3}
+    .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
     .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
-    .bal-title{font-size:15px;font-weight:900;color:#C9922A;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
-    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #E8D9AA;font-size:14px}
+    .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
+    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
     .bal-row:last-child{border-bottom:none}
-    .bal-val{font-size:18px;font-weight:900}
-    .settled{text-align:center;font-size:15px;font-weight:900;color:#2D7A4F;padding:12px}
-    .section-title{font-size:14px;font-weight:900;color:#1C1208;margin:16px 0 8px;padding-right:10px;border-right:4px solid #C9922A}
-    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}
-    th{background:#1C1208;color:#F0C050;padding:8px;text-align:right;font-weight:700}
-    td{padding:7px 8px;border-bottom:1px solid #E8D9AA;vertical-align:top}
-    tr:nth-child(even) td{background:#FDF6E3}
+    .bal-val{font-size:15px;font-weight:900}
+    .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
+    .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
+    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+    th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
+    td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
+    tr:nth-child(even) td{background:#FDFAF3}
     .pos{color:#2D7A4F;font-weight:700}
     .neg{color:#B83232;font-weight:700}
+    .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+    .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+    .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
     small{color:#7A6540;font-size:10px}
-    @media print{body{padding:8px}button{display:none!important}}
+    .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
+    .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
+    .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+    .fs-row:last-child{border-bottom:none}
+    .fs-val{font-size:16px;font-weight:900}
+    .print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+    @media print{.print-btn{display:none!important}body{padding:8px}}
   </style></head><body>
   <div class="header">
-    <h1>🏅 مكتب الذهب والمجوهرات</h1>
+    <h1>💍 جوهرة كيان الرائده</h1>
     <h2>${title}</h2>
-    <div class="dates">تاريخ الطباعة: ${printDate} — ${printDateEn}</div>
+    <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
   </div>
   ${bodyHtml}
-  <div style="text-align:center;margin-top:20px">
-    <button onclick="window.print()" style="background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 28px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer">🖨️ طباعة / حفظ PDF</button>
-  </div>
-  <!-- Confirm Modal -->
-  <div id="m-confirm" class="modal" style="z-index:9999">
-    <div class="mbox" style="max-width:300px;text-align:center">
-      <div style="font-size:36px;margin-bottom:10px">⚠️</div>
-      <div id="confirm-msg" style="font-size:15px;font-weight:700;margin-bottom:20px">هل أنت متأكد؟</div>
-      <div style="display:flex;gap:10px">
-        <button class="btn" style="flex:1;background:var(--no);color:white" id="confirm-ok">تأكيد</button>
-        <button class="btn" style="flex:1;background:var(--c2)" onclick="closeM('m-confirm')">إلغاء</button>
-      </div>
-    </div>
-  </div>
-</body></html>`);
-  win.document.close();
+  <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+</body></html>`;
+
+  const blob=new Blob([printHTML],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url,'_blank');
+  if(!win){
+    const a=document.createElement('a');
+    a.href=url;a.download='كشف_حساب.html';a.click();
+    toast('📥 تم تنزيل الملف — افتحه واطبعه');
+  } else {
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+  }
 }
 
 // ── Render helpers ─────────────────────────────────────────────────
@@ -6565,21 +6590,25 @@ function renderRetCliInvoices(){
 function applyReturnFromInv(txId){
   const tx = (S.transactions||[]).find(t=>t.id===txId);
   if(!tx) return;
-  // تطبيق الأصناف من الفاتورة الأصلية
   if(tx.items && tx.items.length){
     returnItems = tx.items.map((i,idx)=>({
-      id: idx+1, karat: i.karat||'21',
-      weight: i.weight||0, isWorked: i.isWorked||false,
-      ajour: i.ajour||0
+      id: idx+1,
+      karat: i.karat||'21',
+      weight: 0,            // المستخدم يدخل الوزن المرجوع
+      isWorked: !!i.isWorked,
+      ajour: i.ajour||0,
+      lockedKarat: true,    // قفل العيار من الفاتورة الأصلية
+      origWeight: i.weight||0,
+      desc: i.desc||''
     }));
     returnCounter = returnItems.length;
     renderReturnItems();
   }
-  // تطبيق الضريبة تلقائياً
   const vatCb = document.getElementById('ret-vat');
   if(vatCb) vatCb.checked = (tx.vatAmt||0)>0;
   calcReturnSummary();
-  toast('✅ تم تطبيق بيانات الفاتورة — تحقق وعدّل إذا لزم');
+  document.getElementById('ret-cli-invoices')?.style && (document.getElementById('ret-cli-invoices').style.display='none');
+  toast('✅ تم تطبيق بيانات الفاتورة — العيار والنوع مقفول تلقائياً · أدخل الوزن المرجوع');
 }
 
 function addReturnItem(){
@@ -6616,31 +6645,46 @@ function renderReturnItems(){
   }
   el.innerHTML = returnItems.map((item,idx)=>{
     const as24 = Math.round(item.weight*parseFloat(item.karat)/24*1000)/1000;
-    return `<div style="background:var(--c1);border-radius:var(--rb);padding:10px;margin-bottom:8px;border:1px solid var(--b1)">
+    const isWorked = item.isWorked;
+    const workedBadge = isWorked
+      ? `<span style="background:var(--in-bg);color:var(--in);border:1px solid var(--in-bd);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">💍 مشغول</span>`
+      : `<span style="background:var(--g4);color:var(--g1);border:1px solid var(--g5);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">🗃️ كسر</span>`;
+    // العيار مقفول إذا جاء من فاتورة (lockedKarat)
+    const karatLocked = !!item.lockedKarat;
+    return `<div style="background:var(--c1);border-radius:var(--rb);padding:10px;margin-bottom:8px;border:1.5px solid var(--b2)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;font-weight:700;color:var(--g1)">صنف ${idx+1}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;font-weight:700;color:var(--g1)">صنف ${idx+1}</span>
+          ${workedBadge}
+        </div>
         <button onclick="removeReturnItem(${item.id})"
           style="background:var(--no);color:white;border:none;border-radius:4px;
             padding:2px 8px;cursor:pointer;font-size:11px">✕</button>
       </div>
       <div class="g3" style="margin-bottom:6px">
-        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">العيار</div>
-          <select onchange="updateReturnItem(${item.id},'karat',this.value)"
-            style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);
-              background:var(--c2);color:var(--tx1);font-family:inherit">
-            <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
-            <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
-            <option value="24" ${item.karat==='24'?'selected':''}>عيار 24</option>
-          </select>
+        <div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:3px">العيار ${karatLocked?'🔒':''}</div>
+          ${karatLocked
+            ? `<div style="padding:8px;background:var(--g4);border-radius:var(--rc);font-weight:700;color:var(--g1);font-size:13px">عيار ${item.karat}</div>`
+            : `<select onchange="updateReturnItem(${item.id},'karat',this.value)"
+                style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);
+                  background:var(--c2);color:var(--tx1);font-family:inherit">
+                <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
+                <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
+                <option value="24" ${item.karat==='24'?'selected':''}>عيار 24</option>
+              </select>`
+          }
         </div>
-        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">الوزن (جرام)</div>
+        <div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:3px">الوزن (جرام)</div>
           <input type="number" value="${item.weight||''}" placeholder="0.000" step="0.001"
             inputmode="decimal"
             style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--g5);
               background:var(--c1);color:var(--tx1);font-family:inherit"
             oninput="updateReturnItem(${item.id},'weight',this.value)">
         </div>
-        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">أجور/جرام</div>
+        <div>
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:3px">أجور/جرام</div>
           <input type="number" id="ri-ajour-${item.id}" value="${item.ajour||''}" placeholder="0"
             inputmode="decimal"
             style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);
@@ -6716,7 +6760,7 @@ function saveReturn(){
     client:cli, notes,
     items:validItems.map(i=>{
       const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
-      return {karat:i.karat, weight:i.weight, isWorked:false, ajour};
+      return {karat:i.karat, weight:i.weight, isWorked:!!i.isWorked, ajour};
     }),
     cashRefund:cash,                                   // النقد المسترد فعلياً
     retAjour:Math.round(retAjour*100)/100,             // الأجور فقط
@@ -8032,36 +8076,85 @@ function renderObClientsList(){
   }
   const typeClr={'عميل':'var(--in)','مورد':'var(--io)','موظف':'var(--pu)','موزع':'var(--ok)'};
   const typeIc={'عميل':'👤','مورد':'🏭','موظف':'👷','موزع':'🚚'};
-  let html='<div style="display:flex;flex-direction:column;gap:8px">';
+  let html='<div style="display:flex;flex-direction:column;gap:10px">';
   entries.forEach(([name,data])=>{
     const clr=typeClr[data.type]||'var(--g1)';
     const ic=typeIc[data.type]||'👤';
     const isSupp=data.type==='مورد'||data.type==='موزع';
-    html+=`<div style="background:var(--c2);border:1px solid var(--b2);border-radius:var(--rb);padding:12px;border-right:3px solid ${clr}">
+    // اتجاه الرصيد النقدي الحالي: لو data.cashDir محفوظ نستخدمه وإلا نستنتج
+    const cashDir = data.cashDir || (data.cash>0 ? (isSupp?'له_علينا':'عليه_لنا') : (data.cash<0?(isSupp?'لنا_فائض':'له_عندنا'):'عليه_لنا'));
+    const goldDir = data.goldDir || (data.gold24>0 ? 'عليه' : 'له');
+    html+=`<div style="background:var(--c2);border:1.5px solid ${clr};border-radius:var(--rb);padding:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:18px">${ic}</span>
           <div>
             <div style="font-size:13px;font-weight:800;color:var(--tx1)">${name}</div>
-            <div style="font-size:10px;color:var(--tx2)">${data.type||'جهة'}</div>
+            <div style="font-size:10px;color:${clr};font-weight:700">${data.type||'جهة'}</div>
           </div>
         </div>
         <button onclick="removeObClient('${name.replace(/'/g,"\'")}')"
           style="background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);border-radius:var(--rc);
             padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✕</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+
+      <!-- نقد -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">💵 رصيد نقدي (ريال)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <button type="button" id="ob-cashdir-owe-${name}" onclick="setObCashDir('${name.replace(/'/g,"\\'")}','${isSupp?'له_علينا':'عليه_لنا'}')"
+            style="padding:8px;border-radius:8px;border:2px solid ${cashDir===(isSupp?'له_علينا':'عليه_لنا')?'var(--no)':'var(--b2)'};
+              background:${cashDir===(isSupp?'له_علينا':'عليه_لنا')?'var(--no-bg)':'var(--c1)'};
+              color:${cashDir===(isSupp?'له_علينا':'عليه_لنا')?'var(--no)':'var(--tx2)'};
+              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            ${isSupp?'له علينا 🔴':'عليه لنا 🔴'}
+          </button>
+          <button type="button" id="ob-cashdir-have-${name}" onclick="setObCashDir('${name.replace(/'/g,"\\'")}','${isSupp?'لنا_فائض':'له_عندنا'}')"
+            style="padding:8px;border-radius:8px;border:2px solid ${cashDir===(isSupp?'لنا_فائض':'له_عندنا')?'var(--ok)':'var(--b2)'};
+              background:${cashDir===(isSupp?'لنا_فائض':'له_عندنا')?'var(--ok-bg)':'var(--c1)'};
+              color:${cashDir===(isSupp?'لنا_فائض':'له_عندنا')?'var(--ok)':'var(--tx2)'};
+              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            ${isSupp?'لنا فائض 🟢':'له عندنا 🟢'}
+          </button>
+        </div>
+        <input type="number" id="ob-cli-cash-${name}" value="${Math.abs(data.cash||0)||''}" placeholder="0" inputmode="decimal"
+          style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:15px;font-weight:700;color:var(--tx1)">
+      </div>
+
+      <!-- ذهب -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">🥇 رصيد ذهب (ج ع24)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <button type="button" id="ob-golddir-owe-${name}" onclick="setObGoldDir('${name.replace(/'/g,"\\'")}','عليه')"
+            style="padding:8px;border-radius:8px;border:2px solid ${goldDir==='عليه'?'var(--no)':'var(--b2)'};
+              background:${goldDir==='عليه'?'var(--no-bg)':'var(--c1)'};
+              color:${goldDir==='عليه'?'var(--no)':'var(--tx2)'};
+              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            عليه لنا 🔴
+          </button>
+          <button type="button" id="ob-golddir-have-${name}" onclick="setObGoldDir('${name.replace(/'/g,"\\'")}','له')"
+            style="padding:8px;border-radius:8px;border:2px solid ${goldDir==='له'?'var(--ok)':'var(--b2)'};
+              background:${goldDir==='له'?'var(--ok-bg)':'var(--c1)'};
+              color:${goldDir==='له'?'var(--ok)':'var(--tx2)'};
+              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            له عندنا 🟢
+          </button>
+        </div>
+        <input type="number" id="ob-cli-gold-${name}" value="${Math.abs(data.gold24||0)||''}" placeholder="0.000" inputmode="decimal" step="0.001"
+          style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:15px;font-weight:700;color:var(--g1)">
+      </div>
+
+      <!-- التاريخ والملاحظة -->
+      <div class="g2">
         <div>
-          <div style="font-size:10px;color:var(--tx2);font-weight:700;margin-bottom:3px">💵 نقد (ريال)</div>
-          <div style="font-size:9px;color:var(--tx3);margin-bottom:4px">${isSupp?'موجب=له علينا':'موجب=عليه لنا'}</div>
-          <input type="number" id="ob-cli-cash-${name}" value="${data.cash||''}" placeholder="0" inputmode="decimal"
-            style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--tx1)">
+          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">📅 تاريخ الرصيد</div>
+          <input type="date" id="ob-cli-date-${name}" value="${data.date||''}"
+            style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
         </div>
         <div>
-          <div style="font-size:10px;color:var(--tx2);font-weight:700;margin-bottom:3px">🥇 ذهب (ج ع24)</div>
-          <div style="font-size:9px;color:var(--tx3);margin-bottom:4px">${isSupp?'موجب=له علينا':'موجب=عليه لنا'}</div>
-          <input type="number" id="ob-cli-gold-${name}" value="${data.gold24||''}" placeholder="0.000" inputmode="decimal" step="0.001"
-            style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--g1)">
+          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">📝 وصل / ملاحظة</div>
+          <input type="text" id="ob-cli-note-${name}" value="${data.note||''}" placeholder="رقم وصل أو ملاحظة..."
+            style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
         </div>
       </div>
     </div>`;
@@ -8070,13 +8163,42 @@ function renderObClientsList(){
   el.innerHTML=html;
 }
 
+function setObCashDir(name, dir){
+  const ob=getOB();
+  if(!ob.clients[name]) return;
+  ob.clients[name].cashDir = dir;
+  S.openingBalance=ob;
+  renderObClientsList();
+}
+function setObGoldDir(name, dir){
+  const ob=getOB();
+  if(!ob.clients[name]) return;
+  ob.clients[name].goldDir = dir;
+  S.openingBalance=ob;
+  renderObClientsList();
+}
+
 function saveOpeningClients(){
   const ob=getOB();
   Object.keys(ob.clients).forEach(name=>{
-    const cv=parseFloat(document.getElementById('ob-cli-cash-'+name)?.value)||0;
-    const gv=parseFloat(document.getElementById('ob-cli-gold-'+name)?.value)||0;
-    ob.clients[name].cash=cv;
-    ob.clients[name].gold24=gv;
+    const cashRaw=parseFloat(document.getElementById('ob-cli-cash-'+name)?.value)||0;
+    const goldRaw=parseFloat(document.getElementById('ob-cli-gold-'+name)?.value)||0;
+    const dateV=document.getElementById('ob-cli-date-'+name)?.value||'';
+    const noteV=document.getElementById('ob-cli-note-'+name)?.value||'';
+    const isSupp=ob.clients[name].type==='مورد'||ob.clients[name].type==='موزع';
+    const cashDir=ob.clients[name].cashDir||(isSupp?'له_علينا':'عليه_لنا');
+    const goldDir=ob.clients[name].goldDir||'عليه';
+    // تحديد الإشارة: "عليه لنا" أو "له علينا" = موجب لمن يدين | "له عندنا" = سالب
+    let cashSigned=cashRaw;
+    if(cashDir==='له_عندنا'||cashDir==='لنا_فائض') cashSigned=-cashRaw;
+    let goldSigned=goldRaw;
+    if(goldDir==='له') goldSigned=-goldRaw;
+    ob.clients[name].cash=cashSigned;
+    ob.clients[name].gold24=goldSigned;
+    ob.clients[name].cashDir=cashDir;
+    ob.clients[name].goldDir=goldDir;
+    ob.clients[name].date=dateV;
+    ob.clients[name].note=noteV;
   });
   S.openingBalance=ob;
   sv(); renderObSummary();
