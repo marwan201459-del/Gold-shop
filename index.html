@@ -141,12 +141,12 @@ body{
 
 /* ── STAT BOXES ── */
 .sb{border-radius:var(--rb);padding:15px 10px;text-align:center;
-  background:var(--c2);border:1px solid var(--b1);
+  background:var(--c2);border:1px solid var(--b2);
   position:relative;overflow:hidden;transition:var(--tr)}
 .sb:hover{transform:translateY(-2px);box-shadow:var(--s2);border-color:var(--b2)}
-.sb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.sb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
 .sb .v{font-size:20px;font-weight:900;margin-bottom:3px;line-height:1}
-.sb .l{font-size:10px;color:var(--tx1);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.sb .l{font-size:10px;color:var(--tx2);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 
 .sb.gold {background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.06));border-color:var(--g5)}
 .sb.gold::after{background:var(--g1)}.sb.gold .v{color:var(--g1)}
@@ -291,20 +291,20 @@ body{
 .cs span{font-weight:700;color:var(--tx1)}
 
 /* ── SAFES ── */
-.sfc{border-radius:var(--rb);padding:13px 15px;display:flex;justify-content:space-between;
-  align-items:center;margin-bottom:8px;background:var(--c1);border:1px solid var(--b1);
+.sfc{border-radius:var(--rb);padding:14px 16px;display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:8px;background:var(--c1);border:1.5px solid var(--b2);
   position:relative;overflow:hidden;transition:var(--tr)}
 .sfc:hover{background:var(--c2);border-color:var(--b2)}
-.sfc::before{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;border-radius:0}
+.sfc::before{content:'';position:absolute;right:0;top:0;bottom:0;width:4px;border-radius:0}
 .sfc.cash::before{background:var(--ok)}
 .sfc.s21::before,.sfc.s18::before{background:var(--g1)}
 .sfc.p24::before{background:var(--in)}
 .sfc.khz::before{background:var(--pu)}
 .sfc.mdn::before{background:#28C8D8}
 .sfc.lava::before{background:var(--no)}
-.sfc .sl{font-size:13px;font-weight:700;color:var(--tx1)}
-.sfc .su{font-size:10px;color:var(--tx2);margin-top:2px}
-.sfc .sv{font-size:22px;font-weight:900}
+.sfc .sl{font-size:13px;font-weight:800;color:var(--tx1)}
+.sfc .su{font-size:11px;color:var(--tx2);margin-top:2px;font-weight:600}
+.sfc .sv{font-size:24px;font-weight:900}
 .sfc.cash .sv{color:var(--ok)}
 .sfc.s21 .sv,.sfc.s18 .sv{color:var(--g1)}
 .sfc.p24 .sv{color:var(--in)}
@@ -1795,11 +1795,11 @@ const SM_BASE={
   discount:  {label:'🏷️ الخصم المسموح',    unit:'ريال', cls:'cash',   type:'cash'},
   scrap21:   {label:'🗃️ كسر عيار 21',      unit:'جرام', cls:'s21',    type:'gold'},
   scrap18:   {label:'🗃️ كسر عيار 18',      unit:'جرام', cls:'s18',    type:'gold'},
-  pure24:    {label:'✨ ذهب صافي 24',      unit:'جرام', cls:'p24',    type:'gold'},
-  worked21:  {label:'💍 مشغول عيار 21',    unit:'جرام', cls:'s21',    type:'gold'},
-  worked18:  {label:'💍 مشغول عيار 18',    unit:'جرام', cls:'s18',    type:'gold'},
+  pure24:    {label:'✨ ذهب صافي 24',       unit:'جرام', cls:'p24',    type:'gold'},
+  worked21:  {label:'💍 مشغول عيار 21',     unit:'جرام', cls:'s21',    type:'gold'},
+  worked18:  {label:'💍 مشغول عيار 18',     unit:'جرام', cls:'s18',    type:'gold'},
   madan:     {label:'⚙️ المعدن',            unit:'جرام', cls:'mdn',    type:'both'},
-  lava:      {label:'🔥 لافا',               unit:'جرام', cls:'lava',   type:'both'},
+  lava:      {label:'🔥 لافا',              unit:'جرام', cls:'lava',   type:'both'},
   debt21:    {label:'📋 مديونية عيار 21',   unit:'جرام', cls:'purple', type:'gold'},
   debt18:    {label:'📋 مديونية عيار 18',   unit:'جرام', cls:'purple', type:'gold'},
   debt24:    {label:'📋 مديونية عيار 24',   unit:'جرام', cls:'purple', type:'gold'},
@@ -3104,7 +3104,6 @@ function doTransfer(){
   if(!from||!to){toast('⚠️ اختر المصدر والوجهة');return;}
   if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
   if(from===to){toast('⚠️ اختر صناديق مختلفة');return;}
-  // الصناديق تسمح بالسالب (مستودعات كبيرة)
 
   const fromCli=from.startsWith('__cli__')?from.replace('__cli__',''):null;
   const toCli=to.startsWith('__cli__')?to.replace('__cli__',''):null;
@@ -3114,22 +3113,26 @@ function doTransfer(){
 
   const tfDate=document.getElementById('tf-date')?.value;
   const tfISO=tfDate?new Date(tfDate).toISOString():new Date().toISOString();
-
   const tfKarat=document.getElementById('tf-karat')?.value||'21';
 
-  // كل التحويلات تُسجل كـ 'transfer' — calcSafes يتعامل معها بشكل موحد
-  // fromSafe وtoSafe يمكن أن يكونا صندوقاً أو __cli__اسم_العميل
+  // نحرص أن fromSafe وtoSafe لا تكون undefined أبداً
+  const fromSafe = fromCli ? ('__cli__'+fromCli) : (fromKey || from || 'cash');
+  const toSafe   = toCli   ? ('__cli__'+toCli)   : (toKey   || to   || 'cash');
+  // label لعرض واضح في السجل
+  const fromLabel = fromCli ? fromCli : (getSM()[from]?.label || from || '');
+  const toLabel   = toCli   ? toCli   : (getSM()[to]?.label   || to   || '');
+
   S.transactions.unshift({
     id:Date.now(), date:tfISO, type:'transfer',
-    fromSafe: fromCli ? ('__cli__'+fromCli) : (fromKey||from),
-    toSafe:   toCli   ? ('__cli__'+toCli)   : (toKey||to),
-    amount:amt,         // نقد بالريال
-    goldAmount:gAmt,    // ذهب بالجرام
+    fromSafe, toSafe,
+    fromLabel, toLabel,
+    amount:amt,
+    goldAmount:gAmt,
     goldKarat:tfKarat,
     unit: gAmt>0 && amt<=0 ? 'جرام' : 'ريال',
-    notes:note||'تحويل',
-    client:cliName, items:[], total:amt+gAmt,
-    cash:0, goldPay:gAmt
+    notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
+    client:cliName, items:[], total:amt||gAmt,
+    cash:amt, goldPay:gAmt
   });
   sv(); renderAll();
   ['tf-amt','tf-gold-amt','tf-note','tf-from-s','tf-to-s'].forEach(id=>{
@@ -3139,8 +3142,11 @@ function doTransfer(){
     const el=document.getElementById(id); if(el) el.value='';
   });
   const tfd=document.getElementById('tf-date');if(tfd)tfd.value='';
+  ['tf-from-lbl','tf-to-lbl'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent='';
+  });
   const amtMsg=[amt>0?fmt(amt)+' ريال':'', gAmt>0?fmtG(gAmt)+' جرام':''].filter(Boolean).join(' + ');
-  toast('✅ تم التحويل: '+amtMsg);
+  toast('✅ تم التحويل: '+amtMsg+` (${fromLabel} → ${toLabel})`);
 }
 
 // ── Delete TX ──────────────────────────────────────────────────────
@@ -3173,55 +3179,85 @@ function renderInvModal(tx,editing){
 
   if(!editing){
     // ── VIEW MODE ──
+    const goldWeight = (tx.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+    const by21 = (tx.items||[]).filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
+    const by18 = (tx.items||[]).filter(i=>i.karat==='18').reduce((a,i)=>a+(i.weight||0),0);
+    const by24 = (tx.items||[]).filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
+
     let html=`
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <button class="btn btn-gold" style="flex:1;padding:10px" onclick="startEditInv(${tx.id})">✏️ تعديل الفاتورة</button>
         <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️</button>
       </div>
-      <div style="background:var(--c2);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="color:#7C2D12;">التاريخ</span><span style="font-weight:700">${dt.ar}</span>
+      <div style="background:var(--c2);border-radius:10px;padding:12px;margin-bottom:10px;font-size:12px;border:1px solid var(--b2)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--tx2);font-weight:700">التاريخ الهجري</span><span style="font-weight:700;color:var(--tx1)">${dt.ar}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="color:#7C2D12;">الميلادي</span><span>${dt.en} · ${dt.time}</span>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--tx2);font-weight:700">الميلادي</span><span style="color:var(--tx1)">${dt.en} · ${dt.time}</span>
         </div>
-        ${tx.client?`<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:#7C2D12;">العميل</span><span style="font-weight:700">${tx.client}</span></div>`:''}
-        ${tx.staff?`<div style="display:flex;justify-content:space-between"><span style="color:#7C2D12;">الموظف</span><span>${tx.staff}</span></div>`:''}
+        ${tx.client?`<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--tx2);font-weight:700">العميل/المورد</span><span style="font-weight:800;color:var(--g1)">${tx.client}</span></div>`:''}
+        ${tx.staff?`<div style="display:flex;justify-content:space-between"><span style="color:var(--tx2);font-weight:700">الموظف</span><span style="color:var(--tx1)">${tx.staff}</span></div>`:''}
       </div>`;
 
+    // ملخص ذهب سريع إذا كان هناك أصناف
+    if(goldWeight>0){
+      const parts=[];
+      if(by21>0) parts.push(`ع21: ${fmtG(by21)} ج`);
+      if(by18>0) parts.push(`ع18: ${fmtG(by18)} ج`);
+      if(by24>0) parts.push(`ع24: ${fmtG(by24)} ج`);
+      html+=`<div style="background:var(--g4);border:1.5px solid var(--g5);border-radius:10px;padding:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:var(--g1)">🥇 إجمالي الذهب</span>
+        <span style="font-size:16px;font-weight:900;color:var(--g1)">${fmtG(goldWeight)} جرام</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        ${parts.map(p=>`<span style="background:white;border:1px solid var(--g5);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--g1)">${p}</span>`).join('')}
+      </div>`;
+    }
+
     if(tx.items&&tx.items.length){
-      html+=`<div class="st">الأصناف</div>`;
+      html+=`<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">الأصناف</div>`;
       tx.items.forEach((item,i)=>{
-        const gAmt=item.weight*item.price, aAmt=item.weight*item.ajour;
-        html+=`<div style="background:white;border-radius:10px;padding:10px;margin-bottom:7px;border:1px solid var(--b1)">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span style="font-weight:700;font-size:13px">${item.isWorked?'💍':'🗃️'} ${i+1}. ${item.desc||'صنف'}</span>
+        const gAmt=item.weight*item.price, aAmt=item.weight*(item.ajour||0);
+        html+=`<div style="background:white;border-radius:10px;padding:10px;margin-bottom:7px;border:1.5px solid var(--b2);box-shadow:0 1px 4px rgba(0,0,0,.05)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-weight:800;font-size:13px;color:var(--tx1)">${item.isWorked?'💍':'🗃️'} ${i+1}. ${item.desc||'صنف'}</span>
             <span class="badge bg-gold">${kNames[item.karat]||item.karat}</span>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:11px;color:var(--tx2)">
-            <div>الوزن: <b style="color:var(--tx1)">${fmtG(item.weight)} جرام</b></div>
-            <div>سعر الجرام: <b style="color:var(--tx1)">${fmt(item.price)} ر</b></div>
-            <div>أجور/جرام: <b style="color:var(--tx1)">${fmt(item.ajour)} ر</b></div>
-            <div>إجمالي الأجور: <b style="color:var(--io)">${fmt(aAmt)} ر</b></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px">
+            <div style="color:var(--tx2)">⚖️ الوزن: <b style="color:var(--tx1)">${fmtG(item.weight)} ج</b></div>
+            <div style="color:var(--tx2)">💰 سعر/جرام: <b style="color:var(--tx1)">${fmt(item.price)} ر</b></div>
+            <div style="color:var(--tx2)">⚒️ أجور/جرام: <b style="color:var(--io)">${fmt(item.ajour||0)} ر</b></div>
+            <div style="color:var(--tx2)">⚒️ إجمالي الأجور: <b style="color:var(--io)">${fmt(aAmt)} ر</b></div>
           </div>
-          <div style="background:var(--g4);border-radius:6px;padding:5px 8px;margin-top:6px;display:flex;justify-content:space-between;font-size:12px">
-            <span style="color:#7C2D12;">ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}</span>
-            <span style="font-weight:700;color:var(--g1)">${fmt(gAmt+aAmt)} ر</span>
+          <div style="background:var(--g4);border-radius:7px;padding:6px 10px;margin-top:7px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--tx2)">ذهب ${fmt(gAmt)} + أجور ${fmt(aAmt)}</span>
+            <span style="font-weight:900;color:var(--g1);font-size:14px">${fmt(gAmt+aAmt)} ر</span>
           </div>
         </div>`;
       });
     }
 
     html+=`<div class="inv-summary" style="margin-bottom:10px">
-      <div class="inv-sum-row"><span class="lbl">إجمالي الذهب</span><span class="val">${fmt(tx.goldTotal||0)} ر</span></div>
-      <div class="inv-sum-row"><span class="lbl">إجمالي الأجور</span><span class="val">${fmt(tx.ajTotal||0)} ر</span></div>
-      ${tx.cash?`<div class="inv-sum-row"><span class="lbl">نقد مستلم</span><span class="val">${fmt(tx.cash||0)} ر</span></div>`:''}
-      ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">مدفوع مقدماً</span><span class="val">${fmt(tx.prepaid||0)} ر</span></div>`:''}
-      ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">دين متبقي</span><span class="val" style="color:var(--pu)">${fmt((tx.total||0)-(tx.prepaid||0))} ر</span></div>`:''}
-      ${tx.isDebt&&tx.due?`<div class="inv-sum-row"><span class="lbl">الاستحقاق</span><span class="val">${tx.due}</span></div>`:''}
-      <div class="inv-sum-row total-row"><span class="lbl">الإجمالي الكلي</span><span class="val">${fmt(tx.total||0)} ر</span></div>
+      <div class="inv-sum-row">
+        <span class="lbl">🥇 إجمالي قيمة الذهب</span>
+        <span class="val" style="color:var(--g1)">${fmt(tx.goldTotal||0)} ر</span>
+      </div>
+      <div class="inv-sum-row">
+        <span class="lbl">⚒️ إجمالي الأجور</span>
+        <span class="val" style="color:var(--io)">${fmt(tx.ajTotal||0)} ر</span>
+      </div>
+      ${(tx.vatAmt||0)>0?`<div class="inv-sum-row"><span class="lbl">🧾 ضريبة 15%</span><span class="val" style="color:#F59E0B">${fmt(tx.vatAmt)} ر</span></div>`:''}
+      ${(tx.discount||0)>0?`<div class="inv-sum-row"><span class="lbl">🏷️ خصم</span><span class="val" style="color:var(--ok)">− ${fmt(tx.discount)} ر</span></div>`:''}
+      ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">💳 مدفوع مقدماً</span><span class="val">${fmt(tx.prepaid||0)} ر</span></div>`:''}
+      ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">📋 دين متبقي</span><span class="val" style="color:var(--pu)">${fmt((tx.total||0)-(tx.prepaid||0))} ر</span></div>`:''}
+      ${tx.isDebt&&tx.due?`<div class="inv-sum-row"><span class="lbl">📅 الاستحقاق</span><span class="val">${tx.due}</span></div>`:''}
+      <div class="inv-sum-row total-row">
+        <span class="lbl">💰 الإجمالي الكلي</span>
+        <span class="val">${fmt(tx.total||0)} ريال</span>
+      </div>
     </div>`;
-    if(tx.notes) html+=`<div style="font-size:12px;color:var(--tx2);margin-bottom:8px">📝 ${tx.notes}</div>`;
+    if(tx.notes) html+=`<div style="font-size:12px;color:var(--tx2);margin-bottom:8px;padding:8px;background:var(--c2);border-radius:8px;border:1px solid var(--b1)">📝 ${tx.notes}</div>`;
     document.getElementById('m-inv-body').innerHTML=html;
 
   } else {
@@ -3652,7 +3688,16 @@ const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-
 function txHtml(t){
   const dt=fmtDate(t.date);
   const cls=TCLS[t.type]||'sell';
-  let sub=t.type==='transfer'?`${SM[t.fromSafe]?.label} → ${SM[t.toSafe]?.label}`:t.client||'—';
+  // إصلاح عرض التحويل: نستخدم fromLabel/toLabel إذا وُجدا، وإلا نحسب من SM
+  let sub;
+  if(t.type==='transfer'){
+    const _SM=getSM();
+    const fromLbl = t.fromLabel || (t.fromSafe?(_SM[t.fromSafe]?.label||t.fromSafe):'—');
+    const toLbl   = t.toLabel   || (t.toSafe  ?(_SM[t.toSafe]  ?.label||t.toSafe  ):'—');
+    sub = `${fromLbl} ← ${toLbl}`;
+  } else {
+    sub = t.client||'—';
+  }
     const debtTag=t.isDebt?`<span class="badge bg-purple" style="font-size:9px">دين</span> `:t.isBuyDebt?`<span class="badge bg-red" style="font-size:9px">آجل مورد</span> `:t.type==='supplier-return'?`<span class="badge bg-orange" style="font-size:9px">↩️ مورد</span> `:'';
 
   // items summary for invoices
@@ -3668,8 +3713,15 @@ function txHtml(t){
     </div>`;
   }
 
-  const amtStr=t.type==='transfer'?`${fmt(t.amount)} ${t.unit||''}`:t.total?`${fmt(t.total)} ر`:'';
-  const gStr=t.weight?`${fmtG(t.weight)} جرام`:'';
+  // حساب الوزن الكلي للذهب بشكل صحيح
+  const totalGoldW = (t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+  // بالنسبة للكسر والتحويلات الذهبية
+  const displayGoldW = totalGoldW>0 ? totalGoldW : (t.weight||0)||(t.goldAmount||0);
+
+  const amtStr=t.type==='transfer'
+    ?[t.amount>0?fmt(t.amount)+' ر':'', t.goldAmount>0?fmtG(t.goldAmount)+' ج':''].filter(Boolean).join(' + ')
+    :t.total?`${fmt(t.total)} ر`:'';
+  const gStr=displayGoldW>0?`${fmtG(displayGoldW)} جرام`:(t.goldPay>0?`${fmtG(t.goldPay)} جرام`:'');
 
   return `<div class="txi ${cls}" onclick="viewInv(${t.id})" style="cursor:pointer">
     <div class="txi-row">
@@ -4776,41 +4828,50 @@ function renderInventory(){
   const sf = S.safes;
   const to24 = (w,k) => Math.round(w*(parseFloat(k)||21)/24*1000)/1000;
 
-  // حساب إجمالي الذهب بعيار 24
   const totalScrap24 =
     Math.round(((sf.scrap21||0)*(21/24)+(sf.scrap18||0)*(18/24)+(sf.pure24||0))*1000)/1000;
   const totalWorked24 =
     Math.round(((sf.worked21||0)*(21/24)+(sf.worked18||0)*(18/24))*1000)/1000;
   const totalGold24 = Math.round((totalScrap24 + totalWorked24)*1000)/1000;
-
-  // مديونيات الذهب الإجمالية بعيار 24
   const totalDebt24 = Math.round(((sf.debt21||0)*(21/24)+(sf.debt18||0)*(18/24)+(sf.debt24||0))*1000)/1000;
+  const workedTotal = (sf.worked21||0)+(sf.worked18||0);
 
   const rows = [
-    {label:'💵 الصندوق النقدي', val: fmt(sf.cash||0),   unit:'ريال',  cls:'green'},
-    {label:'🗃️ كسر عيار 21',    val: fmtG(sf.scrap21||0), unit:'جرام', cls:'gold',
-      sub: `= ${fmtG(to24(sf.scrap21||0,'21'))} جرام عيار 24`},
-    {label:'🗃️ كسر عيار 18',    val: fmtG(sf.scrap18||0), unit:'جرام', cls:'gold',
-      sub: `= ${fmtG(to24(sf.scrap18||0,'18'))} جرام عيار 24`},
-    {label:'✨ ذهب صافي 24',    val: fmtG(sf.pure24||0),  unit:'جرام', cls:'blue'},
-    {label:'💍 مشغول عيار 21',  val: fmtG(sf.worked21||0),unit:'جرام', cls:'teal',
-      sub: `= ${fmtG(Math.round((sf.worked21||0)*(21/24)*1000)/1000)} جرام عيار 24`},
-    {label:'💍 مشغول عيار 18',  val: fmtG(sf.worked18||0),unit:'جرام', cls:'teal',
-      sub: `= ${fmtG(Math.round((sf.worked18||0)*(18/24)*1000)/1000)} جرام عيار 24`},
-    {label:'🏦 الخزينة',         val: fmt(sf.khazina||0),  unit:'ريال',  cls:'green'},
-    {label:'⚙️ المعدن',          val: fmtG(sf.madan||0),   unit:'جرام', cls:'gold'},
-    {label:'🔥 لافا',            val: fmtG(sf.lava||0),    unit:'جرام', cls:'gold'},
+    {label:'💵 الصندوق النقدي', val: fmt(sf.cash||0),    unit:'ريال', cls:'green'},
+    {label:'🗃️ كسر عيار 21',   val: fmtG(sf.scrap21||0), unit:'جرام', cls:'gold',
+      sub:`= ${fmtG(to24(sf.scrap21||0,'21'))} جرام عيار 24`},
+    {label:'🗃️ كسر عيار 18',   val: fmtG(sf.scrap18||0), unit:'جرام', cls:'gold',
+      sub:`= ${fmtG(to24(sf.scrap18||0,'18'))} جرام عيار 24`},
+    {label:'✨ ذهب صافي 24',   val: fmtG(sf.pure24||0),  unit:'جرام', cls:'blue'},
+    // مشغول مجمع
+    ...(workedTotal>0 ? [{
+      label:'💍 مشغول (إجمالي)',
+      val: fmtG(Math.round(workedTotal*1000)/1000),
+      unit:'جرام', cls:'teal',
+      sub:`ع21: ${fmtG(sf.worked21||0)}ج · ع18: ${fmtG(sf.worked18||0)}ج · إجمالي ع24: ${fmtG(totalWorked24)}ج`,
+      bold:true
+    }] : []),
+    {label:'💍 مشغول عيار 21', val: fmtG(sf.worked21||0), unit:'جرام', cls:'teal',
+      sub:`= ${fmtG(Math.round((sf.worked21||0)*(21/24)*1000)/1000)} جرام عيار 24`, indent:true},
+    {label:'💍 مشغول عيار 18', val: fmtG(sf.worked18||0), unit:'جرام', cls:'teal',
+      sub:`= ${fmtG(Math.round((sf.worked18||0)*(18/24)*1000)/1000)} جرام عيار 24`, indent:true},
+    {label:'🏦 الخزينة',        val: fmt(sf.khazina||0),   unit:'ريال', cls:'purple'},
+    {label:'⚙️ المعدن',         val: fmtG(sf.madan||0),    unit:'جرام', cls:'gold'},
+    {label:'🔥 لافا',           val: fmtG(sf.lava||0),     unit:'جرام', cls:'gold'},
   ];
 
-  // صناديق مخصصة
   (S.customSafes||[]).forEach(cs=>{
-    rows.push({label:cs.icon+' '+cs.name, val:cs.unit==='ريال'?fmt(sf['cs_'+cs.id]||0):fmtG(sf['cs_'+cs.id]||0), unit:cs.unit, cls:'gold'});
+    rows.push({
+      label:cs.icon+' '+cs.name,
+      val: (cs.type==='gold')?fmtG(sf['cs_'+cs.id]||0):fmt(sf['cs_'+cs.id]||0),
+      unit: (cs.type==='gold')?'جرام':'ريال', cls:'gold'
+    });
   });
 
   let html = `
     <div style="background:linear-gradient(135deg,#1C1208,#3A2810);border-radius:12px;padding:14px;margin-bottom:14px;color:white">
       <div style="font-size:11px;color:#B89A60;margin-bottom:4px">إجمالي الذهب الفعلي</div>
-      <div style="font-size:26px;font-weight:900;color:var(--g2)">${fmtG(totalGold24)} <span style="font-size:14px">جرام عيار 24</span></div>
+      <div style="font-size:28px;font-weight:900;color:var(--g2)">${fmtG(totalGold24)} <span style="font-size:14px">جرام عيار 24</span></div>
       <div style="font-size:11px;color:#B89A60;margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
         🗃️ كسر: <b style="color:#FFD700">${fmtG(totalScrap24)} ج ع٢٤</b>
         &nbsp;|&nbsp; 💍 مشغول: <b style="color:#81D4FA">${fmtG(totalWorked24)} ج ع٢٤</b>
@@ -4820,19 +4881,21 @@ function renderInventory(){
         &nbsp;|&nbsp; 💰 نقد: <b style="color:#7fff7f">${fmt(sf.cash||0)} ريال</b>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px">`;
+    <div style="display:flex;flex-direction:column;gap:7px">`;
 
   rows.forEach(r=>{
-    if(!r.val || r.val==='0' || r.val==='٠') return;
+    if(!r || !r.val || r.val==='0' || r.val==='٠') return;
+    const indent = r.indent ? 'margin-right:16px;border-right:3px solid var(--g5);' : '';
+    const boldStyle = r.bold ? 'border:2px solid var(--g5);background:linear-gradient(135deg,white,rgba(200,150,30,.04));' : 'border:1.5px solid var(--b2);';
     html += `
-      <div style="background:white;border-radius:10px;padding:11px 14px;border:1.5px solid var(--b1);display:flex;justify-content:space-between;align-items:center">
+      <div style="${boldStyle}${indent}background:white;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)">
         <div>
-          <div style="font-size:13px;font-weight:700">${r.label}</div>
-          ${r.sub?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">${r.sub}</div>`:''}
+          <div style="font-size:13px;font-weight:${r.bold?'900':'700'};color:#1A1E2E">${r.label}</div>
+          ${r.sub?`<div style="font-size:10px;color:#5A6480;margin-top:2px;font-weight:600">${r.sub}</div>`:''}
         </div>
         <div style="text-align:left">
-          <span style="font-size:17px;font-weight:900;color:var(--${r.cls||'gold'})">${r.val}</span>
-          <span style="font-size:11px;color:var(--tx2);margin-right:3px">${r.unit}</span>
+          <span style="font-size:${r.bold?'20':'18'}px;font-weight:900;color:var(--${r.cls||'gold'})">${r.val}</span>
+          <span style="font-size:11px;color:#5A6480;margin-right:3px;font-weight:600">${r.unit}</span>
         </div>
       </div>`;
   });
@@ -4846,7 +4909,7 @@ function renderInventory(){
     if(!snaps.length){ snapEl.innerHTML='<div class="empty"><p>لا توجد تسويات بعد</p></div>'; return; }
     snapEl.innerHTML = snaps.map(sn=>{
       const dt = fmtDate(sn.date);
-      return `<div style="background:white;border-radius:10px;padding:10px 13px;margin-bottom:8px;border:1px solid var(--b1)">
+      return `<div style="background:white;border-radius:10px;padding:10px 13px;margin-bottom:8px;border:1.5px solid var(--b2);box-shadow:0 1px 4px rgba(0,0,0,.06)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
             <span style="font-size:12px;font-weight:700;color:var(--g1)">${dt.ar}</span>
@@ -4854,15 +4917,15 @@ function renderInventory(){
           </div>
           <button onclick="event.stopPropagation();deleteSnapshot(${sn.id})" style="background:var(--no);color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:Tajawal,sans-serif">🗑️ حذف</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-          <div>💵 نقد: <b>${fmt(sn.cash||0)} ر</b></div>
-          <div>🗃️ كسر 21: <b>${fmtG(sn.scrap21||0)} ج</b></div>
-          <div>🗃️ كسر 18: <b>${fmtG(sn.scrap18||0)} ج</b></div>
-          <div>✨ صافي 24: <b>${fmtG(sn.pure24||0)} ج</b></div>
-          <div>💍 مشغول 21: <b>${fmtG(sn.worked21||0)} ج</b></div>
-          <div>💍 مشغول 18: <b>${fmtG(sn.worked18||0)} ج</b></div>
-          <div style="grid-column:1/-1;margin-top:3px;color:#28C8D8;font-weight:700">
-            إجمالي ذهب: ${fmtG(sn.totalGold24||0)} جرام عيار 24
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:#1A1E2E">
+          <div>💵 نقد: <b style="color:var(--ok)">${fmt(sn.cash||0)} ر</b></div>
+          <div>🗃️ كسر 21: <b style="color:var(--g1)">${fmtG(sn.scrap21||0)} ج</b></div>
+          <div>🗃️ كسر 18: <b style="color:var(--g1)">${fmtG(sn.scrap18||0)} ج</b></div>
+          <div>✨ صافي 24: <b style="color:var(--in)">${fmtG(sn.pure24||0)} ج</b></div>
+          <div>💍 مشغول 21: <b style="color:#28C8D8">${fmtG(sn.worked21||0)} ج</b></div>
+          <div>💍 مشغول 18: <b style="color:#28C8D8">${fmtG(sn.worked18||0)} ج</b></div>
+          <div style="grid-column:1/-1;margin-top:3px;color:#28C8D8;font-weight:800">
+            ✨ إجمالي ذهب: ${fmtG(sn.totalGold24||0)} جرام عيار 24
           </div>
         </div>
         ${sn.notes?`<div style="font-size:10px;color:var(--tx2);margin-top:4px">📝 ${sn.notes}</div>`:''}
