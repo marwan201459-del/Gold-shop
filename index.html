@@ -508,6 +508,7 @@ body{
     <button class="tab"     onclick="P('analytics',this)">📊 التحليلات</button>
     <button class="tab"     onclick="P('salary',this)">💰 الرواتب</button>
     <button class="tab"     onclick="P('pending',this)">📌 المعلّقات</button>
+    <button class="tab"     onclick="P('opening',this)">🏁 الافتتاحي</button>
   </div>
 </div>
 
@@ -1370,6 +1371,58 @@ body{
 </div>
 
 
+
+<!-- ══ الرصيد الافتتاحي ══ -->
+<div id="pg-opening" class="pg">
+  <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.04));border:1.5px solid var(--g5);border-radius:var(--ra);padding:14px 16px;margin-bottom:14px">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <div style="font-size:26px;flex-shrink:0">🏁</div>
+      <div>
+        <div style="font-size:14px;font-weight:900;color:var(--g1);margin-bottom:4px">الرصيد الافتتاحي</div>
+        <div style="font-size:12px;color:var(--tx2);line-height:1.7">سجّل هنا الأرصدة الموجودة <b>قبل بداية استخدام النظام</b>. تُعامَل كرصيد ابتدائي ولا تؤثر على حسابات الربح ولا تظهر كعملية بيع أو شراء. تظهر في كشوفات الحساب بوضوح كـ"رصيد افتتاحي".</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- الصناديق -->
+  <div class="card">
+    <div class="ch">🗄️ أرصدة الصناديق الافتتاحية</div>
+    <div class="cb">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:12px;padding:8px 10px;background:var(--c2);border-radius:var(--rc);border:1px solid var(--b1)">
+        💡 أدخل الكمية الموجودة فعلاً قبل بداية العمل — اتركه صفراً إن لم يكن له رصيد سابق
+      </div>
+      <div id="ob-safes-form"></div>
+      <button class="btn btn-gold" onclick="saveOpeningSafes()" style="margin-top:10px">💾 حفظ أرصدة الصناديق</button>
+    </div>
+  </div>
+
+  <!-- الجهات -->
+  <div class="card">
+    <div class="ch">👥 حسابات العملاء والموردين</div>
+    <div class="cb">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:12px;padding:8px 10px;background:var(--c2);border-radius:var(--rc);border:1px solid var(--b1)">
+        💡 <b>للعميل</b>: موجب = عليه لنا | سالب = له عندنا &nbsp;·&nbsp; <b>للمورد</b>: موجب = له علينا | سالب = عندنا فائض
+      </div>
+      <div class="fr" style="margin-bottom:6px">
+        <label>🔍 ابحث عن جهة وأضفها</label>
+        <div class="sw"><span class="si">🔍</span>
+          <input type="text" id="ob-cli-search" placeholder="اسم العميل أو المورد..."
+            oninput="renderObCliSearch()" onfocus="renderObCliSearch()" style="padding-left:34px" autocomplete="off">
+          <div class="sdrop" id="ob-cli-drop"></div>
+        </div>
+      </div>
+      <div id="ob-clients-list" style="margin-top:8px"></div>
+      <button class="btn btn-gold" onclick="saveOpeningClients()" style="margin-top:10px">💾 حفظ أرصدة الجهات</button>
+    </div>
+  </div>
+
+  <!-- الملخص -->
+  <div class="card">
+    <div class="ch">📊 ملخص الرصيد الافتتاحي المسجّل</div>
+    <div class="cb" id="ob-summary"></div>
+  </div>
+</div>
+
 <div id="pg-backup" class="pg">
   <div class="card">
     <div class="ch">💾 النسخ الاحتياطي</div>
@@ -1713,7 +1766,7 @@ body{
 
 <script>
 // ── State ─────────────────────────────────────────────────────────
-const DEF={transactions:[],clients:[],pendingItems:[],activityLog:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}]};
+const DEF={transactions:[],clients:[],pendingItems:[],activityLog:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}],openingBalance:{safes:{},clients:{}}};
 let S={...DEF};
 
 // ── منع التكرار (Anti-Duplicate) ──
@@ -1776,7 +1829,12 @@ window.getSM = getSM;
 // ══════════════════════════════════════════════════════
 function calcSafes(){
   const txs = S.transactions;
-  const base = S.safesBase || {};
+  // دمج safesBase + openingBalance.safes
+  const _ob  = (S.openingBalance && S.openingBalance.safes) ? S.openingBalance.safes : {};
+  const _sb  = S.safesBase || {};
+  const base = {};
+  const _allK = new Set([...Object.keys(_sb), ...Object.keys(_ob)]);
+  _allK.forEach(k=>{ base[k] = (_sb[k]||0) + (_ob[k]||0); });
 
   const safes = {
     // ─ نقد ─
@@ -2283,6 +2341,7 @@ function P(id,btn){
   document.getElementById('pg-'+id).classList.add('on');
   btn.classList.add('on');
   closeAllDrops(); renderAll();
+  if(id==='opening') initOpeningPage();
 }
 
 // ── Search dropdown ───────────────────────────────────────────────
@@ -3504,7 +3563,26 @@ function printStmt(){
       <thead>
         <tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن</th></tr>
       </thead>
-      <tbody>${txRows}</tbody>
+      <tbody>
+        ${(_obEntry2&&(Math.abs(_obEntry2.cash||0)>0.01||Math.abs(_obEntry2.gold24||0)>0.001))?`
+        <tr style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border-bottom:2px solid var(--g5)">
+          <td style="padding:8px 10px;font-size:11px;color:var(--tx2);white-space:nowrap">—</td>
+          <td style="padding:8px 10px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="background:var(--g1);color:#060300;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">🏁 رصيد افتتاحي</span>
+            </div>
+            <div style="font-size:10px;color:var(--tx2);margin-top:3px">الرصيد المرحّل قبل بداية النظام</div>
+          </td>
+          <td style="padding:8px 10px;text-align:left;font-weight:700">
+            ${Math.abs(_obEntry2.cash||0)>0.01?`<div style="color:${_obEntry2.cash>0?'var(--no)':'var(--ok)'}">${_obEntry2.cash>0?'<span style="font-size:10px;background:var(--no-bg);color:var(--no);padding:1px 5px;border-radius:4px;margin-left:3px">عليه</span>':'<span style="font-size:10px;background:var(--ok-bg);color:var(--ok);padding:1px 5px;border-radius:4px;margin-left:3px">له</span>'}${fmt(Math.abs(_obEntry2.cash))} ر</div>`:'—'}
+            ${Math.abs(_obEntry2.gold24||0)>0.001?`<div style="font-size:11px;color:var(--g1)">${fmtG(Math.abs(_obEntry2.gold24))} ج ع24</div>`:''}
+          </td>
+          <td style="padding:8px 10px;text-align:left;font-weight:900;color:var(--g1)">
+            <div>${fmt(Math.abs(_obEntry2.cash||0)>0.01?Math.abs(_obEntry2.cash):0)} ر</div>
+          </td>
+          <td style="padding:6px 8px;text-align:center">—</td>
+        </tr>`:``}
+        ${txRows}</tbody>
     </table>`;
   }
 
@@ -4404,10 +4482,20 @@ function getClientBalance(cli){
   const salaryOut  = txs.filter(t=>t.type==='salary-pay')
                         .reduce((a,t)=>a+(t.amount||0),0);
 
-  return {cashOwed, goldOwed, goldOwedAs24,
-    ajTotal:sellAjTotal,
-    totalNaqd:sellCashPaid+prepaid+clientPayCash+cashRcvd,
-    custodyIn, salaryOut};
+  // ── الرصيد الافتتاحي للجهة ──
+  const _obEntry = (S.openingBalance && S.openingBalance.clients) ? S.openingBalance.clients[cli] : null;
+  const obCash   = _obEntry ? (_obEntry.cash  || 0) : 0;
+  const obGold24 = _obEntry ? (_obEntry.gold24|| 0) : 0;
+
+  return {
+    cashOwed:     Math.round((cashOwed + obCash)*100)/100,
+    goldOwed,
+    goldOwedAs24: Math.round((goldOwedAs24 + obGold24)*1000)/1000,
+    ajTotal:      sellAjTotal,
+    totalNaqd:    sellCashPaid+prepaid+clientPayCash+cashRcvd,
+    custodyIn, salaryOut,
+    obCash, obGold24
+  };
 }
 
 
@@ -7423,8 +7511,10 @@ function renderStmt(){
   // حساب Running Balance من الأقدم للأحدث
   const to24rb = (w,k) => (w||0)*parseFloat(k||'21')/24;
   const txsSortedAsc = [...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  let runCash = 0;  // نبدأ من 0 والمشتريات والمبيعات تبني الرصيد
-  let runGold24 = 0;
+  // نبدأ الرصيد من الافتتاحي إن وجد
+  const _obEntry2 = (S.openingBalance&&S.openingBalance.clients) ? S.openingBalance.clients[v] : null;
+  let runCash   = _obEntry2 ? (_obEntry2.cash  ||0) : 0;
+  let runGold24 = _obEntry2 ? (_obEntry2.gold24||0) : 0;
   // احسب الرصيد المتراكم لكل معاملة
   const txsWithBalance = txsSortedAsc.map(t=>{
     // تغيير النقد
@@ -7764,6 +7854,228 @@ function toast(msg){
   setTimeout(()=>el.classList.remove('on'),2500);
 }
 
+
+// ══════════════════════════════════════════════════════════
+// الرصيد الافتتاحي — Opening Balance
+// S.openingBalance = { safes:{cash:0,...}, clients:{"اسم":{cash:0,gold24:0,type:""}} }
+// ══════════════════════════════════════════════════════════
+function getOB(){
+  if(!S.openingBalance) S.openingBalance={safes:{},clients:{}};
+  if(!S.openingBalance.safes) S.openingBalance.safes={};
+  if(!S.openingBalance.clients) S.openingBalance.clients={};
+  return S.openingBalance;
+}
+
+function renderObSafesForm(){
+  const el=document.getElementById('ob-safes-form');
+  if(!el) return;
+  const ob=getOB();
+  const safesConfig=[
+    {key:'cash',    label:'💵 الصندوق النقدي',   unit:'ريال',type:'cash'},
+    {key:'khazina', label:'🏦 الخزينة',          unit:'ريال',type:'cash'},
+    {key:'worked21',label:'💍 مشغول عيار 21',   unit:'جرام',type:'gold'},
+    {key:'worked18',label:'💍 مشغول عيار 18',   unit:'جرام',type:'gold'},
+    {key:'scrap21', label:'🗃️ كسر عيار 21',     unit:'جرام',type:'gold'},
+    {key:'scrap18', label:'🗃️ كسر عيار 18',     unit:'جرام',type:'gold'},
+    {key:'pure24',  label:'✨ ذهب صافي 24',     unit:'جرام',type:'gold'},
+  ];
+  (S.customSafes||[]).forEach(cs=>{
+    safesConfig.push({key:'cs_'+cs.id,label:cs.icon+' '+cs.name,unit:cs.type==='gold'?'جرام':'ريال',type:cs.type||'cash'});
+  });
+  let html='<div style="display:flex;flex-direction:column;gap:8px">';
+  safesConfig.forEach(sc=>{
+    const v=ob.safes[sc.key]||0;
+    const isGold=sc.type==='gold';
+    const bg=isGold?'var(--g4)':'var(--ok-bg)';
+    const bdr=isGold?'var(--g5)':'var(--ok-bd)';
+    const clr=isGold?'var(--g1)':'var(--ok)';
+    html+=`<div style="display:flex;align-items:center;gap:10px;background:${bg};border:1px solid ${bdr};border-radius:var(--rb);padding:10px 12px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--tx1)">${sc.label}</div>
+        <div style="font-size:10px;color:var(--tx2)">الرصيد بالـ${sc.unit}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="ob-safe-${sc.key}" value="${v||''}" placeholder="0"
+          inputmode="decimal" step="${isGold?'0.001':'1'}"
+          style="width:110px;padding:8px;border-radius:var(--rc);border:1.5px solid ${bdr};
+            background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:${clr};text-align:left">
+        <span style="font-size:11px;font-weight:700;color:${clr};min-width:28px">${sc.unit}</span>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function saveOpeningSafes(){
+  const ob=getOB();
+  const keys=['cash','khazina','worked21','worked18','scrap21','scrap18','pure24'];
+  (S.customSafes||[]).forEach(cs=>keys.push('cs_'+cs.id));
+  keys.forEach(k=>{
+    const el=document.getElementById('ob-safe-'+k);
+    if(!el) return;
+    const v=parseFloat(el.value);
+    ob.safes[k]=isNaN(v)?0:Math.max(0,v);
+  });
+  S.openingBalance=ob;
+  sv(); renderObSummary();
+  toast('✅ تم حفظ الرصيد الافتتاحي للصناديق');
+  logActivity('opening-balance','تعديل الرصيد الافتتاحي للصناديق');
+}
+
+function renderObCliSearch(){
+  const q=(document.getElementById('ob-cli-search')?.value||'').toLowerCase().trim();
+  const drop=document.getElementById('ob-cli-drop');
+  if(!drop) return;
+  if(!q){drop.innerHTML='';drop.classList.remove('open');return;}
+  const ob=getOB();
+  const items=(S.clients||[]).filter(cl=>cl.name.toLowerCase().includes(q)).slice(0,8);
+  if(!items.length){drop.innerHTML='<div class="sde">لا نتائج</div>';drop.classList.add('open');return;}
+  const icons={'عميل':'👤','مورد':'🏭','موظف':'👷','موزع':'🚚'};
+  drop.innerHTML=items.map(cl=>{
+    const has=ob.clients[cl.name]&&(Math.abs(ob.clients[cl.name].cash||0)>0.01||Math.abs(ob.clients[cl.name].gold24||0)>0.001);
+    return `<div class="sdi" onclick="addObClient('${cl.name.replace(/'/g,"\'")}','${cl.type}')">
+      <div style="flex:1"><span class="sdn">${icons[cl.type]||'👤'} ${cl.name}</span> <span class="sdt">${cl.type}</span></div>
+      ${has?'<span style="background:var(--g1);color:#060300;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700">✓</span>':''}
+    </div>`;
+  }).join('');
+  drop.classList.add('open');
+}
+
+function addObClient(name,type){
+  const ob=getOB();
+  document.getElementById('ob-cli-drop')?.classList.remove('open');
+  const el=document.getElementById('ob-cli-search');
+  if(el) el.value='';
+  if(!ob.clients[name]) ob.clients[name]={cash:0,gold24:0,type:type};
+  renderObClientsList();
+}
+
+function removeObClient(name){
+  const ob=getOB();
+  delete ob.clients[name];
+  S.openingBalance=ob;
+  renderObClientsList();
+}
+
+function renderObClientsList(){
+  const el=document.getElementById('ob-clients-list');
+  if(!el) return;
+  const ob=getOB();
+  const entries=Object.entries(ob.clients||{});
+  if(!entries.length){
+    el.innerHTML='<div class="empty" style="padding:14px"><div class="ei">👥</div><p>ابحث عن جهة أعلاه لإضافتها</p></div>';
+    return;
+  }
+  const typeClr={'عميل':'var(--in)','مورد':'var(--io)','موظف':'var(--pu)','موزع':'var(--ok)'};
+  const typeIc={'عميل':'👤','مورد':'🏭','موظف':'👷','موزع':'🚚'};
+  let html='<div style="display:flex;flex-direction:column;gap:8px">';
+  entries.forEach(([name,data])=>{
+    const clr=typeClr[data.type]||'var(--g1)';
+    const ic=typeIc[data.type]||'👤';
+    const isSupp=data.type==='مورد'||data.type==='موزع';
+    html+=`<div style="background:var(--c2);border:1px solid var(--b2);border-radius:var(--rb);padding:12px;border-right:3px solid ${clr}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${ic}</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--tx1)">${name}</div>
+            <div style="font-size:10px;color:var(--tx2)">${data.type||'جهة'}</div>
+          </div>
+        </div>
+        <button onclick="removeObClient('${name.replace(/'/g,"\'")}')"
+          style="background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);border-radius:var(--rc);
+            padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:10px;color:var(--tx2);font-weight:700;margin-bottom:3px">💵 نقد (ريال)</div>
+          <div style="font-size:9px;color:var(--tx3);margin-bottom:4px">${isSupp?'موجب=له علينا':'موجب=عليه لنا'}</div>
+          <input type="number" id="ob-cli-cash-${name}" value="${data.cash||''}" placeholder="0" inputmode="decimal"
+            style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--tx1)">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--tx2);font-weight:700;margin-bottom:3px">🥇 ذهب (ج ع24)</div>
+          <div style="font-size:9px;color:var(--tx3);margin-bottom:4px">${isSupp?'موجب=له علينا':'موجب=عليه لنا'}</div>
+          <input type="number" id="ob-cli-gold-${name}" value="${data.gold24||''}" placeholder="0.000" inputmode="decimal" step="0.001"
+            style="width:100%;padding:8px;border-radius:var(--rc);border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--g1)">
+        </div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function saveOpeningClients(){
+  const ob=getOB();
+  Object.keys(ob.clients).forEach(name=>{
+    const cv=parseFloat(document.getElementById('ob-cli-cash-'+name)?.value)||0;
+    const gv=parseFloat(document.getElementById('ob-cli-gold-'+name)?.value)||0;
+    ob.clients[name].cash=cv;
+    ob.clients[name].gold24=gv;
+  });
+  S.openingBalance=ob;
+  sv(); renderObSummary();
+  toast('✅ تم حفظ الرصيد الافتتاحي للجهات');
+  logActivity('opening-balance','تعديل الرصيد الافتتاحي للجهات');
+}
+
+function renderObSummary(){
+  const el=document.getElementById('ob-summary');
+  if(!el) return;
+  const ob=getOB();
+  const SM2=getSM();
+  const safeRows=Object.entries(ob.safes||{}).filter(([k,v])=>v>0);
+  const cliRows=Object.entries(ob.clients||{}).filter(([n,d])=>Math.abs(d.cash||0)>0.01||Math.abs(d.gold24||0)>0.001);
+  if(!safeRows.length&&!cliRows.length){
+    el.innerHTML='<div class="empty" style="padding:16px"><div class="ei">🏁</div><p>لم يتم تسجيل أي رصيد افتتاحي بعد</p></div>';
+    return;
+  }
+  let html='';
+  if(safeRows.length){
+    html+=`<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🗄️ الصناديق</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px">`;
+    safeRows.forEach(([k,v])=>{
+      const info=SM2[k]||{label:k,unit:'?'};
+      const isGold=info.unit==='جرام';
+      html+=`<div style="background:${isGold?'var(--g4)':'var(--ok-bg)'};border:1px solid ${isGold?'var(--g5)':'var(--ok-bd)'};
+        border-radius:var(--rb);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--tx1);font-weight:600">${info.label||k}</span>
+        <span style="font-size:15px;font-weight:900;color:${isGold?'var(--g1)':'var(--ok)'}">${isGold?fmtG(v):fmt(v)} <span style="font-size:10px">${info.unit}</span></span>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  if(cliRows.length){
+    const typeIc={'عميل':'👤','مورد':'🏭','موظف':'👷','موزع':'🚚'};
+    html+=`<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">👥 الجهات (${cliRows.length})</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">
+        <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2)">الجهة</th>
+        <th style="padding:8px;text-align:left;font-weight:700;color:var(--tx2)">نقد (ريال)</th>
+        <th style="padding:8px;text-align:left;font-weight:700;color:var(--g1)">ذهب (ج ع24)</th>
+      </tr></thead><tbody>`;
+    cliRows.forEach(([name,data])=>{
+      const cc=data.cash>0?'var(--no)':data.cash<0?'var(--ok)':'var(--tx3)';
+      const gc=data.gold24>0?'var(--no)':data.gold24<0?'var(--ok)':'var(--tx3)';
+      html+=`<tr style="border-bottom:1px solid var(--b1)">
+        <td style="padding:8px 10px;font-weight:700">${typeIc[data.type]||'👤'} ${name}</td>
+        <td style="padding:8px;text-align:left;font-weight:700;color:${cc}">${Math.abs(data.cash||0)>0.01?fmt(Math.abs(data.cash))+(data.cash>0?' (عليه)':' (له)'):'—'}</td>
+        <td style="padding:8px;text-align:left;font-weight:700;color:${gc}">${Math.abs(data.gold24||0)>0.001?fmtG(Math.abs(data.gold24))+(data.gold24>0?' (عليه)':' (له)'):'—'}</td>
+      </tr>`;
+    });
+    html+='</tbody></table></div>';
+  }
+  el.innerHTML=html;
+}
+
+function initOpeningPage(){
+  renderObSafesForm();
+  renderObClientsList();
+  renderObSummary();
+}
+
 // ── Init ───────────────────────────────────────────────────────────
 renderAll();
 addItem();
@@ -7815,6 +8127,7 @@ window.sv_save = function(){
     pendingItems:  S.pendingItems  || [],   // ✅ المعلقات
     activityLog:   (S.activityLog||[]).slice(0,500), // ✅ سجل النشاط
     safesBase:     S.safesBase     || {},   // ✅ الأرصدة الأساسية
+    openingBalance: S.openingBalance || {safes:{},clients:{}}, // ✅ الرصيد الافتتاحي
     updatedAt:     _lastSaveTime
   }).then(()=>{
     showSync('☁️ محفوظ', 2000);
@@ -7840,6 +8153,7 @@ onSnapshot(REF, (snap) => {
     S.pendingItems = d.pendingItems || [];   // ✅ المعلقات
     S.activityLog  = d.activityLog  || [];   // ✅ سجل النشاط
     if(d.safesBase) S.safesBase = d.safesBase; // ✅ الأرصدة الأساسية
+    if(d.openingBalance) S.openingBalance = d.openingBalance; // ✅ الرصيد الافتتاحي
     if(_firstLoad){ _firstLoad=false; showSync('☁️ متصل', 2000); }
     renderAll();
   } else {
