@@ -3930,6 +3930,7 @@ function saveSupplierReturn(){
   if(!retItems.length){toast('⚠️ أدخل وزن مرجوع لصنف واحد على الأقل');return;}
   const retTotal = retGoldTotal + retAjTotal;
   const isBuyDebt = suppRetOrigTx.type==='buy-debt';
+  const retTx = {
     id: Date.now(),
     date: rsuppISO,
     type: 'supplier-return',
