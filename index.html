@@ -571,25 +571,13 @@ body{
 
       <!-- ── بيع / شراء ── -->
       <div id="inv-sec" style="display:none">
-        <!-- نوع الدفع للبيع -->
+        <!-- البيع آجل دائماً — حُذف خيار فوري -->
         <div id="pay-type-row" style="display:none">
-          <div class="tg g2" style="margin-bottom:8px">
-            <div class="ptb on" id="pt-cash" onclick="SPT('cash')">📄 فوري</div>
-            <div class="ptb"    id="pt-debt" onclick="SPT('debt')">📋 آجل</div>
-          </div>
-          <div id="debt-row" style="display:none">
-            <div class="fr"><label>📅 تاريخ الاستحقاق</label><input type="date" id="f-due"></div>
-          </div>
+          <div class="fr"><label>📅 تاريخ الاستحقاق (اختياري)</label><input type="date" id="f-due"></div>
         </div>
-        <!-- نوع دفع الشراء -->
+        <!-- الشراء آجل دائماً — حُذف خيار فوري -->
         <div id="buy-type-row" style="display:none">
-          <div class="tg g2" style="margin-bottom:8px">
-            <div class="ptb on" id="bt-cash" onclick="SBT('cash')">💵 فوري</div>
-            <div class="ptb"    id="bt-debt" onclick="SBT('debt')">📋 آجل</div>
-          </div>
-          <div id="buy-debt-row" style="display:none">
-            <div class="fr"><label>📅 تاريخ الاستحقاق</label><input type="date" id="f-buy-due"></div>
-          </div>
+          <div class="fr"><label>📅 تاريخ الاستحقاق (اختياري)</label><input type="date" id="f-buy-due"></div>
         </div>
         <!-- العميل/المورد -->
         <div class="g2">
@@ -1266,15 +1254,10 @@ body{
         <div id="return-items-list"></div>
       </div>
 
-      <!-- النقد المسترد -->
-      <div class="g2">
-        <div class="fr"><label>💵 النقد المسترد (ريال)</label>
-          <input type="number" id="ret-cash" inputmode="decimal" placeholder="0"
-            oninput="calcReturnSummary()">
-        </div>
-        <div class="fr"><label>📅 التاريخ</label>
-          <input type="date" id="ret-date">
-        </div>
+      <!-- لا كاش مسترد — المرتجع يُعدِّل الدين فقط -->
+      <input type="hidden" id="ret-cash" value="0">
+      <div class="fr"><label>📅 التاريخ</label>
+        <input type="date" id="ret-date">
       </div>
 
       <div class="fr"><label>📝 ملاحظات</label>
@@ -1785,7 +1768,7 @@ function acquireSave(){
 function releaseSave(){ _saving=false; } // سيُستبدل من Firebase فور الاتصال
 ['khazina','madan','lava','discount'].forEach(k=>{if(S.safes[k]==null)S.safes[k]=0;});
 if(!S.customSafes)S.customSafes=[];
-let selType='sell', selPay='cash';
+let selType='sell', selPay='debt'; // آجل دائماً
 
 // Invoice items array (current draft)
 let draftItems=[];
@@ -1883,15 +1866,9 @@ function calcSafes(){
       // ❌ لا يوجد تأثير على الكاش هنا — التسوية تتم فقط في "تسوية دين"
       items.forEach(i=>{
         const w = i.weight||0;
-        // خصم من المخزون حسب النوع
-        if(i.isWorked){
-          if(k21(i.karat))      safes.worked21 -= w;
-          else if(k18(i.karat)) safes.worked18 -= w;
-        } else {
-          if(k21(i.karat))      safes.scrap21 -= w;
-          else if(k18(i.karat)) safes.scrap18 -= w;
-          else if(k24(i.karat)) safes.pure24  -= w;
-        }
+        // خصم من المشغول دائماً (لا يوجد كسر)
+        if(k21(i.karat))      safes.worked21 -= w;
+        else if(k18(i.karat)) safes.worked18 -= w;
         // تسجيل الدين على العميل دائماً
         if(k21(i.karat))      safes.debt21 += w;
         else if(k18(i.karat)) safes.debt18 += w;
@@ -1903,17 +1880,11 @@ function calcSafes(){
     // ── شراء/توريد (كل الشراء يُسجل كدين للمورد — الكاش مجرد طريقة دفع) ──
     else if(t.type==='buy' || t.type==='buy-debt'){
       // ❌ لا يوجد تأثير على الكاش هنا — التسوية تتم فقط في "تسوية دين"
-      // الذهب يدخل: مشغول → worked | كسر → scrap
+      // الذهب يدخل للمشغول دائماً (لا يوجد كسر)
       items.forEach(i=>{
         const w = i.weight||0;
-        if(i.isWorked){
-          if(k21(i.karat))      safes.worked21 += w;
-          else if(k18(i.karat)) safes.worked18 += w;
-        } else {
-          if(k21(i.karat))      safes.scrap21 += w;
-          else if(k18(i.karat)) safes.scrap18 += w;
-          else if(k24(i.karat)) safes.pure24  += w;
-        }
+        if(k21(i.karat))      safes.worked21 += w;
+        else if(k18(i.karat)) safes.worked18 += w;
       });
     }
 
@@ -2052,37 +2023,25 @@ function calcSafes(){
       }
     }
 
-    // ── مردود جزئي (من عميل) ──
+    // ── مردود جزئي (من عميل) — مشغول دائماً ──
     else if(t.type==='return'){
       items.forEach(i=>{
         const w = i.weight||0;
-        // الذهب يرجع للمخزون: مشغول أو كسر حسب isWorked
-        if(i.isWorked){
-          if(k21(i.karat))      safes.worked21 += w;
-          else if(k18(i.karat)) safes.worked18 += w;
-        }
-        // يُخصم من المديونية دائماً
+        if(k21(i.karat))      safes.worked21 += w;
+        else if(k18(i.karat)) safes.worked18 += w;
         if(k21(i.karat))      safes.debt21 -= w;
         else if(k18(i.karat)) safes.debt18 -= w;
         else if(k24(i.karat)) safes.debt24 -= w;
       });
     }
-    // ── مردود للمورد ──
+    // ── مردود للمورد — مشغول دائماً ──
     else if(t.type==='supplier-return'){
-      // الذهب يخرج من صناديقنا ويرجع للمورد
       items.forEach(i=>{
         const w = i.weight||0;
-        if(i.isWorked){
-          if(k21(i.karat))      safes.worked21 -= w;
-          else if(k18(i.karat)) safes.worked18 -= w;
-        } else {
-          if(k21(i.karat))      safes.scrap21 -= w;
-          else if(k18(i.karat)) safes.scrap18 -= w;
-          else if(k24(i.karat)) safes.pure24  -= w;
-        }
+        if(k21(i.karat))      safes.worked21 -= w;
+        else if(k18(i.karat)) safes.worked18 -= w;
       });
-      // مردود للمورد لا يُضيف نقداً — تأثيره على الدين فقط
-      // (الدين يُحسب تلقائياً في getClientBalance من مقارنة المشتريات والمردودات)
+      // لا حركة كاش — تأثيره على الدين فقط
     }
 
     // ── رواتب وعهد ──
@@ -2111,15 +2070,9 @@ function calcSafes(){
     else if(t.type==='sales-return'){
       items.forEach(i=>{
         const w = i.weight||0;
-        // الذهب يرجع للمخزون المناسب
-        if(i.isWorked){
-          if(k21(i.karat))      safes.worked21 += w;
-          else if(k18(i.karat)) safes.worked18 += w;
-        } else {
-          if(k21(i.karat))      safes.scrap21 += w;
-          else if(k18(i.karat)) safes.scrap18 += w;
-          else if(k24(i.karat)) safes.pure24  += w;
-        }
+        // الذهب يرجع للمشغول دائماً (لا يوجد كسر)
+        if(k21(i.karat))      safes.worked21 += w;
+        else if(k18(i.karat)) safes.worked18 += w;
         // يُخفِّض الدين على العميل
         if(k21(i.karat))      safes.debt21 -= w;
         else if(k18(i.karat)) safes.debt18 -= w;
@@ -2135,14 +2088,9 @@ function calcSafes(){
     else if(t.type==='purchase-return'){
       items.forEach(i=>{
         const w = i.weight||0;
-        if(i.isWorked){
-          if(k21(i.karat))      safes.worked21 -= w;
-          else if(k18(i.karat)) safes.worked18 -= w;
-        } else {
-          if(k21(i.karat))      safes.scrap21 -= w;
-          else if(k18(i.karat)) safes.scrap18 -= w;
-          else if(k24(i.karat)) safes.pure24  -= w;
-        }
+        // يُخصم من المشغول دائماً (لا يوجد كسر)
+        if(k21(i.karat))      safes.worked21 -= w;
+        else if(k18(i.karat)) safes.worked18 -= w;
       });
       // ❌ لا حركة كاش — المرتجع يُعدِّل الدين فقط
     }
@@ -2233,42 +2181,34 @@ function calcSafeDetail24(safeKey){
     // ── سداد عميل بذهب ──
     if(t.type==='payment' && t.goldDest===safeKey)
       moves.push({date:t.date, label:'سداد عميل', note:t.client||'', karat:t.goldKarat||defaultKarat, weight:t.goldWeight||0, isIn:true});
-    // ── شراء (ذهب يدخل) ──
+    // ── شراء (ذهب يدخل للمشغول دائماً) ──
     if((t.type==='buy'||t.type==='buy-debt')){
       (t.items||[]).forEach(i=>{
-        const dest = i.isWorked
-          ? (i.karat==='21'?'worked21':'worked18')
-          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        const dest = i.karat==='21'?'worked21':'worked18';
         if(dest===safeKey)
           moves.push({date:t.date, label:TLBL[t.type]||'شراء', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:true});
       });
     }
-    // ── بيع (ذهب يخرج) ──
+    // ── بيع (ذهب يخرج من المشغول دائماً) ──
     if((t.type==='sell'||t.type==='sell-debt')){
       (t.items||[]).forEach(i=>{
-        const src = i.isWorked
-          ? (i.karat==='21'?'worked21':'worked18')
-          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        const src = i.karat==='21'?'worked21':'worked18';
         if(src===safeKey)
           moves.push({date:t.date, label:TLBL[t.type]||'بيع', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:false});
       });
     }
-    // ── مردود (ذهب يرجع) ──
-    if(t.type==='return'){
+    // ── مردود (ذهب يرجع للمشغول دائماً) ──
+    if(t.type==='return'||t.type==='sales-return'){
       (t.items||[]).forEach(i=>{
-        const dest = i.isWorked
-          ? (i.karat==='21'?'worked21':'worked18')
-          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        const dest = i.karat==='21'?'worked21':'worked18';
         if(dest===safeKey)
           moves.push({date:t.date, label:'مردود عميل', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:true});
       });
     }
-    // ── مردود مورد (ذهب يخرج) ──
-    if(t.type==='supplier-return'){
+    // ── مردود مورد (ذهب يخرج من المشغول دائماً) ──
+    if(t.type==='supplier-return'||t.type==='purchase-return'){
       (t.items||[]).forEach(i=>{
-        const src = i.isWorked
-          ? (i.karat==='21'?'worked21':'worked18')
-          : (i.karat==='24'?'pure24': i.karat==='18'?'scrap18':'scrap21');
+        const src = i.karat==='21'?'worked21':'worked18';
         if(src===safeKey)
           moves.push({date:t.date, label:'مردود مورد', note:t.client||'', karat:i.karat, weight:i.weight||0, isIn:false});
       });
@@ -2425,9 +2365,10 @@ function ST(t){
   // إظهار القسم المناسب
   if(t==='sell'||t==='buy'){
     document.getElementById('inv-sec').style.display='block';
+    // إظهار صف تاريخ الاستحقاق دائماً (كل شيء آجل)
     document.getElementById('pay-type-row').style.display=t==='sell'?'block':'none';
     document.getElementById('buy-type-row').style.display=t==='buy'?'block':'none';
-    if(t==='buy') SBT('cash');
+    // الشراء آجل دائماً — لا داعي لـ SBT
   } else if(t==='pay'){
     document.getElementById('pay-sec').style.display='block';
     // إعادة تعيين الخيار عند فتح الشاشة
@@ -2461,7 +2402,7 @@ function SPT(p){
   document.getElementById('pt-debt').classList.toggle('on',p==='debt');
   document.getElementById('debt-row').style.display=p==='debt'?'block':'none';
 }
-let selBuyPay='cash';
+let selBuyPay='debt'; // آجل دائماً
 function SBT(p){
   selBuyPay=p;
   const bc=document.getElementById('bt-cash');
@@ -2475,7 +2416,7 @@ function SBT(p){
 // ── Invoice Items ─────────────────────────────────────────────────
 function addItem(){
   const id=++itemCounter;
-  draftItems.push({id,karat:'18',desc:'',weight:0,price:0,ajour:0,isWorked:true});
+  draftItems.push({id,karat:'21',desc:'',weight:0,price:0,ajour:0,isWorked:true}); // مشغول دائماً
   renderDraftItems();
 }
 
@@ -2571,14 +2512,7 @@ function renderDraftItems(){
             <input type="text" value="${item.desc}" placeholder="خاتم، سلسلة..." onchange="updateItem(${item.id},'desc',this.value)">
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px">
-          ${(selType==='sell'||selType==='sell-debt'||selType==='return')?`
-          <button type="button" onclick="updateItem(${item.id},'isWorked','0');this.classList.add('on');this.nextElementSibling.classList.remove('on')"
-            class="ptb${!item.isWorked?' on':''}" style="flex:1;font-size:12px">🗃️ كسر</button>
-          <button type="button" onclick="updateItem(${item.id},'isWorked','1');this.classList.add('on');this.previousElementSibling.classList.remove('on')"
-            class="ptb${item.isWorked?' on':''}" style="flex:1;font-size:12px">💍 مشغول</button>
-          `:`<div class="ptb on" style="flex:1;font-size:12px;text-align:center;pointer-events:none">💍 مشغول</div>`}
-        </div>
+        <!-- 💍 ذهب مشغول فقط — حُذف خيار الكسر -->
         <div class="g3">
           <div class="fr"><label>الوزن (جرام)</label>
             <input type="number" value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
@@ -2614,17 +2548,10 @@ function checkStock(items, type){
   for(const i of items){
     const w = i.weight||0;
     if(w<=0) continue;
-    let available = 0;
-    if(i.isWorked){
-      available = (i.karat==='21') ? (safes.worked21||0) : (safes.worked18||0);
-    } else {
-      if(i.karat==='21')      available = safes.scrap21||0;
-      else if(i.karat==='18') available = safes.scrap18||0;
-      else if(i.karat==='24') available = safes.pure24||0;
-    }
+    // المخزون دائماً من المشغول (لا يوجد كسر)
+    const available = (i.karat==='21') ? (safes.worked21||0) : (safes.worked18||0);
     if(w > available + 0.001){
-      const lbl = i.isWorked ? 'مشغول' : 'كسر';
-      warnings.push(`⚠️ تحذير مخزون — عيار ${i.karat} (${lbl}): متاح ${fmtG(available)}ج | مطلوب ${fmtG(w)}ج — سيصبح المخزون بالسالب`);
+      warnings.push(`⚠️ تحذير مخزون — مشغول عيار ${i.karat}: متاح ${fmtG(available)}ج | مطلوب ${fmtG(w)}ج`);
     }
   }
   return warnings.length ? {warning: warnings.join(' | ')} : null;
@@ -2826,9 +2753,10 @@ async function saveInvoice(){
   const vatAmt    = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
   const invTotal  =goldTotal+ajTotal+vatAmt-discount;
   const totalWeight=draftItems.reduce((a,i)=>a+i.weight,0);
-  const isDebt=selType==='sell'&&selPay==='debt';
-  const isBuyDebt=selType==='buy'&&selBuyPay==='debt';
-  const cash = isDebt ? 0 : isBuyDebt ? 0 : (draftItems.reduce((a,i)=>a+i.weight*(i.ajour||0),0));
+  // البيع والشراء آجل دائماً
+  const isDebt = selType==='sell';
+  const isBuyDebt = selType==='buy';
+  const cash = 0; // لا يوجد دفع فوري
   const goldPay = 0;
   const prepaid = 0;
   const due=document.getElementById('f-due').value;
@@ -2865,7 +2793,7 @@ function clearInvForm(){
   ['f-cli-s','f-cli-v','f-stf-s','f-stf-v'].forEach(i=>{
     const el=document.getElementById(i);if(el)el.value='';
   });
-  ST('sell');SPT('cash');selBuyPay='cash';
+  ST('sell'); // البيع آجل دائماً
 }
 
 // ── Save Scrap ─────────────────────────────────────────────────────
@@ -3248,7 +3176,7 @@ function renderInvModal(tx,editing){
         const gAmt=item.weight*item.price, aAmt=item.weight*(item.ajour||0);
         html+=`<div style="background:white;border-radius:10px;padding:10px;margin-bottom:7px;border:1.5px solid var(--b2);box-shadow:0 1px 4px rgba(0,0,0,.05)">
           <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-            <span style="font-weight:800;font-size:13px;color:var(--tx1)">${item.isWorked?'💍':'🗃️'} ${i+1}. ${item.desc||'صنف'}</span>
+            <span style="font-weight:800;font-size:13px;color:var(--tx1)">💍 ${i+1}. ${item.desc||'صنف'}</span>
             <span class="badge bg-gold">${kNames[item.karat]||item.karat}</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px">
@@ -3400,12 +3328,7 @@ function renderEditItems(){
             <input type="text" value="${item.desc||''}" placeholder="خاتم، سلسلة..." onchange="updateEditItem(${item.id},'desc',this.value)">
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button type="button" onclick="updateEditItem(${item.id},'isWorked',false);renderEditItems()"
-            class="ptb${!item.isWorked?' on':''}" style="flex:1;font-size:12px">🗃️ كسر</button>
-          <button type="button" onclick="updateEditItem(${item.id},'isWorked',true);renderEditItems()"
-            class="ptb${item.isWorked?' on':''}" style="flex:1;font-size:12px">💍 مشغول</button>
-        </div>
+        <!-- 💍 ذهب مشغول فقط — حُذف خيار الكسر من تحرير الفواتير -->
         <div class="g3">
           <div class="fr"><label>الوزن (جرام)</label>
             <input type="number" value="${item.weight}" step="0.001" inputmode="decimal" placeholder="0.000"
@@ -3571,12 +3494,14 @@ function printStmt(){
         wtStr=fmtG(t.weight||0)+' ج';
         amtStr='—';
       } else if(t.type==='sales-return'||t.type==='return'){
-        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>');
-        amtStr=`<span class="pos">${fmt(t.ajTotal||t.cashRefund||0)} ر</span>`;
+        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>')+
+               (t.ajTotal>0?`<br>خصم دين: ${fmt(t.ajTotal)} ر`:'');
+        amtStr=`<span style="color:var(--in);font-size:11px;font-weight:700">↩️ خصم ${fmt(t.ajTotal||0)} ر</span>`;
         wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
       } else if(t.type==='purchase-return'||t.type==='supplier-return'){
-        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>');
-        amtStr=`<span class="neg">${fmt(t.ajTotal||0)} ر</span>`;
+        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>')+
+               (t.ajTotal>0?`<br>خصم دين: ${fmt(t.ajTotal)} ر`:'');
+        amtStr=`<span style="color:var(--in);font-size:11px;font-weight:700">↩️ خصم ${fmt(t.ajTotal||0)} ر</span>`;
         wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
       } else if(t.type==='transfer'){
         const fLbl=t.fromLabel||(t.fromSafe||'');
@@ -3688,7 +3613,7 @@ function printStmt(){
 function fmt(n){return(Math.round((n||0)*100)/100).toLocaleString('ar-SA')}
 function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')}
 
-const TLBL={sell:'بيع','sell-debt':'بيع آجل',buy:'شراء','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'⚖️ تسوية دين — عميل','supplier-payment':'⚖️ تسوية دين — مورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'🏷️ خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
+const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'⚖️ تسوية دين — عميل','supplier-payment':'⚖️ تسوية دين — مورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'🏷️ خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
   'salary-pay':'💵 راتب','salary-custody':'🤝 عهدة','salary-deduction':'✂️ خصم راتب',
   'sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
   'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون'};
@@ -3715,7 +3640,7 @@ function txHtml(t){
   if(t.items&&t.items.length>0){
     itemsPreview=`<div class="inv-preview">${t.items.map((item,i)=>
       `<div class="inv-preview-item">
-        <span class="ipi-name">${i+1}. ${item.isWorked?'💍':'🗃️'} عيار ${item.karat}${item.desc?' ('+item.desc+')':''} — ${fmtG(item.weight)}ج</span>
+        <span class="ipi-name">${i+1}. 💍 عيار ${item.karat}${item.desc?' ('+item.desc+')':''} — ${fmtG(item.weight)}ج</span>
         <span class="ipi-val">${fmt(item.weight*item.price+item.weight*item.ajour)} ر</span>
       </div>`
     ).join('')}
@@ -6373,8 +6298,8 @@ function runValidationTests(){
   // ── اختبار 1: بيع + مرتجع مبيعات ──
   (() => {
     const testTxs = [
-      {id:99991,type:'sell',client:'test',items:[{karat:'21',weight:10,isWorked:false}],ajTotal:1000,total:1000},
-      {id:99992,type:'sales-return',client:'test',items:[{karat:'21',weight:2,isWorked:false}],ajTotal:200,cashRefund:200},
+      {id:99991,type:'sell',client:'test',items:[{karat:'21',weight:10,isWorked:true}],ajTotal:1000,total:1000},
+      {id:99992,type:'sales-return',client:'test',items:[{karat:'21',weight:2,isWorked:true}],ajTotal:200,cashRefund:0},
     ];
     const origTxs = S.transactions;
     S.transactions = testTxs;
@@ -6394,8 +6319,8 @@ function runValidationTests(){
   // ── اختبار 2: شراء + مرتجع مشتريات ──
   (() => {
     const testTxs = [
-      {id:99993,type:'buy-debt',client:'mtest',items:[{karat:'21',weight:20,isWorked:false}],ajTotal:5000,total:5000},
-      {id:99994,type:'purchase-return',client:'mtest',items:[{karat:'21',weight:4,isWorked:false}],ajTotal:1000},
+      {id:99993,type:'buy-debt',client:'mtest',items:[{karat:'21',weight:20,isWorked:true}],ajTotal:5000,total:5000},
+      {id:99994,type:'purchase-return',client:'mtest',items:[{karat:'21',weight:4,isWorked:true}],ajTotal:1000},
     ];
     const origTxs = S.transactions;
     S.transactions = testTxs;
@@ -6540,7 +6465,7 @@ function applyReturnFromInv(txId){
       id: idx+1,
       karat: i.karat||'21',
       weight: 0,            // المستخدم يدخل الوزن المرجوع
-      isWorked: !!i.isWorked,
+      isWorked: true, // مشغول دائماً بغض النظر عن الفاتورة الأصلية
       ajour: i.ajour||0,
       lockedKarat: true,    // قفل العيار من الفاتورة الأصلية
       origWeight: i.weight||0,
@@ -6558,7 +6483,7 @@ function applyReturnFromInv(txId){
 
 function addReturnItem(){
   returnCounter++;
-  returnItems.push({id:returnCounter, karat:'21', weight:0, isWorked:false, ajour:0});
+  returnItems.push({id:returnCounter, karat:'21', weight:0, isWorked:true, ajour:0}); // مشغول دائماً
   renderReturnItems();
 }
 
@@ -6590,10 +6515,8 @@ function renderReturnItems(){
   }
   el.innerHTML = returnItems.map((item,idx)=>{
     const as24 = Math.round(item.weight*parseFloat(item.karat)/24*1000)/1000;
-    const isWorked = item.isWorked;
-    const workedBadge = isWorked
-      ? `<span style="background:var(--in-bg);color:var(--in);border:1px solid var(--in-bd);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">💍 مشغول</span>`
-      : `<span style="background:var(--g4);color:var(--g1);border:1px solid var(--g5);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">🗃️ كسر</span>`;
+    // 💍 مشغول دائماً — حُذف خيار الكسر
+    const workedBadge = `<span style="background:var(--in-bg);color:var(--in);border:1px solid var(--in-bd);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">💍 مشغول</span>`;
     // العيار مقفول إذا جاء من فاتورة (lockedKarat)
     const karatLocked = !!item.lockedKarat;
     return `<div style="background:var(--c1);border-radius:var(--rb);padding:10px;margin-bottom:8px;border:1.5px solid var(--b2)">
@@ -6682,8 +6605,8 @@ function saveReturn(){
   if(!currentReturnType){toast('⚠️ اختر نوع المرتجع');return;}
   const validItems = returnItems.filter(i=>i.weight>0);
   const vatOn = document.getElementById('ret-vat')?.checked || false;
-  const cash = parseFloat(document.getElementById('ret-cash')?.value)||0;
-  if(!validItems.length&&cash<=0){toast('⚠️ أضف أصناف أو مبلغ نقدي');return;}
+  const cash = 0; // المرتجع لا يتضمن كاش — يُعدِّل الدين فقط
+  if(!validItems.length){toast('⚠️ أضف صنفاً واحداً على الأقل');return;}
   const cli   = document.getElementById('ret-cli-v')?.value||document.getElementById('ret-cli-s')?.value||'';
   const notes = document.getElementById('ret-notes')?.value||'';
   const dateV = document.getElementById('ret-date')?.value;
@@ -6705,7 +6628,7 @@ function saveReturn(){
     client:cli, notes,
     items:validItems.map(i=>{
       const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
-      return {karat:i.karat, weight:i.weight, isWorked:!!i.isWorked, ajour};
+      return {karat:i.karat, weight:i.weight, isWorked:true, ajour}; // مشغول دائماً
     }),
     cashRefund:cash,                                   // النقد المسترد فعلياً
     retAjour:Math.round(retAjour*100)/100,             // الأجور فقط
@@ -6737,7 +6660,8 @@ function saveReturn(){
   ['sales','purchase'].forEach(k=>{
     const btn=document.getElementById('ret-type-'+k); if(btn) btn.style.opacity='1';
   });
-  toast(`✅ تم حفظ ${TLBL[currentReturnType]||'المرتجع'}`);
+  const savedRetType = currentReturnType||'';
+  toast(`✅ تم تسجيل المرتجع — خُفِّض الدين بمقدار ${fmt(retAjour)} ريال`);
 }
 
 function renderReturns(){
@@ -6761,8 +6685,8 @@ function renderReturns(){
       </div>
       <div style="font-size:12px;color:var(--tx2)">${t.client||'—'}</div>
       <div style="font-size:12px;font-weight:700;color:var(--g1)">
-        ${t.total24>0?fmtG(t.total24)+' ج ع24':''}
-        ${(t.cashRefund||0)>0?fmt(t.cashRefund)+' ريال':''}
+        ${t.total24>0?fmtG(t.total24)+' ج ع24 ↩️':''}
+        ${t.ajTotal>0?`<span style="color:var(--in)"> · خصم دين ${fmt(t.ajTotal)} ر</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -7002,8 +6926,8 @@ function renderHome(){
   const todayStr=new Date().toDateString();
   const td=S.transactions.filter(t=>new Date(t.date).toDateString()===todayStr);
   // ── إحصائيات اليوم — مع خصم المرتجعات ──
-  const sellToday    = td.filter(t=>t.type==='sell'&&!t.isDebt);
-  const debtToday    = td.filter(t=>t.type==='sell-debt'||(t.type==='sell'&&t.isDebt));
+  const sellToday    = td.filter(t=>t.type==='sell'||t.type==='sell-debt'); // كل البيع آجل
+  const debtToday    = td.filter(t=>t.type==='sell-debt'||t.type==='sell'); // كل البيع آجل
   const buyToday     = td.filter(t=>t.type==='buy'||t.type==='buy-debt');
   const retSaleToday = td.filter(t=>t.type==='sales-return'||t.type==='return'); // مرتجعات مبيعات
   const retBuyToday  = td.filter(t=>t.type==='purchase-return'||t.type==='supplier-return');
