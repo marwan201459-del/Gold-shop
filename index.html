@@ -3466,7 +3466,7 @@ function printStmt(){
       else if(t.type==='buy'||t.type==='buy-debt') dCash=-(t.ajTotal||t.total||0);          // دين على المورد (-)
       else if(t.type==='sales-return'||t.type==='return') dCash=-(t.ajTotal||0);             // مرتجع يُخفِّض دين العميل (-)
       else if(t.type==='purchase-return'||t.type==='supplier-return') dCash=(t.ajTotal||0);  // مرتجع يُخفِّض دين المورد (+)
-      else if(t.type==='cash-receipt') dCash=0; // قبض قديم — لا تأثير على الدين
+      else if(t.type==='cash-receipt') dCash=-(t.amount||0); // قبض نقد يُخفِّض دين العميل
       else if(t.type==='transfer'){
         if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
         if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
@@ -4370,9 +4370,11 @@ function getClientBalance(cli){
   const salesRetDebt = txs.filter(t=>t.type==='return'||t.type==='sales-return')
                           .reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
 
-  // تسوية دين من العميل (نقد + خصم + فكة)
+  // تسوية دين من العميل (نقد + خصم + فكة) + قبض نقد مباشر
   const clientSettled = txs.filter(t=>t.type==='payment')
-                           .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0);
+                           .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0)
+                         + txs.filter(t=>t.type==='cash-receipt')
+                              .reduce((a,t)=>a+(t.amount||0),0);
 
   // تحويلات نقدية
   const cashTransferIn  = txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+cli))
@@ -7499,7 +7501,7 @@ function renderStmt(){
     else if(t.type==='sell-debt')           dCash = t.ajTotal||0;       // آجل: مستحق عليه
     else if(t.type==='payment')             dCash = t.ajourPaid||t.amount||0;
     else if(t.type==='supplier-payment')    dCash = -(t.ajourPaid||t.amount||0);
-    else if(t.type==='cash-receipt')        dCash = t.amount||0;
+    else if(t.type==='cash-receipt')        dCash = -(t.amount||0);
     else if(t.type==='buy')                 dCash = -(t.ajTotal||t.total||0);
     else if(t.type==='buy-debt')            dCash = -(t.ajTotal||t.total||0); // مستحق له
     else if(t.type==='sales-return')        dCash = -(t.ajTotal||t.cashRefund||0) - (t.vatAmt||0); // عكس البيع مع الضريبة
