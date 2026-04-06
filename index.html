@@ -550,40 +550,77 @@ body{
 
 <!-- HOME -->
 <div id="pg-home" class="pg on">
+  <!-- تنبيهات -->
   <div id="overdue-alerts"></div>
-  <div class="g2" style="margin-bottom:10px" id="home-safes"></div>
-  <div class="card">
-    <div class="ch" style="display:flex;justify-content:space-between;align-items:center">
-      <span>📊 إحصائيات اليوم</span>
-      <span id="home-date" style="font-size:11px;color:var(--tx2);font-weight:400"></span>
+
+  <!-- صناديق سريعة -->
+  <div class="g2" style="margin-bottom:12px" id="home-safes"></div>
+
+  <!-- بطاقة إحصائيات اليوم -->
+  <div style="background:var(--c1);border-radius:var(--ra);border:1px solid var(--b2);box-shadow:var(--s1);overflow:hidden;margin-bottom:12px">
+    <!-- رأس البطاقة -->
+    <div style="padding:12px 16px;background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.05));border-bottom:1px solid var(--b2);display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:3px;height:16px;background:linear-gradient(to bottom,var(--g2),var(--g1));border-radius:2px"></div>
+        <span style="font-size:13px;font-weight:800;color:var(--tx1)">📊 إحصائيات اليوم</span>
+      </div>
+      <span id="home-date" style="font-size:10px;color:var(--tx3);background:var(--c3);padding:3px 10px;border-radius:20px;border:1px solid var(--b1)"></span>
     </div>
-    <div class="cb">
+
+    <div style="padding:12px">
+      <!-- صف 1: صافي + فواتير -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <!-- القسم 1: المبيعات الخام -->
-        <div class="sb green"><div class="v" id="h-sell">0</div><div class="l">💵 مبيعات كاش (ر)</div></div>
-        <div class="sb purple"><div class="v" id="h-debt">0</div><div class="l">📋 مبيعات آجلة (ر)</div></div>
-        <!-- القسم 2: المرتجعات -->
-        <div class="sb red">
-          <div class="v" id="h-ret-today">0</div>
-          <div class="l">↩️ مرتجعات اليوم (ر) <span id="h-ret-count" style="font-size:9px;opacity:.7"></span></div>
-        </div>
-        <!-- القسم 3: الصافي -->
-        <div class="sb gold">
-          <div class="v" id="h-net-today">0</div>
+        <div class="sb gold" style="border-radius:12px">
+          <div class="v" id="h-net-today" style="font-size:22px">0</div>
           <div class="l">✅ صافي المبيعات (ر)</div>
         </div>
-        <!-- القسم 4: باقي -->
-        <div class="sb red"><div class="v" id="h-buy">0</div><div class="l">🛒 مشتريات (ر)</div></div>
-        <div class="sb teal"><div class="v" id="h-profit">0</div><div class="l">💰 ربح الأجور (ر)</div></div>
-        <div class="sb gold" style="display:none"><div class="v" id="h-scrap">0</div><div class="l">🗃️ كسر مستلم (ج)</div></div>
-        <div class="sb blue"><div class="v" id="h-inv-count">0</div><div class="l">🧾 عدد الفواتير</div></div>
+        <div class="sb teal" style="border-radius:12px">
+          <div class="v" id="h-profit" style="font-size:22px">0</div>
+          <div class="l">💰 ربح الأجور (ر)</div>
+        </div>
       </div>
-      <!-- تنبيه مخزون منخفض -->
-      <div id="low-stock-alert"></div>
-      <!-- أفضل عملاء اليوم -->
-      <div id="home-top-clients"></div>
+
+      <!-- صف 2: تفاصيل -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+        <div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:var(--ok)" id="h-sell">0</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-top:2px">💵 كاش (ر)</div>
+        </div>
+        <div style="background:rgba(155,107,224,.08);border:1px solid rgba(155,107,224,.20);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:var(--pu)" id="h-debt">0</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-top:2px">📋 آجل (ر)</div>
+        </div>
+        <div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:var(--no)" id="h-ret-today">0</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-top:2px">↩️ مرتجع (ر)</div>
+        </div>
+      </div>
+
+      <!-- صف 3: مشتريات + فواتير -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--c2);border:1px solid var(--b1);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:var(--no)" id="h-buy">0</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-top:2px">🛒 مشتريات (ر)</div>
+        </div>
+        <div style="background:var(--in-bg);border:1px solid var(--in-bd);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:var(--in)" id="h-inv-count">0</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-top:2px">🧾 عدد الفواتير</div>
+        </div>
+      </div>
+
+      <!-- إخفاء العنصر القديم -->
+      <div id="h-ret-count" style="display:none"></div>
+      <div id="h-scrap" style="display:none"></div>
     </div>
   </div>
+
+  <!-- تنبيه مخزون منخفض -->
+  <div id="low-stock-alert"></div>
+
+  <!-- أفضل عملاء -->
+  <div id="home-top-clients"></div>
+
+  <!-- آخر الفواتير -->
   <div class="card">
     <div class="ch">🔄 آخر الفواتير</div>
     <div class="cb" id="home-recent"></div>
@@ -2349,7 +2386,7 @@ function openStmtS(){
 
   S.clients.filter(cl=>!q||cl.name.toLowerCase().includes(q)).forEach(cl=>{
     const bal    = getClientBalance(cl.name);
-    const isSupp = cl.type==='مورد'||cl.type==='موزع';
+    const isSupp = cl.type==='مورد';
     const abs    = Math.abs(bal.cashOwed||0);
     const balTxt = abs<0.01 ? '<span style="color:var(--ok)">✅ مسوى</span>'
       : isSupp
@@ -3471,7 +3508,7 @@ function printStmt(){
   } else {
     const bal=getClientBalance(v);
     const clientObj=(S.clients||[]).find(cl=>cl.name===v);
-    const isSupp=clientObj?.type==='مورد'||clientObj?.type==='موزع';
+    const isSupp=clientObj?.type==='مورد';
     const isSettled=Math.abs(bal.cashOwed)<0.01&&Math.abs(bal.goldOwedAs24||0)<0.001;
     const _obEntry=(S.openingBalance?.clients)?S.openingBalance.clients[v]:null;
     let balRows='';
@@ -4937,7 +4974,7 @@ function renderDebts(){
   // عملاء مدينون لنا (موجب)
   const clientBals   = balances.filter(b=>b.type==='عميل');
   // موردون نحن مدينون لهم (سالب = نحن مدينون) أو لهم رصيد
-  const supplierBals = balances.filter(b=>b.type==='مورد'||b.type==='موزع');
+  const supplierBals = balances.filter(b=>b.type==='مورد');
 
   if(!balances.length){
     el.innerHTML='<div class="card"><div class="cb"><div class="empty"><p>لا توجد مديونيات ✅</p></div></div></div>';
@@ -4945,7 +4982,7 @@ function renderDebts(){
   }
 
     function balCard(b,i){
-    const isSupp = b.type==='مورد'||b.type==='موزع';
+    const isSupp = b.type==='مورد';
     const goldClr = isSupp
       ? (b.goldAs24<0?'var(--no)':b.goldAs24>0?'var(--ok)':'var(--tx2)')
       : (b.goldAs24>0?'var(--no)':b.goldAs24<0?'var(--ok)':'var(--tx2)');
@@ -7432,7 +7469,7 @@ function renderStmt(){
 
   // ── بطاقة الرصيد ──
   // ══ بطاقة الملخص المباشر — تظهر دون طباعة ══
-  const isSupp = clientObj?.type==='مورد' || clientObj?.type==='موزع';
+  const isSupp = clientObj?.type==='مورد';
   const absOwedQ = Math.abs(bal.cashOwed);
   const stateLabel = isSupp
     ? (bal.cashOwed<0 ? 'له علينا' : bal.cashOwed>0 ? 'له عندنا فائض' : 'مسوى')
@@ -7815,7 +7852,7 @@ function openCliDetail(id){
   const cl=S.clients.find(x=>x.id===id);if(!cl)return;
   const txs=S.transactions.filter(t=>t.client===cl.name);
   const bal=getClientBalance(cl.name);
-  const isSupp=cl.type==='مورد'||cl.type==='موزع';
+  const isSupp=cl.type==='مورد';
 
   // ── ملخص مالي ──
   const absOwed=Math.abs(bal.cashOwed);
@@ -7992,7 +8029,7 @@ function renderObClientsList(){
   entries.forEach(([name,data])=>{
     const clr=typeClr[data.type]||'var(--g1)';
     const ic=typeIc[data.type]||'👤';
-    const isSupp=data.type==='مورد'||data.type==='موزع';
+    const isSupp=data.type==='مورد';
     // اتجاه الرصيد النقدي الحالي: لو data.cashDir محفوظ نستخدمه وإلا نستنتج
     const cashDir = data.cashDir || (data.cash>0 ? (isSupp?'له_علينا':'عليه_لنا') : (data.cash<0?(isSupp?'لنا_فائض':'له_عندنا'):'عليه_لنا'));
     const goldDir = data.goldDir || (data.gold24>0 ? 'عليه' : 'له');
@@ -8097,7 +8134,7 @@ function saveOpeningClients(){
     const goldRaw=parseFloat(document.getElementById('ob-cli-gold-'+name)?.value)||0;
     const dateV=document.getElementById('ob-cli-date-'+name)?.value||'';
     const noteV=document.getElementById('ob-cli-note-'+name)?.value||'';
-    const isSupp=ob.clients[name].type==='مورد'||ob.clients[name].type==='موزع';
+    const isSupp=ob.clients[name].type==='مورد';
     const cashDir=ob.clients[name].cashDir||(isSupp?'له_علينا':'عليه_لنا');
     const goldDir=ob.clients[name].goldDir||'عليه';
     // تحديد الإشارة: "عليه لنا" أو "له علينا" = موجب لمن يدين | "له عندنا" = سالب
