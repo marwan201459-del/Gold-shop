@@ -685,6 +685,17 @@ body{
             <span class="lbl" style="color:var(--io)">مبلغ الضريبة</span>
             <span class="val" id="vat-amount" style="color:var(--io)">0</span>
           </div>
+          <!-- أجور الشحن -->
+          <div class="inv-sum-row">
+            <span class="lbl">🚚 أجور الشحن</span>
+            <input type="number" id="f-shipping" inputmode="decimal" placeholder="0"
+              style="width:90px;text-align:left;border:1px solid var(--b1);border-radius:6px;padding:4px 8px"
+              oninput="renderInvSummary()">
+          </div>
+          <div class="inv-sum-row" id="shipping-preview" style="display:none">
+            <span class="lbl" style="color:var(--in)">إجمالي بعد الشحن</span>
+            <span class="val" id="shipping-after" style="color:var(--in)">0</span>
+          </div>
           <!-- خصم -->
           <div class="inv-sum-row">
             <span class="lbl">🏷️ خصم</span>
@@ -2568,8 +2579,20 @@ function renderInvSummary(){
   const vatAmountEl = document.getElementById('vat-amount');
   if(vatAmountEl) vatAmountEl.textContent = fmt(vatAmt)+' ريال';
 
+  // أجور الشحن
+  const shippingAmt = parseFloat(document.getElementById('f-shipping')?.value)||0;
+  const totalWithShipping = totalWithVat + shippingAmt;
+  const shippingPreview = document.getElementById('shipping-preview');
+  const shippingAfterEl = document.getElementById('shipping-after');
+  if(shippingPreview) shippingPreview.style.display = shippingAmt>0 ? 'flex' : 'none';
+  if(shippingAfterEl && shippingAmt>0) shippingAfterEl.textContent = fmt(totalWithShipping)+' ريال';
+
+  // خصم
+  const discAmt = parseFloat(document.getElementById('f-discount')?.value)||0;
+  const totalFinal = totalWithShipping - discAmt;
+
   const elT = document.getElementById('sum-total');
-  if(elT) elT.textContent = fmt(totalWithVat)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
+  if(elT) elT.textContent = fmt(totalFinal)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
 }
 
 function renderDraftItems(){
@@ -2706,6 +2729,7 @@ const ACC_RULES = {
       [tx.cashRefund, 'النقد المسترد'],
       [tx.ajourPaid,  'المبلغ المسدد'],
       [tx.vatAmt,     'الضريبة'],
+      [tx.shipping,   'أجور الشحن'],
     ];
     for(const [val, name] of checks){
       if(val !== undefined && val !== null && val < -0.001)
@@ -2834,10 +2858,11 @@ function saveInvoice(){
   const goldTotal =draftItems.reduce((a,i)=>a+i.weight*i.price,0);
   const ajTotal   =draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
   const discount  =parseFloat(document.getElementById("f-discount")?.value)||0;
+  const shipping  =parseFloat(document.getElementById("f-shipping")?.value)||0;
   const vatCheck  = document.getElementById('vat-check');
   const vatOn     = vatCheck && vatCheck.checked;
   const vatAmt    = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
-  const invTotal  =goldTotal+ajTotal+vatAmt-discount;
+  const invTotal  =goldTotal+ajTotal+vatAmt+shipping-discount;
   const totalWeight=draftItems.reduce((a,i)=>a+i.weight,0);
   // البيع والشراء آجل دائماً
   const isDebt = selType==='sell';
@@ -2857,7 +2882,7 @@ function saveInvoice(){
     id:Date.now(), date:txDate,
     type: isDebt?'sell-debt': isBuyDebt?'buy-debt': selType,
     items:[...draftItems],
-    goldTotal, ajTotal, discount, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight,
+    goldTotal, ajTotal, discount, shipping, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight,
     cash, goldPay, prepaid, due: isDebt?due:'', buyDue: isBuyDebt?buyDue:'',
     isDebt, isBuyDebt,
     client, staff, notes
@@ -2872,7 +2897,7 @@ function saveInvoice(){
 function clearInvForm(){
   draftItems=[]; itemCounter=0;
   renderDraftItems();
-  ['f-cash','f-goldpay','f-prepaid','f-due','f-buy-due','f-notes','f-discount','f-date'].forEach(i=>{
+  ['f-cash','f-goldpay','f-prepaid','f-due','f-buy-due','f-notes','f-discount','f-shipping','f-date'].forEach(i=>{
 
     const el=document.getElementById(i);if(el)el.value='';
   });
@@ -3290,6 +3315,7 @@ function renderInvModal(tx,editing){
         <span class="val" style="color:var(--io)">${fmt(tx.ajTotal||0)} ر</span>
       </div>
       ${(tx.vatAmt||0)>0?`<div class="inv-sum-row"><span class="lbl">🧾 ضريبة 15%</span><span class="val" style="color:#F59E0B">${fmt(tx.vatAmt)} ر</span></div>`:''}
+      ${(tx.shipping||0)>0?`<div class="inv-sum-row"><span class="lbl">🚚 أجور الشحن</span><span class="val" style="color:var(--in)">${fmt(tx.shipping)} ر</span></div>`:''}
       ${(tx.discount||0)>0?`<div class="inv-sum-row"><span class="lbl">🏷️ خصم</span><span class="val" style="color:var(--ok)">− ${fmt(tx.discount)} ر</span></div>`:''}
       ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">💳 مدفوع مقدماً</span><span class="val">${fmt(tx.prepaid||0)} ر</span></div>`:''}
       ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">📋 دين متبقي</span><span class="val" style="color:var(--pu)">${fmt((tx.total||0)-(tx.prepaid||0))} ر</span></div>`:''}
@@ -3581,11 +3607,6 @@ function printAllBalances(){
     @media print{body{padding:8px}button{display:none}}
   </style>
 </head><body>
-  <div class="company">
-    <div>شركة: _______________</div>
-    <div>تلفون: _______________ &nbsp;&nbsp; فاكس: _______________</div>
-  </div>
-
   <div class="title-row">
     <h2>مـراجعـة أرصـــدة الـعـمـــلاء</h2>
   </div>
@@ -3643,10 +3664,6 @@ function printAllBalances(){
       <div class="lbl">🏅 إجمالي الذهب المستحق لهم</div>
       <div class="val green">${fmt2(totalGoldCredit)} جرام ع24</div>
     </div>
-  </div>
-
-  <div class="footer">
-    ${timeStr} &nbsp;|&nbsp; ${greg} &nbsp;&nbsp; تاريخ و وقت الطباعة &nbsp;&nbsp; Page 1 of 1
   </div>
 
   <scr"+"ipt>window.onload=()=>window.print();<"+"\/scr"+"ipt>
@@ -3739,7 +3756,7 @@ function printStmt(){
         }
       } else {
         // عميل / موزع
-        if(t.type==='sell'||t.type==='sell-debt')          dCash=t.ajTotal||0;  // دين عليه (+)
+        if(t.type==='sell'||t.type==='sell-debt')          dCash=(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0);  // دين عليه (+)
         else if(t.type==='payment')                        dCash=-(t.ajourPaid||0)-(t.discount||0)-(t.change||0); // سدد (-)
         else if(t.type==='cash-receipt')                   dCash=-(t.amount||0); // قبض نقد (-)
         else if(t.type==='sales-return'||t.type==='return') dCash=-(t.ajTotal||0); // مرتجع يُقلل ما عليه (-)
@@ -3751,8 +3768,12 @@ function printStmt(){
       runCash=Math.round((runCash+dCash)*100)/100;
       let detail='',amtStr='',wtStr='—';
       if(t.type==='sell'||t.type==='sell-debt'){
-        detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · سعر ${fmt(i.price)}/ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>');
-        amtStr=`<span class="neg">${fmt(t.ajTotal||0)} ر</span>`;  // دين على العميل
+        detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · سعر ${fmt(i.price)}/ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>')+
+          ((t.vatAmt||0)>0?`<br>ضريبة 15%: ${fmt(t.vatAmt)} ر`:'')+
+          ((t.shipping||0)>0?`<br>🚚 شحن: ${fmt(t.shipping)} ر`:'')+
+          ((t.discount||0)>0?`<br>خصم: ${fmt(t.discount)} ر`:'');
+        const invTotal=(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0);
+        amtStr=`<span class="neg">${fmt(invTotal)} ر</span>`;
         wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
       } else if(t.type==='buy'||t.type==='buy-debt'){
         detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>');
@@ -3866,7 +3887,6 @@ function printStmt(){
     @media print{.print-btn{display:none!important}body{padding:8px}}
   </style></head><body>
   <div class="header">
-    <h1>💍 جوهرة كيان الرائده</h1>
     <h2>${title}</h2>
     <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
   </div>
@@ -3944,6 +3964,7 @@ function txHtml(t){
         ${t.isReturned?'<div class="ts" style="color:var(--pu)">↩️ تم الإرجاع</div>':''}
       ${t.notes?`<div class="ts" style="color:var(--g1)">📝 ${t.notes}</div>`:''}
         ${t.discount?`<div class="ts" style="color:var(--io)">🏷️ خصم: ${fmt(t.discount)} ر</div>`:''}
+        ${t.shipping?`<div class="ts" style="color:var(--in)">🚚 شحن: ${fmt(t.shipping)} ر</div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="tv" style="text-align:left">
@@ -4666,9 +4687,9 @@ function getClientBalance(cli){
   // المبدأ: كل البيع دين على العميل، كل الشراء دين علينا للمورد
   // التسوية (payment / supplier-payment) هي الوحيدة التي تُخفِّض
 
-  // دين البيع على العميل (أجور + ضريبة)
+  // دين البيع على العميل (أجور + ضريبة + شحن)
   const sellDebt = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
-                      .reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
+                      .reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0),0);
 
   // مرتجع مبيعات يُخفِّض الدين على العميل (أجور + ضريبة)
   const salesRetDebt = txs.filter(t=>t.type==='return'||t.type==='sales-return')
@@ -4747,6 +4768,7 @@ function getClientBalance(cli){
     goldOwedAs24: Math.round((goldOwedAs24 + obGold24)*1000)/1000,
     ajTotal:      sellDebt,
     totalNaqd:    clientSettled + cashTransferIn,
+    clientSettled: Math.round(clientSettled*100)/100,
     custodyIn, salaryOut,
     obCash, obGold24
   };
@@ -4959,15 +4981,21 @@ function doPayment(){
 
 // ── Discount calc ──────────────────────────────────────────────────
 function calcDiscount(){
+  // نفوض لـ renderInvSummary لأنها تحسب كل شيء بشكل موحد
+  renderInvSummary();
   const disc=parseFloat(document.getElementById('f-discount')?.value)||0;
-  const goldSum=draftItems.reduce((a,i)=>a+i.weight*i.price,0);
-  const ajSum=draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
-  const total=goldSum+ajSum;
-  const after=total-disc;
   const prev=document.getElementById('discount-preview');
   const da=document.getElementById('disc-after');
-  if(disc>0&&prev&&da){prev.style.display='flex';da.textContent=fmt(after)+' ريال';}
-  else if(prev){prev.style.display='none';}
+  if(disc>0&&prev&&da){
+    const goldSum=draftItems.reduce((a,i)=>a+i.weight*i.price,0);
+    const ajSum=draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
+    const shipping=parseFloat(document.getElementById('f-shipping')?.value)||0;
+    const vatCheck=document.getElementById('vat-check');
+    const vatAmt=vatCheck&&vatCheck.checked?Math.round(ajSum*0.15*100)/100:0;
+    const after=goldSum+ajSum+vatAmt+shipping-disc;
+    prev.style.display='flex';
+    da.textContent=fmt(after)+' ريال';
+  } else if(prev){prev.style.display='none';}
 }
 
 // ── Render ALL ─────────────────────────────────────────────────────
@@ -7747,7 +7775,7 @@ function renderStmt(){
         </div>
         <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1px solid var(--ok-bd)">
           <div style="font-size:10px;color:var(--tx2);margin-bottom:4px;font-weight:700">تم تحصيله</div>
-          <div style="font-size:18px;font-weight:900;color:var(--ok)">${fmt(Math.max(0,(bal.ajTotal||0)-Math.abs(bal.cashOwed||0)))}</div>
+          <div style="font-size:18px;font-weight:900;color:var(--ok)">${fmt(bal.clientSettled||0)}</div>
           <div style="font-size:10px;color:var(--tx3)">ريال</div>
         </div>
         <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1.5px solid ${stateColor}">
@@ -7839,7 +7867,7 @@ function renderStmt(){
       }
     } else {
       // عميل / موزع: البيع يزيد ما عليه (موجب)
-      if(t.type==='sell'||t.type==='sell-debt')                       dCash = t.ajTotal||0;
+      if(t.type==='sell'||t.type==='sell-debt')                       dCash = (t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0);
       else if(t.type==='payment')                                      dCash = t.ajourPaid||t.amount||0;
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
       else if(t.type==='sales-return'||t.type==='return')             dCash = -(t.ajTotal||t.cashRefund||0) - (t.vatAmt||0);
