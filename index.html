@@ -2904,6 +2904,7 @@ function updateScrapItem(id, field, val){
   const item = scrapItems.find(i=>i.id===id);
   if(!item) return;
   if(field==='weight') item.weight = parseFloat(val)||0;
+  else if(field==='price') item.price = parseFloat(val)||0;
   else item[field] = val;
   // تحديث الصندوق الافتراضي عند تغيير العيار
   if(field==='karat'){
@@ -3648,7 +3649,7 @@ function printAllBalances(){
     ${timeStr} &nbsp;|&nbsp; ${greg} &nbsp;&nbsp; تاريخ و وقت الطباعة &nbsp;&nbsp; Page 1 of 1
   </div>
 
-  <script>window.onload=()=>window.print();<\/script>
+  <scr"+"ipt>window.onload=()=>window.print();<"+"\/scr"+"ipt>
 </body></html>`;
 
   const w = window.open('','_blank');
@@ -4357,6 +4358,7 @@ function updatePayGoldItem(id, field, val){
   if(!item) return;
 
   if(field==='weight') item.weight = parseFloat(val)||0;
+  else if(field==='price') item.price = parseFloat(val)||0;
   else item[field] = val;
 
   // تحديث الصندوق الافتراضي عند تغيير العيار
@@ -4377,9 +4379,11 @@ function updatePayGoldItem(id, field, val){
     const dirLabel  = isReceipt ? '+' : '−';
     const dirClr    = isReceipt ? 'var(--ok)' : 'var(--no)';
     as24El.style.display = as24>0 ? 'block' : 'none';
-    as24El.innerHTML = as24>0
-      ? `<span style="color:#7C2D12;">= </span><span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>`
-      : '';
+    const riyalVal = (item.price||0)>0 ? Math.round(item.weight*(item.price)*100)/100 : 0;
+    as24El.innerHTML = as24>0 ? `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+      <span style="color:#7C2D12;">= <span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span></span>
+      ${riyalVal>0?`<span style="background:rgba(255,140,0,.15);color:#B35A00;font-weight:900;padding:2px 8px;border-radius:6px;font-size:12px">≈ ${fmt(riyalVal)} ريال</span>`:''}
+    </div>` : '';
   }
 
   calcPaySummary();
@@ -4433,6 +4437,14 @@ function renderPayGoldItems(){
             oninput="updatePayGoldItem(${item.id},'weight',this.value)">
         </div>
       </div>
+      <!-- حقل السعر -->
+      <div style="margin:6px 0">
+        <div style="font-size:10px;font-weight:700;color:#B35A00;margin-bottom:2px">💰 سعر الجرام اليوم (ريال) — لحساب القيمة</div>
+        <input type="number" id="pgi-price-${item.id}"
+          value="${item.price||''}" placeholder="مثال: 200.00" inputmode="decimal"
+          style="width:100%;padding:7px;border-radius:7px;border:1.5px solid rgba(255,140,0,.50);background:#FFFBF0;font-family:inherit;box-sizing:border-box;color:#1A0A00;font-weight:700;font-size:14px"
+          oninput="updatePayGoldItem(${item.id},'price',this.value)">
+      </div>
       <div>
         <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">الصندوق</div>
         <select id="pgi-safe-${item.id}"
@@ -4441,8 +4453,11 @@ function renderPayGoldItems(){
           ${safeOpts(item.safe)}
         </select>
       </div>
-      <div id="pgi-as24-${item.id}" style="margin-top:6px;font-size:11px;text-align:left;${as24>0?'':'display:none'}">
-        ${as24>0?`<span style="color:#7C2D12;">= </span><span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span>`:''}
+      <div id="pgi-as24-${item.id}" style="margin-top:6px;font-size:11px;${as24>0?'':'display:none'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+          <span style="color:#7C2D12;">= <span style="font-weight:700;color:${dirClr}">${dirLabel} ${fmtG(as24)} ج ع24</span></span>
+          ${(item.price||0)>0?`<span style="background:rgba(255,140,0,.15);color:#B35A00;font-weight:900;padding:2px 8px;border-radius:6px">≈ ${fmt(Math.round(item.weight*(item.price||0)*100)/100)} ريال</span>`:''}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -4810,21 +4825,42 @@ function calcPaySummary(){
     if(disc>0)   html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🏷️ خصم تسوية (لا يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--io)">${fmt(disc)} ريال</span></div>`;
     // أصناف الذهب
     if(payGoldItems.length>0){
-      const totalGold24 = payGoldItems.reduce((a,i)=>a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000,0);
+      let totalGoldRiyal = 0;
       payGoldItems.forEach(i=>{
         if(i.weight>0){
           const as24=Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000;
-          html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
-            <span>🥇 ذهب عيار ${i.karat} → ${getSM()[i.safe]?.label||i.safe}</span>
-            <span style="font-weight:700;color:var(--g1)">${fmtG(i.weight)} ج (${fmtG(as24)} ع24)</span>
+          const rVal = (i.price||0)>0 ? Math.round(i.weight*(i.price)*100)/100 : 0;
+          if(rVal>0) totalGoldRiyal += rVal;
+          html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--b1)">
+            <span>🥇 ع${i.karat} → ${getSM()[i.safe]?.label||i.safe}</span>
+            <div style="text-align:left">
+              <div style="font-weight:700;color:var(--g1)">${fmtG(i.weight)} ج (${fmtG(as24)} ع24)</div>
+              ${rVal>0?`<div style="font-size:11px;color:#B35A00;font-weight:900">= ${fmt(rVal)} ر بسعر ${fmt(i.price)} ر/ج</div>`:''}
+            </div>
           </div>`;
         }
       });
-      if(payGoldItems.filter(i=>i.weight>0).length>1){
-        const tot24=payGoldItems.reduce((a,i)=>a+(i.weight>0?Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000:0),0);
-        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-top:1px solid var(--b1);margin-top:2px">
+      const tot24=payGoldItems.reduce((a,i)=>a+(i.weight>0?Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000:0),0);
+      if(payGoldItems.filter(i=>i.weight>0).length>0){
+        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;margin-top:2px">
           <span style="font-weight:700">📊 إجمالي الذهب</span>
-          <span style="font-weight:900;color:var(--g1)">${fmtG(Math.round(tot24*1000)/1000)} ج ع24</span>
+          <div style="text-align:left">
+            <div style="font-weight:900;color:var(--g1)">${fmtG(Math.round(tot24*1000)/1000)} ج ع24</div>
+            ${totalGoldRiyal>0?`<div style="font-size:11px;color:#B35A00;font-weight:900">= ${fmt(totalGoldRiyal)} ريال</div>`:''}
+          </div>
+        </div>`;
+      }
+      // مقارنة الذهب بالأجور المستحقة
+      if(totalGoldRiyal>0){
+        const total2 = ajour + totalGoldRiyal + disc + change;
+        html+=`<div style="background:rgba(255,140,0,.08);border:1px solid rgba(255,140,0,.30);border-radius:8px;padding:8px 10px;margin-top:6px">
+          <div style="font-size:11px;font-weight:700;color:#B35A00;margin-bottom:5px">📊 ملخص قيمة التسوية</div>
+          ${ajour>0?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>💵 نقد</span><span style="font-weight:700">${fmt(ajour)} ر</span></div>`:''}
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>🥇 قيمة الذهب</span><span style="font-weight:700;color:#B35A00">${fmt(totalGoldRiyal)} ر</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid rgba(255,140,0,.25);margin-top:3px">
+            <span style="font-weight:800">المجموع الكلي</span>
+            <span style="font-weight:900;color:var(--ok)">${fmt(total2)} ريال</span>
+          </div>
         </div>`;
       }
     }
@@ -6793,6 +6829,7 @@ function updateReturnItem(id, field, val){
   const item = returnItems.find(i=>i.id===id);
   if(!item) return;
   if(field==='weight') item.weight = parseFloat(val)||0;
+  else if(field==='price') item.price = parseFloat(val)||0;
   else item[field] = val;
   const as24El = document.getElementById(`ri-as24-${id}`);
   if(as24El){
@@ -7811,7 +7848,8 @@ function renderStmt(){
       else if(t.type==='salary-deduction')                             dCash = (t.amount||0);
       else if(t.type==='transfer'){
         if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;  // العميل أعطانا
-      if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
+        if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
+      }
     }
     // تغيير الذهب بعيار 24
     let dGold24 = 0;
