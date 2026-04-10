@@ -807,6 +807,63 @@ body{
             <div id="pay-change-hint" style="font-size:10px;color:var(--tx2);margin-top:3px">← تُضاف/تُخصم من الصندوق</div>
           </div>
         </div>
+
+        <!-- ── فرق الصافي ── -->
+        <div style="background:var(--in-bg);border:1.5px solid var(--in-bd);border-radius:var(--rb);padding:12px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:800;color:var(--in)">⚖️ فرق الصافي</span>
+            <span style="font-size:10px;color:var(--tx2)">يُخصم من الدين — لا يدخل الصندوق</span>
+          </div>
+          <!-- نوع الفرق -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+            <button type="button" id="net-diff-type-riyal"
+              onclick="setNetDiffType('riyal')"
+              style="padding:8px;border-radius:var(--rc);border:2px solid var(--b1);
+                background:var(--c2);cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
+              💵 بالريال
+            </button>
+            <button type="button" id="net-diff-type-gram"
+              onclick="setNetDiffType('gram')"
+              style="padding:8px;border-radius:var(--rc);border:2px solid var(--b1);
+                background:var(--c2);cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
+              ⚖️ بالجرام
+            </button>
+          </div>
+          <!-- حقل الريال -->
+          <div id="net-diff-riyal-row" style="display:none">
+            <div class="fr" style="margin-bottom:0">
+              <label style="font-size:11px">المبلغ (ريال)</label>
+              <input type="number" id="net-diff-riyal" inputmode="decimal" placeholder="0"
+                oninput="calcPaySummary()">
+            </div>
+          </div>
+          <!-- حقل الجرام -->
+          <div id="net-diff-gram-row" style="display:none">
+            <div class="g2" style="margin-bottom:0">
+              <div class="fr">
+                <label style="font-size:11px">الوزن (جرام)</label>
+                <input type="number" id="net-diff-gram" inputmode="decimal" placeholder="0.000"
+                  oninput="calcNetDiffRiyal();calcPaySummary()">
+              </div>
+              <div class="fr">
+                <label style="font-size:11px">العيار</label>
+                <select id="net-diff-karat" onchange="calcNetDiffRiyal();calcPaySummary()">
+                  <option value="21">عيار 21</option>
+                  <option value="18">عيار 18</option>
+                  <option value="24">عيار 24</option>
+                </select>
+              </div>
+            </div>
+            <div class="fr" style="margin-bottom:0;margin-top:6px">
+              <label style="font-size:11px">سعر الجرام (ريال/جرام) — اختياري</label>
+              <input type="number" id="net-diff-price" inputmode="decimal" placeholder="0"
+                oninput="calcNetDiffRiyal();calcPaySummary()">
+            </div>
+            <div id="net-diff-calc" style="display:none;background:var(--c2);border-radius:var(--rc);
+              padding:8px;margin-top:6px;font-size:11px;color:var(--in);font-weight:700;text-align:center">
+            </div>
+          </div>
+        </div>
         <!-- صناديق الذهب لكل صنف — تُعرض في pay-gold-items-list -->
         <div id="pay-gold-safe-row" style="display:none"><!-- فارغ للتوافق --></div>
         <input type="hidden" id="pay-gold-safe" value="scrap21">
@@ -1184,49 +1241,55 @@ body{
 
 <div id="pg-salary" class="pg">
 
-  <!-- أزرار الأقسام الثلاثة -->
+  <!-- أزرار العمليات -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-
-    <!-- 1. عهدة: موظف → مكتب -->
     <button onclick="openSalaryModal('custody')"
-      style="padding:13px 10px;border-radius:var(--rb);border:2px solid #065F46;
-        background:#D1FAE5;color:#065F46;font-family:inherit;font-size:12px;
+      style="padding:12px 8px;border-radius:var(--rb);border:2px solid #065F46;
+        background:#D1FAE5;color:#065F46;font-family:inherit;font-size:11px;
         font-weight:800;cursor:pointer;text-align:center">
       🤝 إيداع عهدة<br>
       <span style="font-size:10px;font-weight:400;opacity:.8">موظف → مكتب</span>
     </button>
-
-    <!-- 2. صرف: مكتب → موظف -->
     <button onclick="openSalaryModal('salary')"
-      style="padding:13px 10px;border-radius:var(--rb);border:2px solid #1D4ED8;
-        background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:12px;
+      style="padding:12px 8px;border-radius:var(--rb);border:2px solid #1D4ED8;
+        background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:11px;
         font-weight:800;cursor:pointer;text-align:center">
       💸 صرف نقد<br>
       <span style="font-size:10px;font-weight:400;opacity:.8">مكتب → موظف</span>
     </button>
-
-    <!-- 3. راتب -->
-    <button onclick="openSalaryModal('salary')"
-      style="padding:13px 10px;border-radius:var(--rb);border:2px solid #7C3AED;
-        background:#EDE9FE;color:#7C3AED;font-family:inherit;font-size:12px;
+    <button onclick="openMonthlyPayroll()"
+      style="padding:12px 8px;border-radius:var(--rb);border:2px solid #7C3AED;
+        background:#EDE9FE;color:#7C3AED;font-family:inherit;font-size:11px;
         font-weight:800;cursor:pointer;text-align:center">
-      💰 راتب شهري<br>
-      <span style="font-size:10px;font-weight:400;opacity:.8">استلام الراتب</span>
+      📅 راتب شهري<br>
+      <span style="font-size:10px;font-weight:400;opacity:.8">نهاية الشهر</span>
     </button>
   </div>
 
-  <!-- سجل الرواتب -->
-  <div class="card">
-    <div class="ch" style="display:flex;justify-content:space-between;align-items:center">
-      <span>📋 سجل الرواتب والعهد</span>
-      <div style="display:flex;gap:6px">
-        <button class="btn-sm btn-outline" onclick="filterSalary('all')" id="sal-f-all">الكل</button>
-        <button class="btn-sm" style="background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="filterSalary('custody')" id="sal-f-custody">عهدة</button>
-        <button class="btn-sm" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #93C5FD;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="filterSalary('salary')" id="sal-f-salary">صرف</button>
+  <!-- اختيار الموظف — مثل كشف الحساب -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="cb">
+      <div class="fr" style="margin-bottom:0">
+        <label style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:6px">👤 اختر موظفاً لعرض كشف حسابه</label>
+        <div class="sw"><span class="si">🔍</span>
+          <input type="text" id="sal-emp-filter-s" placeholder="ابحث عن موظف..." autocomplete="off"
+            oninput="openCS('sal-emp-filter-s','sal-emp-filter-d','sal-emp-filter-v',['موظف']);renderEmpStmt()"
+            onfocus="openCS('sal-emp-filter-s','sal-emp-filter-d','sal-emp-filter-v',['موظف'])">
+          <input type="hidden" id="sal-emp-filter-v" onchange="renderEmpStmt()">
+          <div class="sdrop" id="sal-emp-filter-d"></div>
+        </div>
       </div>
     </div>
-    <div class="cb" id="salary-body"></div>
   </div>
+
+  <!-- كشف حساب الموظف -->
+  <div id="emp-stmt-body">
+    <div class="empty" style="padding:28px 0">
+      <div class="ei">👤</div>
+      <p>اختر موظفاً من القائمة أعلاه</p>
+    </div>
+  </div>
+
 </div>
 
 
@@ -1553,7 +1616,7 @@ body{
     <input type="hidden" id="edit-cli-id">
     <div class="fr"><label>الاسم</label><input type="text" id="nc-name" placeholder="الاسم..."></div>
     <div class="fr"><label>النوع</label>
-      <select id="nc-type">
+      <select id="nc-type" onchange="document.getElementById('nc-salary-row').style.display=this.value==='موظف'?'flex':'none'">
         <option value="عميل">👤 عميل</option>
         <option value="موظف">👨‍💼 موظف</option>
         <option value="مورد">🏭 مورد ذهب</option>
@@ -1561,6 +1624,11 @@ body{
       </select>
     </div>
     <div class="fr"><label>الجوال</label><input type="tel" id="nc-phone" placeholder="05xxxxxxxx"></div>
+    <!-- حقل الراتب — يظهر فقط للموظفين -->
+    <div class="fr" id="nc-salary-row" style="display:none">
+      <label>💰 الراتب الشهري الأساسي (ريال)</label>
+      <input type="number" id="nc-salary" inputmode="decimal" placeholder="0">
+    </div>
     <div class="fr"><label>ملاحظات</label><input type="text" id="nc-notes" placeholder="اختياري"></div>
     <button class="btn btn-gold" onclick="saveCli()">حفظ</button>
   </div>
@@ -1637,6 +1705,69 @@ body{
         </div>
       </div>
       <button class="btn btn-gold" id="sal-submit-btn" onclick="saveSalary()" style="width:100%;margin-top:4px">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal الراتب الشهري -->
+<div id="m-monthly-payroll" class="mo" onclick="OMO(event,'m-monthly-payroll')">
+  <div class="mp">
+    <div class="mh"><h3>📅 صرف الراتب الشهري</h3><button class="xbtn" onclick="closeM('m-monthly-payroll')">✕</button></div>
+    <div class="mb">
+      <!-- اختيار الموظف -->
+      <div class="fr"><label>👤 الموظف</label>
+        <div class="sw"><span class="si">🔍</span>
+          <input type="text" id="mpr-emp-s" placeholder="ابحث عن موظف..." autocomplete="off"
+            oninput="openCS('mpr-emp-s','mpr-emp-d','mpr-emp-v',['موظف']);calcMonthlyRemaining()"
+            onfocus="openCS('mpr-emp-s','mpr-emp-d','mpr-emp-v',['موظف'])">
+          <input type="hidden" id="mpr-emp-v" onchange="calcMonthlyRemaining()">
+          <div class="sdrop" id="mpr-emp-d"></div>
+        </div>
+      </div>
+
+      <!-- ملخص الراتب -->
+      <div id="mpr-summary" style="display:none;background:var(--c2);border-radius:var(--rb);padding:12px;margin-bottom:12px;border:1px solid var(--b2)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:var(--c1);border-radius:var(--rc);padding:10px;text-align:center;border:1px solid var(--g5)">
+            <div style="font-size:10px;color:var(--tx2);margin-bottom:3px;font-weight:700">💰 الراتب الأساسي</div>
+            <div id="mpr-base" style="font-size:18px;font-weight:900;color:var(--g1)">0</div>
+            <div style="font-size:10px;color:var(--tx3)">ريال/شهر</div>
+          </div>
+          <div style="background:var(--c1);border-radius:var(--rc);padding:10px;text-align:center;border:1px solid var(--no-bd)">
+            <div style="font-size:10px;color:var(--tx2);margin-bottom:3px;font-weight:700">💸 سحب خلال الشهر</div>
+            <div id="mpr-withdrawn" style="font-size:18px;font-weight:900;color:var(--no)">0</div>
+            <div style="font-size:10px;color:var(--tx3)">ريال</div>
+          </div>
+        </div>
+        <!-- الباقي -->
+        <div id="mpr-remaining-box" style="border-radius:var(--rc);padding:12px;text-align:center;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;margin-bottom:4px" id="mpr-remaining-lbl">الباقي للموظف</div>
+          <div id="mpr-remaining" style="font-size:24px;font-weight:900">0</div>
+          <div style="font-size:10px;margin-top:2px" id="mpr-remaining-sub">ريال</div>
+        </div>
+        <!-- تفاصيل السحوبات هذا الشهر -->
+        <div id="mpr-month-txs" style="font-size:11px;color:var(--tx2);max-height:120px;overflow-y:auto"></div>
+      </div>
+
+      <!-- حقل المبلغ -->
+      <div class="g2">
+        <div class="fr"><label>💵 مبلغ الصرف (ريال)</label>
+          <input type="number" id="mpr-amount" inputmode="decimal" placeholder="يُملأ تلقائياً"
+            oninput="updateMprAmount()">
+        </div>
+        <div class="fr"><label>🏦 من صندوق</label>
+          <select id="mpr-safe"></select>
+        </div>
+      </div>
+      <div class="fr"><label>📅 التاريخ</label>
+        <input type="date" id="mpr-date">
+      </div>
+      <div class="fr"><label>📝 ملاحظة</label>
+        <input type="text" id="mpr-note" placeholder="راتب شهر ...">
+      </div>
+      <button class="btn btn-gold" onclick="saveMonthlyPayroll()" style="width:100%;margin-top:4px">
+        📅 تأكيد صرف الراتب
+      </button>
     </div>
   </div>
 </div>
@@ -2746,12 +2877,18 @@ const ACC_RULES = {
 
   // ق4: البيع يتطلب عميل
   requiresClient(tx){
-    const needsClient = ['sell','sell-debt','payment','return','sales-return'];
+    const needsClient   = ['sell','sell-debt','payment','return','sales-return','cash-receipt','scrap'];
     const needsSupplier = ['buy','buy-debt','supplier-payment','supplier-return','purchase-return'];
     if(needsClient.includes(tx.type) && !tx.client?.trim())
-      return '❌ القاعدة 4: البيع والقبض تتطلب تحديد العميل';
+      return '❌ القاعدة 4: هذه العملية تتطلب تحديد العميل';
     if(needsSupplier.includes(tx.type) && !tx.client?.trim())
       return '❌ القاعدة 4: الشراء والسداد تتطلب تحديد المورد';
+    // تحقق أن العميل موجود في قائمة الجهات
+    if(tx.client?.trim()){
+      const exists = (S.clients||[]).some(c=>c.name===tx.client.trim());
+      if(!exists && !['adjustment','inventory-adj','expense','salary-pay','salary-custody','salary-deduction','scrap-return','transfer'].includes(tx.type))
+        return `❌ القاعدة 4: الجهة "${tx.client}" غير موجودة في قاعدة البيانات`;
+    }
     return null;
   },
 
@@ -2790,7 +2927,7 @@ const ACC_RULES = {
   // ق8: الـ ID فريد
   uniqueId(tx){
     if(S.transactions.some(t=>t.id===tx.id))
-      return '❌ القاعدة 8: ID مكرر — تم رفض العملية';
+      return '❌ القاعدة 8: ID مكرر — تم رفض العملية (لا تضغط مرتين)';
     return null;
   },
 };
@@ -3025,7 +3162,7 @@ function saveScrap(){
   const scISO=scDateVal?new Date(scDateVal).toISOString():new Date().toISOString();
 
   // حساب الإجمالي بعيار 24
-  const total24 = validItems.reduce((a,i)=>a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000,0);
+  const total24 = validItems.reduce((a,i)=>a+convertTo24(i.weight, i.karat),0); // دالة موحدة
   const totalWeight = validItems.reduce((a,i)=>a+(i.weight||0),0);
 
   // تسجيل معاملة واحدة تحمل كل العيارات
@@ -3160,8 +3297,9 @@ function doTransfer(){
     client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
     cash:amt, goldPay:gAmt, weight:gAmt
   };
-  S.transactions.unshift(tx);
-  sv(); renderAll();
+  if(!acquireSave()) return;
+  if(!safeSave(tx)){ releaseSave(); return; }
+  renderAll(); releaseSave();
   ['tf-amt','tf-gold-amt','tf-ajour','tf-note','tf-from-s','tf-to-s'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -3757,7 +3895,7 @@ function printStmt(){
       } else {
         // عميل / موزع
         if(t.type==='sell'||t.type==='sell-debt')          dCash=(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0);  // دين عليه (+)
-        else if(t.type==='payment')                        dCash=-(t.ajourPaid||0)-(t.discount||0)-(t.change||0); // سدد (-)
+        else if(t.type==='payment')                        dCash=-(t.ajourPaid||0)-(t.discount||0)-(t.change||0)-(t.netDiff?.riyal||0); // سدد (-)
         else if(t.type==='cash-receipt')                   dCash=-(t.amount||0); // قبض نقد (-)
         else if(t.type==='sales-return'||t.type==='return') dCash=-(t.ajTotal||0); // مرتجع يُقلل ما عليه (-)
         else if(t.type==='transfer'){
@@ -3780,15 +3918,17 @@ function printStmt(){
         amtStr=`<span class="pos">${fmt(t.ajTotal||t.total||0)} ر</span>`;
         wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
       } else if(t.type==='payment'){
-        detail=`تسوية: ${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0))} ر`+(t.goldWeight>0?`<br>ذهب ${t.goldKarat||''}: ${fmtG(t.goldWeight)}ج`:'')+(t.discount>0?`<br>خصم: ${fmt(t.discount)} ر`:'');
-        amtStr=`<span class="pos">${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0))} ر</span>`;
+        detail=`تسوية: ${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0))} ر`+(t.goldWeight>0?`<br>ذهب ${t.goldKarat||''}: ${fmtG(t.goldWeight)}ج`:'')+(t.discount>0?`<br>خصم: ${fmt(t.discount)} ر`:'')+(t.netDiff?.riyal>0||t.netDiff?.gram>0?`<br>⚖️ فرق الصافي: ${t.netDiff.hasGram&&t.netDiff.gram>0?fmtG(t.netDiff.gram)+'ج ع'+t.netDiff.karat:fmt(t.netDiff.riyal)+' ر'}`:'');
+        amtStr=`<span class="pos">${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0))} ر</span>`;
         if(t.goldWeight>0) wtStr=fmtG(t.goldWeight)+' ج';
       } else if(t.type==='supplier-payment'){
         detail=`تسوية: ${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0))} ر`+(t.discount>0?` (خصم: ${fmt(t.discount)} ر)`:'');
         amtStr=`<span class="neg">${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0))} ر</span>`;
       } else if(t.type==='scrap'){
         const parts=t.scrapItems?.length?t.scrapItems.filter(si=>si.weight>0).map(si=>`${kN[si.karat]||si.karat}: ${fmtG(si.weight)}ج`):[`${kN[t.karat]||t.karat}: ${fmtG(t.weight||0)}ج`];
-        detail=parts.join(' + ');
+        // حساب إجمالي عيار 24 الصحيح من scrapItems
+        const correct24 = scrapTo24(t); // دالة موحدة
+        detail=parts.join(' + ')+`<br><span style="color:var(--g1);font-weight:700">= ${fmtG(Math.round(correct24*1000)/1000)} ج ع24</span>`;
         wtStr=fmtG(t.weight||0)+' ج';
         amtStr='—';
       } else if(t.type==='sales-return'||t.type==='return'){
@@ -3965,8 +4105,8 @@ function txHtml(t){
       ${t.notes?`<div class="ts" style="color:var(--g1)">📝 ${t.notes}</div>`:''}
         ${t.discount?`<div class="ts" style="color:var(--io)">🏷️ خصم: ${fmt(t.discount)} ر</div>`:''}
         ${t.shipping?`<div class="ts" style="color:var(--in)">🚚 شحن: ${fmt(t.shipping)} ر</div>`:''}
+        ${t.netDiff?.riyal>0||t.netDiff?.gram>0?`<div class="ts" style="color:var(--in)">⚖️ فرق الصافي: ${t.netDiff.hasGram&&t.netDiff.gram>0?fmtG(t.netDiff.gram)+'ج ع'+t.netDiff.karat+(t.netDiff.riyal>0?' = '+fmt(t.netDiff.riyal)+' ر':''):fmt(t.netDiff.riyal)+' ر'}</div>`:''}
       </div>
-      <div style="display:flex;align-items:center;gap:4px">
         <div class="tv" style="text-align:left">
           ${amtStr?`<div class="am">${amtStr}</div>`:''}
           ${gStr?`<div class="gr">${gStr}</div>`:''}
@@ -4231,16 +4371,17 @@ function saveScrapReturn(){
   if(!weight||weight<=0){toast('⚠️ أدخل الوزن');return;}
   // الصندوق يُحسب في calcSafes
 
-  S.transactions.unshift({
+  if(!acquireSave()) return;
+  const rscTx = {
     id: Date.now(),
     date: new Date().toISOString(),
     type: 'scrap-return',
     karat, weight, fromSafe: from,
     client, notes: '↩️ مردود كسر: '+reason+(note?' — '+note:''),
     items:[], total:0, cash:0, goldPay:0
-  });
-
-  sv(); renderAll();
+  };
+  if(!safeSave(rscTx)){ releaseSave(); return; }
+  renderAll(); releaseSave();
   document.getElementById('rsc-weight').value='';
   document.getElementById('rsc-note').value='';
   document.getElementById('rsc-cli-s').value='';
@@ -4607,56 +4748,54 @@ function getClientBalance(cli){
   // بيع / مرتجع مبيعات
   let goldOut24 = 0;
   txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
-     .forEach(t=>(t.items||[]).forEach(i=>{ goldOut24 += to24(i.weight,i.karat); }));
+     .forEach(t=>(t.items||[]).forEach(i=>{ goldOut24 += convertTo24(i.weight,i.karat); }));
   let salesRetGold24 = 0;
   txs.filter(t=>t.type==='sales-return')
-     .forEach(t=>(t.items||[]).forEach(i=>{ salesRetGold24 += to24(i.weight,i.karat); }));
+     .forEach(t=>(t.items||[]).forEach(i=>{ salesRetGold24 += convertTo24(i.weight,i.karat); }));
 
   // شراء (فوري + آجل) / مرتجع مشتريات
   let goldIn24 = 0;
   txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
-     .forEach(t=>(t.items||[]).forEach(i=>{ goldIn24 += to24(i.weight,i.karat); }));
+     .forEach(t=>(t.items||[]).forEach(i=>{ goldIn24 += convertTo24(i.weight,i.karat); }));
   let purchRetGold24 = 0;
   txs.filter(t=>t.type==='purchase-return')
-     .forEach(t=>(t.items||[]).forEach(i=>{ purchRetGold24 += to24(i.weight,i.karat); }));
+     .forEach(t=>(t.items||[]).forEach(i=>{ purchRetGold24 += convertTo24(i.weight,i.karat); }));
 
   // كسر/ذهب استلمناه (تسوية دين بالكسر)
   let scrapIn24 = 0;
   txs.filter(t=>t.type==='scrap').forEach(t=>{
-    if(t.scrapItems&&t.scrapItems.length>0)
-      t.scrapItems.forEach(si=>{ scrapIn24 += to24(si.weight,si.karat||'21'); });
-    else scrapIn24 += to24(t.weight,t.karat||'21');
+    scrapIn24 += scrapTo24(t); // دالة موحدة: scrapItems → total24 → fallback آمن
   });
 
   // تحويلات ذهب
   let goldTransferIn24 = 0;
   txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+cli) && (t.goldAmount||0)>0)
-     .forEach(t=>{ goldTransferIn24 += to24(t.goldAmount,t.goldKarat||'21'); });
+     .forEach(t=>{ goldTransferIn24 += convertTo24(t.goldAmount,t.goldKarat||'21'); });
   let goldTransferOut24 = 0;
   txs.filter(t=>t.type==='transfer' && t.toSafe===('__cli__'+cli) && (t.goldAmount||0)>0)
-     .forEach(t=>{ goldTransferOut24 += to24(t.goldAmount,t.goldKarat||'21'); });
+     .forEach(t=>{ goldTransferOut24 += convertTo24(t.goldAmount,t.goldKarat||'21'); });
 
-  // تسوية دين بذهب (عميل سلّمنا ذهب / نحن سلّمنا للمورد ذهب)
+  // تسوية دين بذهب
   let payGoldIn24 = 0;
   txs.filter(t=>t.type==='payment').forEach(t=>{
     if(t.goldItems&&t.goldItems.length>0)
-      t.goldItems.forEach(gi=>{ payGoldIn24 += to24(gi.weight,gi.karat||'21'); });
-    else payGoldIn24 += to24(t.goldWeight,t.goldKarat||'21');
+      t.goldItems.forEach(gi=>{ payGoldIn24 += convertTo24(gi.weight,gi.karat||'21'); });
+    else payGoldIn24 += convertTo24(t.goldWeight,t.goldKarat||'21');
   });
   let payGoldOut24 = 0;
   txs.filter(t=>t.type==='supplier-payment').forEach(t=>{
     if(t.goldItems&&t.goldItems.length>0)
-      t.goldItems.forEach(gi=>{ payGoldOut24 += to24(gi.weight,gi.karat||'21'); });
-    else payGoldOut24 += to24(t.goldWeight,t.goldKarat||'21');
+      t.goldItems.forEach(gi=>{ payGoldOut24 += convertTo24(gi.weight,gi.karat||'21'); });
+    else payGoldOut24 += convertTo24(t.goldWeight,t.goldKarat||'21');
   });
 
   // مردود جزئي قديم (return) + مردود للمورد
   let retGold24 = 0;
   txs.filter(t=>t.type==='return')
-     .forEach(t=>(t.items||[]).forEach(i=>{ retGold24 += to24(i.weight,i.karat); }));
+     .forEach(t=>(t.items||[]).forEach(i=>{ retGold24 += convertTo24(i.weight,i.karat); }));
   let suppRetGold24 = 0;
   txs.filter(t=>t.type==='supplier-return')
-     .forEach(t=>(t.items||[]).forEach(i=>{ suppRetGold24 += to24(i.weight,i.karat); }));
+     .forEach(t=>(t.items||[]).forEach(i=>{ suppRetGold24 += convertTo24(i.weight,i.karat); }));
 
   // ── صافي رصيد الذهب ──
   // موجب = الطرف الآخر مدين لنا بذهب | سالب = نحن مدينون له بذهب
@@ -4695,9 +4834,9 @@ function getClientBalance(cli){
   const salesRetDebt = txs.filter(t=>t.type==='return'||t.type==='sales-return')
                           .reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
 
-  // تسوية دين من العميل (نقد + خصم + فكة) + قبض نقد مباشر
+  // تسوية دين من العميل (نقد + خصم + فكة + فرق الصافي) + قبض نقد مباشر
   const clientSettled = txs.filter(t=>t.type==='payment')
-                           .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0)
+                           .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0),0)
                          + txs.filter(t=>t.type==='cash-receipt')
                               .reduce((a,t)=>a+(t.amount||0),0);
 
@@ -4744,7 +4883,13 @@ function getClientBalance(cli){
                       .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
     const pret   = txs.filter(t=>t.type==='purchase-return')
                       .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
-    const scr    = txs.filter(t=>t.type==='scrap'&&t.karat===k).reduce((a,t)=>a+(t.weight||0),0);
+    // الكسر لكل عيار — من scrapItems مباشرة للدقة
+    const scr = txs.filter(t=>t.type==='scrap').reduce((a,t)=>{
+      if(t.scrapItems&&t.scrapItems.length>0)
+        return a + t.scrapItems.filter(si=>(si.karat||'21')===k).reduce((s,si)=>s+(si.weight||0),0);
+      if(t.karat===k && t.karat!=='mixed') return a + (t.weight||0);
+      return a;
+    },0);
     const payG   = txs.filter(t=>(t.type==='payment'||t.type==='supplier-payment')&&t.goldKarat===k)
                       .reduce((a,t)=>a+(t.goldWeight||0),0);
     const ret    = txs.filter(t=>t.type==='return')
@@ -4774,6 +4919,88 @@ function getClientBalance(cli){
   };
 }
 
+
+// ── فرق الصافي ─────────────────────────────────────────────────────
+let currentNetDiffType = null; // 'riyal' | 'gram' | null
+
+function setNetDiffType(type){
+  currentNetDiffType = type;
+  // تحديث أزرار الاختيار
+  ['riyal','gram'].forEach(t=>{
+    const btn=document.getElementById('net-diff-type-'+t);
+    if(!btn) return;
+    if(t===type){
+      btn.style.border='2px solid var(--in)';
+      btn.style.background='var(--in-bg)';
+      btn.style.color='var(--in)';
+    } else {
+      btn.style.border='2px solid var(--b1)';
+      btn.style.background='var(--c2)';
+      btn.style.color='var(--tx1)';
+    }
+  });
+  // إظهار/إخفاء الحقول
+  const rRow=document.getElementById('net-diff-riyal-row');
+  const gRow=document.getElementById('net-diff-gram-row');
+  if(rRow) rRow.style.display=type==='riyal'?'block':'none';
+  if(gRow) gRow.style.display=type==='gram' ?'block':'none';
+  calcPaySummary();
+}
+
+function calcNetDiffRiyal(){
+  const gram  = parseFloat(document.getElementById('net-diff-gram')?.value)||0;
+  const karat = parseFloat(document.getElementById('net-diff-karat')?.value)||21;
+  const price = parseFloat(document.getElementById('net-diff-price')?.value)||0;
+  const calcEl= document.getElementById('net-diff-calc');
+  if(!calcEl) return;
+  if(gram>0 && price>0){
+    const riyal = Math.round(gram * price * 100)/100;
+    const as24  = Math.round(gram * karat/24 * 1000)/1000;
+    calcEl.style.display='block';
+    calcEl.innerHTML=`⚖️ ${fmtG(gram)}ج × ${fmt(price)} ر/ج = <span style="font-size:13px;font-weight:900">${fmt(riyal)} ريال</span>
+      <span style="color:var(--tx2);margin-right:8px">(${fmtG(as24)} ج ع24)</span>`;
+  } else if(gram>0){
+    const as24=Math.round(gram*karat/24*1000)/1000;
+    calcEl.style.display='block';
+    calcEl.innerHTML=`⚖️ ${fmtG(gram)}ج عيار ${karat} = <span style="font-weight:900;color:var(--g1)">${fmtG(as24)} ج ع24</span>`;
+  } else {
+    calcEl.style.display='none';
+  }
+}
+
+function getNetDiffValue(){
+  // يُعيد القيمة بالريال التي تُخصم من الدين
+  if(!currentNetDiffType) return {riyal:0, gram:0, karat:'21', hasGram:false};
+  if(currentNetDiffType==='riyal'){
+    const r=parseFloat(document.getElementById('net-diff-riyal')?.value)||0;
+    return {riyal:r, gram:0, karat:'21', hasGram:false};
+  }
+  if(currentNetDiffType==='gram'){
+    const g=parseFloat(document.getElementById('net-diff-gram')?.value)||0;
+    const k=document.getElementById('net-diff-karat')?.value||'21';
+    const p=parseFloat(document.getElementById('net-diff-price')?.value)||0;
+    const r=p>0 ? Math.round(g*p*100)/100 : 0;
+    return {riyal:r, gram:g, karat:k, hasGram:true};
+  }
+  return {riyal:0, gram:0, karat:'21', hasGram:false};
+}
+
+function clearNetDiff(){
+  currentNetDiffType=null;
+  ['riyal','gram'].forEach(t=>{
+    const btn=document.getElementById('net-diff-type-'+t);
+    if(btn){ btn.style.border='2px solid var(--b1)'; btn.style.background='var(--c2)'; btn.style.color='var(--tx1)'; }
+  });
+  ['net-diff-riyal','net-diff-gram','net-diff-price'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const rRow=document.getElementById('net-diff-riyal-row');
+  const gRow=document.getElementById('net-diff-gram-row');
+  const calc=document.getElementById('net-diff-calc');
+  if(rRow) rRow.style.display='none';
+  if(gRow) gRow.style.display='none';
+  if(calc) calc.style.display='none';
+}
 
 function calcPaySummary(){
   const ajour = parseFloat(document.getElementById('pay-ajour').value)||0;
@@ -4814,6 +5041,7 @@ function calcPaySummary(){
   // ── قراءة الخصم والفكة ──
   const disc   = parseFloat(document.getElementById('pay-discount')?.value)||0;
   const change = parseFloat(document.getElementById('pay-change')?.value)||0;
+  const netDiff= getNetDiffValue();
 
   // الاتجاه بناءً على نوع العملية المختار صريحاً
   const isSupp = currentPayType === 'payment'; // دفع = صندوق ينقص
@@ -4835,16 +5063,31 @@ function calcPaySummary(){
   const sumBox  = document.getElementById('pay-summary');
   const sumRows = document.getElementById('pay-summary-rows');
   const payGoldTotal = payGoldItems.reduce((a,i)=>a+(i.weight||0),0); // إجمالي من المصفوفة
-  const hasAny = ajour>0 || payGoldTotal>0 || disc>0 || change>0;
+  const hasAny = ajour>0 || payGoldTotal>0 || disc>0 || change>0 || netDiff.riyal>0 || netDiff.gram>0;
   if(hasAny){
     let html = '';
     // الإجمالي الكلي
-    const total = ajour + disc + change;
+    const total = ajour + disc + change + netDiff.riyal;
     if(total>0) html += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--b1);margin-bottom:4px"><span style="font-weight:700">📊 إجمالي التسوية</span><span style="font-weight:900;color:var(--g1)">${fmt(total)} ريال</span></div>`;
     // تفاصيل
     if(ajour>0)  html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>💵 نقد مدفوع (يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--ok)">${fmt(ajour)} ريال</span></div>`;
     if(change>0) html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🪙 فكة (${isSupp?'تُخصم':'تُضاف'} من الصندوق)</span><span style="font-weight:700;color:${isSupp?'var(--no)':'var(--ok)'}"> ${isSupp?'-':'+'} ${fmt(change)} ريال</span></div>`;
     if(disc>0)   html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span>🏷️ خصم تسوية (لا يؤثر على الصندوق)</span><span style="font-weight:700;color:var(--io)">${fmt(disc)} ريال</span></div>`;
+    // فرق الصافي
+    if(netDiff.riyal>0||netDiff.gram>0){
+      if(netDiff.hasGram&&netDiff.gram>0){
+        const as24n=Math.round(netDiff.gram*parseFloat(netDiff.karat)/24*1000)/1000;
+        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-top:1px dashed var(--in-bd);margin-top:3px">
+          <span style="color:var(--in)">⚖️ فرق الصافي (${fmtG(netDiff.gram)}ج ع${netDiff.karat} = ${fmtG(as24n)}ج ع24)</span>
+          <span style="font-weight:700;color:var(--in)">${netDiff.riyal>0?fmt(netDiff.riyal)+' ريال':'—'}</span>
+        </div>`;
+      } else if(netDiff.riyal>0){
+        html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-top:1px dashed var(--in-bd);margin-top:3px">
+          <span style="color:var(--in)">⚖️ فرق الصافي</span>
+          <span style="font-weight:700;color:var(--in)">${fmt(netDiff.riyal)} ريال</span>
+        </div>`;
+      }
+    }
     // أصناف الذهب
     if(payGoldItems.length>0){
       let totalGoldRiyal = 0;
@@ -4919,12 +5162,13 @@ function doPayment(){
   const goldK = goldItems.length===1 ? goldItems[0].karat : '24'; // عيار 24 للإجمالي
   const discount= parseFloat(document.getElementById('pay-discount')?.value)||0;
   const change  = parseFloat(document.getElementById('pay-change')?.value)||0;
+  const netDiffV= getNetDiffValue(); // فرق الصافي
   const note    = document.getElementById('pay-note').value;
   const payDate = document.getElementById('pay-date')?.value;
   const payISO  = payDate ? new Date(payDate).toISOString() : new Date().toISOString();
 
   if(!client){ toast('⚠️ اختر الجهة'); return; }
-  if(!ajour&&goldItems.length===0&&!discount&&!change){ toast('⚠️ أدخل المبلغ أو أضف صنف ذهب'); return; }
+  if(!ajour&&goldItems.length===0&&!discount&&!change&&!netDiffV.riyal&&!netDiffV.gram){ toast('⚠️ أدخل المبلغ أو أضف صنف ذهب'); return; }
 
   // الصندوق المستخدم
   const cashSafe = document.getElementById('pay-cash-safe')?.value || 'cash';
@@ -4939,7 +5183,8 @@ function doPayment(){
   //   supplier-payment = دفع (نقد يخرج، صندوق-)
   const txType = isReceipt ? 'payment' : 'supplier-payment';
 
-  S.transactions.unshift({
+  if(!acquireSave()) return;
+  const payTx = {
     id:Date.now(), date:payISO,
     type: txType,
     fromSafe:cashSafe, goldDest, goldSafe,
@@ -4947,19 +5192,20 @@ function doPayment(){
     goldItems: goldItems.map(i=>({karat:i.karat, weight:i.weight, safe:i.safe})),
     client,
     ajourPaid:ajour, amount:ajour,
-    discount,   // خصم تسوية — لا يؤثر على الصندوق
-    change,     // فكة — تؤثر على الصندوق
-    isReceipt,  // لحفظ الاتجاه صريحاً في السجل
+    discount, change,
+    netDiff: netDiffV.riyal>0||netDiffV.gram>0 ? netDiffV : undefined,
+    isReceipt,
     unit:'ريال',
     notes: note || (isReceipt ? 'قبض' : 'دفع'),
     items:[], total:ajour+discount+change, cash:ajour+change, goldPay:goldW, weight:goldW
-  });
-  // التحقق عبر validateTx يدوياً قبل sv
-  sv(); renderAll();
+  };
+  if(!safeSave(payTx)){ releaseSave(); return; }
+  renderAll(); releaseSave();
 
   // مسح الحقول
   ['pay-ajour','pay-gold-weight','pay-note','pay-discount','pay-change','pay-cli-s','pay-cli-v','pay-date']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  clearNetDiff();
   payGoldItems = []; payGoldCounter = 0;
   renderPayGoldItems();
   document.getElementById('pay-balance-box').style.display='none';
@@ -5030,25 +5276,30 @@ function saveCashReceipt(){
   if(amount<=0 && goldAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
 
   // نقد
+  if(!acquireSave()) return;
+  let savedCount = 0;
   if(amount>0){
-    S.transactions.unshift({
+    const crTx = {
       id:Date.now(), date:crISO, type:'cash-receipt',
       amount, toSafe, client,
       notes:'📥 قبض نقد'+(note?' — '+note:''),
       items:[], total:amount, cash:amount, goldPay:0
-    });
+    };
+    if(!safeSave(crTx)){ releaseSave(); return; }
+    savedCount++;
   }
-  // ذهب
   if(goldAmt>0){
-    S.transactions.unshift({
-      id:Date.now()+1, date:crISO, type:'scrap',
+    const goldTx = {
+      id:Date.now()+(savedCount*10+1), date:crISO, type:'scrap',
       karat:goldKarat, weight:goldAmt, dest:goldToSafe, client,
+      scrapItems:[{karat:goldKarat, weight:goldAmt, dest:goldToSafe}],
+      total24: convertTo24(goldAmt, goldKarat),
       notes:'📥 قبض ذهب'+(note?' — '+note:''),
       items:[], total:0, cash:0, goldPay:0
-    });
+    };
+    if(!safeSave(goldTx)){ releaseSave(); return; }
   }
-
-  sv(); renderAll();
+  renderAll(); releaseSave();
   ['cr-amount','cr-gold-amount','cr-note','cr-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -5710,7 +5961,139 @@ function setSalType(type){
   }
 }
 
-function openSalaryModal(preType){
+function openMonthlyPayroll(){
+  // مسح الحقول
+  ['mpr-emp-s','mpr-emp-v','mpr-amount','mpr-note','mpr-date'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const sumEl=document.getElementById('mpr-summary');
+  if(sumEl) sumEl.style.display='none';
+  // ملء قائمة الصناديق
+  const safeEl=document.getElementById('mpr-safe');
+  if(safeEl){
+    const SM=getSM();
+    safeEl.innerHTML=Object.entries(SM)
+      .filter(([k,s])=>s.type==='cash'||s.type==='both')
+      .map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');
+  }
+  openM('m-monthly-payroll');
+}
+
+function calcMonthlyRemaining(){
+  const emp = document.getElementById('mpr-emp-v')?.value
+           || document.getElementById('mpr-emp-s')?.value;
+  const sumEl = document.getElementById('mpr-summary');
+  if(!emp||!sumEl){if(sumEl)sumEl.style.display='none';return;}
+
+  const empObj  = (S.clients||[]).find(c=>c.name===emp&&c.type==='موظف');
+  const baseSal = empObj?.baseSalary||0;
+
+  // سحوبات الشهر الحالي فقط
+  const now=new Date(); const thisM=now.getMonth(); const thisY=now.getFullYear();
+  const txs=(S.transactions||[]).filter(t=>{
+    if(!(t.employee===emp||t.client===emp)) return false;
+    if(!t.type?.startsWith('salary-')) return false;
+    const d=new Date(t.date);
+    return d.getMonth()===thisM&&d.getFullYear()===thisY;
+  });
+  const withdrawn = txs.filter(t=>t.type==='salary-pay').reduce((a,t)=>a+(t.amount||0),0);
+  const deposited = txs.filter(t=>t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
+  const remaining = baseSal - withdrawn + deposited;
+
+  // تحديث العناصر
+  const baseEl=document.getElementById('mpr-base');
+  const withEl=document.getElementById('mpr-withdrawn');
+  const remEl =document.getElementById('mpr-remaining');
+  const remBox=document.getElementById('mpr-remaining-box');
+  const remLbl=document.getElementById('mpr-remaining-lbl');
+  const remSub=document.getElementById('mpr-remaining-sub');
+  if(baseEl) baseEl.textContent=fmt(baseSal);
+  if(withEl) withEl.textContent=fmt(withdrawn);
+  if(remEl)  remEl.textContent=fmt(Math.abs(remaining));
+  if(remLbl) remLbl.textContent=remaining>=0?'✅ المتبقي للموظف':'⚠️ سحب زيادة عن الراتب';
+  if(remBox){
+    remBox.style.background=remaining>=0?'#D1FAE5':'#FEE2E2';
+    remBox.style.border=`1px solid ${remaining>=0?'#6EE7B7':'#FCA5A5'}`;
+    if(remEl) remEl.style.color=remaining>=0?'#065F46':'#991B1B';
+    if(remLbl) remLbl.style.color=remaining>=0?'#065F46':'#991B1B';
+    if(remSub){ remSub.textContent='ريال'; remSub.style.color=remaining>=0?'#065F46':'#991B1B'; }
+  }
+
+  // تفاصيل سحوبات الشهر
+  const monthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو',
+    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const mTxsEl=document.getElementById('mpr-month-txs');
+  if(mTxsEl){
+    if(txs.length){
+      mTxsEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">
+        سحوبات شهر ${monthNames[thisM]}:</div>`+
+        txs.map(t=>{
+          const dt=fmtDate(t.date);
+          const lbl={'salary-pay':'صرف','salary-custody':'إيداع','salary-deduction':'خصم'}[t.type]||t.type;
+          const clr=t.type==='salary-custody'?'var(--ok)':'var(--no)';
+          const sign=t.type==='salary-custody'?'+':'-';
+          return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--b1)">
+            <span style="color:var(--tx2)">${dt.ar} — ${lbl}${t.notes?' ('+t.notes+')':''}</span>
+            <span style="font-weight:700;color:${clr}">${sign}${fmt(t.amount||0)}</span>
+          </div>`;
+        }).join('');
+    } else {
+      mTxsEl.innerHTML=`<div style="color:var(--tx3);font-size:11px">لا توجد حركات هذا الشهر</div>`;
+    }
+  }
+
+  // ضع المبلغ المتبقي تلقائياً في حقل الصرف
+  const amtEl=document.getElementById('mpr-amount');
+  if(amtEl&&remaining>0) amtEl.value=remaining;
+  else if(amtEl&&remaining<=0) amtEl.value=0;
+
+  sumEl.style.display='block';
+}
+
+function updateMprAmount(){ /* يسمح بالتعديل اليدوي */ }
+
+function saveMonthlyPayroll(){
+  const emp    = document.getElementById('mpr-emp-v')?.value||document.getElementById('mpr-emp-s')?.value;
+  const amount = parseFloat(document.getElementById('mpr-amount')?.value)||0;
+  const safe   = document.getElementById('mpr-safe')?.value||'cash';
+  const note   = document.getElementById('mpr-note')?.value;
+  const dateV  = document.getElementById('mpr-date')?.value;
+  const dateISO= dateV?new Date(dateV).toISOString():new Date().toISOString();
+
+  if(!emp){toast('⚠️ اختر الموظف');return;}
+  if(amount<=0){toast('⚠️ المبلغ يجب أن يكون أكبر من صفر');return;}
+
+  const now=new Date();
+  const monthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو',
+    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const defaultNote=`راتب شهر ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+  const tx={
+    id:Date.now(), date:dateISO,
+    type:'salary-pay',
+    employee:emp, client:emp,
+    amount, fromSafe:safe, toSafe:safe,
+    salaryType:'salary',
+    isMonthlyPayroll:true,
+    notes: note||defaultNote,
+    items:[], total:amount, cash:amount, goldPay:0
+  };
+  if(!safeSave(tx)) return;
+  closeM('m-monthly-payroll');
+  renderAll();
+  // تحديث كشف الموظف تلقائياً
+  const sv=document.getElementById('sal-emp-filter-v');
+  const ss=document.getElementById('sal-emp-filter-s');
+  if(sv&&!sv.value&&emp){ sv.value=emp; }
+  if(ss&&!ss.value&&emp){ ss.value=emp; }
+  renderEmpStmt();
+  toast(`✅ تم صرف راتب ${emp} — ${fmt(amount)} ريال`);
+}
+
+function filterSalary(type){
+  // محافظة على التوافق — لم تعد تستخدم
+  renderEmpStmt();
+}
   currentSalType = null;
   ['salary','custody','deduction'].forEach(t=>{
     const btn=document.getElementById('sal-type-'+t);
@@ -5964,95 +6347,170 @@ function renderPending(){
   }).join('');
 }
 
+function renderSalary(){ renderEmpStmt(); }
 
-function filterSalary(type){
-  const txs = (S.transactions||[]).filter(t=>t.type&&t.type.startsWith('salary-'));
-  const filtered = type==='all' ? txs
-    : type==='custody' ? txs.filter(t=>t.salaryType==='custody')
-    : txs.filter(t=>t.salaryType==='salary'||t.salaryType==='deduction');
-  // تحديث سجل الرواتب بنفس renderSalary لكن مع الفلتر
-  renderSalary(filtered);
-  // تمييز الزر النشط
-  ['all','custody','salary'].forEach(k=>{
-    const btn=document.getElementById('sal-f-'+k);
-    if(btn) btn.style.fontWeight = k===type?'900':'600';
-  });
-}
-function renderSalary(filteredTxs){
-  const el = document.getElementById('salary-body');
+// ── كشف حساب الموظف ─────────────────────────────────────────────────
+function renderEmpStmt(){
+  const emp = document.getElementById('sal-emp-filter-v')?.value
+           || document.getElementById('sal-emp-filter-s')?.value;
+  const el  = document.getElementById('emp-stmt-body');
   if(!el) return;
 
-  const txs = filteredTxs || S.transactions.filter(t=>t.type&&t.type.startsWith('salary-'));
-
-  // كشف لكل موظف
-  const empMap = {};
-  txs.forEach(t=>{
-    const e = t.employee||t.client||'غير محدد';
-    if(!empMap[e]) empMap[e] = {salaries:0,custody:0,deductions:0,txs:[]};
-    if(t.salaryType==='salary')    empMap[e].salaries += t.amount||0;
-    if(t.salaryType==='custody')   empMap[e].custody  += t.amount||0;
-    if(t.salaryType==='deduction') empMap[e].deductions+=t.amount||0;
-    empMap[e].txs.push(t);
-  });
-
-  if(!Object.keys(empMap).length){
-    el.innerHTML=`<div class="empty"><div class="ei">💰</div><p>لا توجد بيانات رواتب بعد</p></div>`;
+  if(!emp){
+    el.innerHTML=`<div class="empty" style="padding:28px 0"><div class="ei">👤</div><p>اختر موظفاً من القائمة أعلاه</p></div>`;
     return;
   }
 
-  el.innerHTML = Object.entries(empMap).map(([emp,data])=>{
-    const net = data.custody - data.salaries - data.deductions;
-    const netClr = net>0?'var(--ok)':net<0?'var(--no)':'var(--tx2)';
-    const txRows = data.txs.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=>{
-      const dt=fmtDate(t.date);
-      const typeLabels={'salary-pay':'💵 راتب','salary-custody':'🤝 عهدة','salary-deduction':'✂️ خصم'};
-      const typeClrs={'salary-pay':'var(--no)','salary-custody':'var(--ok)','salary-deduction':'var(--io)'};
-      const isIn = t.salaryType==='custody';
-      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--b1)">
-        <div>
-          <span class="badge" style="background:${typeClrs[t.type]||'var(--g1)'};color:white;font-size:9px">${typeLabels[t.type]||t.type}</span>
-          <div style="font-size:10px;color:var(--tx2);margin-top:2px">${dt.ar}</div>
-          ${t.notes?`<div style="font-size:10px;color:var(--tx2)">📝 ${t.notes}</div>`:''}
-        </div>
-        <span style="font-weight:700;color:${isIn?'var(--ok)':'var(--no)'}">${isIn?'+':'-'}${fmt(t.amount||0)} ر</span>
-      </div>`;
-    }).join('');
+  const empObj  = (S.clients||[]).find(c=>c.name===emp&&c.type==='موظف');
+  const baseSal = empObj?.baseSalary||0;
+  const txs     = (S.transactions||[]).filter(t=>
+    (t.employee===emp||t.client===emp) && t.type&&t.type.startsWith('salary-')
+  ).sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    return `<div style="background:var(--c1);border-radius:12px;padding:14px;margin-bottom:12px;
-      border:1px solid var(--b2);box-shadow:var(--s1)">
-      <!-- رأس الموظف -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:15px;font-weight:800;color:var(--tx1)">👤 ${emp}</span>
-        <span style="font-size:13px;font-weight:900;padding:4px 12px;border-radius:20px;
-          background:${net>0?'#D1FAE5':net<0?'#FEE2E2':'var(--c2)'};
-          color:${net>0?'#065F46':net<0?'#991B1B':'var(--tx2)'}">
-          ${net>0?'له':net<0?'عليه':'مسوى'}: ${fmt(Math.abs(net))} ر
-        </span>
+  // ── حساب الشهر الحالي ──
+  const now   = new Date();
+  const thisM = now.getMonth();
+  const thisY = now.getFullYear();
+  const monthTxs = txs.filter(t=>{
+    const d=new Date(t.date);
+    return d.getMonth()===thisM && d.getFullYear()===thisY;
+  });
+  const withdrawnThisMonth = monthTxs
+    .filter(t=>t.type==='salary-pay')
+    .reduce((a,t)=>a+(t.amount||0),0);
+  const depositedThisMonth = monthTxs
+    .filter(t=>t.type==='salary-custody')
+    .reduce((a,t)=>a+(t.amount||0),0);
+  const remaining = baseSal - withdrawnThisMonth + depositedThisMonth;
+
+  // ── ألوان بطاقة الرصيد ──
+  const remColor  = remaining>0?'#065F46':remaining<0?'#991B1B':'var(--tx2)';
+  const remBg     = remaining>0?'#D1FAE5':remaining<0?'#FEE2E2':'var(--c3)';
+  const remLabel  = remaining>0?'متبقي للموظف':remaining<0?'سحب زيادة عن الراتب':'مسوى';
+
+  // ── بطاقة ملخص الشهر الحالي ──
+  const monthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو',
+    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const summaryCard = `
+    <div style="background:var(--c2);border-radius:var(--rb);padding:14px;margin-bottom:14px;border:1px solid var(--b2)">
+      <div style="font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:10px">
+        📅 ملخص شهر ${monthNames[thisM]} ${thisY}
+        ${baseSal>0?`<span style="font-size:10px;font-weight:400;color:var(--tx2);margin-right:6px">الراتب الأساسي: ${fmt(baseSal)} ر</span>`:''}
       </div>
-      <!-- 3 بطاقات واضحة الألوان -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        <div style="background:#FEE2E2;border-radius:10px;padding:10px;text-align:center;border:1px solid #FCA5A5">
-          <div style="font-size:10px;font-weight:700;color:#991B1B;margin-bottom:4px">💸 صرف للموظف</div>
-          <div style="font-size:18px;font-weight:900;color:#DC2626">${fmt(data.salaries)}</div>
-          <div style="font-size:10px;color:#991B1B">ريال</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center">
+        <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1px solid var(--g5)">
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:3px;font-weight:700">💰 الراتب</div>
+          <div style="font-size:17px;font-weight:900;color:var(--g1)">${fmt(baseSal)}</div>
+          <div style="font-size:10px;color:var(--tx3)">ريال</div>
         </div>
-        <div style="background:#D1FAE5;border-radius:10px;padding:10px;text-align:center;border:1px solid #6EE7B7">
-          <div style="font-size:10px;font-weight:700;color:#065F46;margin-bottom:4px">🤝 إيداع عهدة</div>
-          <div style="font-size:18px;font-weight:900;color:#059669">${fmt(data.custody)}</div>
-          <div style="font-size:10px;color:#065F46">ريال</div>
+        <div style="background:var(--c1);border-radius:var(--rc);padding:10px;border:1px solid var(--no-bd)">
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:3px;font-weight:700">💸 سحب الشهر</div>
+          <div style="font-size:17px;font-weight:900;color:var(--no)">${fmt(withdrawnThisMonth)}</div>
+          <div style="font-size:10px;color:var(--tx3)">ريال</div>
         </div>
-        <div style="background:#FEF3C7;border-radius:10px;padding:10px;text-align:center;border:1px solid #FCD34D">
-          <div style="font-size:10px;font-weight:700;color:#92400E;margin-bottom:4px">✂️ خصومات</div>
-          <div style="font-size:18px;font-weight:900;color:#D97706">${fmt(data.deductions)}</div>
-          <div style="font-size:10px;color:#92400E">ريال</div>
+        <div style="background:${remBg};border-radius:var(--rc);padding:10px;border:1px solid ${remColor}33">
+          <div style="font-size:10px;color:${remColor};margin-bottom:3px;font-weight:700">${remLabel}</div>
+          <div style="font-size:17px;font-weight:900;color:${remColor}">${fmt(Math.abs(remaining))}</div>
+          <div style="font-size:10px;color:${remColor}">ريال</div>
         </div>
       </div>
-      <!-- سجل الحركات -->
-      <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:6px;
-        text-transform:uppercase;letter-spacing:.4px">سجل الحركات</div>
-      ${txRows||'<div style="color:var(--tx3);font-size:11px;padding:8px">لا توجد حركات</div>'}
+      ${baseSal===0?`<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:var(--rc);padding:8px;font-size:11px;color:var(--io);text-align:center">
+        ⚠️ لم يُحدَّد راتب أساسي لهذا الموظف — <span style="text-decoration:underline;cursor:pointer" onclick="editEmpSalary('${emp}')">اضغط هنا لتحديده</span>
+      </div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <button onclick="openSalaryModalForEmp('salary','${emp}')"
+          style="padding:9px;border-radius:var(--rc);border:none;background:var(--no-bg);
+            color:var(--no);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+          💸 صرف نقد
+        </button>
+        <button onclick="openMonthlyPayrollForEmp('${emp}')"
+          style="padding:9px;border-radius:var(--rc);border:none;background:#EDE9FE;
+            color:#7C3AED;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+          📅 صرف الراتب الشهري
+        </button>
+      </div>
     </div>`;
-  }).join('');
+
+  // ── جدول الحركات (Running Balance) ──
+  let runBal = 0; // يبدأ من صفر كل شهر
+  // احسب الرصيد من أول الوقت
+  const allRows = txs.map(t=>{
+    const dt  = fmtDate(t.date);
+    let delta = 0;
+    if(t.type==='salary-pay')       delta = -(t.amount||0); // صرف يُنقص ما للموظف
+    if(t.type==='salary-custody')   delta =  (t.amount||0); // إيداع يزيد ما للموظف
+    if(t.type==='salary-deduction') delta = -(t.amount||0); // خصم يُنقص
+    runBal = Math.round((runBal + delta)*100)/100;
+
+    const typeLabel = {'salary-pay':'💸 صرف','salary-custody':'🤝 إيداع عهدة','salary-deduction':'✂️ خصم'};
+    const typeBg    = {'salary-pay':'#FEE2E2','salary-custody':'#D1FAE5','salary-deduction':'#FEF3C7'};
+    const typeClr   = {'salary-pay':'#991B1B','salary-custody':'#065F46','salary-deduction':'#92400E'};
+    const isIn      = t.type==='salary-custody';
+    const balClr    = runBal>=0?'var(--ok)':'var(--no)';
+    const balLbl    = runBal>=0?'له':'عليه';
+
+    return `<div style="display:flex;justify-content:space-between;align-items:center;
+        padding:10px 12px;border-bottom:1px solid var(--b1);background:var(--c1)">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
+            background:${typeBg[t.type]||'var(--g4)'};color:${typeClr[t.type]||'var(--g1)'}">
+            ${typeLabel[t.type]||t.type}
+          </span>
+        </div>
+        <div style="font-size:11px;color:var(--tx2)">${dt.ar} · ${dt.en}</div>
+        ${t.notes?`<div style="font-size:11px;color:var(--tx3);margin-top:1px">📝 ${t.notes}</div>`:''}
+      </div>
+      <div style="text-align:left;min-width:80px">
+        <div style="font-size:15px;font-weight:900;color:${isIn?'var(--ok)':'var(--no)'}">
+          ${isIn?'+':'-'}${fmt(t.amount||0)}
+        </div>
+        <div style="font-size:10px;color:${balClr};font-weight:700">${balLbl}: ${fmt(Math.abs(runBal))}</div>
+      </div>
+    </div>`;
+  });
+
+  const txSection = txs.length
+    ? `<div style="border-radius:var(--rb);overflow:hidden;border:1px solid var(--b1)">
+        <div style="background:var(--hd);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#EDF0FF">📋 سجل الحركات الكامل</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.5)">${txs.length} حركة</span>
+        </div>
+        ${allRows.join('')}
+      </div>`
+    : `<div class="empty" style="padding:20px"><p>لا توجد حركات مسجّلة بعد</p></div>`;
+
+  el.innerHTML = summaryCard + txSection;
+}
+
+// ── فتح modal الراتب مع تحديد الموظف مسبقاً ──
+function openSalaryModalForEmp(type, empName){
+  openSalaryModal(type);
+  setTimeout(()=>{
+    const s=document.getElementById('sal-emp-s');
+    const v=document.getElementById('sal-emp-v');
+    if(s) s.value=empName;
+    if(v) v.value=empName;
+    setSalType(type==='salary'?'salary':'custody');
+  },100);
+}
+
+// ── فتح modal الراتب الشهري مع تحديد الموظف ──
+function openMonthlyPayrollForEmp(empName){
+  openMonthlyPayroll();
+  setTimeout(()=>{
+    const s=document.getElementById('mpr-emp-s');
+    const v=document.getElementById('mpr-emp-v');
+    if(s) s.value=empName;
+    if(v){ v.value=empName; calcMonthlyRemaining(); }
+  },100);
+}
+
+// ── تعديل راتب موظف مباشرة ──
+function editEmpSalary(empName){
+  const c=(S.clients||[]).find(x=>x.name===empName&&x.type==='موظف');
+  if(!c) return;
+  editCli(c.id);
 }
 
 function renderAnalytics(){
@@ -6536,46 +6994,44 @@ function calcTrialBalance(){
       // ذهب يدخل مخزوننا
       case 'buy':
       case 'buy-debt':
-        items.forEach(i=>{ goldIn += to24(i.weight,i.karat); });
+        items.forEach(i=>{ goldIn += convertTo24(i.weight,i.karat); });
         break;
       case 'scrap':
-        if(t.scrapItems&&t.scrapItems.length>0)
-          t.scrapItems.forEach(si=>{ goldIn += to24(si.weight,si.karat||'21'); });
-        else goldIn += to24(t.weight,t.karat||'21');
+        goldIn += scrapTo24(t); // دالة موحدة
         break;
       case 'return':
       case 'sales-return':
-        items.forEach(i=>{ goldIn += to24(i.weight,i.karat); });
+        items.forEach(i=>{ goldIn += convertTo24(i.weight,i.karat); });
         break;
       case 'inventory-adj':
-        if((t.qty||0)>0) goldIn += to24(t.qty,t.karat||'21');
-        else if((t.qty||0)<0) goldOut += to24(Math.abs(t.qty||0),t.karat||'21');
+        if((t.qty||0)>0) goldIn += convertTo24(t.qty,t.karat||'21');
+        else if((t.qty||0)<0) goldOut += convertTo24(Math.abs(t.qty||0),t.karat||'21');
         break;
       case 'salary-custody':
-        goldIn += to24(t.goldAmount||0, t.goldKarat||'21');
+        goldIn += convertTo24(t.goldAmount||0, t.goldKarat||'21');
         break;
       case 'sell':
       case 'sell-debt':
-        items.forEach(i=>{ goldOut += to24(i.weight,i.karat); });
+        items.forEach(i=>{ goldOut += convertTo24(i.weight,i.karat); });
         break;
       case 'supplier-return':
       case 'purchase-return':
-        items.forEach(i=>{ goldOut += to24(i.weight,i.karat); });
+        items.forEach(i=>{ goldOut += convertTo24(i.weight,i.karat); });
         break;
       case 'scrap-return':
-        goldOut += to24(t.weight,t.karat||'21');
+        goldOut += convertTo24(t.weight,t.karat||'21');
         break;
     }
     // ذهب في السداد (خروج من صناديق ذهب)
     if(t.type==='supplier-payment'){
       const pItems = t.goldItems||[];
-      if(pItems.length) pItems.forEach(gi=>{ goldOut += to24(gi.weight,gi.karat); });
-      else goldOut += to24(t.goldWeight,t.goldKarat||'21');
+      if(pItems.length) pItems.forEach(gi=>{ goldOut += convertTo24(gi.weight,gi.karat); });
+      else goldOut += convertTo24(t.goldWeight,t.goldKarat||'21');
     }
     if(t.type==='payment'){
       const pItems = t.goldItems||[];
-      if(pItems.length) pItems.forEach(gi=>{ goldIn += to24(gi.weight,gi.karat); });
-      else goldIn += to24(t.goldWeight,t.goldKarat||'21');
+      if(pItems.length) pItems.forEach(gi=>{ goldIn += convertTo24(gi.weight,gi.karat); });
+      else goldIn += convertTo24(t.goldWeight,t.goldKarat||'21');
     }
   });
 
@@ -6973,7 +7429,7 @@ function saveReturn(){
   const dateV = document.getElementById('ret-date')?.value;
   const dateISO = dateV?new Date(dateV).toISOString():new Date().toISOString();
 
-  const total24 = validItems.reduce((a,i)=>a+Math.round(i.weight*parseFloat(i.karat)/24*1000)/1000,0);
+  const total24 = validItems.reduce((a,i)=>a+convertTo24(i.weight, i.karat),0); // دالة موحدة
   // حساب أجور المرتجع من الأصناف
   const retAjour = validItems.reduce((a,i)=>{
     const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
@@ -7868,7 +8324,7 @@ function renderStmt(){
     } else {
       // عميل / موزع: البيع يزيد ما عليه (موجب)
       if(t.type==='sell'||t.type==='sell-debt')                       dCash = (t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0);
-      else if(t.type==='payment')                                      dCash = t.ajourPaid||t.amount||0;
+      else if(t.type==='payment')                                      dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0);
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
       else if(t.type==='sales-return'||t.type==='return')             dCash = -(t.ajTotal||t.cashRefund||0) - (t.vatAmt||0);
       else if(t.type==='salary-custody')                               dCash = (t.amount||0);
@@ -7882,19 +8338,21 @@ function renderStmt(){
     // تغيير الذهب بعيار 24
     let dGold24 = 0;
     if(t.type==='sell'||t.type==='sell-debt')
-      (t.items||[]).forEach(i=>{ dGold24 += to24rb(i.weight,i.karat); });
+      (t.items||[]).forEach(i=>{ dGold24 += convertTo24(i.weight,i.karat); });
     else if(t.type==='buy'||t.type==='buy-debt')
-      (t.items||[]).forEach(i=>{ dGold24 -= to24rb(i.weight,i.karat); });
-    else if(t.type==='scrap')               dGold24 = -to24rb(t.weight,t.karat||'21');
-    else if(t.type==='payment')             dGold24 = -to24rb(t.goldWeight,t.goldKarat||'21');
-    else if(t.type==='supplier-payment')    dGold24 = to24rb(t.goldWeight,t.goldKarat||'21');
+      (t.items||[]).forEach(i=>{ dGold24 -= convertTo24(i.weight,i.karat); });
+    else if(t.type==='scrap'){
+      dGold24 = -scrapTo24(t); // دالة موحدة: scrapItems → total24 → fallback آمن
+    }
+    else if(t.type==='payment')             dGold24 = -convertTo24(t.goldWeight,t.goldKarat||'21');
+    else if(t.type==='supplier-payment')    dGold24 = convertTo24(t.goldWeight,t.goldKarat||'21');
     else if(t.type==='return'||t.type==='sales-return')
-      (t.items||[]).forEach(i=>{ dGold24 -= to24rb(i.weight,i.karat); }); // ذهب عاد لمخزوننا
+      (t.items||[]).forEach(i=>{ dGold24 -= convertTo24(i.weight,i.karat); });
     else if(t.type==='supplier-return'||t.type==='purchase-return')
-      (t.items||[]).forEach(i=>{ dGold24 += to24rb(i.weight,i.karat); }); // ذهب رجع للمورد
+      (t.items||[]).forEach(i=>{ dGold24 += convertTo24(i.weight,i.karat); });
     else if(t.type==='transfer'){
-      if(t.fromSafe===('__cli__'+v)) dGold24 = to24rb(t.goldAmount,t.goldKarat||'21');
-      if(t.toSafe===('__cli__'+v))   dGold24 = -to24rb(t.goldAmount,t.goldKarat||'21');
+      if(t.fromSafe===('__cli__'+v)) dGold24 = convertTo24(t.goldAmount,t.goldKarat||'21');
+      if(t.toSafe===('__cli__'+v))   dGold24 = -convertTo24(t.goldAmount,t.goldKarat||'21');
     }
     runCash   = Math.round((runCash   + dCash)*100)/100;
     runGold24 = Math.round((runGold24 + dGold24)*1000)/1000;
@@ -7922,6 +8380,12 @@ function renderStmt(){
       if(t.change>0)   parts.push(`فكة: ${fmt(t.change)} ر`);
       if(t.discount>0) parts.push(`خصم تسوية: ${fmt(t.discount)} ر`);
       if(t.goldWeight) parts.push(`ذهب ${t.goldKarat}: ${fmtG(t.goldWeight)}ج`);
+      if(t.netDiff?.riyal>0||t.netDiff?.gram>0){
+        const ndLabel = t.netDiff.hasGram&&t.netDiff.gram>0
+          ? `⚖️ فرق الصافي: ${fmtG(t.netDiff.gram)}ج ع${t.netDiff.karat}${t.netDiff.riyal>0?' = '+fmt(t.netDiff.riyal)+' ر':''}`
+          : `⚖️ فرق الصافي: ${fmt(t.netDiff.riyal)} ر`;
+        parts.push(ndLabel);
+      }
       detail=parts.join(' · ');
     }
     if(t.type==='supplier-payment'){
@@ -8101,19 +8565,25 @@ function renderStmt(){
 // ── Clients CRUD ───────────────────────────────────────────────────
 function openAddCli(){clearCliForm();openM('m-addcli');}
 function clearCliForm(){
-  ['nc-name','nc-phone','nc-notes'].forEach(i=>document.getElementById(i).value='');
+  ['nc-name','nc-phone','nc-notes','nc-salary'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   document.getElementById('edit-cli-id').value='';
   document.getElementById('addcli-title').textContent='➕ إضافة جهة';
+  const sr=document.getElementById('nc-salary-row');if(sr)sr.style.display='none';
+  const nt=document.getElementById('nc-type');if(nt)nt.value='عميل';
 }
 function saveCli(){
   const name=document.getElementById('nc-name').value.trim();
   if(!name){toast('⚠️ أدخل الاسم');return;}
+  const type=document.getElementById('nc-type').value;
+  const phone=document.getElementById('nc-phone').value;
+  const notes=document.getElementById('nc-notes').value;
+  const baseSalary=type==='موظف'?(parseFloat(document.getElementById('nc-salary').value)||0):0;
   const eid=document.getElementById('edit-cli-id').value;
   if(eid){
     const c=S.clients.find(x=>x.id===parseInt(eid));
-    if(c){c.name=name;c.type=document.getElementById('nc-type').value;c.phone=document.getElementById('nc-phone').value;c.notes=document.getElementById('nc-notes').value;}
+    if(c){c.name=name;c.type=type;c.phone=phone;c.notes=notes;if(type==='موظف')c.baseSalary=baseSalary;}
   }else{
-    S.clients.push({id:Date.now(),name,type:document.getElementById('nc-type').value,phone:document.getElementById('nc-phone').value,notes:document.getElementById('nc-notes').value});
+    S.clients.push({id:Date.now(),name,type,phone,notes,baseSalary:type==='موظف'?baseSalary:undefined});
   }
   sv();closeM('m-addcli');clearCliForm();renderAll();toast('✅ تم الحفظ');
 }
@@ -8124,6 +8594,11 @@ function editCli(id){
   document.getElementById('nc-type').value=c.type;
   document.getElementById('nc-phone').value=c.phone||'';
   document.getElementById('nc-notes').value=c.notes||'';
+  // الراتب الأساسي للموظفين
+  const sr=document.getElementById('nc-salary-row');
+  const si=document.getElementById('nc-salary');
+  if(sr) sr.style.display=c.type==='موظف'?'flex':'none';
+  if(si) si.value=c.baseSalary||'';
   document.getElementById('addcli-title').textContent='✏️ تعديل الجهة';
   openM('m-addcli');
 }
@@ -8503,6 +8978,44 @@ addItem();
 
 <!-- ── Firebase ── -->
 <script type="module">
+
+// ══════════════════════════════════════════════════════
+//  convertTo24 — الدالة الوحيدة لتحويل الذهب لعيار 24
+//  المعادلة: (weight × karat) ÷ 24
+//  يجب استخدام هذه الدالة في كل مكان بدون استثناء
+// ══════════════════════════════════════════════════════
+function convertTo24(weight, karat) {
+  const w = parseFloat(weight) || 0;
+  const k = parseFloat(karat);
+  if (!k || k <= 0 || k > 24 || isNaN(k)) return 0; // عيار غير صحيح أو mixed
+  return w * k / 24;
+}
+
+// حساب إجمالي عيار 24 لمصفوفة أصناف
+function sumTo24(items, weightKey, karatKey) {
+  weightKey = weightKey || 'weight';
+  karatKey  = karatKey  || 'karat';
+  return (items || []).reduce((acc, i) => {
+    return acc + convertTo24(i[weightKey] || 0, i[karatKey] || 0);
+  }, 0);
+}
+
+// حساب عيار 24 لعملية كسر (scrap tx) — يأخذ بعين الاعتبار كل الحالات
+function scrapTo24(tx) {
+  if (tx.scrapItems && tx.scrapItems.length > 0) {
+    return sumTo24(tx.scrapItems);
+  }
+  if (tx.total24 && tx.total24 > 0) {
+    return tx.total24;
+  }
+  // fallback للسجلات القديمة — فقط إذا karat ليس mixed
+  const k = parseFloat(tx.karat);
+  if (k && k > 0 && k <= 24) {
+    return convertTo24(tx.weight || 0, k);
+  }
+  return 0; // لا يمكن حساب عيار mixed بدون scrapItems
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
