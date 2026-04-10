@@ -1971,6 +1971,39 @@ body{
 </div><!-- /app-wrap -->
 
 <script>
+// ══════════════════════════════════════════════════════
+//  convertTo24 — الدالة الوحيدة لتحويل الذهب لعيار 24
+//  المعادلة: (weight × karat) ÷ 24
+// ══════════════════════════════════════════════════════
+function convertTo24(weight, karat) {
+  const w = parseFloat(weight) || 0;
+  const k = parseFloat(karat);
+  if (!k || k <= 0 || k > 24 || isNaN(k)) return 0;
+  return w * k / 24;
+}
+
+function sumTo24(items, weightKey, karatKey) {
+  weightKey = weightKey || 'weight';
+  karatKey  = karatKey  || 'karat';
+  return (items || []).reduce((acc, i) => {
+    return acc + convertTo24(i[weightKey] || 0, i[karatKey] || 0);
+  }, 0);
+}
+
+function scrapTo24(tx) {
+  if (tx.scrapItems && tx.scrapItems.length > 0) {
+    return sumTo24(tx.scrapItems);
+  }
+  if (tx.total24 && tx.total24 > 0) {
+    return tx.total24;
+  }
+  const k = parseFloat(tx.karat);
+  if (k && k > 0 && k <= 24) {
+    return convertTo24(tx.weight || 0, k);
+  }
+  return 0;
+}
+
 // ── State ─────────────────────────────────────────────────────────
 const DEF={transactions:[],clients:[],pendingItems:[],activityLog:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}],openingBalance:{safes:{},clients:{}}};
 let S={...DEF};
@@ -6094,6 +6127,7 @@ function filterSalary(type){
   // محافظة على التوافق — لم تعد تستخدم
   renderEmpStmt();
 }
+function openSalaryModal(preType){
   currentSalType = null;
   ['salary','custody','deduction'].forEach(t=>{
     const btn=document.getElementById('sal-type-'+t);
