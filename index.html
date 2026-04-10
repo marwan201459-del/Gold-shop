@@ -2556,6 +2556,8 @@ function selCS(inp,drp,val,name){
   document.getElementById(drp).classList.remove('open');
   // لو اخترنا عميل في شاشة السداد → حدّث الرصيد والصناديق فوراً
   if(val==='pay-cli-v') loadClientBalance();
+  // لو اخترنا موظف في فلتر الرواتب → حدّث كشف الموظف فوراً
+  if(val==='sal-emp-filter-v') renderEmpStmt();
 }
 function navD(e,drp,inp,val){
   const d=document.getElementById(drp),items=[...d.querySelectorAll('.sdi')];
@@ -6140,6 +6142,8 @@ function openSalaryModal(preType){
     const el=document.getElementById(id);if(el)el.value='';
   });
   openM('m-salary');
+  // عرض قائمة الموظفين فور فتح المودال
+  setTimeout(()=>{ openCS('sal-emp-s','sal-emp-d','sal-emp-v',['موظف']); }, 80);
 }
 
 function saveSalary(){
@@ -6415,12 +6419,28 @@ function renderEmpStmt(){
   const depositedThisMonth = monthTxs
     .filter(t=>t.type==='salary-custody')
     .reduce((a,t)=>a+(t.amount||0),0);
-  const remaining = baseSal - withdrawnThisMonth + depositedThisMonth;
+  const deductedThisMonth = monthTxs
+    .filter(t=>t.type==='salary-deduction')
+    .reduce((a,t)=>a+(t.amount||0),0);
+  // الرصيد المتبقي من الشهر الحالي = الراتب الأساسي - ما صُرف - ما خُصم + ما أُودع
+  const remaining = baseSal - withdrawnThisMonth - deductedThisMonth + depositedThisMonth;
 
-  // ── ألوان بطاقة الرصيد ──
+  // ── الرصيد التراكمي الإجمالي (كل الوقت) ──
+  const totalWithdrawn  = txs.filter(t=>t.type==='salary-pay').reduce((a,t)=>a+(t.amount||0),0);
+  const totalDeposited  = txs.filter(t=>t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
+  const totalDeducted   = txs.filter(t=>t.type==='salary-deduction').reduce((a,t)=>a+(t.amount||0),0);
+  // رصيد الموظف الكلي: ما أودعه - ما سُحب - ما خُصم (رصيد موجب = الشركة مدينة للموظف، سالب = الموظف مدين)
+  const totalBalance = totalDeposited - totalWithdrawn - totalDeducted;
+
+  // ── ألوان بطاقة الرصيد الشهري ──
   const remColor  = remaining>0?'#065F46':remaining<0?'#991B1B':'var(--tx2)';
   const remBg     = remaining>0?'#D1FAE5':remaining<0?'#FEE2E2':'var(--c3)';
-  const remLabel  = remaining>0?'متبقي للموظف':remaining<0?'سحب زيادة عن الراتب':'مسوى';
+  const remLabel  = remaining>0?'متبقي للموظف':remaining<0?'سحب زيادة':'مسوى';
+
+  // ── ألوان الرصيد التراكمي ──
+  const totColor  = totalBalance>0?'#991B1B':totalBalance<0?'#065F46':'var(--tx2)';
+  const totBg     = totalBalance>0?'#FEE2E2':totalBalance<0?'#D1FAE5':'var(--c3)';
+  const totLabel  = totalBalance>0?'على الشركة له':totalBalance<0?'على الموظف':'مسوى تماماً';
 
   // ── بطاقة ملخص الشهر الحالي ──
   const monthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو',
@@ -6446,6 +6466,19 @@ function renderEmpStmt(){
           <div style="font-size:10px;color:${remColor};margin-bottom:3px;font-weight:700">${remLabel}</div>
           <div style="font-size:17px;font-weight:900;color:${remColor}">${fmt(Math.abs(remaining))}</div>
           <div style="font-size:10px;color:${remColor}">ريال</div>
+        </div>
+      </div>
+      <!-- الرصيد التراكمي الكلي -->
+      <div style="background:${totBg};border-radius:var(--rc);padding:10px;margin-bottom:10px;border:1px solid ${totColor}44;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:${totColor}">📊 الرصيد التراكمي الإجمالي (كل الوقت)</div>
+          <div style="font-size:10px;color:var(--tx2);margin-top:2px">
+            إجمالي إيداع: ${fmt(totalDeposited)} ر &nbsp;|&nbsp; إجمالي سحب: ${fmt(totalWithdrawn)} ر ${totalDeducted>0?`&nbsp;|&nbsp; خصومات: ${fmt(totalDeducted)} ر`:''}
+          </div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:17px;font-weight:900;color:${totColor}">${fmt(Math.abs(totalBalance))}</div>
+          <div style="font-size:10px;font-weight:700;color:${totColor}">${totLabel}</div>
         </div>
       </div>
       ${baseSal===0?`<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:var(--rc);padding:8px;font-size:11px;color:var(--io);text-align:center">
