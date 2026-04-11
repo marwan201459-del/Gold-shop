@@ -9041,48 +9041,77 @@ function showSync(msg, dur){
 
 let _lastSaveTime = 0;
 let _firstLoad = true;
+let _isSaving = false;
 
 // ── الحفظ على Firebase ──
 window.sv_save = function(){
   _lastSaveTime = Date.now();
+  _isSaving = true;
   showSync('⟳ جاري الحفظ...');
 
-  // حماية من تجاوز حجم Firebase (1MB) — نقتطع السجلات القديمة إذا لزم
-  const txs = (S.transactions || []).slice(0, 2000);
-  const logs = (S.activityLog || []).slice(0, 300);
+  // بناء البيانات مع ضبط الحجم
+  let txs  = (S.transactions  || []).slice(0, 2000);
+  let logs = (S.activityLog   || []).slice(0, 200);
 
-  // timeout 20 ثانية: إذا ما ردّ Firebase نُظهر خطأ
-  const saveTimer = setTimeout(()=>{
-    showSync('⚠️ انتهت المهلة — تحقق من الاتصال', 5000);
-  }, 20000);
-
-  setDoc(REF, {
+  const payload = {
     transactions:   txs,
-    clients:        S.clients       || [],
-    safes:          S.safes         || {},
-    customSafes:    S.customSafes   || [],
-    snapshots:      S.snapshots     || [],
-    users:          S.users         || [],
-    pendingItems:   S.pendingItems  || [],
+    clients:        S.clients        || [],
+    safes:          S.safes          || {},
+    customSafes:    S.customSafes    || [],
+    snapshots:      S.snapshots      || [],
+    users:          S.users          || [],
+    pendingItems:   S.pendingItems   || [],
     activityLog:    logs,
-    safesBase:      S.safesBase     || {},
+    safesBase:      S.safesBase      || {},
     openingBalance: S.openingBalance || {safes:{},clients:{}},
     updatedAt:      _lastSaveTime
-  }).then(()=>{
+  };
+
+  // فحص الحجم — إذا تجاوز 800KB نقلص أكثر
+  try {
+    const sz = JSON.stringify(payload).length;
+    if(sz > 800000){
+      payload.transactions = txs.slice(0, 500);
+      payload.activityLog  = logs.slice(0, 50);
+      console.warn('⚠️ تم تقليص البيانات — الحجم كان:', sz);
+    }
+  } catch(e){ console.warn('size check failed', e); }
+
+  // حفظ محلي دائماً كنسخة احتياطية
+  try {
+    localStorage.setItem('gold_local', JSON.stringify({
+      transactions: payload.transactions,
+      clients:      payload.clients,
+      safes:        payload.safes,
+      updatedAt:    _lastSaveTime
+    }));
+  } catch(_){}
+
+  // timeout 15 ثانية
+  const saveTimer = setTimeout(()=>{
+    _isSaving = false;
+    showSync('⚠️ انتهت المهلة — البيانات محفوظة محلياً', 6000);
+  }, 15000);
+
+  setDoc(REF, payload).then(()=>{
     clearTimeout(saveTimer);
+    _isSaving = false;
+    _lastSaveTime = Date.now();
     showSync('☁️ محفوظ', 2500);
   }).catch(e=>{
     clearTimeout(saveTimer);
-    console.error('Firebase save error:', e);
-    // حفظ محلي احتياطي
-    try { localStorage.setItem('gold_backup', JSON.stringify({transactions:txs,clients:S.clients,safes:S.safes,updatedAt:_lastSaveTime})); } catch(_){}
-    showSync('⚠️ خطأ في الحفظ — ' + (e.code||e.message||'تحقق من الاتصال'), 6000);
+    console.error('Firebase save error:', e.code, e.message);
+    _isSaving = false;
+    showSync('⚠️ ' + (e.code === 'permission-denied' ? 'خطأ في الصلاحيات' :
+              e.code === 'unavailable' ? 'لا يوجد اتصال' :
+              'خطأ في الحفظ: ' + (e.code||e.message)), 7000);
   });
 };
 
 // ── استقبال البيانات من السحاب ──
 onSnapshot(REF, (snap) => {
-  if(Date.now() - _lastSaveTime < 3000) return;
+  if(_isSaving) return; // لا تُحمّل أثناء الحفظ
+  if(Date.now() - _lastSaveTime < 10000) return; // انتظر 10 ثواني بعد آخر حفظ
   if(snap.exists()){
     const d = snap.data();
     S.transactions = d.transactions || [];
