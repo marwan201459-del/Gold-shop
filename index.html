@@ -9087,7 +9087,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebas
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
+  apiKey: "AIzaSyAGtAcxxUcbiv3TjFggsNaN9mYn8PkrnT0",
   authDomain: "gold-shop-3e7f5.firebaseapp.com",
   projectId: "gold-shop-3e7f5",
   storageBucket: "gold-shop-3e7f5.firebasestorage.app",
@@ -9099,7 +9099,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const REF = doc(db, "gold", "data");
-
 // ── مؤشر المزامنة ──
 const syncEl = document.createElement('div');
 syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:11px;color:#fff;font-family:Tajawal,sans-serif;background:rgba(0,0,0,0.75);padding:3px 10px;border-radius:8px;display:none';
