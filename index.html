@@ -7542,6 +7542,140 @@ function renderTrialBalance(){
 
 
 // ══ renderAll ══════════════════════════════
+// ══════════════════════════════════════════
+//  نظام القطع المعلّقة (Pending Items)
+// ══════════════════════════════════════════
+let pendingFilter = 'all';
+let currentPendingId = null;
+
+function filterPending(f){
+  pendingFilter = f;
+  ['all','pending','sold','returned'].forEach(id=>{
+    const btn = document.getElementById('pf-'+id);
+    if(!btn) return;
+    if(id===f){
+      btn.style.background='var(--g1)'; btn.style.color='white'; btn.style.borderColor='var(--g1)';
+    } else {
+      btn.style.background='var(--c1)'; btn.style.color='var(--tx2)'; btn.style.borderColor='var(--b1)';
+    }
+  });
+  renderPending();
+}
+
+function openPendingModal(id){
+  currentPendingId = id||null;
+  const titleEl = document.getElementById('pending-modal-title');
+  if(id){
+    const item = (S.pendingItems||[]).find(p=>p.id===id);
+    if(!item) return;
+    if(titleEl) titleEl.textContent = '✏️ تعديل القطعة';
+    document.getElementById('pnd-cli-s').value  = item.client||'';
+    document.getElementById('pnd-cli-v').value  = item.client||'';
+    document.getElementById('pnd-karat').value  = item.karat||'21';
+    document.getElementById('pnd-weight').value = item.weight||'';
+    document.getElementById('pnd-desc').value   = item.desc||'';
+    document.getElementById('pnd-price').value  = item.price||'';
+    document.getElementById('pnd-notes').value  = item.notes||'';
+    document.getElementById('pnd-date').value   = item.date?item.date.substring(0,10):'';
+  } else {
+    if(titleEl) titleEl.textContent = '📌 تسجيل قطعة معلّقة';
+    ['pnd-cli-s','pnd-cli-v','pnd-weight','pnd-desc','pnd-price','pnd-notes','pnd-date']
+      .forEach(id2=>{ const el=document.getElementById(id2); if(el) el.value=''; });
+    const k = document.getElementById('pnd-karat'); if(k) k.value='21';
+  }
+  openM('m-pending');
+}
+
+function savePending(){
+  const client = document.getElementById('pnd-cli-v')?.value||document.getElementById('pnd-cli-s')?.value;
+  const karat  = document.getElementById('pnd-karat')?.value;
+  const weight = parseFloat(document.getElementById('pnd-weight')?.value)||0;
+  const desc   = document.getElementById('pnd-desc')?.value?.trim();
+  const price  = parseFloat(document.getElementById('pnd-price')?.value)||0;
+  const notes  = document.getElementById('pnd-notes')?.value;
+  const dateV  = document.getElementById('pnd-date')?.value;
+  const dateISO= dateV?new Date(dateV).toISOString():new Date().toISOString();
+  if(!client){ toast('⚠️ أدخل اسم العميل'); return; }
+  if(!desc)  { toast('⚠️ أدخل وصف القطعة'); return; }
+  if(!S.pendingItems) S.pendingItems = [];
+  if(currentPendingId){
+    const item = S.pendingItems.find(p=>p.id===currentPendingId);
+    if(item){ item.client=client;item.karat=karat;item.weight=weight;item.desc=desc;item.price=price;item.notes=notes;item.date=dateISO; }
+  } else {
+    S.pendingItems.push({id:Date.now(),client,karat,weight,desc,price,notes,date:dateISO,status:'pending'});
+  }
+  sv(); closeM('m-pending'); renderPending(); toast('✅ تم الحفظ');
+}
+
+function markPendingStatus(id, status){
+  const item = (S.pendingItems||[]).find(p=>p.id===id);
+  if(!item) return;
+  item.status = status;
+  sv(); renderPending();
+  toast(status==='sold'?'✅ تم تسجيل البيع':'↩️ تم تسجيل الإرجاع');
+}
+
+function deletePendingItem(id){
+  if(!confirm('هل تريد حذف هذه القطعة؟')) return;
+  S.pendingItems = (S.pendingItems||[]).filter(p=>p.id!==id);
+  sv(); renderPending(); toast('🗑️ تم الحذف');
+}
+
+function renderPending(){
+  const listEl    = document.getElementById('pending-list');
+  const summaryEl = document.getElementById('pending-summary');
+  if(!listEl) return;
+  const items = S.pendingItems||[];
+  // ملخص
+  const total    = items.length;
+  const pending  = items.filter(i=>i.status==='pending').length;
+  const sold     = items.filter(i=>i.status==='sold').length;
+  const returned = items.filter(i=>i.status==='returned').length;
+  if(summaryEl){
+    summaryEl.innerHTML = [
+      {l:'الكل',v:total,c:'gold'},
+      {l:'📌 معلّقة',v:pending,c:'purple'},
+      {l:'✅ مباعة',v:sold,c:'green'},
+    ].map(x=>`<div class="sb ${x.c}" style="padding:10px;text-align:center">
+      <div class="v" style="font-size:20px">${x.v}</div>
+      <div class="l">${x.l}</div>
+    </div>`).join('');
+  }
+  // فلتر
+  const filtered = pendingFilter==='all' ? items : items.filter(i=>i.status===pendingFilter);
+  if(!filtered.length){
+    listEl.innerHTML='<div class="empty" style="padding:28px 0"><div class="ei">📌</div><p>لا توجد قطع</p></div>';
+    return;
+  }
+  const statusBg  ={pending:'var(--pu-bg)',sold:'var(--ok-bg)',returned:'var(--io-bg)'};
+  const statusClr ={pending:'var(--pu)',sold:'var(--ok)',returned:'var(--io)'};
+  const statusLbl ={pending:'📌 معلّقة',sold:'✅ مباع',returned:'↩️ مُرجَع'};
+  listEl.innerHTML = filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(item=>`
+    <div class="card" style="margin-bottom:10px">
+      <div class="cb">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--tx1)">${item.desc}</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">👤 ${item.client||'—'} &nbsp;|&nbsp; ⚖️ ${item.weight||0}ج عيار ${item.karat||21}</div>
+            ${item.price?`<div style="font-size:12px;font-weight:700;color:var(--g1);margin-top:2px">💰 ${fmt(item.price)} ريال</div>`:''}
+            ${item.notes?`<div style="font-size:11px;color:var(--tx3);margin-top:2px">📝 ${item.notes}</div>`:''}
+            <div style="font-size:10px;color:var(--tx3);margin-top:3px">${fmtDate(item.date).ar}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:${statusBg[item.status||'pending']};color:${statusClr[item.status||'pending']}">${statusLbl[item.status||'pending']}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${item.status==='pending'?`
+            <button onclick="markPendingStatus(${item.id},'sold')" style="padding:6px 12px;border-radius:var(--rc);border:none;background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">✅ تم البيع</button>
+            <button onclick="markPendingStatus(${item.id},'returned')" style="padding:6px 12px;border-radius:var(--rc);border:none;background:var(--io-bg);color:var(--io);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">↩️ إرجاع</button>
+            <button onclick="openPendingModal(${item.id})" style="padding:6px 12px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:inherit;font-size:11px;cursor:pointer">✏️ تعديل</button>
+          `:''}
+          <button onclick="deletePendingItem(${item.id})" style="padding:6px 12px;border-radius:var(--rc);border:1px solid var(--no-bd);background:var(--no-bg);color:var(--no);font-family:inherit;font-size:11px;cursor:pointer">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+
 function renderAll(){
   SM=getSM();
   // إعادة حساب الصناديق من المعاملات
@@ -8899,9 +9033,10 @@ const syncEl = document.createElement('div');
 syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:11px;color:#fff;font-family:Tajawal,sans-serif;background:rgba(0,0,0,0.75);padding:3px 10px;border-radius:8px;display:none';
 document.body.appendChild(syncEl);
 function showSync(msg, dur){
+  if(!syncEl) return;
   syncEl.textContent = msg;
   syncEl.style.display = 'block';
-  if(dur) setTimeout(()=>{ syncEl.style.display='none'; }, dur);
+  if(dur) setTimeout(()=>{ if(syncEl) syncEl.style.display='none'; }, dur);
 }
 
 let _lastSaveTime = 0;
@@ -8911,23 +9046,37 @@ let _firstLoad = true;
 window.sv_save = function(){
   _lastSaveTime = Date.now();
   showSync('⟳ جاري الحفظ...');
+
+  // حماية من تجاوز حجم Firebase (1MB) — نقتطع السجلات القديمة إذا لزم
+  const txs = (S.transactions || []).slice(0, 2000);
+  const logs = (S.activityLog || []).slice(0, 300);
+
+  // timeout 20 ثانية: إذا ما ردّ Firebase نُظهر خطأ
+  const saveTimer = setTimeout(()=>{
+    showSync('⚠️ انتهت المهلة — تحقق من الاتصال', 5000);
+  }, 20000);
+
   setDoc(REF, {
-    transactions:  S.transactions  || [],
-    clients:       S.clients       || [],
-    safes:         S.safes         || {},
-    customSafes:   S.customSafes   || [],
-    snapshots:     S.snapshots     || [],
-    users:         S.users         || [],
-    pendingItems:  S.pendingItems  || [],   // ✅ المعلقات
-    activityLog:   (S.activityLog||[]).slice(0,500), // ✅ سجل النشاط
-    safesBase:     S.safesBase     || {},   // ✅ الأرصدة الأساسية
-    openingBalance: S.openingBalance || {safes:{},clients:{}}, // ✅ الرصيد الافتتاحي
-    updatedAt:     _lastSaveTime
+    transactions:   txs,
+    clients:        S.clients       || [],
+    safes:          S.safes         || {},
+    customSafes:    S.customSafes   || [],
+    snapshots:      S.snapshots     || [],
+    users:          S.users         || [],
+    pendingItems:   S.pendingItems  || [],
+    activityLog:    logs,
+    safesBase:      S.safesBase     || {},
+    openingBalance: S.openingBalance || {safes:{},clients:{}},
+    updatedAt:      _lastSaveTime
   }).then(()=>{
-    showSync('☁️ محفوظ', 2000);
+    clearTimeout(saveTimer);
+    showSync('☁️ محفوظ', 2500);
   }).catch(e=>{
+    clearTimeout(saveTimer);
     console.error('Firebase save error:', e);
-    showSync('⚠️ خطأ في الحفظ', 4000);
+    // حفظ محلي احتياطي
+    try { localStorage.setItem('gold_backup', JSON.stringify({transactions:txs,clients:S.clients,safes:S.safes,updatedAt:_lastSaveTime})); } catch(_){}
+    showSync('⚠️ خطأ في الحفظ — ' + (e.code||e.message||'تحقق من الاتصال'), 6000);
   });
 };
 
