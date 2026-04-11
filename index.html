@@ -8973,44 +8973,6 @@ addItem();
 
 <!-- ── Firebase ── -->
 <script type="module">
-
-// ══════════════════════════════════════════════════════
-//  convertTo24 — الدالة الوحيدة لتحويل الذهب لعيار 24
-//  المعادلة: (weight × karat) ÷ 24
-//  يجب استخدام هذه الدالة في كل مكان بدون استثناء
-// ══════════════════════════════════════════════════════
-function convertTo24(weight, karat) {
-  const w = parseFloat(weight) || 0;
-  const k = parseFloat(karat);
-  if (!k || k <= 0 || k > 24 || isNaN(k)) return 0; // عيار غير صحيح أو mixed
-  return w * k / 24;
-}
-
-// حساب إجمالي عيار 24 لمصفوفة أصناف
-function sumTo24(items, weightKey, karatKey) {
-  weightKey = weightKey || 'weight';
-  karatKey  = karatKey  || 'karat';
-  return (items || []).reduce((acc, i) => {
-    return acc + convertTo24(i[weightKey] || 0, i[karatKey] || 0);
-  }, 0);
-}
-
-// حساب عيار 24 لعملية كسر (scrap tx) — يأخذ بعين الاعتبار كل الحالات
-function scrapTo24(tx) {
-  if (tx.scrapItems && tx.scrapItems.length > 0) {
-    return sumTo24(tx.scrapItems);
-  }
-  if (tx.total24 && tx.total24 > 0) {
-    return tx.total24;
-  }
-  // fallback للسجلات القديمة — فقط إذا karat ليس mixed
-  const k = parseFloat(tx.karat);
-  if (k && k > 0 && k <= 24) {
-    return convertTo24(tx.weight || 0, k);
-  }
-  return 0; // لا يمكن حساب عيار mixed بدون scrapItems
-}
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
@@ -9033,85 +8995,41 @@ const syncEl = document.createElement('div');
 syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:11px;color:#fff;font-family:Tajawal,sans-serif;background:rgba(0,0,0,0.75);padding:3px 10px;border-radius:8px;display:none';
 document.body.appendChild(syncEl);
 function showSync(msg, dur){
-  if(!syncEl) return;
   syncEl.textContent = msg;
   syncEl.style.display = 'block';
-  if(dur) setTimeout(()=>{ if(syncEl) syncEl.style.display='none'; }, dur);
+  if(dur) setTimeout(()=>{ syncEl.style.display='none'; }, dur);
 }
 
 let _lastSaveTime = 0;
 let _firstLoad = true;
-let _isSaving = false;
 
 // ── الحفظ على Firebase ──
 window.sv_save = function(){
   _lastSaveTime = Date.now();
-  _isSaving = true;
   showSync('⟳ جاري الحفظ...');
-
-  // بناء البيانات مع ضبط الحجم
-  let txs  = (S.transactions  || []).slice(0, 2000);
-  let logs = (S.activityLog   || []).slice(0, 200);
-
-  const payload = {
-    transactions:   txs,
-    clients:        S.clients        || [],
-    safes:          S.safes          || {},
-    customSafes:    S.customSafes    || [],
-    snapshots:      S.snapshots      || [],
-    users:          S.users          || [],
-    pendingItems:   S.pendingItems   || [],
-    activityLog:    logs,
-    safesBase:      S.safesBase      || {},
+  setDoc(REF, {
+    transactions:  S.transactions  || [],
+    clients:       S.clients       || [],
+    safes:         S.safes         || {},
+    customSafes:   S.customSafes   || [],
+    snapshots:     S.snapshots     || [],
+    users:         S.users         || [],
+    pendingItems:  S.pendingItems  || [],
+    activityLog:   (S.activityLog||[]).slice(0,500),
+    safesBase:     S.safesBase     || {},
     openingBalance: S.openingBalance || {safes:{},clients:{}},
-    updatedAt:      _lastSaveTime
-  };
-
-  // فحص الحجم — إذا تجاوز 800KB نقلص أكثر
-  try {
-    const sz = JSON.stringify(payload).length;
-    if(sz > 800000){
-      payload.transactions = txs.slice(0, 500);
-      payload.activityLog  = logs.slice(0, 50);
-      console.warn('⚠️ تم تقليص البيانات — الحجم كان:', sz);
-    }
-  } catch(e){ console.warn('size check failed', e); }
-
-  // حفظ محلي دائماً كنسخة احتياطية
-  try {
-    localStorage.setItem('gold_local', JSON.stringify({
-      transactions: payload.transactions,
-      clients:      payload.clients,
-      safes:        payload.safes,
-      updatedAt:    _lastSaveTime
-    }));
-  } catch(_){}
-
-  // timeout 15 ثانية
-  const saveTimer = setTimeout(()=>{
-    _isSaving = false;
-    showSync('⚠️ انتهت المهلة — البيانات محفوظة محلياً', 6000);
-  }, 15000);
-
-  setDoc(REF, payload).then(()=>{
-    clearTimeout(saveTimer);
-    _isSaving = false;
-    _lastSaveTime = Date.now();
-    showSync('☁️ محفوظ', 2500);
+    updatedAt:     _lastSaveTime
+  }).then(()=>{
+    showSync('☁️ محفوظ', 2000);
   }).catch(e=>{
-    clearTimeout(saveTimer);
-    console.error('Firebase save error:', e.code, e.message);
-    _isSaving = false;
-    showSync('⚠️ ' + (e.code === 'permission-denied' ? 'خطأ في الصلاحيات' :
-              e.code === 'unavailable' ? 'لا يوجد اتصال' :
-              'خطأ في الحفظ: ' + (e.code||e.message)), 7000);
+    console.error('Firebase save error:', e);
+    showSync('⚠️ خطأ في الحفظ', 4000);
   });
 };
 
 // ── استقبال البيانات من السحاب ──
 onSnapshot(REF, (snap) => {
-  if(_isSaving) return; // لا تُحمّل أثناء الحفظ
-  if(Date.now() - _lastSaveTime < 10000) return; // انتظر 10 ثواني بعد آخر حفظ
+  if(Date.now() - _lastSaveTime < 3000) return;
   if(snap.exists()){
     const d = snap.data();
     S.transactions = d.transactions || [];
@@ -9122,10 +9040,10 @@ onSnapshot(REF, (snap) => {
     S.users        = (d.users && d.users.length)
       ? d.users
       : [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
-    S.pendingItems = d.pendingItems || [];   // ✅ المعلقات
-    S.activityLog  = d.activityLog  || [];   // ✅ سجل النشاط
-    if(d.safesBase) S.safesBase = d.safesBase; // ✅ الأرصدة الأساسية
-    if(d.openingBalance) S.openingBalance = d.openingBalance; // ✅ الرصيد الافتتاحي
+    S.pendingItems = d.pendingItems || [];
+    S.activityLog  = d.activityLog  || [];
+    if(d.safesBase) S.safesBase = d.safesBase;
+    if(d.openingBalance) S.openingBalance = d.openingBalance;
     if(_firstLoad){ _firstLoad=false; showSync('☁️ متصل', 2000); }
     renderAll();
   } else {
@@ -9145,15 +9063,14 @@ setTimeout(()=>{
   showSync('📴 بدون اتصال — تعمل محلياً', 3000);
   renderAll();
 }, 6000);
+
 // تهيئة الثيم عند التحميل
 window.addEventListener('load', ()=>{
   initTheme();
-  // ── تحقق من الجلسة عند تحميل الصفحة ──
   const savedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
   const savedUser = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user');
   const savedRole = sessionStorage.getItem('auth-role') || localStorage.getItem('auth-role') || 'user';
   if(savedAuth === '1' && savedUser){
-    // استعادة الجلسة
     sessionStorage.setItem('auth', '1');
     sessionStorage.setItem('auth-user', savedUser);
     sessionStorage.setItem('auth-role', savedRole);
