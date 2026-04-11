@@ -513,6 +513,15 @@ body{
   </div>
 </div>
 <div id="app-wrap" style="display:none">
+<div id="data-loading" style="position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,#1E2535,#16182A);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px">
+  <div style="font-size:40px">💍</div>
+  <div style="font-size:18px;font-weight:800;color:#E8B840;font-family:Tajawal,sans-serif">جوهرة كيان الرائده</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.6);font-family:Tajawal,sans-serif">⟳ جاري تحميل بياناتك...</div>
+  <div style="width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
+    <div style="height:100%;background:linear-gradient(90deg,#C8961E,#E8B840);border-radius:4px;animation:ldbar 1.5s ease-in-out infinite"></div>
+  </div>
+  <style>@keyframes ldbar{0%{width:0%}50%{width:80%}100%{width:100%}}</style>
+</div>
 <div class="hdr">
   <div class="hdr-top">
     <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:#EDF0FF">جوهرة كيان</div><div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:500">الرائده للذهب والمجوهرات</div></div></div>
@@ -8973,17 +8982,18 @@ addItem();
 
 <!-- ── Firebase ── -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot, enableNetwork, disableNetwork }
+                             from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
-  authDomain: "gold-shop-3e7f5.firebaseapp.com",
-  projectId: "gold-shop-3e7f5",
-  storageBucket: "gold-shop-3e7f5.firebasestorage.app",
+  apiKey:            "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
+  authDomain:        "gold-shop-3e7f5.firebaseapp.com",
+  projectId:         "gold-shop-3e7f5",
+  storageBucket:     "gold-shop-3e7f5.firebasestorage.app",
   messagingSenderId: "765590903624",
-  appId: "1:765590903624:web:0e6197924d1f520ab4317d",
-  measurementId: "G-X31TTF6DRE"
+  appId:             "1:765590903624:web:0e6197924d1f520ab4317d",
+  measurementId:     "G-X31TTF6DRE"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -8992,79 +9002,139 @@ const REF = doc(db, "gold", "data");
 
 // ── مؤشر المزامنة ──
 const syncEl = document.createElement('div');
-syncEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;font-size:11px;color:#fff;font-family:Tajawal,sans-serif;background:rgba(0,0,0,0.75);padding:3px 10px;border-radius:8px;display:none';
+syncEl.style.cssText = [
+  'position:fixed','top:8px','left:8px','z-index:9999',
+  'font-size:11px','color:#fff','font-family:Tajawal,sans-serif',
+  'background:rgba(0,0,0,0.80)','padding:4px 12px',
+  'border-radius:8px','display:none','max-width:260px',
+  'text-align:center','line-height:1.5'
+].join(';');
 document.body.appendChild(syncEl);
+
 function showSync(msg, dur){
   syncEl.textContent = msg;
   syncEl.style.display = 'block';
-  if(dur) setTimeout(()=>{ syncEl.style.display='none'; }, dur);
+  if(dur) setTimeout(()=>{ syncEl.style.display = 'none'; }, dur);
 }
 
 let _lastSaveTime = 0;
-let _firstLoad = true;
+let _firstLoad    = true;
+let _saveQueue    = Promise.resolve(); // طابور الحفظ — يمنع التعارض
 
-// ── الحفظ على Firebase ──
+// ── بناء payload للحفظ ──
+function buildPayload(){
+  return {
+    transactions:   (S.transactions  || []).slice(0, 3000),
+    clients:         S.clients        || [],
+    safes:           S.safes          || {},
+    customSafes:     S.customSafes    || [],
+    snapshots:       S.snapshots      || [],
+    users:           S.users          || [],
+    pendingItems:    S.pendingItems   || [],
+    activityLog:    (S.activityLog    || []).slice(0, 500),
+    safesBase:       S.safesBase      || {},
+    openingBalance:  S.openingBalance || { safes:{}, clients:{} },
+    updatedAt:       Date.now()
+  };
+}
+
+// ── دالة الحفظ مع retry ──
+async function saveWithRetry(attempt){
+  attempt = attempt || 1;
+  const payload = buildPayload();
+  _lastSaveTime = payload.updatedAt;
+  try {
+    await setDoc(REF, payload);
+    return true;
+  } catch(e){
+    console.warn('Save attempt', attempt, 'failed:', e.code, e.message);
+    if(attempt < 3){
+      // انتظر ثانيتين ثم حاول مرة أخرى
+      await new Promise(r => setTimeout(r, 2000));
+      return saveWithRetry(attempt + 1);
+    }
+    throw e; // فشلت كل المحاولات
+  }
+}
+
+// ── الحفظ على Firebase (المسجّلة على window) ──
 window.sv_save = function(){
-  _lastSaveTime = Date.now();
   showSync('⟳ جاري الحفظ...');
-  setDoc(REF, {
-    transactions:  S.transactions  || [],
-    clients:       S.clients       || [],
-    safes:         S.safes         || {},
-    customSafes:   S.customSafes   || [],
-    snapshots:     S.snapshots     || [],
-    users:         S.users         || [],
-    pendingItems:  S.pendingItems  || [],
-    activityLog:   (S.activityLog||[]).slice(0,500),
-    safesBase:     S.safesBase     || {},
-    openingBalance: S.openingBalance || {safes:{},clients:{}},
-    updatedAt:     _lastSaveTime
-  }).then(()=>{
-    showSync('☁️ محفوظ', 2000);
-  }).catch(e=>{
-    console.error('Firebase save error:', e);
-    showSync('⚠️ خطأ في الحفظ', 4000);
+
+  // نضع الحفظ في طابور لمنع التعارض
+  _saveQueue = _saveQueue.then(async ()=>{
+    try {
+      await saveWithRetry(1);
+      showSync('☁️ محفوظ', 2000);
+    } catch(e){
+      console.error('Firebase final error:', e.code, e.message);
+      const msg = e.code === 'permission-denied' ? 'خطأ في الصلاحيات'
+                : e.code === 'unavailable'        ? 'لا يوجد اتصال بالإنترنت'
+                : e.code === 'resource-exhausted'  ? 'تجاوزت الحصة اليومية'
+                : 'خطأ: ' + (e.code || e.message);
+      showSync('⚠️ فشل الحفظ — ' + msg, 8000);
+    }
   });
 };
 
 // ── استقبال البيانات من السحاب ──
 onSnapshot(REF, (snap) => {
+  // لا نحمّل أثناء فترة الـ 3 ثواني بعد آخر حفظ (منع overwrite)
   if(Date.now() - _lastSaveTime < 3000) return;
+
   if(snap.exists()){
     const d = snap.data();
-    S.transactions = d.transactions || [];
-    S.clients      = d.clients      || [];
-    S.safes        = d.safes        || {};
-    S.customSafes  = d.customSafes  || [];
-    S.snapshots    = d.snapshots    || [];
-    S.users        = (d.users && d.users.length)
+    S.transactions  = d.transactions  || [];
+    S.clients       = d.clients       || [];
+    S.safes         = d.safes         || {};
+    S.customSafes   = d.customSafes   || [];
+    S.snapshots     = d.snapshots     || [];
+    S.users         = (d.users && d.users.length)
       ? d.users
-      : [{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
-    S.pendingItems = d.pendingItems || [];
-    S.activityLog  = d.activityLog  || [];
-    if(d.safesBase) S.safesBase = d.safesBase;
-    if(d.openingBalance) S.openingBalance = d.openingBalance;
-    if(_firstLoad){ _firstLoad=false; showSync('☁️ متصل', 2000); }
+      : [{ username:'Marwan', password:'2139989681', role:'admin', label:'مروان' }];
+    S.pendingItems  = d.pendingItems  || [];
+    S.activityLog   = d.activityLog   || [];
+    if(d.safesBase)       S.safesBase       = d.safesBase;
+    if(d.openingBalance)  S.openingBalance  = d.openingBalance;
+
+    if(_firstLoad){
+      _firstLoad = false;
+      showSync('☁️ تم التحميل', 2000);
+      const ld = document.getElementById('data-loading');
+      if(ld) ld.style.display = 'none';
+    }
     renderAll();
   } else {
+    // Document غير موجود → أنشئه بأول حفظ
     window.sv_save();
   }
+
 }, (err) => {
-  console.error('Firebase error:', err);
-  if(!S.users||!S.users.length) S.users=[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
-  if(_firstLoad){ _firstLoad=false; showSync('📴 بدون اتصال', 3000); renderAll(); }
+  console.error('Firebase listener error:', err.code, err.message);
+  if(!S.users || !S.users.length)
+    S.users = [{ username:'Marwan', password:'2139989681', role:'admin', label:'مروان' }];
+  if(_firstLoad){
+    _firstLoad = false;
+    const ld = document.getElementById('data-loading');
+    if(ld) ld.style.display = 'none';
+    showSync('📴 بدون اتصال', 3000);
+    renderAll();
+  }
 });
 
-// ── timeout 6 ثواني: لو Firebase ما ردت شغّل offline ──
+// ── fallback: إذا Firebase ما ردّ خلال 8 ثواني شغّل offline ──
 setTimeout(()=>{
   if(!_firstLoad) return;
   _firstLoad = false;
-  if(!S.users||!S.users.length) S.users=[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}];
-  showSync('📴 بدون اتصال — تعمل محلياً', 3000);
+  if(!S.users || !S.users.length)
+    S.users = [{ username:'Marwan', password:'2139989681', role:'admin', label:'مروان' }];
+  const ld = document.getElementById('data-loading');
+  if(ld) ld.style.display = 'none';
+  showSync('📴 بدون اتصال — تعمل محلياً', 4000);
   renderAll();
-}, 6000);
+}, 8000);
 
-// تهيئة الثيم عند التحميل
+// ── تهيئة الثيم واستعادة الجلسة ──
 window.addEventListener('load', ()=>{
   initTheme();
   const savedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
@@ -9076,8 +9146,8 @@ window.addEventListener('load', ()=>{
     sessionStorage.setItem('auth-role', savedRole);
     const ls = document.getElementById('login-screen');
     if(ls) ls.style.display = 'none';
-    const _aw3=document.getElementById('app-wrap');
-    if(_aw3) _aw3.style.display='block';
+    const aw = document.getElementById('app-wrap');
+    if(aw) aw.style.display = 'block';
   }
 });
 </script>
