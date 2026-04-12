@@ -9022,8 +9022,30 @@ let _firstLoad    = true;
 let _saveQueue    = Promise.resolve(); // طابور الحفظ — يمنع التعارض
 
 // ── بناء payload للحفظ ──
+// ── تنظيف البيانات قبل الإرسال لـ Firebase ──
+// Firebase يرفض: undefined، NaN، Infinity، Date objects، circular refs
+function sanitize(obj){
+  if(obj === null || obj === undefined) return null;
+  if(typeof obj === 'number'){
+    if(!isFinite(obj) || isNaN(obj)) return 0;
+    return obj;
+  }
+  if(typeof obj === 'string' || typeof obj === 'boolean') return obj;
+  if(obj instanceof Date) return obj.toISOString();
+  if(Array.isArray(obj)) return obj.map(sanitize).filter(x => x !== undefined);
+  if(typeof obj === 'object'){
+    const clean = {};
+    for(const k of Object.keys(obj)){
+      const v = sanitize(obj[k]);
+      if(v !== undefined) clean[k] = v;
+    }
+    return clean;
+  }
+  return null;
+}
+
 function buildPayload(){
-  return {
+  const raw = {
     transactions:   (S.transactions  || []).slice(0, 3000),
     clients:         S.clients        || [],
     safes:           S.safes          || {},
@@ -9036,6 +9058,7 @@ function buildPayload(){
     openingBalance:  S.openingBalance || { safes:{}, clients:{} },
     updatedAt:       Date.now()
   };
+  return sanitize(raw);
 }
 
 // ── دالة الحفظ مع retry ──
