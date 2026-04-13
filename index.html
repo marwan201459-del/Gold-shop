@@ -3002,7 +3002,12 @@ const ACC_RULES = {
   // ق6: الضريبة إما صفر أو 15% من الأساس
   vatMustBeConsistent(tx){
     if(!(tx.vatAmt > 0)) return null;
-    const base = (tx.ajTotal||0) + (tx.retAjour||0) + (tx.cashRefund||0);
+    // للمرتجعات: الوعاء = retAjour فقط (لأن ajTotal = retAjour في المرتجع فلا نجمعهما)
+    // للفواتير العادية: الوعاء = ajTotal
+    const isReturn = ['sales-return','purchase-return','return','supplier-return'].includes(tx.type);
+    const base = isReturn
+      ? (tx.retAjour||0) + (tx.cashRefund||0)
+      : (tx.ajTotal||0) + (tx.cashRefund||0);
     // قبول نطاق ±1 ريال
     const expectedMin = Math.round(base * 0.149 * 100) / 100;
     const expectedMax = Math.round(base * 0.151 * 100) / 100;
@@ -5826,7 +5831,7 @@ function delUser(idx){
 
 function exportBackup(){
   const data = {
-    version: 2,
+    version: 3,
     exportDate: new Date().toISOString(),
     appName: 'جوهرة كيان الرائده',
     transactions: S.transactions,
@@ -5834,7 +5839,11 @@ function exportBackup(){
     safes: S.safes,
     customSafes: S.customSafes||[],
     snapshots: S.snapshots||[],
-    users: S.users||[]
+    users: S.users||[],
+    openingBalance: S.openingBalance||{safes:{},clients:{}},
+    safesBase: S.safesBase||{},
+    pendingItems: S.pendingItems||[],
+    activityLog: S.activityLog||[]
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -5860,6 +5869,10 @@ function importBackup(input){
       S.customSafes   = data.customSafes  || [];
       S.snapshots     = data.snapshots    || [];
       if(data.users && data.users.length) S.users = data.users;
+      if(data.openingBalance) S.openingBalance = data.openingBalance;
+      if(data.safesBase)      S.safesBase      = data.safesBase;
+      if(data.pendingItems)   S.pendingItems   = data.pendingItems;
+      if(data.activityLog)    S.activityLog    = data.activityLog;
       sv(); renderAll();
       toast('✅ تم استيراد البيانات — '+S.transactions.length+' معاملة');
     } catch(err){
