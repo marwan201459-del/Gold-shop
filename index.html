@@ -2774,18 +2774,21 @@ function renderInvSummary(){
   const ajSum   =draftItems.reduce((a,i)=>a+i.weight*(i.ajour||0),0);
   const total   =goldAmt+ajSum;
 
-  // حساب الأوزان حسب العيار
+  // حساب الأوزان حسب العيار (خام)
   const w21 = draftItems.filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
   const w18 = draftItems.filter(i=>i.karat==='18'||i.karat==='18k').reduce((a,i)=>a+(i.weight||0),0);
-  const w24 = draftItems.filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
-  const wTotal = draftItems.reduce((a,i)=>a+(i.weight||0),0);
+  const w24raw = draftItems.filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
+  // إجمالي معادل عيار 24 (للمقارنة الصحيحة مع كشف الحساب)
+  const total24disp = Math.round(draftItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
 
-  // بناء نص الذهب: وزن كلي + تفصيل عيار
+  // بناء نص الذهب: وزن خام لكل عيار + معادل ع24
   let goldParts = [];
-  if(w21>0) goldParts.push(`${fmt(w21)} ج عيار 21`);
-  if(w18>0) goldParts.push(`${fmt(w18)} ج عيار 18`);
-  if(w24>0) goldParts.push(`${fmt(w24)} ج عيار 24`);
-  const goldLabel = goldParts.length ? goldParts.join(' + ') : '0 جرام';
+  if(w21>0) goldParts.push(`${fmtG(w21)} ج عيار 21`);
+  if(w18>0) goldParts.push(`${fmtG(w18)} ج عيار 18`);
+  if(w24raw>0) goldParts.push(`${fmtG(w24raw)} ج عيار 24`);
+  const goldLabel = goldParts.length
+    ? goldParts.join(' + ') + ` <span style="color:var(--g1);font-size:11px">= ${fmtG(total24disp)} ج ع24</span>`
+    : '0 جرام';
 
   const el = document.getElementById('sum-gold');
   if(el) el.innerHTML = `<span style="font-size:12px">${goldLabel}</span>`;
@@ -3101,6 +3104,7 @@ function saveInvoice(){
   const vatAmt    = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
   const invTotal  =goldTotal+ajTotal+vatAmt+shipping-discount;
   const totalWeight=draftItems.reduce((a,i)=>a+i.weight,0);
+  const total24   =Math.round(draftItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
   // البيع والشراء آجل دائماً
   const isDebt = selType==='sell';
   const isBuyDebt = selType==='buy';
@@ -3119,7 +3123,7 @@ function saveInvoice(){
     id:Date.now(), date:txDate,
     type: isDebt?'sell-debt': isBuyDebt?'buy-debt': selType,
     items:[...draftItems],
-    goldTotal, ajTotal, discount, shipping, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight,
+    goldTotal, ajTotal, discount, shipping, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight, total24,
     cash, goldPay, prepaid, due: isDebt?due:'', buyDue: isBuyDebt?buyDue:'',
     isDebt, isBuyDebt,
     client, staff, notes
