@@ -4154,7 +4154,7 @@ function printStmt(){
 function fmt(n){return(Math.round((n||0)*100)/100).toLocaleString('ar-SA')}
 function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')}
 
-const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'🏷️ خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
+const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
   'salary-pay':'💵 راتب','salary-custody':'🤝 عهدة','salary-deduction':'✂️ خصم راتب','salary-allowance':'🎁 بدل/مكافأة',
   'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون'};
 const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy'};
@@ -4907,22 +4907,26 @@ function getClientBalance(cli){
   const _cli2 = (S.clients||[]).find(c=>c.name===cli);
   const _isSupp2 = _cli2?.type === 'مورد';
 
+  // تصفير ذهب مبكر — نحسبه هنا لاستخدامه أدناه
+  const _settleAdj2 = txs.filter(t=>t.type==='discount-adj'&&t.isSettle);
+  const _settleGoldAdj24 = _settleAdj2.reduce((a,t)=>a+(t.settleGold24||0),0);
+
   const goldOwedAs24 = _isSupp2
-    // مورد: ذهب دخل منه علينا (سالب = نحن مدينون له)
     ? Math.round((
         -(goldIn24 - purchRetGold24 - suppRetGold24)
         - goldTransferIn24 + goldTransferOut24
         + payGoldOut24 - payGoldIn24
+        + _settleGoldAdj24
       )*1000)/1000
-    // عميل/موزع: ذهب خرج منا إليه (موجب = عليه)
     : Math.round((
-        goldOut24        // بعنا (+)
-        - salesRetGold24 // مرتجع مبيعات (-)
-        - retGold24      // مردود جزئي قديم (-)
-        - scrapIn24      // كسر استلمناه يُسدِّد دينه (-)
+        goldOut24
+        - salesRetGold24
+        - retGold24
+        - scrapIn24
         - goldTransferIn24
         + goldTransferOut24
-        - payGoldIn24    // تسوية ذهب استلمناها (-)
+        - payGoldIn24
+        + _settleGoldAdj24
       )*1000)/1000;
 
   // ── رصيد النقد (الدين النقدي) ──
@@ -4961,19 +4965,18 @@ function getClientBalance(cli){
   const supplierSettled = txs.filter(t=>t.type==='supplier-payment')
                              .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0);
 
+  // تصفير حساب (discount-adj) — يُضاف كتسوية مباشرة
+  const settleAdj = txs.filter(t=>t.type==='discount-adj'&&t.isSettle);
+  const settleCashAdj = settleAdj.reduce((a,t)=>a+(t.amount||0),0);
+  const settleGoldAdj24 = settleAdj.reduce((a,t)=>a+(t.settleGold24||0),0);
+
   // cashOwed النهائي — مفصول حسب نوع العلاقة:
-  // موجب = الطرف الآخر مدين لنا | سالب = نحن مدينون له
-  // العميل/الموزع: البيع فقط (ما بعناه عليه)
-  // المورد: الشراء فقط (ما اشتريناه منه علينا)
-  // لا نخلط البيع بالشراء في نفس الحساب — كل علاقة مستقلة
   const _cli = (S.clients||[]).find(c=>c.name===cli);
   const _isSupplier = _cli?.type === 'مورد';
 
   const cashOwed = _isSupplier
-    // مورد: نحن مدينون له بالشراء (سالب = نحن مدينون)
-    ? Math.round((-(buyDebt - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut)*100)/100
-    // عميل/موزع: هو مدين لنا بالبيع (موجب = هو مدين)
-    : Math.round(((sellDebt - salesRetDebt - clientSettled - cashTransferIn + cashTransferOut))*100)/100;
+    ? Math.round((-(buyDebt - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut + settleCashAdj)*100)/100
+    : Math.round(((sellDebt - salesRetDebt - clientSettled - cashTransferIn + cashTransferOut + settleCashAdj))*100)/100;
 
   // تفصيل بالعيارات للعرض
   const goldOwed = {as24: goldOwedAs24, '21':0, '18':0, '24':0};
@@ -7860,6 +7863,61 @@ function renderHist(){
 }
 
 const CBDG={عميل:'bg-green',موظف:'bg-blue',مورد:'bg-gold',موزع:'bg-teal'};
+
+// ── تصفير حساب العميل (نقد / ذهب / كليهما) ──
+function settleClientAccount(clientName, settleType){
+  const bal = getClientBalance(clientName);
+  const cashOwed   = Math.round((bal.cashOwed||0)*100)/100;
+  const goldOwed24 = Math.round((bal.goldOwedAs24||0)*1000)/1000;
+
+  if(settleType==='cash' && Math.abs(cashOwed)<0.01){
+    toast('ℹ️ الرصيد النقدي صفر بالفعل'); return;
+  }
+  if(settleType==='gold' && Math.abs(goldOwed24)<0.001){
+    toast('ℹ️ رصيد الذهب صفر بالفعل'); return;
+  }
+  if(settleType==='both' && Math.abs(cashOwed)<0.01 && Math.abs(goldOwed24)<0.001){
+    toast('✅ الحساب صفر بالفعل'); return;
+  }
+
+  let msg = '';
+  if(settleType==='cash')  msg = ;
+  if(settleType==='gold')  msg = ;
+  if(settleType==='both')  msg = ;
+
+  appConfirm('⚖️ ' + msg + '
+
+سيتم تسجيل تسوية حسابية.', ()=>{
+    const tx = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      type: 'discount-adj',
+      client: clientName,
+      notes: settleType==='cash'  ? '⚖️ تصفير رصيد نقدي'
+           : settleType==='gold'  ? '⚖️ تصفير رصيد ذهبي'
+           : '⚖️ تصفير حساب كامل (نقد + ذهب)',
+      items: [],
+      // النقد: اعكس cashOwed لإلغائه
+      amount:    (settleType==='cash'||settleType==='both')  ? -cashOwed   : 0,
+      ajourPaid: (settleType==='cash'||settleType==='both')  ? -cashOwed   : 0,
+      discount:  (settleType==='cash'||settleType==='both')  ?  Math.abs(cashOwed)  : 0,
+      // الذهب: اعكس goldOwed24 لإلغائه
+      goldWeight: (settleType==='gold'||settleType==='both') ? Math.abs(goldOwed24) : 0,
+      goldKarat:  '24',
+      goldDir:    (settleType==='gold'||settleType==='both') ? (goldOwed24>0?'in':'out') : '',
+      settleGold24: (settleType==='gold'||settleType==='both') ? -goldOwed24 : 0,
+      total: 0, cash: 0, goldPay: 0,
+      isSettle: true, settleType
+    };
+    S.transactions.unshift(tx);
+    sv(); renderAll();
+    const doneMsg = settleType==='cash'  ? 
+                  : settleType==='gold'  ? 
+                  : ;
+    toast(doneMsg);
+    renderStmt();
+  });
+}
 function renderClients(){
   const f=document.getElementById('cli-filter')?.value||'';
   const q=(document.getElementById('cli-search')?.value||'').toLowerCase();
@@ -8555,6 +8613,35 @@ function renderStmt(){
           </div>`
         :balRows||'<div style="padding:10px;color:var(--tx2)">لا توجد معاملات</div>'
       }
+      <!-- أزرار التصفير -->
+      ${!isSettled ? `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
+        <div style="width:100%;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:2px">⚖️ تصفير الحساب:</div>
+        ${Math.abs(bal.cashOwed)>0.01?`
+        <button onclick="settleClientAccount('${v}','cash')"
+          style="flex:1;min-width:120px;padding:10px 8px;border:none;border-radius:var(--rc);
+            background:var(--in);color:#fff;font-family:inherit;font-size:13px;
+            font-weight:700;cursor:pointer">
+          💵 تصفير النقد<br>
+          <span style="font-size:11px;font-weight:400">${fmt(Math.abs(bal.cashOwed))} ر</span>
+        </button>`:''}
+        ${Math.abs(bal.goldOwedAs24||0)>0.001?`
+        <button onclick="settleClientAccount('${v}','gold')"
+          style="flex:1;min-width:120px;padding:10px 8px;border:none;border-radius:var(--rc);
+            background:var(--g1);color:#060300;font-family:inherit;font-size:13px;
+            font-weight:700;cursor:pointer">
+          🥇 تصفير الذهب<br>
+          <span style="font-size:11px;font-weight:400">${fmtG(Math.abs(bal.goldOwedAs24))} ج ع24</span>
+        </button>`:''}
+        ${Math.abs(bal.cashOwed)>0.01 && Math.abs(bal.goldOwedAs24||0)>0.001?`
+        <button onclick="settleClientAccount('${v}','both')"
+          style="flex:1;min-width:120px;padding:10px 8px;border:none;border-radius:var(--rc);
+            background:var(--pu);color:#fff;font-family:inherit;font-size:13px;
+            font-weight:700;cursor:pointer">
+          ⚖️ تصفير الكل<br>
+          <span style="font-size:11px;font-weight:400">نقد + ذهب</span>
+        </button>`:''}
+      </div>`:''}
     </div>
   </div>
 
@@ -8602,7 +8689,27 @@ function saveCli(){
   const eid=document.getElementById('edit-cli-id').value;
   if(eid){
     const c=S.clients.find(x=>x.id===parseInt(eid));
-    if(c){c.name=name;c.type=type;c.phone=phone;c.notes=notes;if(type==='موظف')c.baseSalary=baseSalary;}
+    if(c){
+      const oldName=c.name;
+      c.name=name;c.type=type;c.phone=phone;c.notes=notes;if(type==='موظف')c.baseSalary=baseSalary;
+      // ✅ تحديث الاسم في كل الفواتير والمعاملات المرتبطة بهذا العميل
+      if(oldName !== name){
+        S.transactions.forEach(t=>{ if(t.client===oldName) t.client=name; });
+        // تحديث openingBalance إذا كان الاسم القديم موجود
+        if(S.openingBalance && S.openingBalance.clients && S.openingBalance.clients[oldName]!==undefined){
+          S.openingBalance.clients[name]=S.openingBalance.clients[oldName];
+          delete S.openingBalance.clients[oldName];
+        }
+        if(S.safesBase && S.safesBase[oldName+'_cash']!==undefined){
+          S.safesBase[name+'_cash']=S.safesBase[oldName+'_cash'];
+          delete S.safesBase[oldName+'_cash'];
+        }
+        if(S.safesBase && S.safesBase[oldName+'_gold']!==undefined){
+          S.safesBase[name+'_gold']=S.safesBase[oldName+'_gold'];
+          delete S.safesBase[oldName+'_gold'];
+        }
+      }
+    }
   }else{
     S.clients.push({id:Date.now(),name,type,phone,notes,baseSalary:type==='موظف'?baseSalary:undefined});
   }
