@@ -1695,14 +1695,15 @@ body{
           <div class="sdrop" id="sal-emp-d"></div>
         </div>
       </div>
-      <!-- المبلغ والصندوق -->
-      <div class="g2" id="sal-safe-row">
-        <div class="fr"><label>💵 المبلغ (ريال)</label>
-          <input type="number" id="sal-amount" inputmode="decimal" placeholder="0">
-        </div>
-        <div class="fr"><label id="sal-safe-lbl">🏦 من صندوق</label>
-          <select id="sal-safe"></select>
-        </div>
+      <!-- المبلغ (يظهر دائماً) -->
+      <div class="fr" id="sal-safe-row">
+        <label>💵 المبلغ (ريال)</label>
+        <input type="number" id="sal-amount" inputmode="decimal" placeholder="0">
+      </div>
+      <!-- الصندوق (يظهر فقط للصرف والإيداع) -->
+      <div class="fr" id="sal-safe-select-row">
+        <label id="sal-safe-lbl">🏦 من صندوق</label>
+        <select id="sal-safe"></select>
       </div>
       <!-- سبب الخصم / نوع البدل (يظهر حسب النوع) -->
       <div id="sal-reason-row" style="display:none" class="fr">
@@ -6054,7 +6055,9 @@ function setSalType(type){
   const safeLbl=document.getElementById('sal-safe-lbl');
   if(safeLbl) safeLbl.textContent=safeLbls[type]||'🏦 الصندوق';
   const safeRow=document.getElementById('sal-safe-row');
-  if(safeRow) safeRow.style.display=(type==='allowance'||type==='deduction')?'none':'grid';
+  if(safeRow) safeRow.style.display='grid'; // المبلغ يظهر دائماً
+  const safeSelectRow=document.getElementById('sal-safe-select-row');
+  if(safeSelectRow) safeSelectRow.style.display=(type==='allowance'||type==='deduction')?'none':'flex';
   const reasonRow=document.getElementById('sal-reason-row');
   const reasonLbl=document.getElementById('sal-reason-lbl');
   if(reasonRow){
@@ -6228,78 +6231,120 @@ function renderEmpStmt(){
   const totDep  =txs.filter(t=>t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
   const totAllow=txs.filter(t=>t.type==='salary-allowance').reduce((a,t)=>a+(t.amount||0),0);
   const totDed  =txs.filter(t=>t.type==='salary-deduction').reduce((a,t)=>a+(t.amount||0),0);
-  // الرصيد الكلي: موجب = على الشركة، سالب = على الموظف
-  const totBal  = totDep - totPay; // الإيداعات تُنقص ما على الشركة, الصرف يزيده
+  // ✅ المعادلة الصحيحة: رصيد = إيداعات + بدلات - صرف - خصومات
+  // موجب = ما تبقى للموظف | سالب = الموظف مدين للشركة
+  const totBal = Math.round((totDep + totAllow - totPay - totDed)*100)/100;
 
   // ── ألوان ──
   const remClr=mRemain>0?'#065F46':mRemain<0?'#991B1B':'var(--tx2)';
   const remBg =mRemain>0?'#D1FAE5':mRemain<0?'#FEE2E2':'var(--c3)';
   const remLbl=mRemain>0?'متبقي له':mRemain<0?'سُحب زيادة':'مسوى ✓';
-  const totClr=totBal>0?'#991B1B':totBal<0?'#065F46':'var(--tx2)';
-  const totBg2=totBal>0?'#FEE2E2':totBal<0?'#D1FAE5':'var(--c3)';
-  const totLbl=totBal>0?'🔴 على الموظف':totBal<0?'🟢 على الشركة':'✅ مسوى تماماً';
+  // totBal/totClr/totLbl محسوبة داخل summaryCard أدناه
 
   const monthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
+  // ── بطاقة الملخص الواضحة ──
+  // الرصيد الصافي = إيداعات + بدلات - صرف - خصومات
+  const netBalance = Math.round((totDep + totAllow - totPay - totDed)*100)/100;
+  // السحوبات غير المسددة = أي صرف يزيد عن (إيداعات + بدلات - خصومات)
+  const maxCanPay = Math.round((totDep + totAllow - totDed)*100)/100;
+  const overdraft  = totPay > maxCanPay ? Math.round((totPay - maxCanPay)*100)/100 : 0;
+
+  const totBgClr  = netBalance>=0?'#D1FAE5':'#FEE2E2';
+  const totBdClr  = netBalance>=0?'#065F46':'#991B1B';
+  const totLblNew = netBalance>0?'له (متبقي)':netBalance<0?'عليه (مديون)':'مسوى';
+
   const summaryCard=`
     <div style="background:var(--c2);border-radius:var(--rb);padding:14px;margin-bottom:12px;border:1px solid var(--b2)">
-      <!-- رأس -->
+      <!-- رأس الموظف -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:800;color:var(--tx1)">📊 ${emp}</div>
-        ${baseSal>0?`<div style="font-size:11px;color:var(--tx2);background:var(--g4);padding:3px 10px;border-radius:12px">الراتب: ${fmt(baseSal)} ر</div>`:''}
+        <div style="font-size:14px;font-weight:900;color:var(--tx1)">\u{1F464} ${emp}</div>
+        ${baseSal>0?`<div style="font-size:12px;color:var(--tx2);background:var(--g4);padding:4px 12px;border-radius:12px">\u{1F4B0} الراتب الأساسي: ${fmt(baseSal)} ر</div>`:''}
       </div>
 
-      <!-- الرصيد الكلي - أبرز شيء -->
-      <div style="background:${totBg2};border-radius:var(--rc);padding:12px 14px;margin-bottom:12px;border:1px solid ${totClr}44;display:flex;justify-content:space-between;align-items:center">
+      <!-- الرصيد الصافي النهائي - أبرز عنصر -->
+      <div style="background:${totBgClr};border-radius:var(--rc);padding:14px;margin-bottom:12px;border:2px solid ${totBdClr}44;text-align:center">
+        <div style="font-size:11px;font-weight:700;color:${totBdClr};margin-bottom:4px">\u2696\uFE0F صافي الرصيد التراكمي</div>
+        <div style="font-size:26px;font-weight:900;color:${totBdClr}">${fmt(Math.abs(netBalance))} <span style="font-size:13px">ر</span></div>
+        <div style="font-size:12px;font-weight:800;color:${totBdClr}">${totLblNew}</div>
+      </div>
+
+      <!-- تفصيل الأرقام: 4 خانات -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="background:#D1FAE5;border-radius:var(--rc);padding:10px;border:1px solid #6EE7B7">
+          <div style="font-size:10px;color:#065F46;font-weight:700;margin-bottom:3px">\u{1F91D} إجمالي الإيداعات</div>
+          <div style="font-size:16px;font-weight:900;color:#065F46">${fmt(totDep)} <span style="font-size:10px">ر</span></div>
+        </div>
+        <div style="background:#FEF3C7;border-radius:var(--rc);padding:10px;border:1px solid #FCD34D">
+          <div style="font-size:10px;color:#D97706;font-weight:700;margin-bottom:3px">\u{1F381} إجمالي البدلات</div>
+          <div style="font-size:16px;font-weight:900;color:#D97706">${fmt(totAllow)} <span style="font-size:10px">ر</span></div>
+        </div>
+        <div style="background:#FEE2E2;border-radius:var(--rc);padding:10px;border:1px solid #FCA5A5">
+          <div style="font-size:10px;color:#991B1B;font-weight:700;margin-bottom:3px">\u{1F4B8} إجمالي الصرف (سحوبات)</div>
+          <div style="font-size:16px;font-weight:900;color:#991B1B">${fmt(totPay)} <span style="font-size:10px">ر</span></div>
+        </div>
+        <div style="background:#FEF9C3;border-radius:var(--rc);padding:10px;border:1px solid #FDE68A">
+          <div style="font-size:10px;color:#92400E;font-weight:700;margin-bottom:3px">\u2702\uFE0F إجمالي الخصومات</div>
+          <div style="font-size:16px;font-weight:900;color:#92400E">${fmt(totDed)} <span style="font-size:10px">ر</span></div>
+        </div>
+      </div>
+
+      <!-- معادلة الحساب الواضحة -->
+      <div style="background:var(--c1);border-radius:var(--rc);padding:10px;margin-bottom:10px;border:1px solid var(--b1);font-size:11px;color:var(--tx2);text-align:center">
+        <span style="color:#065F46;font-weight:700">${fmt(totDep)}</span> إيداعات
+        + <span style="color:#D97706;font-weight:700">${fmt(totAllow)}</span> بدلات
+        − <span style="color:#991B1B;font-weight:700">${fmt(totPay)}</span> صرف
+        − <span style="color:#92400E;font-weight:700">${fmt(totDed)}</span> خصومات
+        = <span style="color:${totBdClr};font-weight:900">${fmt(Math.abs(netBalance))} ر</span>
+      </div>
+
+      <!-- تحذير السحوبات الزائدة -->
+      ${overdraft>0?`
+      <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--rc);padding:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:11px;font-weight:800;color:${totClr}">💳 الرصيد الكلي التراكمي</div>
-          <div style="font-size:10px;color:var(--tx2);margin-top:3px">
-            إيداعات: ${fmt(totDep)} ر &nbsp;|&nbsp; صرف: ${fmt(totPay)} ر
-            ${totAllow>0?` | بدلات: ${fmt(totAllow)} ر`:''}
-            ${totDed>0?` | خصومات: ${fmt(totDed)} ر`:''}
-          </div>
+          <div style="font-size:11px;font-weight:800;color:#D97706">\u26A0\uFE0F سحوبات زائدة (عليه)</div>
+          <div style="font-size:10px;color:var(--tx2)">سُحب أكثر مما يستحق</div>
         </div>
         <div style="text-align:left">
-          <div style="font-size:20px;font-weight:900;color:${totClr}">${fmt(Math.abs(totBal))}</div>
-          <div style="font-size:10px;font-weight:700;color:${totClr}">${totLbl}</div>
+          <div style="font-size:18px;font-weight:900;color:#D97706">${fmt(overdraft)} ر</div>
+          <button onclick="openSalModal('deduction','${emp}')"
+            style="font-size:10px;padding:3px 8px;border:none;border-radius:4px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit;margin-top:3px">
+            خصم من الراتب
+          </button>
         </div>
-      </div>
+      </div>`:''}
 
       <!-- ملخص الشهر الحالي -->
-      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px">📅 شهر ${monthNames[thisM]} ${thisY}</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">\u{1F4C5} شهر ${monthNames[thisM]} ${thisY}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;text-align:center">
         <div style="background:var(--c1);border-radius:var(--rc);padding:8px 4px;border:1px solid var(--g5)">
-          <div style="font-size:9px;color:var(--tx2);font-weight:700">💰 صافي يستحق</div>
-          <div style="font-size:14px;font-weight:900;color:var(--g1)">${fmt(netSal)}</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700">يستحق هذا الشهر</div>
+          <div style="font-size:13px;font-weight:900;color:var(--g1)">${fmt(netSal)}</div>
         </div>
         <div style="background:var(--c1);border-radius:var(--rc);padding:8px 4px;border:1px solid var(--no-bd)">
-          <div style="font-size:9px;color:var(--tx2);font-weight:700">💸 ما صُرف</div>
-          <div style="font-size:14px;font-weight:900;color:var(--no)">${fmt(mPaid)}</div>
+          <div style="font-size:9px;color:var(--tx2);font-weight:700">ما صُرف</div>
+          <div style="font-size:13px;font-weight:900;color:var(--no)">${fmt(mPaid)}</div>
         </div>
-        <div style="background:${mAllow>0?'#FEF3C7':'var(--c1)'};border-radius:var(--rc);padding:8px 4px;border:1px solid ${mAllow>0?'#D9770660':'var(--b1)'}">
-          <div style="font-size:9px;color:var(--tx2);font-weight:700">🎁 بدلات</div>
-          <div style="font-size:14px;font-weight:900;color:#D97706">${fmt(mAllow)}</div>
-        </div>
-        <div style="background:${remBg};border-radius:var(--rc);padding:8px 4px;border:1px solid ${remClr}44">
-          <div style="font-size:9px;color:${remClr};font-weight:700">${remLbl}</div>
-          <div style="font-size:14px;font-weight:900;color:${remClr}">${fmt(Math.abs(mRemain))}</div>
+        <div style="background:${mRemain>0?'#D1FAE5':mRemain<0?'#FEE2E2':'var(--c1)'};border-radius:var(--rc);padding:8px 4px;border:1px solid ${mRemain>0?'#6EE7B7':mRemain<0?'#FCA5A5':'var(--b1)'}">
+          <div style="font-size:9px;color:${mRemain>0?'#065F46':mRemain<0?'#991B1B':'var(--tx2)'};font-weight:700">${mRemain>0?'متبقي له':mRemain<0?'سُحب زيادة':'مسوى'}</div>
+          <div style="font-size:13px;font-weight:900;color:${mRemain>0?'#065F46':mRemain<0?'#991B1B':'var(--tx2)'}">${fmt(Math.abs(mRemain))}</div>
         </div>
       </div>
 
       ${baseSal===0?`<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:var(--rc);padding:8px;font-size:11px;color:var(--io);text-align:center;margin-bottom:8px">
-        ⚠️ لم يُحدَّد راتب أساسي — <span style="text-decoration:underline;cursor:pointer" onclick="editEmpSalary('${emp}')">اضغط لتحديده</span>
+        \u26A0\uFE0F لم يُحدَّد راتب أساسي — <span style="text-decoration:underline;cursor:pointer" onclick="editEmpSalary('${emp}')">اضغط لتحديده</span>
       </div>`:''}
 
-      <!-- أزرار العمليات -->
+      <!-- أزرار العمليات الأربع -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px">
-        <button onclick="openSalModal('salary','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">💸 صرف</button>
         <button onclick="openSalModal('custody','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#D1FAE5;color:#065F46;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">🤝 إيداع</button>
+          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#D1FAE5;color:#065F46;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u{1F91D} إيداع</button>
+        <button onclick="openSalModal('salary','${emp}')"
+          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u{1F4B8} سحب</button>
         <button onclick="openSalModal('allowance','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#FEF3C7;color:#D97706;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">🎁 بدل</button>
+          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#FEF3C7;color:#D97706;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u{1F381} بدل</button>
         <button onclick="openSalModal('deduction','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#FEF9C3;color:#92400E;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">✂️ خصم</button>
+          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#FEF9C3;color:#92400E;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u2702\uFE0F خصم</button>
       </div>
     </div>`;
 
@@ -6314,10 +6359,10 @@ function renderEmpStmt(){
     let delta=0;
     if(t.type==='salary-pay')       delta=-(t.amount||0);
     if(t.type==='salary-custody')   delta= (t.amount||0);
-    if(t.type==='salary-allowance') delta= 0; // بدل لا يؤثر على الرصيد النقدي
-    if(t.type==='salary-deduction') delta= 0; // خصم تسوية
+    if(t.type==='salary-allowance') delta= (t.amount||0);  // ✅ بدل يزيد الرصيد
+    if(t.type==='salary-deduction') delta=-(t.amount||0);  // ✅ خصم ينقص الرصيد
     runBal=Math.round((runBal+delta)*100)/100;
-    const isIn=t.type==='salary-custody'||t.type==='salary-allowance';
+    const isIn=delta>0;
     const balClr=runBal>=0?'var(--ok)':'var(--no)';
     const balLbl=runBal>=0?'له':'عليه';
     const txId=t.id;
