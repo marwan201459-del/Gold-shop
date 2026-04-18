@@ -1251,25 +1251,82 @@ body{
 <div id="pg-salary" class="pg">
 
   <!-- أزرار العمليات السريعة -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-    <button onclick="openSalModal('custody')"
-      style="padding:12px 8px;border-radius:var(--rb);border:2px solid #065F46;
-        background:#D1FAE5;color:#065F46;font-family:inherit;font-size:11px;
-        font-weight:800;cursor:pointer;text-align:center">
-      🤝 إيداع عهدة<br><span style="font-size:10px;font-weight:400;opacity:.8">موظف → مكتب</span>
-    </button>
-    <button onclick="openSalModal('salary')"
-      style="padding:12px 8px;border-radius:var(--rb);border:2px solid #1D4ED8;
-        background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:11px;
-        font-weight:800;cursor:pointer;text-align:center">
-      💸 صرف نقد<br><span style="font-size:10px;font-weight:400;opacity:.8">مكتب → موظف</span>
-    </button>
-    <button onclick="openSalModal('allowance')"
-      style="padding:12px 8px;border-radius:var(--rb);border:2px solid #D97706;
-        background:#FEF3C7;color:#D97706;font-family:inherit;font-size:11px;
-        font-weight:800;cursor:pointer;text-align:center">
-      🎁 بدل / مكافأة<br><span style="font-size:10px;font-weight:400;opacity:.8">يُضاف للموظف</span>
-    </button>
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;padding:0 2px">
+      ⚡ عمليات سريعة — اختر النوع الصحيح:
+    </div>
+
+    <!-- صف 1: الأنواع الرئيسية الثلاثة -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+
+      <!-- 1. تحصيل من موظف -->
+      <button onclick="openSalModal('collect')"
+        style="padding:12px 6px;border-radius:var(--rb);border:2px solid #1D4ED8;
+          background:#DBEAFE;color:#1D4ED8;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:20px;margin-bottom:3px">📥</div>
+        <div style="font-size:11px;font-weight:800">تحصيل</div>
+        <div style="font-size:9px;font-weight:400;margin-top:2px;opacity:.85">موظف يرجّع للمكتب</div>
+        <div style="margin-top:5px;font-size:9px;font-weight:700;
+          background:#1D4ED820;border-radius:4px;padding:2px 4px">
+          صندوق ▲ &nbsp; حساب ▼
+        </div>
+      </button>
+
+      <!-- 2. عهدة للموظف -->
+      <button onclick="openSalModal('advance')"
+        style="padding:12px 6px;border-radius:var(--rb);border:2px solid #7C3AED;
+          background:#EDE9FE;color:#7C3AED;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:20px;margin-bottom:3px">📤</div>
+        <div style="font-size:11px;font-weight:800">عهدة للموظف</div>
+        <div style="font-size:9px;font-weight:400;margin-top:2px;opacity:.85">مكتب يعطيه كاش</div>
+        <div style="margin-top:5px;font-size:9px;font-weight:700;
+          background:#7C3AED20;border-radius:4px;padding:2px 4px">
+          صندوق ▼ &nbsp; عليه ▲
+        </div>
+      </button>
+
+      <!-- 3. دفع شخصي -->
+      <button onclick="openSalModal('personal')"
+        style="padding:12px 6px;border-radius:var(--rb);border:2px solid #065F46;
+          background:#D1FAE5;color:#065F46;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:20px;margin-bottom:3px">💰</div>
+        <div style="font-size:11px;font-weight:800">دفع من جيبه</div>
+        <div style="font-size:9px;font-weight:400;margin-top:2px;opacity:.85">يدفع لصالح العمل</div>
+        <div style="margin-top:5px;font-size:9px;font-weight:700;
+          background:#065F4620;border-radius:4px;padding:2px 4px">
+          صندوق ▲ &nbsp; له ▲
+        </div>
+      </button>
+    </div>
+
+    <!-- صف 2: صرف + بدل + خصم -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button onclick="openSalModal('payout')"
+        style="padding:9px 6px;border-radius:var(--rb);border:2px solid #991B1B;
+          background:#FEE2E2;color:#991B1B;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:16px;margin-bottom:2px">💸</div>
+        <div style="font-size:11px;font-weight:800">صرف للموظف</div>
+        <div style="font-size:9px;opacity:.8">راتب / مستحق</div>
+        <div style="margin-top:4px;font-size:9px;font-weight:700;
+          background:#991B1B20;border-radius:4px;padding:2px 4px">
+          صندوق ▼ &nbsp; حساب ▼
+        </div>
+      </button>
+      <button onclick="openSalModal('allowance')"
+        style="padding:9px 6px;border-radius:var(--rb);border:2px solid #D97706;
+          background:#FEF3C7;color:#D97706;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:16px;margin-bottom:2px">🎁</div>
+        <div style="font-size:11px;font-weight:800">بدل / مكافأة</div>
+        <div style="font-size:9px;opacity:.8">حساب ▲ فقط</div>
+      </button>
+      <button onclick="openSalModal('deduction')"
+        style="padding:9px 6px;border-radius:var(--rb);border:2px solid #92400E;
+          background:#FEF9C3;color:#92400E;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:16px;margin-bottom:2px">✂️</div>
+        <div style="font-size:11px;font-weight:800">خصم</div>
+        <div style="font-size:9px;opacity:.8">حساب ▼ فقط</div>
+      </button>
+    </div>
   </div>
 
   <!-- اختيار الموظف -->
@@ -1661,30 +1718,83 @@ body{
   <div class="mp">
     <div class="mh"><h3 id="salary-modal-title">💰 تسجيل عملية</h3><button class="xbtn" onclick="closeM('m-salary')">✕</button></div>
     <div class="mb">
-      <!-- نوع العملية -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
-        <button type="button" id="sal-type-salary" onclick="setSalType('salary')"
-          style="padding:8px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:14px">💵</div>
-          <div style="font-size:10px;font-weight:700;color:var(--ok)">صرف</div>
-        </button>
-        <button type="button" id="sal-type-custody" onclick="setSalType('custody')"
-          style="padding:8px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:14px">🤝</div>
-          <div style="font-size:10px;font-weight:700;color:var(--in)">إيداع</div>
-        </button>
-        <button type="button" id="sal-type-allowance" onclick="setSalType('allowance')"
-          style="padding:8px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:14px">🎁</div>
-          <div style="font-size:10px;font-weight:700;color:#D97706">بدل</div>
-        </button>
-        <button type="button" id="sal-type-deduction" onclick="setSalType('deduction')"
-          style="padding:8px 4px;border-radius:8px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
-          <div style="font-size:14px">✂️</div>
-          <div style="font-size:10px;font-weight:700;color:var(--io)">خصم</div>
-        </button>
+
+      <!-- ── أنواع العمليات ── -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:6px">اختر نوع العملية:</div>
+
+        <!-- صف 1: تحصيل وعهدة (تؤثر على الصندوق) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <button type="button" id="sal-type-collect" onclick="setSalType('collect')"
+            style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
+            <div style="font-size:18px">📥</div>
+            <div style="font-size:11px;font-weight:800;color:#1D4ED8">تحصيل من موظف</div>
+            <div style="font-size:9px;color:var(--tx2);margin-top:2px">يرجّع فلوس المكتب</div>
+            <div style="font-size:9px;font-weight:700;margin-top:3px">
+              <span style="color:#065F46">صندوق ▲</span>
+              &nbsp;
+              <span style="color:#991B1B">حساب ▼</span>
+            </div>
+          </button>
+          <button type="button" id="sal-type-advance" onclick="setSalType('advance')"
+            style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
+            <div style="font-size:18px">📤</div>
+            <div style="font-size:11px;font-weight:800;color:#7C3AED">عهدة للموظف</div>
+            <div style="font-size:9px;color:var(--tx2);margin-top:2px">يأخذ كاش يشتغل فيه</div>
+            <div style="font-size:9px;font-weight:700;margin-top:3px">
+              <span style="color:#991B1B">صندوق ▼</span>
+              &nbsp;
+              <span style="color:#D97706">حساب ▲ (عليه)</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- صف 2: دفع شخصي وصرف -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <button type="button" id="sal-type-personal" onclick="setSalType('personal')"
+            style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
+            <div style="font-size:18px">💰</div>
+            <div style="font-size:11px;font-weight:800;color:#065F46">دفع من جيبه</div>
+            <div style="font-size:9px;color:var(--tx2);margin-top:2px">يدفع لصالح العمل</div>
+            <div style="font-size:9px;font-weight:700;margin-top:3px">
+              <span style="color:#065F46">صندوق ▲</span>
+              &nbsp;
+              <span style="color:#065F46">حساب ▲ (له)</span>
+            </div>
+          </button>
+          <button type="button" id="sal-type-payout" onclick="setSalType('payout')"
+            style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
+            <div style="font-size:18px">💸</div>
+            <div style="font-size:11px;font-weight:800;color:#991B1B">صرف للموظف</div>
+            <div style="font-size:9px;color:var(--tx2);margin-top:2px">راتب أو سداد مستحق</div>
+            <div style="font-size:9px;font-weight:700;margin-top:3px">
+              <span style="color:#991B1B">صندوق ▼</span>
+              &nbsp;
+              <span style="color:#991B1B">حساب ▼</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- صف 3: بدل وخصم (محاسبية فقط) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button type="button" id="sal-type-allowance" onclick="setSalType('allowance')"
+            style="padding:8px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
+            <div style="font-size:16px">🎁</div>
+            <div style="font-size:11px;font-weight:800;color:#D97706">بدل/مكافأة</div>
+            <div style="font-size:9px;color:var(--tx2);margin-top:2px">حساب ▲ فقط</div>
+          </button>
+          <button type="button" id="sal-type-deduction" onclick="setSalType('deduction')"
+            style="padding:8px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center">
+            <div style="font-size:16px">✂️</div>
+            <div style="font-size:11px;font-weight:800;color:#92400E">خصم</div>
+            <div style="font-size:9px;color:var(--tx2);margin-top:2px">حساب ▼ فقط</div>
+          </button>
+        </div>
       </div>
-      <div id="sal-type-hint" style="display:none;border-radius:8px;padding:8px;margin-bottom:10px;font-size:11px;font-weight:700"></div>
+
+      <!-- hint -->
+      <div id="sal-type-hint" style="display:none;border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;font-weight:700"></div>
+
       <!-- الموظف -->
       <div class="fr"><label>👤 الموظف</label>
         <div class="sw"><span class="si">🔍</span>
@@ -1695,21 +1805,25 @@ body{
           <div class="sdrop" id="sal-emp-d"></div>
         </div>
       </div>
-      <!-- المبلغ (يظهر دائماً) -->
+
+      <!-- المبلغ -->
       <div class="fr" id="sal-safe-row">
         <label>💵 المبلغ (ريال)</label>
         <input type="number" id="sal-amount" inputmode="decimal" placeholder="0">
       </div>
-      <!-- الصندوق (يظهر فقط للصرف والإيداع) -->
+
+      <!-- الصندوق -->
       <div class="fr" id="sal-safe-select-row">
-        <label id="sal-safe-lbl">🏦 من صندوق</label>
+        <label id="sal-safe-lbl">🏦 الصندوق</label>
         <select id="sal-safe"></select>
       </div>
-      <!-- سبب الخصم / نوع البدل (يظهر حسب النوع) -->
+
+      <!-- السبب -->
       <div id="sal-reason-row" style="display:none" class="fr">
-        <label id="sal-reason-lbl">📝 السبب / النوع</label>
+        <label id="sal-reason-lbl">📝 السبب</label>
         <input type="text" id="sal-reason" placeholder="مثل: بدل أكل، تأخر، غياب...">
       </div>
+
       <!-- التاريخ والملاحظة -->
       <div class="g2">
         <div class="fr"><label>📅 التاريخ</label>
@@ -1723,7 +1837,6 @@ body{
     </div>
   </div>
 </div>
-
 
 <!-- Modal الراتب الشهري -->
 <div id="m-monthly-payroll" class="mo" onclick="OMO(event,'m-monthly-payroll')">
@@ -2323,19 +2436,38 @@ function calcSafes(){
       // لا حركة كاش — تأثيره على الدين فقط
     }
 
-    // ── رواتب وعهد ──
+    // ── رواتب وعهد (النظام الجديد) ──
+    // collect  (تحصيل):  صندوق+   حساب-
+    // advance  (عهدة):   صندوق-   حساب+
+    // personal (شخصي):  صندوق+   حساب+
+    // payout   (صرف):    صندوق-   حساب-
+    // allowance/deduction: محاسبية فقط لا تأثير على صندوق
+    else if(t.type==='sal-collect'){
+      const sf=t.toSafe||'cash';
+      if(safes[sf]!=null) safes[sf] += (t.amount||0);  // صندوق يزيد
+    }
+    else if(t.type==='sal-advance'){
+      const sf=t.fromSafe||'cash';
+      if(safes[sf]!=null) safes[sf] -= (t.amount||0);  // صندوق ينقص
+    }
+    else if(t.type==='sal-personal'){
+      const sf=t.toSafe||'cash';
+      if(safes[sf]!=null) safes[sf] += (t.amount||0);  // صندوق يزيد
+    }
+    else if(t.type==='sal-payout'){
+      const sf=t.fromSafe||'cash';
+      if(safes[sf]!=null) safes[sf] -= (t.amount||0);  // صندوق ينقص
+    }
+    // sal-allowance / sal-deduction: محاسبية فقط — لا أثر على الصناديق
+    // ── أنواع قديمة (للتوافق مع البيانات السابقة) ──
     else if(t.type==='salary-pay'){
-      // راتب: نقد يخرج من الصندوق
       const sf=t.fromSafe||'cash';
       if(safes[sf]!=null) safes[sf] -= (t.amount||0);
     }
-    else if(t.type==='salary-custody'){
-      // عهدة: موظف أودع → نقد يدخل الصندوق
+    else if(t.type==='salary-custody'||t.type==='salary-personal'){
       const sf=t.toSafe||'cash';
       if(safes[sf]!=null) safes[sf] += (t.amount||0);
     }
-    // salary-deduction: تسوية محاسبية فقط — لا أثر على الصناديق
-    // salary-allowance: بدل/مكافأة — لا أثر مباشر على الصناديق (تُسوَّى عند صرف الراتب)
 
     // ── مردود كسر ──
     else if(t.type==='scrap-return'){
@@ -2941,7 +3073,7 @@ const ACC_RULES = {
       'sell','sell-debt','buy','buy-debt','scrap','transfer',
       'payment','supplier-payment','return','scrap-return',
       'cash-receipt','supplier-return','adjustment','discount-adj',
-      'salary-pay','salary-custody','salary-deduction','salary-allowance',
+      'salary-pay','salary-custody','salary-personal','salary-deduction','salary-allowance','sal-collect','sal-advance','sal-personal','sal-payout','sal-allowance','sal-deduction',
       'sales-return','purchase-return','expense','inventory-adj',
     ];
     if(!tx.type) return '❌ القاعدة 2: نوع العملية غير محدد';
@@ -2985,7 +3117,7 @@ const ACC_RULES = {
     // تحقق أن العميل موجود في قائمة الجهات
     if(tx.client?.trim()){
       const exists = (S.clients||[]).some(c=>c.name===tx.client.trim());
-      if(!exists && !['adjustment','inventory-adj','expense','salary-pay','salary-custody','salary-deduction','salary-allowance','scrap-return','transfer'].includes(tx.type))
+      if(!exists && !['adjustment','inventory-adj','expense','salary-pay','salary-custody','salary-personal','salary-deduction','salary-allowance','sal-collect','sal-advance','sal-personal','sal-payout','sal-allowance','sal-deduction','scrap-return','transfer'].includes(tx.type))
         return `❌ القاعدة 4: الجهة "${tx.client}" غير موجودة في قاعدة البيانات`;
     }
     return null;
@@ -4156,7 +4288,7 @@ function fmt(n){return(Math.round((n||0)*100)/100).toLocaleString('ar-SA')}
 function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')}
 
 const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
-  'salary-pay':'💵 راتب','salary-custody':'🤝 عهدة','salary-deduction':'✂️ خصم راتب','salary-allowance':'🎁 بدل/مكافأة',
+  'salary-pay':'💸 صرف','salary-custody':'📥 تحصيل','salary-personal':'💰 دفع شخصي','salary-deduction':'✂️ خصم','salary-allowance':'🎁 بدل','sal-collect':'📥 تحصيل','sal-advance':'📤 عهدة','sal-personal':'💰 دفع شخصي','sal-payout':'💸 صرف','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم',
   'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون'};
 const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy'};
 const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange'};
@@ -6033,70 +6165,119 @@ let currentSalType = null;
 
 function setSalType(type){
   currentSalType = type;
-  const colors  = {salary:'var(--ok)',custody:'var(--in)',allowance:'#D97706',deduction:'var(--io)'};
-  const hints   = {
-    salary:    '💵 صرف: يخرج من الصندوق للموظف',
-    custody:   '🤝 إيداع: الموظف أودع مبلغاً في الصندوق',
-    allowance: '🎁 بدل/مكافأة: يُضاف لرصيد الموظف (لا يخرج من الصندوق)',
-    deduction: '✂️ خصم: يُخصم من رصيد الموظف (تسوية)'
+
+  // تعريف كل نوع: لون، hint، صندوق/حساب
+  const CFG = {
+    collect:  {
+      color:'#1D4ED8', bg:'#DBEAFE',
+      hint:'📥 تحصيل: الموظف يرجّع فلوس المكتب — صندوق يزيد، حسابه ينقص',
+      safeLbl:'🏦 إلى صندوق', hasSafe:true, hasReason:false,
+      btnTxt:'📥 تسجيل التحصيل'
+    },
+    advance:  {
+      color:'#7C3AED', bg:'#EDE9FE',
+      hint:'📤 عهدة: المكتب يعطيه كاش — صندوق ينقص، تُسجَّل عليه',
+      safeLbl:'🏦 من صندوق', hasSafe:true, hasReason:false,
+      btnTxt:'📤 تسجيل العهدة'
+    },
+    personal: {
+      color:'#065F46', bg:'#D1FAE5',
+      hint:'💰 دفع شخصي: الموظف يدفع من جيبه — صندوق يزيد، يُستحق له',
+      safeLbl:'🏦 إلى صندوق', hasSafe:true, hasReason:false,
+      btnTxt:'💰 تسجيل الدفع الشخصي'
+    },
+    payout:   {
+      color:'#991B1B', bg:'#FEE2E2',
+      hint:'💸 صرف: المكتب يدفع للموظف راتب أو مستحق — صندوق ينقص، حسابه ينقص',
+      safeLbl:'🏦 من صندوق', hasSafe:true, hasReason:false,
+      btnTxt:'💸 تسجيل الصرف'
+    },
+    allowance:{
+      color:'#D97706', bg:'#FEF3C7',
+      hint:'🎁 بدل/مكافأة: يُضاف لحساب الموظف فقط، لا يؤثر على الصندوق',
+      safeLbl:'—', hasSafe:false, hasReason:true,
+      btnTxt:'🎁 إضافة البدل'
+    },
+    deduction:{
+      color:'#92400E', bg:'#FEF9C3',
+      hint:'✂️ خصم: يُطرح من حساب الموظف فقط، لا يؤثر على الصندوق',
+      safeLbl:'—', hasSafe:false, hasReason:true,
+      btnTxt:'✂️ تسجيل الخصم'
+    }
   };
-  const safeLbls= {salary:'🏦 من صندوق',custody:'🏦 إلى صندوق',allowance:'—',deduction:'—'};
-  const typeKeys= ['salary','custody','allowance','deduction'];
-  typeKeys.forEach(t=>{
+
+  const cfg = CFG[type] || {};
+  const allTypes = ['collect','advance','personal','payout','allowance','deduction'];
+
+  // تحديث أزرار الاختيار
+  allTypes.forEach(t=>{
     const btn=document.getElementById('sal-type-'+t);
-    if(btn){btn.style.border=t===type?`2px solid ${colors[t]}`:'2px solid var(--b1)';btn.style.opacity=t===type?'1':'0.6';}
+    if(!btn) return;
+    const active = t===type;
+    btn.style.border = active ? `2px solid ${CFG[t]?.color||'var(--g1)'}` : '2px solid var(--b1)';
+    btn.style.opacity = active ? '1' : '0.55';
+    btn.style.background = active ? (CFG[t]?.bg||'var(--c2)') : 'var(--c2)';
   });
-  const hint=document.getElementById('sal-type-hint');
+
+  // hint
+  const hint = document.getElementById('sal-type-hint');
   if(hint){
-    hint.style.display='block';
-    hint.style.background=type==='salary'?'var(--ok-bg)':type==='custody'?'var(--in-bg)':type==='allowance'?'#FEF3C7':'var(--io-bg)';
-    hint.style.border=`1px solid ${colors[type]}`;hint.style.color=colors[type];hint.textContent=hints[type];
+    hint.style.display = 'block';
+    hint.style.background = cfg.bg||'var(--c3)';
+    hint.style.border = `1px solid ${cfg.color||'var(--g1)'}`;
+    hint.style.color = cfg.color||'var(--g1)';
+    hint.textContent = cfg.hint||'';
   }
-  const safeLbl=document.getElementById('sal-safe-lbl');
-  if(safeLbl) safeLbl.textContent=safeLbls[type]||'🏦 الصندوق';
-  const safeRow=document.getElementById('sal-safe-row');
-  if(safeRow) safeRow.style.display='grid'; // المبلغ يظهر دائماً
-  const safeSelectRow=document.getElementById('sal-safe-select-row');
-  if(safeSelectRow) safeSelectRow.style.display=(type==='allowance'||type==='deduction')?'none':'flex';
-  const reasonRow=document.getElementById('sal-reason-row');
-  const reasonLbl=document.getElementById('sal-reason-lbl');
-  if(reasonRow){
-    reasonRow.style.display=(type==='allowance'||type==='deduction')?'block':'none';
-    if(reasonLbl) reasonLbl.textContent=type==='allowance'?'🎁 نوع البدل':'✂️ سبب الخصم';
+
+  // الصندوق
+  const safeSelectRow = document.getElementById('sal-safe-select-row');
+  if(safeSelectRow) safeSelectRow.style.display = cfg.hasSafe ? 'flex' : 'none';
+  const safeLbl = document.getElementById('sal-safe-lbl');
+  if(safeLbl) safeLbl.textContent = cfg.safeLbl||'🏦 الصندوق';
+
+  if(cfg.hasSafe){
+    const salSafe = document.getElementById('sal-safe');
+    if(salSafe){
+      salSafe.innerHTML = Object.entries(getSM())
+        .filter(([k,v])=>(v.type==='cash'||v.type==='both')&&!k.startsWith('debt')&&k!=='discount')
+        .map(([k,v])=>`<option value="${k}">${v.label} (${fmt(S.safes[k]||0)} ر)</option>`)
+        .join('');
+    }
   }
-  const salSafe=document.getElementById('sal-safe');
-  if(salSafe && (type==='salary'||type==='custody')){
-    salSafe.innerHTML=Object.entries(getSM())
-      .filter(([k,v])=>(v.type==='cash'||v.type==='both')&&!k.startsWith('debt')&&k!=='discount')
-      .map(([k,v])=>`<option value="${k}">${v.label} (${fmt(S.safes[k]||0)} ر)</option>`)
-      .join('');
-  }
-  const btn=document.getElementById('sal-submit-btn');
-  if(btn){const labels={salary:'💵 صرف النقد',custody:'🤝 تسجيل الإيداع',allowance:'🎁 إضافة البدل',deduction:'✂️ تسجيل الخصم'};btn.textContent=labels[type]||'💾 حفظ';}
+
+  // السبب
+  const reasonRow = document.getElementById('sal-reason-row');
+  if(reasonRow) reasonRow.style.display = cfg.hasReason ? 'block' : 'none';
+
+  // زر الحفظ
+  const btn = document.getElementById('sal-submit-btn');
+  if(btn) btn.textContent = cfg.btnTxt||'💾 حفظ';
 }
 
+
 function openSalModal(preType, empName){
-  currentSalType=null;
-  ['salary','custody','allowance','deduction'].forEach(t=>{
+  currentSalType = null;
+  ['collect','advance','personal','payout','allowance','deduction'].forEach(t=>{
     const btn=document.getElementById('sal-type-'+t);
-    if(btn){btn.style.border='2px solid var(--b1)';btn.style.opacity='0.7';}
+    if(btn){ btn.style.border='2px solid var(--b1)'; btn.style.opacity='0.55'; btn.style.background='var(--c2)'; }
   });
-  const hint=document.getElementById('sal-type-hint');if(hint)hint.style.display='none';
+  const hint=document.getElementById('sal-type-hint'); if(hint) hint.style.display='none';
   ['sal-amount','sal-note','sal-emp-s','sal-emp-v','sal-date','sal-reason'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
+    const el=document.getElementById(id); if(el) el.value='';
   });
-  const reasonRow=document.getElementById('sal-reason-row');
-  if(reasonRow) reasonRow.style.display='none';
+  const reasonRow=document.getElementById('sal-reason-row'); if(reasonRow) reasonRow.style.display='none';
+  const submitBtn=document.getElementById('sal-submit-btn'); if(submitBtn) submitBtn.textContent='💾 حفظ';
   openM('m-salary');
   setTimeout(()=>{
     if(empName){
-      const s=document.getElementById('sal-emp-s'),v=document.getElementById('sal-emp-v');
+      const s=document.getElementById('sal-emp-s'), v=document.getElementById('sal-emp-v');
       if(s) s.value=empName; if(v) v.value=empName;
     }
     if(preType) setSalType(preType);
     openCS('sal-emp-s','sal-emp-d','sal-emp-v',['موظف']);
   },80);
 }
+
 // backward compat
 function openSalaryModal(preType){ openSalModal(preType); }
 
@@ -6111,7 +6292,8 @@ function saveSalary(){
   const dateISO=dateV?new Date(dateV).toISOString():new Date().toISOString();
   if(!emp){toast('⚠️ اختر الموظف');return;}
   if(amount<=0){toast('⚠️ أدخل المبلغ');return;}
-  const typeMap={salary:'salary-pay',custody:'salary-custody',allowance:'salary-allowance',deduction:'salary-deduction'};
+  const typeMap={collect:'sal-collect',advance:'sal-advance',personal:'sal-personal',payout:'sal-payout',allowance:'sal-allowance',deduction:'sal-deduction'};
+  const defNotes={collect:'تحصيل من الموظف',advance:'عهدة للموظف',personal:'دفع شخصي من الموظف',payout:'صرف للموظف',allowance:'بدل/مكافأة',deduction:'خصم'};
   const tx={
     id:Date.now(),date:dateISO,
     type:typeMap[currentSalType],
@@ -6119,7 +6301,7 @@ function saveSalary(){
     amount,fromSafe:safe,toSafe:safe,
     salaryType:currentSalType,
     reason:reason||note,
-    notes:note||(reason?reason:currentSalType==='salary'?'صرف نقد':currentSalType==='custody'?'إيداع عهدة':currentSalType==='allowance'?'بدل':'خصم'),
+    notes:note||(reason?reason:defNotes[currentSalType]||''),
     items:[],total:amount,cash:amount,goldPay:0
   };
   if(!safeSave(tx)) return;
@@ -6130,8 +6312,8 @@ function saveSalary(){
   if(sv&&!sv.value&&emp){sv.value=emp;}
   if(ss&&!ss.value&&emp){ss.value=emp;}
   buildEmpList(); renderEmpStmt();
-  const labels={salary:'صرف النقد',custody:'تسجيل الإيداع',allowance:'إضافة البدل',deduction:'تسجيل الخصم'};
-  toast(`✅ تم ${labels[currentSalType]} — ${fmt(amount)} ريال للموظف ${emp}`);
+  const labels={collect:'تحصيل',advance:'تسجيل عهدة',personal:'تسجيل دفع شخصي',payout:'صرف',allowance:'إضافة بدل',deduction:'تسجيل خصم'};
+  toast(`✅ تم ${labels[currentSalType]||'الحفظ'} — ${fmt(amount)} ريال للموظف ${emp}`);
 }
 
 function filterSalary(type){ renderEmpStmt(); }
@@ -6210,30 +6392,57 @@ function renderEmpStmt(){
 
   // جميع حركات الموظف مرتبة تصاعدياً
   const txs=(S.transactions||[]).filter(t=>
-    (t.employee===emp||t.client===emp) && t.type && t.type.startsWith('salary-')
+    (t.employee===emp||t.client===emp) && t.type &&
+    (t.type.startsWith('salary-')||t.type.startsWith('sal-'))
   ).sort((a,b)=>new Date(a.date)-new Date(b.date));
 
   // ── حساب الشهر الحالي ──
   const now=new Date(); const thisM=now.getMonth(); const thisY=now.getFullYear();
   const monthTxs=txs.filter(t=>{ const d=new Date(t.date); return d.getMonth()===thisM&&d.getFullYear()===thisY; });
   const mPay  =monthTxs.filter(t=>t.type==='salary-pay').reduce((a,t)=>a+(t.amount||0),0);
-  const mDep  =monthTxs.filter(t=>t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
+  const mDep      =monthTxs.filter(t=>t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
+  const mPersonal =monthTxs.filter(t=>t.type==='salary-personal').reduce((a,t)=>a+(t.amount||0),0);
   const mAllow=monthTxs.filter(t=>t.type==='salary-allowance').reduce((a,t)=>a+(t.amount||0),0);
   const mDed  =monthTxs.filter(t=>t.type==='salary-deduction').reduce((a,t)=>a+(t.amount||0),0);
   // صافي ما يستحقه الموظف هذا الشهر = الراتب + البدلات - الخصومات
   const netSal  = baseSal + mAllow - mDed;
-  // ما تم صرفه فعلاً هذا الشهر (نقد + إيداعات)
-  const mPaid   = mPay + mDep;
-  const mRemain = netSal - mPaid;
+  // إجماليات الشهر للأنواع الجديدة
+  const mCollect  = monthTxs.filter(t=>t.type==='sal-collect').reduce((a,t)=>a+(t.amount||0),0);
+  const mAdvance  = monthTxs.filter(t=>t.type==='sal-advance').reduce((a,t)=>a+(t.amount||0),0);
+  const mPPersonal= monthTxs.filter(t=>t.type==='sal-personal').reduce((a,t)=>a+(t.amount||0),0);
+  const mPayout   = monthTxs.filter(t=>t.type==='sal-payout').reduce((a,t)=>a+(t.amount||0),0);
+  const mAllow2   = monthTxs.filter(t=>t.type==='sal-allowance').reduce((a,t)=>a+(t.amount||0),0);
+  const mDed2     = monthTxs.filter(t=>t.type==='sal-deduction').reduce((a,t)=>a+(t.amount||0),0);
+  // دمج القديم والجديد
+  const allPayout  = mPay + mPayout;
+  const allPersonal= mPersonal + mPPersonal;
+  const allCollect = mDep + mCollect;
+  const allAdvance = mAdvance;
+  const allAllow   = mAllow + mAllow2;
+  const allDed     = mDed + mDed2;
+  // رصيد الشهر الحالي = شخصي + بدلات - صرف - عهدة - تحصيل - خصم
+  const mRemain = baseSal + allPersonal + allAllow - allPayout - allAdvance - allCollect - allDed;
+  const mPaid   = allPayout; // ما صُرف فعلاً
 
   // ── الرصيد التراكمي الكلي ──
-  const totPay  =txs.filter(t=>t.type==='salary-pay').reduce((a,t)=>a+(t.amount||0),0);
-  const totDep  =txs.filter(t=>t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
-  const totAllow=txs.filter(t=>t.type==='salary-allowance').reduce((a,t)=>a+(t.amount||0),0);
-  const totDed  =txs.filter(t=>t.type==='salary-deduction').reduce((a,t)=>a+(t.amount||0),0);
-  // ✅ المعادلة الصحيحة: رصيد = إيداعات + بدلات - صرف - خصومات
-  // موجب = ما تبقى للموظف | سالب = الموظف مدين للشركة
-  const totBal = Math.round((totDep + totAllow - totPay - totDed)*100)/100;
+  // ── إجماليات جميع الأنواع (جديد + قديم للتوافق) ──
+  const totCollect  =txs.filter(t=>t.type==='sal-collect' ||t.type==='salary-custody').reduce((a,t)=>a+(t.amount||0),0);
+  const totAdvance  =txs.filter(t=>t.type==='sal-advance').reduce((a,t)=>a+(t.amount||0),0);
+  const totPersonal =txs.filter(t=>t.type==='sal-personal'||t.type==='salary-personal').reduce((a,t)=>a+(t.amount||0),0);
+  const totPayout   =txs.filter(t=>t.type==='sal-payout'  ||t.type==='salary-pay').reduce((a,t)=>a+(t.amount||0),0);
+  const totAllow    =txs.filter(t=>t.type==='sal-allowance'||t.type==='salary-allowance').reduce((a,t)=>a+(t.amount||0),0);
+  const totDed      =txs.filter(t=>t.type==='sal-deduction'||t.type==='salary-deduction').reduce((a,t)=>a+(t.amount||0),0);
+  // aliases للعرض
+  const totDep = totCollect;  // للتوافق مع الكود السابق
+  const totPay = totPayout;
+  // ✅ المعادلة النهائية:
+  // collect  (تحصيل فلوس المكتب) → حساب الموظف ينقص
+  // advance  (عهدة للموظف)       → حساب الموظف يزيد (يصير عليه)
+  // personal (من جيبه)           → حساب الموظف يزيد (مستحق له)
+  // payout   (صرف له)            → حساب الموظف ينقص
+  // allowance/deduction          → محاسبية فقط
+  // رصيد موجب = له مستحق | سالب = عليه
+  const totBal = Math.round((totPersonal + totAllow - totCollect - totAdvance - totPayout - totDed)*100)/100;
 
   // ── ألوان ──
   const remClr=mRemain>0?'#065F46':mRemain<0?'#991B1B':'var(--tx2)';
@@ -6245,10 +6454,10 @@ function renderEmpStmt(){
 
   // ── بطاقة الملخص الواضحة ──
   // الرصيد الصافي = إيداعات + بدلات - صرف - خصومات
-  const netBalance = Math.round((totDep + totAllow - totPay - totDed)*100)/100;
+  const netBalance = Math.round((totPersonal + totAllow - totCollect - totAdvance - totPayout - totDed)*100)/100;
   // السحوبات غير المسددة = أي صرف يزيد عن (إيداعات + بدلات - خصومات)
-  const maxCanPay = Math.round((totDep + totAllow - totDed)*100)/100;
-  const overdraft  = totPay > maxCanPay ? Math.round((totPay - maxCanPay)*100)/100 : 0;
+  // سحوبات زائدة = إذا صرف أكثر مما أودع + بدل - خصم
+  const overdraft = netBalance < -0.01 ? Math.abs(netBalance) : 0;
 
   const totBgClr  = netBalance>=0?'#D1FAE5':'#FEE2E2';
   const totBdClr  = netBalance>=0?'#065F46':'#991B1B';
@@ -6269,19 +6478,31 @@ function renderEmpStmt(){
         <div style="font-size:12px;font-weight:800;color:${totBdClr}">${totLblNew}</div>
       </div>
 
-      <!-- تفصيل الأرقام: 4 خانات -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div style="background:#D1FAE5;border-radius:var(--rc);padding:10px;border:1px solid #6EE7B7">
-          <div style="font-size:10px;color:#065F46;font-weight:700;margin-bottom:3px">\u{1F91D} إجمالي الإيداعات</div>
-          <div style="font-size:16px;font-weight:900;color:#065F46">${fmt(totDep)} <span style="font-size:10px">ر</span></div>
+      <!-- تفصيل الأرقام: 6 خانات -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+        <div style="background:#DBEAFE;border-radius:var(--rc);padding:10px;border:1px solid #93C5FD">
+          <div style="font-size:10px;color:#1D4ED8;font-weight:700;margin-bottom:3px">📥 تحصيل</div>
+          <div style="font-size:16px;font-weight:900;color:#1D4ED8">${fmt(totCollect)} <span style="font-size:10px">ر</span></div>
+          <div style="font-size:9px;color:var(--tx2)">صندوق▲ حساب▼</div>
+        </div>
+        <div style="background:#EDE9FE;border-radius:var(--rc);padding:10px;border:1px solid #C4B5FD">
+          <div style="font-size:10px;color:#7C3AED;font-weight:700;margin-bottom:3px">📤 عهدة للموظف</div>
+          <div style="font-size:16px;font-weight:900;color:#7C3AED">${fmt(totAdvance)} <span style="font-size:10px">ر</span></div>
+          <div style="font-size:9px;color:var(--tx2)">صندوق▼ عليه▲</div>
         </div>
         <div style="background:#FEF3C7;border-radius:var(--rc);padding:10px;border:1px solid #FCD34D">
           <div style="font-size:10px;color:#D97706;font-weight:700;margin-bottom:3px">\u{1F381} إجمالي البدلات</div>
           <div style="font-size:16px;font-weight:900;color:#D97706">${fmt(totAllow)} <span style="font-size:10px">ر</span></div>
         </div>
+        <div style="background:#D1FAE5;border-radius:var(--rc);padding:10px;border:1px solid #6EE7B7">
+          <div style="font-size:10px;color:#065F46;font-weight:700;margin-bottom:3px">💰 دفع شخصي</div>
+          <div style="font-size:16px;font-weight:900;color:#065F46">${fmt(totPersonal)} <span style="font-size:10px">ر</span></div>
+          <div style="font-size:9px;color:var(--tx2)">صندوق▲ له▲</div>
+        </div>
         <div style="background:#FEE2E2;border-radius:var(--rc);padding:10px;border:1px solid #FCA5A5">
-          <div style="font-size:10px;color:#991B1B;font-weight:700;margin-bottom:3px">\u{1F4B8} إجمالي الصرف (سحوبات)</div>
-          <div style="font-size:16px;font-weight:900;color:#991B1B">${fmt(totPay)} <span style="font-size:10px">ر</span></div>
+          <div style="font-size:10px;color:#991B1B;font-weight:700;margin-bottom:3px">💸 صرف للموظف</div>
+          <div style="font-size:16px;font-weight:900;color:#991B1B">${fmt(totPayout)} <span style="font-size:10px">ر</span></div>
+          <div style="font-size:9px;color:var(--tx2)">صندوق▼ حساب▼</div>
         </div>
         <div style="background:#FEF9C3;border-radius:var(--rc);padding:10px;border:1px solid #FDE68A">
           <div style="font-size:10px;color:#92400E;font-weight:700;margin-bottom:3px">\u2702\uFE0F إجمالي الخصومات</div>
@@ -6291,10 +6512,12 @@ function renderEmpStmt(){
 
       <!-- معادلة الحساب الواضحة -->
       <div style="background:var(--c1);border-radius:var(--rc);padding:10px;margin-bottom:10px;border:1px solid var(--b1);font-size:11px;color:var(--tx2);text-align:center">
-        <span style="color:#065F46;font-weight:700">${fmt(totDep)}</span> إيداعات
-        + <span style="color:#D97706;font-weight:700">${fmt(totAllow)}</span> بدلات
-        − <span style="color:#991B1B;font-weight:700">${fmt(totPay)}</span> صرف
-        − <span style="color:#92400E;font-weight:700">${fmt(totDed)}</span> خصومات
+        <span style="color:#065F46;font-weight:700">+${fmt(totPersonal)}</span> شخصي
+        <span style="color:#D97706;font-weight:700">+${fmt(totAllow)}</span> بدلات
+        <span style="color:#991B1B;font-weight:700">−${fmt(totPayout)}</span> صرف
+        <span style="color:#7C3AED;font-weight:700">−${fmt(totAdvance)}</span> عهدة
+        <span style="color:#1D4ED8;font-weight:700">−${fmt(totCollect)}</span> تحصيل
+        <span style="color:#92400E;font-weight:700">−${fmt(totDed)}</span> خصم
         = <span style="color:${totBdClr};font-weight:900">${fmt(Math.abs(netBalance))} ر</span>
       </div>
 
@@ -6335,60 +6558,94 @@ function renderEmpStmt(){
         \u26A0\uFE0F لم يُحدَّد راتب أساسي — <span style="text-decoration:underline;cursor:pointer" onclick="editEmpSalary('${emp}')">اضغط لتحديده</span>
       </div>`:''}
 
-      <!-- أزرار العمليات الأربع -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px">
-        <button onclick="openSalModal('custody','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#D1FAE5;color:#065F46;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u{1F91D} إيداع</button>
-        <button onclick="openSalModal('salary','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#EFF6FF;color:#1D4ED8;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u{1F4B8} سحب</button>
+      <!-- أزرار العمليات -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;margin-bottom:5px">
+        <button onclick="openSalModal('collect','${emp}')"
+          style="padding:9px 4px;border-radius:var(--rc);border:none;background:#DBEAFE;color:#1D4ED8;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">📥 تحصيل<br><span style="font-size:8px;font-weight:400">موظف يرجّع للمكتب</span></button>
+        <button onclick="openSalModal('advance','${emp}')"
+          style="padding:9px 4px;border-radius:var(--rc);border:none;background:#EDE9FE;color:#7C3AED;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">📤 عهدة<br><span style="font-size:8px;font-weight:400">مكتب يعطيه كاش</span></button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:5px">
+        <button onclick="openSalModal('personal','${emp}')"
+          style="padding:9px 4px;border-radius:var(--rc);border:none;background:#D1FAE5;color:#065F46;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">💰 دفع شخصي<br><span style="font-size:8px;font-weight:400">من جيبه — يُستحق له</span></button>
+        <button onclick="openSalModal('payout','${emp}')"
+          style="padding:9px 4px;border-radius:var(--rc);border:none;background:#FEE2E2;color:#991B1B;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">💸 صرف للموظف<br><span style="font-size:8px;font-weight:400">راتب أو مستحق</span></button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
         <button onclick="openSalModal('allowance','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#FEF3C7;color:#D97706;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u{1F381} بدل</button>
+          style="padding:7px 4px;border-radius:var(--rc);border:none;background:#FEF3C7;color:#D97706;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">🎁 بدل/مكافأة</button>
         <button onclick="openSalModal('deduction','${emp}')"
-          style="padding:8px 4px;border-radius:var(--rc);border:none;background:#FEF9C3;color:#92400E;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">\u2702\uFE0F خصم</button>
+          style="padding:7px 4px;border-radius:var(--rc);border:none;background:#FEF9C3;color:#92400E;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">✂️ خصم</button>
       </div>
     </div>`;
 
-  // ── جدول الحركات مع أزرار تعديل/حذف ──
+  // ── جدول الحركات ──
+  // منطق الرصيد:
+  // صرف     = مكتب أعطى موظف → ينقص (−)
+  // إيداع   = موظف أعطى مكتب → ينقص أيضاً (−) لأنه استلمه مسبقاً من الراتب
+  // بدل     = مكافأة/إضافة   → يزيد (+)
+  // خصم     = استقطاع        → ينقص (−)
   let runBal=0;
-  const typeLabel={'salary-pay':'💸 صرف','salary-custody':'🤝 إيداع','salary-allowance':'🎁 بدل','salary-deduction':'✂️ خصم'};
-  const typeBg   ={'salary-pay':'#FEE2E2','salary-custody':'#D1FAE5','salary-allowance':'#FEF3C7','salary-deduction':'#FEF9C3'};
-  const typeClr  ={'salary-pay':'#991B1B','salary-custody':'#065F46','salary-allowance':'#D97706','salary-deduction':'#92400E'};
+  const typeLabel={
+    'sal-collect':'📥 تحصيل','sal-advance':'📤 عهدة للموظف','sal-personal':'💰 دفع شخصي',
+    'sal-payout':'💸 صرف للموظف','sal-allowance':'🎁 بدل/مكافأة','sal-deduction':'✂️ خصم',
+    // قديم
+    'salary-pay':'💸 صرف','salary-custody':'📥 تحصيل','salary-personal':'💰 دفع شخصي',
+    'salary-allowance':'🎁 بدل','salary-deduction':'✂️ خصم'
+  };
+  const typeBg={
+    'sal-collect':'#DBEAFE','sal-advance':'#EDE9FE','sal-personal':'#D1FAE5',
+    'sal-payout':'#FEE2E2','sal-allowance':'#FEF3C7','sal-deduction':'#FEF9C3',
+    'salary-pay':'#FEE2E2','salary-custody':'#DBEAFE','salary-personal':'#D1FAE5',
+    'salary-allowance':'#FEF3C7','salary-deduction':'#FEF9C3'
+  };
+  const typeClr={
+    'sal-collect':'#1D4ED8','sal-advance':'#7C3AED','sal-personal':'#065F46',
+    'sal-payout':'#991B1B','sal-allowance':'#D97706','sal-deduction':'#92400E',
+    'salary-pay':'#991B1B','salary-custody':'#1D4ED8','salary-personal':'#065F46',
+    'salary-allowance':'#D97706','salary-deduction':'#92400E'
+  };
+  const typeDesc={
+    'sal-collect':'فلوس المكتب — صندوق▲ حساب▼',
+    'sal-advance':'عهدة: أخذ كاش — صندوق▼ تصير عليه▲',
+    'sal-personal':'من جيبه لصالح العمل — صندوق▲ مستحق له▲',
+    'sal-payout':'صرف راتب/مستحق — صندوق▼ حساب▼',
+    'sal-allowance':'بدل/مكافأة — حساب▲ فقط',
+    'sal-deduction':'خصم/استقطاع — حساب▼ فقط',
+    'salary-pay':'المكتب صرف للموظف','salary-custody':'تحصيل للمكتب',
+    'salary-personal':'دفع شخصي','salary-allowance':'بدل','salary-deduction':'خصم'
+  };
 
   const allRows=txs.map(t=>{
     const dt=fmtDate(t.date);
     let delta=0;
-    if(t.type==='salary-pay')       delta=-(t.amount||0);
-    if(t.type==='salary-custody')   delta= (t.amount||0);
-    if(t.type==='salary-allowance') delta= (t.amount||0);  // ✅ بدل يزيد الرصيد
-    if(t.type==='salary-deduction') delta=-(t.amount||0);  // ✅ خصم ينقص الرصيد
+    // أنواع جديدة
+    if(t.type==='sal-collect')   delta=-(t.amount||0); // تحصيل: حساب ينقص
+    if(t.type==='sal-advance')   delta= (t.amount||0); // عهدة: تصير عليه (يزيد ما عليه)
+    if(t.type==='sal-personal')  delta= (t.amount||0); // شخصي: يزيد رصيده
+    if(t.type==='sal-payout')    delta=-(t.amount||0); // صرف: حساب ينقص
+    if(t.type==='sal-allowance') delta= (t.amount||0); // بدل: يزيد
+    if(t.type==='sal-deduction') delta=-(t.amount||0); // خصم: ينقص
+    // أنواع قديمة للتوافق
+    if(t.type==='salary-pay')        delta=-(t.amount||0);
+    if(t.type==='salary-custody')    delta=-(t.amount||0);
+    if(t.type==='salary-personal')   delta= (t.amount||0);
+    if(t.type==='salary-allowance')  delta= (t.amount||0);
+    if(t.type==='salary-deduction')  delta=-(t.amount||0);
     runBal=Math.round((runBal+delta)*100)/100;
-    const isIn=delta>0;
-    const balClr=runBal>=0?'var(--ok)':'var(--no)';
-    const balLbl=runBal>=0?'له':'عليه';
+    const amt=t.amount||0;
+    const balClr=runBal>=0?'#065F46':'#991B1B';
+    const balBg =runBal>=0?'#D1FAE5':'#FEE2E2';
+    const balLbl=runBal>=0?'\u0644\u0647':'\u0639\u0644\u064A\u0647';
     const txId=t.id;
-    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--b1);background:var(--c1)">
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;flex-wrap:wrap">
-          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${typeBg[t.type]||'var(--g4)'};color:${typeClr[t.type]||'var(--g1)'}">${typeLabel[t.type]||t.type}</span>
-          <span style="font-size:10px;color:var(--tx3)">${dt.ar}</span>
-        </div>
-        ${(t.reason||t.notes)?`<div style="font-size:11px;color:var(--tx2)">📝 ${t.reason||t.notes}</div>`:''}
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="text-align:left;min-width:75px">
-          <div style="font-size:14px;font-weight:900;color:${isIn?'var(--ok)':'var(--no)'}">
-            ${isIn?'+':'-'}${fmt(t.amount||0)}
-          </div>
-          ${t.type==='salary-pay'||t.type==='salary-custody'?`<div style="font-size:10px;color:${balClr};font-weight:700">${balLbl}: ${fmt(Math.abs(runBal))}</div>`:''}
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="editSalTx(${txId})" style="padding:4px 8px;border-radius:6px;border:1px solid var(--b2);background:var(--c2);font-size:11px;cursor:pointer;color:var(--tx1)">✏️</button>
-          <button onclick="deleteSalTx(${txId},'${emp.replace(/'/g,"\\'")}') " style="padding:4px 8px;border-radius:6px;border:1px solid var(--no-bd);background:var(--no-bg);font-size:11px;cursor:pointer;color:var(--no)">🗑️</button>
-        </div>
-      </div>
-    </div>`;
+    const dirIcon=t.type==='salary-allowance'?'\u2B06\uFE0F':t.type==='salary-custody'?'\u{1F3E6}':'\u2B07\uFE0F';
+    const amtClr =t.type==='salary-allowance'?'#D97706':'#991B1B';
+    return '<div style="border-bottom:1px solid var(--b1);background:var(--c1)"><div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:12px;background:'+typeBg[t.type]+';color:'+typeClr[t.type]+'">'+typeLabel[t.type]+'</span><span style="font-size:10px;color:var(--tx3)">'+dt.ar+'</span></div><div style="font-size:10px;color:var(--tx2);margin-bottom:2px">'+typeDesc[t.type]+'</div>'
+      +((t.reason||t.notes)?'<div style="font-size:11px;color:var(--g1)">\u{1F4DD} '+(t.reason||t.notes)+'</div>':'')
+      +'</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div style="text-align:left"><div style="font-size:16px;font-weight:900;color:'+amtClr+'">'+dirIcon+' '+fmt(amt)+' \u0631</div><div style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;background:'+balBg+';color:'+balClr+';text-align:center;margin-top:3px">'+balLbl+': '+fmt(Math.abs(runBal))+'</div></div>'
+      +'<div style="display:flex;gap:3px"><button onclick="editSalTx('+txId+')" style="padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:var(--c2);font-size:11px;cursor:pointer">\u270F\uFE0F</button>'
+      +'<button onclick="deleteSalTx('+txId+',\''+emp.replace(/'/g,"\\'")+'\')" style="padding:5px 8px;border-radius:6px;border:none;background:#FEE2E2;font-size:11px;cursor:pointer;color:#991B1B">\u{1F5D1}\uFE0F</button></div></div></div></div>';
   });
-
   const txSection=txs.length
     ?`<div style="border-radius:var(--rb);overflow:hidden;border:1px solid var(--b1)">
         <div style="background:var(--hd);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
@@ -6416,7 +6673,12 @@ function deleteSalTx(id, empName){
 function editSalTx(id){
   const tx=(S.transactions||[]).find(t=>t.id===id);
   if(!tx) return;
-  const typeRev={'salary-pay':'salary','salary-custody':'custody','salary-allowance':'allowance','salary-deduction':'deduction'};
+  const typeRev={
+    'salary-pay':'payout','salary-custody':'collect','salary-personal':'personal',
+    'salary-allowance':'allowance','salary-deduction':'deduction',
+    'sal-collect':'collect','sal-advance':'advance','sal-personal':'personal',
+    'sal-payout':'payout','sal-allowance':'allowance','sal-deduction':'deduction'
+  };
   const preType=typeRev[tx.type]||'salary';
   openSalModal(preType, tx.employee||tx.client);
   setTimeout(()=>{
