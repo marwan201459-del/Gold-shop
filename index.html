@@ -562,6 +562,53 @@ body{
   <!-- تنبيهات -->
   <div id="overdue-alerts"></div>
 
+  <!-- 4 بطاقات رئيسية -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="home-dashboard-cards">
+    <div style="background:linear-gradient(135deg,#065F46,#047857);border-radius:14px;padding:14px;color:#fff">
+      <div style="font-size:10px;opacity:.8;margin-bottom:4px">💰 مبيعات اليوم</div>
+      <div style="font-size:22px;font-weight:900" id="dash-sell-today">0</div>
+      <div style="font-size:9px;opacity:.7;margin-top:2px">ريال</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#1D4ED8,#2563EB);border-radius:14px;padding:14px;color:#fff">
+      <div style="font-size:10px;opacity:.8;margin-bottom:4px">📅 مبيعات الشهر</div>
+      <div style="font-size:22px;font-weight:900" id="dash-sell-month">0</div>
+      <div style="font-size:9px;opacity:.7;margin-top:2px">ريال</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#991B1B,#DC2626);border-radius:14px;padding:14px;color:#fff">
+      <div style="font-size:10px;opacity:.8;margin-bottom:4px">📉 المصروفات</div>
+      <div style="font-size:22px;font-weight:900" id="dash-expenses">0</div>
+      <div style="font-size:9px;opacity:.7;margin-top:2px">ريال</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#D97706,#F59E0B);border-radius:14px;padding:14px;color:#fff">
+      <div style="font-size:10px;opacity:.8;margin-bottom:4px">📈 صافي الربح</div>
+      <div style="font-size:22px;font-weight:900" id="dash-net-profit">0</div>
+      <div style="font-size:9px;opacity:.7;margin-top:2px">ريال</div>
+    </div>
+  </div>
+
+  <!-- رسم بياني المبيعات 7 أيام -->
+  <div style="background:var(--c1);border-radius:14px;border:1px solid var(--b2);padding:14px;margin-bottom:12px">
+    <div style="font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:12px">📊 المبيعات — آخر 7 أيام</div>
+    <div style="position:relative;height:80px;display:flex;align-items:flex-end;gap:4px" id="dash-chart-bars">
+    </div>
+    <div style="display:flex;gap:4px;margin-top:4px" id="dash-chart-labels"></div>
+  </div>
+
+  <!-- توزيع عمليات الرواتب + إحصائيات -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <!-- رسم دائري رواتب -->
+    <div style="background:var(--c1);border-radius:14px;border:1px solid var(--b2);padding:12px">
+      <div style="font-size:11px;font-weight:800;color:var(--tx1);margin-bottom:8px">🥧 عمليات الرواتب</div>
+      <canvas id="dash-pie" width="120" height="120" style="display:block;margin:0 auto"></canvas>
+      <div style="margin-top:8px;font-size:9px" id="dash-pie-legend"></div>
+    </div>
+    <!-- إحصائيات سريعة -->
+    <div style="background:var(--c1);border-radius:14px;border:1px solid var(--b2);padding:12px">
+      <div style="font-size:11px;font-weight:800;color:var(--tx1);margin-bottom:8px">📌 إحصائيات</div>
+      <div id="dash-stats" style="font-size:10px;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+
   <!-- صناديق سريعة -->
   <div class="g2" style="margin-bottom:12px" id="home-safes"></div>
 
@@ -680,9 +727,32 @@ body{
         </div>
         <div id="inv-items-list"></div>
         <!-- ملخص -->
+        <!-- قسم الأحجار الكريمة -->
+        <div style="margin:10px 0;background:var(--c2);border-radius:12px;padding:12px;border:1px solid var(--b1)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:800;color:var(--tx1)">💎 الأحجار الكريمة</span>
+            <button type="button" onclick="addGem()"
+              style="font-size:11px;background:var(--g1);color:#1C1208;border:none;border-radius:8px;
+                     padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:700">
+              + إضافة حجر
+            </button>
+          </div>
+          <div id="gems-list"></div>
+          <div id="gems-total-row" style="display:none;margin-top:6px;padding-top:6px;
+            border-top:1px solid var(--b1);font-size:12px;font-weight:700;color:var(--g1);
+            display:flex;justify-content:space-between">
+            <span>💎 إجمالي الأحجار</span>
+            <span id="gems-total-val">0 ريال</span>
+          </div>
+        </div>
+
         <div class="inv-summary">
           <div class="inv-sum-row"><span class="lbl">🏅 إجمالي الذهب</span><span class="val" id="sum-gold">0</span></div>
           <div class="inv-sum-row"><span class="lbl">⚒️ إجمالي الأجور</span><span class="val" id="sum-ajour">0</span></div>
+          <div class="inv-sum-row" id="sum-gems-row" style="display:none">
+            <span class="lbl">💎 الأحجار الكريمة</span>
+            <span class="val" id="sum-gems" style="color:var(--g1)">0</span>
+          </div>
           <!-- ضريبة -->
           <div class="inv-sum-row" style="cursor:pointer" onclick="document.getElementById('vat-check').click()">
             <span class="lbl">🧾 ضريبة 15% <span id="vat-label" style="font-size:10px;color:var(--tx2)">غير محتسبة</span></span>
@@ -1292,29 +1362,12 @@ body{
   </div>
   </div>
 
-  <!-- اختيار الموظف -->
-  <div class="card" style="margin-bottom:12px">
-    <div class="cb">
-      <label style="font-size:12px;font-weight:700;color:var(--tx2);display:block;margin-bottom:8px">👤 اختر موظفاً لعرض كشف حسابه</label>
-      <div style="position:relative">
-        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--tx3)">🔍</span>
-        <input type="text" id="sal-emp-filter-s" placeholder="ابحث عن موظف..." autocomplete="off"
-          style="width:100%;padding:10px 36px 10px 13px;background:var(--c1);border:1.5px solid var(--b2);
-            border-radius:var(--rb);font-family:Tajawal,sans-serif;font-size:14px;color:var(--tx1);outline:none"
-          oninput="buildEmpList()" onfocus="buildEmpList()">
-        <input type="hidden" id="sal-emp-filter-v">
-      </div>
-      <div id="sal-emp-cards" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
-    </div>
-  </div>
-
-  <!-- كشف حساب الموظف -->
-  <div id="emp-stmt-body">
-    <div class="empty" style="padding:28px 0">
-      <div class="ei">👤</div>
-      <p>اختر موظفاً من القائمة أعلاه</p>
-    </div>
-  </div>
+  <!-- emp-stmt-body: احتياطي للتوافق مع الكود القديم (الكشف الآن في pg-stmt) -->
+  <div id="emp-stmt-body" style="display:none"></div>
+  <!-- sal-emp-filter: احتياطي للتوافق -->
+  <input type="hidden" id="sal-emp-filter-s">
+  <input type="hidden" id="sal-emp-filter-v">
+  <div id="sal-emp-cards" style="display:none"></div>
 
 </div>
 
@@ -1728,7 +1781,8 @@ body{
       <!-- المبلغ -->
       <div class="fr" id="sal-safe-row">
         <label>&#x1F4B5; &#x627;&#x644;&#x645;&#x628;&#x644;&#x63A; (&#x631;&#x64A;&#x627;&#x644;)</label>
-        <input type="number" id="sal-amount" inputmode="decimal" placeholder="0">
+        <input type="number" id="sal-amount" inputmode="decimal" placeholder="0"
+          oninput="if(currentSalType){const tm={deposit:'sal-deposit',withdraw:'sal-withdraw',allowance:'sal-allowance',deduction:'sal-deduction'};checkAmountAlert(tm[currentSalType],parseFloat(this.value)||0);}">
       </div>
 
       <!-- الصندوق -->
@@ -2695,6 +2749,24 @@ function openStmtS(){
       <div style="flex:1"><span class="sdn">${cl.name}</span> <span class="sdt">${cl.type}</span></div>
       <div style="font-size:11px;font-weight:700">${balTxt}</div>
     </div>`);
+
+  // ── موظفون في كشف الحساب ──
+  S.clients.filter(cl=>cl.type==='موظف'&&(!q||cl.name.toLowerCase().includes(q))).forEach(cl=>{
+    const etxs=(S.transactions||[]).filter(t=>(t.employee===cl.name||t.client===cl.name)&&t.type&&(t.type.startsWith('sal-')||t.type.startsWith('salary-')));
+    const eDep=etxs.filter(t=>['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const eWith=etxs.filter(t=>['sal-withdraw','sal-payout','salary-pay'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const eAllow=etxs.filter(t=>['sal-allowance','salary-allowance'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const eDed=etxs.filter(t=>['sal-deduction','salary-deduction'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const eBal=Math.round((eDep+eAllow-eWith-eDed)*100)/100;
+    const eBalTxt=Math.abs(eBal)<0.01?'<span style="color:var(--ok)">✅ مسوى</span>':
+      eBal>0?`<span style="color:var(--ok)">له: ${fmt(eBal)} ر</span>`:
+      `<span style="color:var(--no)">عليه: ${fmt(Math.abs(eBal))} ر</span>`;
+    items.push(`<div class="sdi" onclick="selStmt('__emp__${cl.name.replace(/'/g,"\\'")}','${cl.name.replace(/'/g,"\\'")}')">
+      <div style="flex:1"><span class="sdn">${cl.name}</span> <span class="sdt" style="color:#D97706">👤 موظف</span></div>
+      <div style="font-size:11px;font-weight:700">${eBalTxt}</div>
+    </div>`);
+  });
+
   });
 
   Object.keys(SM).filter(k=>!q||SM[k].label.includes(q)).forEach(k=>{
@@ -2862,8 +2934,11 @@ function renderInvSummary(){
   const discAmt = parseFloat(document.getElementById('f-discount')?.value)||0;
   const totalFinal = totalWithShipping - discAmt;
 
+  // إضافة الأحجار للإجمالي
+  const gemTot = typeof getGemTotal === 'function' ? getGemTotal() : 0;
+  const totalWithGems = totalFinal + gemTot;
   const elT = document.getElementById('sum-total');
-  if(elT) elT.textContent = fmt(totalFinal)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
+  if(elT) elT.textContent = fmt(totalWithGems)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
 }
 
 function renderDraftItems(){
@@ -3139,12 +3214,13 @@ function saveInvoice(){
 
   const goldTotal =draftItems.reduce((a,i)=>a+i.weight*i.price,0);
   const ajTotal   =draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
+  const gemTotal  =getGemTotal(); // الأحجار الكريمة
   const discount  =parseFloat(document.getElementById("f-discount")?.value)||0;
   const shipping  =parseFloat(document.getElementById("f-shipping")?.value)||0;
   const vatCheck  = document.getElementById('vat-check');
   const vatOn     = vatCheck && vatCheck.checked;
   const vatAmt    = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
-  const invTotal  =goldTotal+ajTotal+vatAmt+shipping-discount;
+  const invTotal  =goldTotal+ajTotal+vatAmt+shipping+gemTotal-discount;
   const totalWeight=draftItems.reduce((a,i)=>a+i.weight,0);
   const total24   =Math.round(draftItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
   // البيع والشراء آجل دائماً
@@ -3166,6 +3242,7 @@ function saveInvoice(){
     type: isDebt?'sell-debt': isBuyDebt?'buy-debt': selType,
     items:[...draftItems],
     goldTotal, ajTotal, discount, shipping, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight, total24,
+    gemTotal, gems:[...gemItems],
     cash, goldPay, prepaid, due: isDebt?due:'', buyDue: isBuyDebt?buyDue:'',
     isDebt, isBuyDebt,
     client, staff, notes
@@ -3178,6 +3255,7 @@ function saveInvoice(){
 }
 
 function clearInvForm(){
+  gemItems=[]; gemCounter=0; renderGems();
   draftItems=[]; itemCounter=0;
   renderDraftItems();
   ['f-cash','f-goldpay','f-prepaid','f-due','f-buy-due','f-notes','f-discount','f-shipping','f-date'].forEach(i=>{
@@ -3599,6 +3677,8 @@ function renderInvModal(tx,editing){
         <span class="val" style="color:var(--io)">${fmt(tx.ajTotal||0)} ر</span>
       </div>
       ${(tx.vatAmt||0)>0?`<div class="inv-sum-row"><span class="lbl">🧾 ضريبة 15%</span><span class="val" style="color:#F59E0B">${fmt(tx.vatAmt)} ر</span></div>`:''}
+      ${(tx.gemTotal||0)>0?`<div class="inv-sum-row"><span class="lbl">💎 أحجار كريمة</span><span class="val" style="color:var(--g1)">${fmt(tx.gemTotal)} ر</span></div>`:''}
+      ${(tx.gems&&tx.gems.length)?tx.gems.map(g=>`<div style="font-size:10px;color:var(--tx2);padding:1px 4px">• ${g.type}: ${fmt(g.price)} ر${g.note?' — '+g.note:''}</div>`).join(''):''}      
       ${(tx.shipping||0)>0?`<div class="inv-sum-row"><span class="lbl">🚚 أجور الشحن</span><span class="val" style="color:var(--in)">${fmt(tx.shipping)} ر</span></div>`:''}
       ${(tx.discount||0)>0?`<div class="inv-sum-row"><span class="lbl">🏷️ خصم</span><span class="val" style="color:var(--ok)">− ${fmt(tx.discount)} ر</span></div>`:''}
       ${tx.isDebt?`<div class="inv-sum-row"><span class="lbl">💳 مدفوع مقدماً</span><span class="val">${fmt(tx.prepaid||0)} ر</span></div>`:''}
@@ -7850,7 +7930,261 @@ function renderAll(){
   renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
 }
 
+// ══════════════════════════════════════════════════════
+// GEMS — الأحجار الكريمة
+// ══════════════════════════════════════════════════════
+let gemItems = [];
+let gemCounter = 0;
+const GEM_TYPES = ['لؤلؤ','زمرد','ياقوت','ماسة','ألماس','فيروز','عقيق','زبرجد','أخرى'];
+
+function addGem(){
+  const id = ++gemCounter;
+  gemItems.push({id, type:'لؤلؤ', price:0, note:''});
+  renderGems();
+}
+function removeGem(id){
+  gemItems = gemItems.filter(g=>g.id!==id);
+  renderGems();
+}
+function updateGem(id, field, val){
+  const g = gemItems.find(x=>x.id===id);
+  if(!g) return;
+  if(field==='price'){
+    const v = parseFloat(val)||0;
+    if(v < 0){ toast('⚠️ لا يسمح بقيم سالبة'); return; }
+    g[field] = v;
+  } else {
+    g[field] = val;
+  }
+  renderGems();
+  renderInvSummary();
+}
+function getGemTotal(){
+  return gemItems.reduce((a,g)=>a+(g.price||0), 0);
+}
+function renderGems(){
+  const el = document.getElementById('gems-list');
+  if(!el) return;
+  if(!gemItems.length){
+    el.innerHTML = '<div style="font-size:10px;color:var(--tx2);text-align:center;padding:4px">لا توجد أحجار — اضغط "+ إضافة حجر"</div>';
+    const tr = document.getElementById('gems-total-row');
+    if(tr) tr.style.display='none';
+    const sr = document.getElementById('sum-gems-row');
+    if(sr) sr.style.display='none';
+    renderInvSummary();
+    return;
+  }
+  el.innerHTML = gemItems.map(g=>`
+    <div style="display:grid;grid-template-columns:auto 80px 1fr auto;gap:6px;align-items:center;margin-bottom:6px">
+      <select onchange="updateGem(${g.id},'type',this.value)"
+        style="padding:5px 4px;border:1px solid var(--b1);border-radius:6px;background:var(--c1);
+               color:var(--tx1);font-family:inherit;font-size:11px">
+        ${GEM_TYPES.map(t=>`<option value="${t}" ${t===g.type?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input type="number" inputmode="decimal" value="${g.price||''}" placeholder="0"
+        min="0"
+        oninput="updateGem(${g.id},'price',this.value)"
+        style="padding:5px 6px;border:1px solid var(--b1);border-radius:6px;background:var(--c1);
+               color:var(--tx1);font-family:inherit;font-size:11px;width:100%">
+      <input type="text" value="${g.note||''}" placeholder="وصف (اختياري)"
+        oninput="updateGem(${g.id},'note',this.value)"
+        style="padding:5px 6px;border:1px solid var(--b1);border-radius:6px;background:var(--c1);
+               color:var(--tx1);font-family:inherit;font-size:11px;width:100%">
+      <button onclick="removeGem(${g.id})"
+        style="padding:4px 7px;border:none;background:#FEE2E2;color:#991B1B;border-radius:6px;
+               cursor:pointer;font-size:12px">❌</button>
+    </div>
+  `).join('');
+
+  const total = getGemTotal();
+  const tr = document.getElementById('gems-total-row');
+  if(tr){ tr.style.display = total>0?'flex':'none'; }
+  const tv = document.getElementById('gems-total-val');
+  if(tv) tv.textContent = fmt(total)+' ريال';
+  const sr = document.getElementById('sum-gems-row');
+  if(sr) sr.style.display = total>0?'flex':'none';
+  const sv = document.getElementById('sum-gems');
+  if(sv) sv.textContent = fmt(total)+' ريال';
+  renderInvSummary();
+}
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD — داشبورد
+// ══════════════════════════════════════════════════════
+function renderDashboard(){
+  const txs = S.transactions||[];
+  const now  = new Date();
+  const todayStr  = now.toDateString();
+  const thisMonth = now.getMonth();
+  const thisYear  = now.getFullYear();
+
+  // ── 4 بطاقات ──
+  const todayTxs  = txs.filter(t=>new Date(t.date).toDateString()===todayStr);
+  const monthTxs  = txs.filter(t=>{ const d=new Date(t.date); return d.getMonth()===thisMonth&&d.getFullYear()===thisYear; });
+
+  const sellToday = todayTxs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
+  const sellMonth = monthTxs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
+  const expenses  = monthTxs.filter(t=>t.type==='expense').reduce((a,t)=>a+(t.amount||0),0);
+  const retMonth  = monthTxs.filter(t=>t.type==='sales-return'||t.type==='return').reduce((a,t)=>a+(t.ajTotal||0),0);
+  const netProfit = sellMonth - retMonth - expenses;
+
+  const setEl=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=fmt(Math.round(v)); };
+  setEl('dash-sell-today', sellToday);
+  setEl('dash-sell-month', sellMonth);
+  setEl('dash-expenses',   expenses);
+  setEl('dash-net-profit', netProfit);
+
+  // ── رسم بياني 7 أيام ──
+  const days7 = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(now); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    const dStr = d.toDateString();
+    const val = txs.filter(t=>new Date(t.date).toDateString()===dStr&&(t.type==='sell'||t.type==='sell-debt')).reduce((a,t)=>a+(t.ajTotal||0),0);
+    days7.push({label:['أحد','اثن','ثلث','أرب','خمس','جمع','سبت'][d.getDay()], val});
+  }
+  const maxV = Math.max(...days7.map(d=>d.val), 1);
+  const barsEl = document.getElementById('dash-chart-bars');
+  const lblsEl = document.getElementById('dash-chart-labels');
+  if(barsEl){
+    barsEl.innerHTML = days7.map(d=>{
+      const pct = Math.round((d.val/maxV)*100);
+      const isToday = d === days7[6];
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:8px;color:var(--tx2)">${d.val>0?fmt(Math.round(d.val)):''}</div>
+        <div style="width:100%;background:${isToday?'var(--g1)':'var(--in)'};border-radius:4px 4px 0 0;
+          height:${Math.max(pct,4)}%;min-height:3px;transition:height .3s;opacity:${isToday?1:.7}"></div>
+      </div>`;
+    }).join('');
+    barsEl.style.height='80px';
+  }
+  if(lblsEl){
+    lblsEl.innerHTML = days7.map((d,i)=>`<div style="flex:1;text-align:center;font-size:8px;color:${i===6?'var(--g1)':'var(--tx2)'};font-weight:${i===6?700:400}">${d.label}</div>`).join('');
+  }
+
+  // ── رسم دائري عمليات الرواتب ──
+  const salTxs = txs.filter(t=>t.type&&(t.type.startsWith('sal-')||t.type.startsWith('salary-')));
+  const pie = {
+    'إيداع': salTxs.filter(t=>['sal-deposit','salary-custody','salary-personal','sal-personal','sal-collect'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0),
+    'سحب':    salTxs.filter(t=>['sal-withdraw','sal-payout','salary-pay'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0),
+    'بدل':    salTxs.filter(t=>['sal-allowance','salary-allowance'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0),
+    'خصم':    salTxs.filter(t=>['sal-deduction','salary-deduction'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0),
+  };
+  const pieColors = ['#065F46','#991B1B','#D97706','#92400E'];
+  const pieLabels = Object.keys(pie);
+  const pieVals   = Object.values(pie);
+  const pieTotal  = pieVals.reduce((a,v)=>a+v,0)||1;
+  const canvas = document.getElementById('dash-pie');
+  if(canvas && canvas.getContext){
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,120,120);
+    let angle = -Math.PI/2;
+    pieVals.forEach((v,i)=>{
+      const slice = (v/pieTotal)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(60,60);
+      ctx.arc(60,60,55,angle,angle+slice);
+      ctx.closePath();
+      ctx.fillStyle = pieColors[i];
+      ctx.fill();
+      angle += slice;
+    });
+    // دائرة وسط
+    ctx.beginPath();
+    ctx.arc(60,60,28,0,Math.PI*2);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--c1')||'#1a1a2e';
+    ctx.fill();
+  }
+  const legEl = document.getElementById('dash-pie-legend');
+  if(legEl){
+    legEl.innerHTML = pieLabels.map((lbl,i)=>`
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+        <div style="width:8px;height:8px;border-radius:2px;background:${pieColors[i]};flex-shrink:0"></div>
+        <span style="color:var(--tx2)">${lbl}: <b style="color:var(--tx1)">${fmt(Math.round(pieVals[i]))}</b></span>
+      </div>
+    `).join('');
+  }
+
+  // ── إحصائيات ──
+  const statsEl = document.getElementById('dash-stats');
+  if(statsEl){
+    // أكثر موظف نشاطاً
+    const empCount = {};
+    salTxs.forEach(t=>{ if(t.employee||t.client){ const e=t.employee||t.client; empCount[e]=(empCount[e]||0)+1; } });
+    const topEmp = Object.entries(empCount).sort((a,b)=>b[1]-a[1])[0];
+    // أكثر عملية
+    const opCount = {};
+    salTxs.forEach(t=>{ opCount[t.type]=(opCount[t.type]||0)+1; });
+    const topOp = Object.entries(opCount).sort((a,b)=>b[1]-a[1])[0];
+    // متوسط قيمة العملية
+    const avgVal = salTxs.length ? Math.round(salTxs.reduce((a,t)=>a+(t.amount||0),0)/salTxs.length) : 0;
+    // عدد السحوبات اليوم لكل موظف
+    const todayWithdraws = {};
+    todayTxs.filter(t=>t.type==='sal-withdraw'||t.type==='salary-pay').forEach(t=>{
+      const e=t.employee||t.client||'?'; todayWithdraws[e]=(todayWithdraws[e]||0)+1;
+    });
+    const highWithdraw = Object.entries(todayWithdraws).find(([,v])=>v>5);
+
+    statsEl.innerHTML = `
+      ${topEmp?`<div style="background:var(--c2);border-radius:8px;padding:7px">
+        <div style="color:var(--tx2);أكثر نشاطاً">&#x1F3C6; أكثر نشاطاً</div>
+        <div style="font-weight:700;color:var(--tx1)">${topEmp[0]} (${topEmp[1]})</div>
+      </div>`:''}
+      ${topOp?`<div style="background:var(--c2);border-radius:8px;padding:7px">
+        <div style="color:var(--tx2)">&#x1F4CA; أكثر عملية</div>
+        <div style="font-weight:700;color:var(--tx1)">${(TLBL||{})[topOp[0]]||topOp[0]} (${topOp[1]})</div>
+      </div>`:''}
+      <div style="background:var(--c2);border-radius:8px;padding:7px">
+        <div style="color:var(--tx2)">&#x2696;&#xFE0F; متوسط العملية</div>
+        <div style="font-weight:700;color:var(--tx1)">${fmt(avgVal)} ر</div>
+      </div>
+      ${highWithdraw?`<div style="background:#3D1515;border:1px solid var(--no);border-radius:8px;padding:7px">
+        <div style="color:var(--no);font-weight:700">&#x26A0;&#xFE0F; تنبيه: ${highWithdraw[0]} سحب أكثر من 5 مرات اليوم</div>
+      </div>`:''}
+    `;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// SMART SUGGESTIONS — اقتراحات ذكية
+// ══════════════════════════════════════════════════════
+function checkAmountAlert(type, amount){
+  const txs = (S.transactions||[]).filter(t=>
+    t.type===type && (t.employee||t.client) && (t.amount||0)>0
+  ).slice(-10);
+  if(txs.length < 3) return;
+  const avg = txs.reduce((a,t)=>a+(t.amount||0),0)/txs.length;
+  const hint = document.getElementById('sal-type-hint');
+  if(!hint) return;
+  if(amount > avg*1.5){
+    hint.style.display='block';
+    hint.style.background='#3D1515';
+    hint.style.border='1px solid var(--no)';
+    hint.style.color='var(--no)';
+    hint.textContent=`⚠️ المبلغ أعلى من المعتاد (${fmt(Math.round(avg))} ر)`;
+  } else if(amount < avg*0.5 && amount>0){
+    hint.style.display='block';
+    hint.style.background='#1C2A1C';
+    hint.style.border='1px solid var(--ok)';
+    hint.style.color='var(--ok)';
+    hint.textContent=`ℹ️ المبلغ أقل من المعتاد (${fmt(Math.round(avg))} ر)`;
+  }
+}
+
+function suggestLastAmount(type){
+  const txMap = {'deposit':'sal-deposit','withdraw':'sal-withdraw','allowance':'sal-allowance','deduction':'sal-deduction'};
+  const txType = txMap[type];
+  if(!txType) return;
+  const last = (S.transactions||[]).filter(t=>t.type===txType&&(t.amount||0)>0).slice(-1)[0];
+  if(!last) return;
+  const amtEl = document.getElementById('sal-amount');
+  if(amtEl && !amtEl.value){
+    amtEl.placeholder = `آخر قيمة: ${fmt(last.amount)} ر`;
+  }
+}
+
 function renderHome(){
+  // تحديث الداشبورد
+  setTimeout(renderDashboard, 0);
   // ── تنبيهات الديون المتأخرة ──
   const todayD = new Date(); todayD.setHours(0,0,0,0);
   const overdueTxs = S.transactions.filter(t=>{
@@ -8247,6 +8581,96 @@ function updateTfAmtLabel(){
 function renderStmt(){
   const v=document.getElementById('stmt-v')?.value;
   const body=document.getElementById('stmt-body');
+  // ── كشف موظف ──
+  if(v && v.startsWith('__emp__')){
+    const empName = v.replace('__emp__','');
+    // نعرض كشف الموظف داخل stmt-body
+    const empObj=(S.clients||[]).find(c=>c.name===empName&&c.type==='موظف');
+    const baseSal=empObj?.baseSalary||0;
+    const txs=(S.transactions||[]).filter(t=>(t.employee===empName||t.client===empName)&&t.type&&(t.type.startsWith('sal-')||t.type.startsWith('salary-'))).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const totDep=txs.filter(t=>['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const totWith=txs.filter(t=>['sal-withdraw','sal-payout','salary-pay'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const totAllow=txs.filter(t=>['sal-allowance','salary-allowance'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const totDed=txs.filter(t=>['sal-deduction','salary-deduction'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
+    const netBal=Math.round((totDep+totAllow-totWith-totDed)*100)/100;
+    const balClr=netBal>=0?'#065F46':'#991B1B';
+    const balLbl=netBal>=0?'له مستحق':'عليه مديون';
+    // جدول الحركات
+    let runBal=0;
+    const typeLabel={'sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','salary-pay':'💸 سحب','salary-custody':'💰 إيداع','salary-personal':'💰 إيداع','salary-allowance':'🎁 بدل','salary-deduction':'✂️ خصم'};
+    const typeBg={'sal-deposit':'#D1FAE5','sal-withdraw':'#FEE2E2','sal-allowance':'#FEF3C7','sal-deduction':'#FEF9C3','salary-pay':'#FEE2E2','salary-custody':'#D1FAE5','salary-personal':'#D1FAE5','salary-allowance':'#FEF3C7','salary-deduction':'#FEF9C3'};
+    const typeClr={'sal-deposit':'#065F46','sal-withdraw':'#991B1B','sal-allowance':'#D97706','sal-deduction':'#92400E','salary-pay':'#991B1B','salary-custody':'#065F46','salary-personal':'#065F46','salary-allowance':'#D97706','salary-deduction':'#92400E'};
+    const rows=txs.map(t=>{
+      let delta=0;
+      if(['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)) delta=(t.amount||0);
+      if(['sal-withdraw','sal-payout','salary-pay'].includes(t.type)) delta=-(t.amount||0);
+      if(['sal-allowance','salary-allowance'].includes(t.type)) delta=(t.amount||0);
+      if(['sal-deduction','salary-deduction'].includes(t.type)) delta=-(t.amount||0);
+      runBal=Math.round((runBal+delta)*100)/100;
+      const dt=fmtDate(t.date);
+      const bClr=runBal>=0?'#065F46':'#991B1B';
+      return `<tr style="border-bottom:1px solid var(--b1)">
+        <td style="padding:7px 8px;font-size:10px;color:var(--tx2)">${dt.ar}</td>
+        <td style="padding:7px 8px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:${typeBg[t.type]||'var(--g4)'};color:${typeClr[t.type]||'var(--g1)'}">${typeLabel[t.type]||t.type}</span>
+          ${(t.reason||t.notes)?`<div style="font-size:9px;color:var(--tx2);margin-top:1px">${t.reason||t.notes}</div>`:''}</td>
+        <td style="padding:7px 8px;text-align:left;font-size:13px;font-weight:700;color:${delta>=0?'#065F46':'#991B1B'}">${delta>=0?'+':''}${fmt(Math.abs(delta))}</td>
+        <td style="padding:7px 8px;text-align:left;font-size:11px;font-weight:700;color:${bClr}">${runBal>=0?'له':'عليه'}: ${fmt(Math.abs(runBal))}</td>
+      </tr>`;
+    }).join('');
+    body.innerHTML=`
+      <div class="card">
+        <div class="ch">💼 كشف حساب الموظف — ${empName}</div>
+        <div class="cb">
+          <!-- بطاقة الرصيد -->
+          <div style="background:${netBal>=0?'#D1FAE5':'#FEE2E2'};border-radius:14px;padding:14px;margin-bottom:12px;border:2px solid ${balClr};text-align:center">
+            <div style="font-size:11px;font-weight:700;color:${balClr};margin-bottom:4px">⚖️ صافي الرصيد</div>
+            <div style="font-size:28px;font-weight:900;color:${balClr}">${fmt(Math.abs(netBal))} ر</div>
+            <div style="font-size:13px;font-weight:800;color:${balClr}">${balLbl}</div>
+          </div>
+          <!-- تفصيل الأرقام -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
+            <div style="background:#D1FAE5;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:9px;color:#065F46;font-weight:700">💰 إجمالي الإيداع</div>
+              <div style="font-size:16px;font-weight:900;color:#065F46">${fmt(totDep)}</div>
+            </div>
+            <div style="background:#FEE2E2;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:9px;color:#991B1B;font-weight:700">💸 إجمالي السحوب</div>
+              <div style="font-size:16px;font-weight:900;color:#991B1B">${fmt(totWith)}</div>
+            </div>
+            <div style="background:#FEF3C7;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:9px;color:#D97706;font-weight:700">🎁 بدلات</div>
+              <div style="font-size:16px;font-weight:900;color:#D97706">${fmt(totAllow)}</div>
+            </div>
+            <div style="background:#FEF9C3;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:9px;color:#92400E;font-weight:700">✂️ خصومات</div>
+              <div style="font-size:16px;font-weight:900;color:#92400E">${fmt(totDed)}</div>
+            </div>
+          </div>
+          <!-- سجل الحركات -->
+          ${txs.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:var(--c3)">
+              <th style="padding:7px 8px;text-align:right;font-size:10px;color:var(--tx2)">📅 التاريخ</th>
+              <th style="padding:7px 8px;text-align:right;font-size:10px;color:var(--tx2)">📌 العملية</th>
+              <th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--tx2)">💰 المبلغ</th>
+              <th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--tx2)">⚖️ الرصيد</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table></div>`:'<div class=\"empty\"><p>لا توجد حركات</p></div>'}
+          <!-- أزرار سريعة -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px">
+            <button onclick="openSalModal('deposit','${empName}')"
+              style="padding:10px;border:none;border-radius:10px;background:#D1FAE5;color:#065F46;font-family:inherit;font-weight:700;cursor:pointer">💰 إيداع</button>
+            <button onclick="openSalModal('withdraw','${empName}')"
+              style="padding:10px;border:none;border-radius:10px;background:#FEE2E2;color:#991B1B;font-family:inherit;font-weight:700;cursor:pointer">💸 سحب</button>
+            <button onclick="openSalModal('allowance','${empName}')"
+              style="padding:10px;border:none;border-radius:10px;background:#FEF3C7;color:#D97706;font-family:inherit;font-weight:700;cursor:pointer">🎁 بدل</button>
+            <button onclick="openSalModal('deduction','${empName}')"
+              style="padding:10px;border:none;border-radius:10px;background:#FEF9C3;color:#92400E;font-family:inherit;font-weight:700;cursor:pointer">✂️ خصم</button>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
   if(!v){body.innerHTML='<div class="empty"><div class="ei">📊</div><p>اختر جهة أو صندوق من البحث</p></div>';return;}
   const SM = getSM(); // إصلاح: تعريف محلي
 
@@ -8571,6 +8995,54 @@ function renderStmt(){
     runGold24 = Math.round((runGold24 + dGold24)*1000)/1000;
     return {t, dCash, dGold24, runCash, runGold24};
   }).reverse(); // عرض من الأحدث للأقدم
+
+  // ── تنبيه العيارات المختلطة (8+ فواتير) ──
+  (()=>{
+    const sellTxsK = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
+    if(sellTxsK.length < 8) return;
+    let has18=false, has21=false;
+    sellTxsK.forEach(t=>(t.items||[]).forEach(i=>{ if(i.karat==='18'||i.karat==='18k') has18=true; if(i.karat==='21') has21=true; }));
+    if(!has18||!has21) return;
+    // احسب المجاميع
+    let t18=0,t21=0,t24=0;
+    sellTxsK.forEach(t=>(t.items||[]).forEach(i=>{
+      const w=i.weight||0;
+      if(i.karat==='18'||i.karat==='18k') t18+=w;
+      else if(i.karat==='21') t21+=w;
+      else if(i.karat==='24') t24+=w;
+    }));
+    txs.filter(t=>t.type==='sales-return'||t.type==='return').forEach(t=>(t.items||[]).forEach(i=>{
+      if(i.karat==='18'||i.karat==='18k') t18-=(i.weight||0);
+      else if(i.karat==='21') t21-=(i.weight||0);
+    }));
+    const dom=t21>t18?'21':'18';
+    const alertDiv=document.createElement('div');
+    alertDiv.innerHTML=`
+    <div style="background:#1C1A08;border:2px solid #D97706;border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;color:#D97706;margin-bottom:6px">⚠️ تنبيه: عيارات مختلطة</div>
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px">${v} لديه فواتير عيار 18 وعيار 21 — انتبه عند الحساب!</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;text-align:center">
+        <div style="background:#1a1a2e;border-radius:8px;padding:8px">
+          <div style="font-size:9px;color:var(--tx2)">عيار 18</div>
+          <div style="font-size:15px;font-weight:900;color:#60A5FA">${fmtG(Math.round(t18*1000)/1000)} ج</div>
+        </div>
+        <div style="background:#1a1a2e;border-radius:8px;padding:8px">
+          <div style="font-size:9px;color:var(--tx2)">عيار 21</div>
+          <div style="font-size:15px;font-weight:900;color:var(--g1)">${fmtG(Math.round(t21*1000)/1000)} ج</div>
+        </div>
+        <div style="background:#1a1a2e;border-radius:8px;padding:8px">
+          <div style="font-size:9px;color:var(--tx2)">عيار 24</div>
+          <div style="font-size:15px;font-weight:900;color:#A78BFA">${fmtG(Math.round(t24*1000)/1000)} ج</div>
+        </div>
+      </div>
+      <div style="background:${dom==='21'?'#7C3AED':'#065F46'};border-radius:8px;padding:9px;font-size:12px;font-weight:700;color:#fff;text-align:center">
+        🔔 السداد لازم يكون بعيار ${dom} أو أعلى
+        ${dom==='21'?' (عيار 18 للسداد غير صحيح!)':' (يقدر بعيار 18 أو 21 أو 24)'}
+      </div>
+    </div>`;
+    if(body && body.firstChild) body.insertBefore(alertDiv.firstElementChild, body.firstChild);
+    else if(body) body.prepend(alertDiv.firstElementChild);
+  })();
 
   let txRows=txsWithBalance.map(({t, dCash, dGold24, runCash, runGold24})=>{
     const dt=fmtDate(t.date);
