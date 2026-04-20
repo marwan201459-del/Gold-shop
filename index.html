@@ -1320,57 +1320,64 @@ body{
 
 <div id="pg-salary" class="pg">
 
+  <!-- جدول ملخص الموظفين -->
+  <div id="salary-table-section" style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:800;color:var(--tx1)">👥 جدول رواتب الموظفين</span>
+      <span id="salary-month-label" style="font-size:10px;color:var(--tx2);background:var(--c2);padding:3px 10px;border-radius:12px;border:1px solid var(--b1)"></span>
+    </div>
+    <div id="salary-summary-table"></div>
+  </div>
+
   <!-- أزرار العمليات السريعة -->
   <div style="margin-bottom:14px">
-    <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;padding:0 2px">
-      &#x26A1; عمليات الرواتب:
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px">⚡ عملية جديدة:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
       <button onclick="openSalModal('deposit')"
-        style="padding:14px 8px;border-radius:var(--rb);border:2px solid #065F46;background:#D1FAE5;color:#065F46;font-family:inherit;cursor:pointer;text-align:center">
-        <div style="font-size:22px;margin-bottom:4px">💰</div>
-        <div style="font-size:12px;font-weight:800">إيداع &#x644;&#x644;&#x645;&#x643;&#x62A;&#x628;</div>
-        <div style="font-size:9px;margin-top:3px;opacity:.85">&#x627;&#x644;موظف &#x64A;&#x648;&#x62F;&#x639; &#x645;&#x646; &#x639;&#x646;&#x62F;&#x647;</div>
-        <div style="margin-top:6px;font-size:10px;font-weight:700;background:#065F4625;border-radius:6px;padding:3px 6px;line-height:1.6">
-          صندوق ▲<br>&#x62D;&#x633;&#x627;&#x628; &#x25B2; (&#x644;&#x647;)
-        </div>
+        style="padding:12px;border-radius:12px;border:2px solid #065F46;background:#D1FAE5;color:#065F46;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:20px">💰</div>
+        <div style="font-size:11px;font-weight:800;margin-top:3px">إيداع للمكتب</div>
+        <div style="font-size:9px;opacity:.8;margin-top:1px">صندوق▲ له▲</div>
       </button>
       <button onclick="openSalModal('withdraw')"
-        style="padding:14px 8px;border-radius:var(--rb);border:2px solid #991B1B;background:#FEE2E2;color:#991B1B;font-family:inherit;cursor:pointer;text-align:center">
-        <div style="font-size:22px;margin-bottom:4px">💸</div>
-        <div style="font-size:12px;font-weight:800">&#x633;&#x62D;&#x628; &#x645;&#x646; &#x627;&#x644;&#x631;&#x627;&#x62A;&#x628;</div>
-        <div style="font-size:9px;margin-top:3px;opacity:.85">يأخذ جزء أو كامل راتبه</div>
-        <div style="margin-top:6px;font-size:10px;font-weight:700;background:#991B1B25;border-radius:6px;padding:3px 6px;line-height:1.6">
-          صندوق ▼<br>حساب ▼
-        </div>
+        style="padding:12px;border-radius:12px;border:2px solid #991B1B;background:#FEE2E2;color:#991B1B;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:20px">💸</div>
+        <div style="font-size:11px;font-weight:800;margin-top:3px">سحب من الراتب</div>
+        <div style="font-size:9px;opacity:.8;margin-top:1px">صندوق▼ حساب▼</div>
       </button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <button onclick="openSalModal('allowance')"
-        style="padding:11px 8px;border-radius:var(--rb);border:2px solid #D97706;background:#FEF3C7;color:#D97706;font-family:inherit;cursor:pointer;text-align:center">
-        <div style="font-size:18px;margin-bottom:3px">🎁</div>
-        <div style="font-size:12px;font-weight:800">بدل / مكافأة</div>
-        <div style="font-size:9px;margin-top:2px;opacity:.8">حساب ▲ فقط</div>
+        style="padding:10px;border-radius:12px;border:2px solid #D97706;background:#FEF3C7;color:#D97706;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:16px">🎁</div>
+        <div style="font-size:11px;font-weight:800;margin-top:2px">بدل / مكافأة</div>
+        <div style="font-size:9px;opacity:.8">حساب▲ فقط</div>
       </button>
       <button onclick="openSalModal('deduction')"
-        style="padding:11px 8px;border-radius:var(--rb);border:2px solid #92400E;background:#FEF9C3;color:#92400E;font-family:inherit;cursor:pointer;text-align:center">
-        <div style="font-size:18px;margin-bottom:3px">✂️</div>
-        <div style="font-size:12px;font-weight:800">خصم</div>
-        <div style="font-size:9px;margin-top:2px;opacity:.8">حساب ▼ &#x641;&#x642;&#x637;</div>
+        style="padding:10px;border-radius:12px;border:2px solid #92400E;background:#FEF9C3;color:#92400E;font-family:inherit;cursor:pointer;text-align:center">
+        <div style="font-size:16px">✂️</div>
+        <div style="font-size:11px;font-weight:800;margin-top:2px">خصم</div>
+        <div style="font-size:9px;opacity:.8">حساب▼ فقط</div>
       </button>
     </div>
   </div>
+
+  <!-- كشف حساب موظف مختار -->
+  <div id="salary-detail-section" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span id="salary-detail-name" style="font-size:13px;font-weight:800;color:var(--tx1)"></span>
+      <button onclick="document.getElementById('salary-detail-section').style.display='none'"
+        style="padding:4px 12px;border:none;border-radius:8px;background:var(--c2);color:var(--tx2);font-family:inherit;cursor:pointer;font-size:11px">✕ إغلاق</button>
+    </div>
+    <div id="salary-detail-body"></div>
   </div>
 
-  <!-- emp-stmt-body: احتياطي للتوافق مع الكود القديم (الكشف الآن في pg-stmt) -->
+  <!-- hidden للتوافق -->
   <div id="emp-stmt-body" style="display:none"></div>
-  <!-- sal-emp-filter: احتياطي للتوافق -->
   <input type="hidden" id="sal-emp-filter-s">
   <input type="hidden" id="sal-emp-filter-v">
   <div id="sal-emp-cards" style="display:none"></div>
-
 </div>
-
 
 <div id="pg-pending" class="pg">
   <!-- فلتر الحالة -->
@@ -6274,6 +6281,9 @@ function saveSalary(){
   renderAll();
   buildEmpList();
   renderEmpStmt();
+  renderSalary(); // تحديث الجدول فوراً
+  // افتح كشف الموظف تلقائياً
+  if(emp) setTimeout(()=>showEmpDetail(emp), 100);
   const labels={deposit:'إيداع',withdraw:'سحب',allowance:'إضافة بدل',deduction:'تسجيل خصم'};
   toast(`✅ تم ${labels[currentSalType]||'الحفظ'} — ${fmt(amount)} ريال للموظف ${emp}`);
 }
@@ -6338,7 +6348,166 @@ function saveMonthlyPayroll(){
   toast(`✅ تم صرف راتب ${emp} — ${fmt(amount)} ريال`);
 }
 
-function renderSalary(){ buildEmpList(); renderEmpStmt(); }
+function renderSalary(){
+  // ── جدول ملخص الرواتب ──
+  const now    = new Date();
+  const nowKey = getMonthKey(now);
+  const mNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const lbl = document.getElementById('salary-month-label');
+  if(lbl) lbl.textContent = mNames[now.getMonth()] + ' ' + now.getFullYear();
+
+  const emps = (S.clients||[]).filter(e=>e.type==='موظف');
+  const tbl  = document.getElementById('salary-summary-table');
+  if(!tbl) return;
+
+  if(!emps.length){
+    tbl.innerHTML='<div class="empty"><p>لا يوجد موظفون — أضف موظفًا من إدارة الجهات</p></div>';
+    return;
+  }
+
+  // ── رأس الجدول ──
+  let html = `<div style="border-radius:12px;overflow:hidden;border:1px solid var(--b1)">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:var(--hd)">
+          <th style="padding:10px 10px;text-align:right;font-size:11px;font-weight:700;color:#EDF0FF">👤 الموظف</th>
+          <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:#EDF0FF">💰 الراتب</th>
+          <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:#EDF0FF">✂️ خصوم/سحب</th>
+          <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:#EDF0FF">✅ الباقي</th>
+          <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:#EDF0FF"></th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  emps.forEach(emp=>{
+    const data   = calcEmpMonthly(emp.name);
+    const thisM  = data.months.find(m=>m.key===nowKey);
+    const baseSal= emp.baseSalary||0;
+    const dep    = thisM?.deposit||0;
+    const allow  = thisM?.allowance||0;
+    const with_  = thisM?.withdraw||0;
+    const ded    = thisM?.deduction||0;
+    const remain = thisM?.remaining ?? baseSal;
+    const carryIn= thisM?.carryoverIn||0;
+    const remClr = remain>=0?'#065F46':'#991B1B';
+    const remBg  = remain>=0?'#D1FAE5':'#FEE2E2';
+    const taken  = with_ + ded;
+
+    html += `<tr style="border-bottom:1px solid var(--b1);background:var(--c1)"
+      onclick="showEmpDetail('${emp.name.replace(/'/g,"\'")}');"
+      style="cursor:pointer">
+      <td style="padding:10px 10px">
+        <div style="font-size:13px;font-weight:800;color:var(--tx1)">${emp.name}</div>
+        ${carryIn<0?`<div style="font-size:9px;color:#991B1B">دين مترحّل: ${fmt(Math.abs(carryIn))} ر</div>`:''}
+        ${carryIn>0?`<div style="font-size:9px;color:#065F46">ترحيل: +${fmt(carryIn)} ر</div>`:''}
+      </td>
+      <td style="padding:10px 6px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:var(--tx1)">${fmt(baseSal)}</div>
+        ${allow>0?`<div style="font-size:9px;color:#D97706">+بدل ${fmt(allow)}</div>`:''}
+        ${dep>0?`<div style="font-size:9px;color:#065F46">+إيداع ${fmt(dep)}</div>`:''}
+      </td>
+      <td style="padding:10px 6px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:${taken>0?'#991B1B':'var(--tx2)'}">${taken>0?'-'+fmt(taken):'—'}</div>
+        ${with_>0&&ded>0?`<div style="font-size:9px;color:var(--tx2)">سحب: ${fmt(with_)} | خصم: ${fmt(ded)}</div>`:''}
+      </td>
+      <td style="padding:10px 6px;text-align:center">
+        <div style="font-size:14px;font-weight:900;padding:4px 8px;border-radius:8px;background:${remBg};color:${remClr};display:inline-block">
+          ${fmt(Math.abs(remain))}
+        </div>
+        <div style="font-size:9px;color:${remClr};font-weight:700;margin-top:2px">${remain>=0?'له':'عليه'}</div>
+      </td>
+      <td style="padding:10px 6px;text-align:center">
+        <button onclick="event.stopPropagation();showEmpDetail('${emp.name.replace(/'/g,"\'")}');"
+          style="padding:4px 9px;border:none;border-radius:7px;background:var(--g4);color:var(--g1);font-family:inherit;font-size:11px;cursor:pointer;font-weight:700">كشف</button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  tbl.innerHTML = html;
+}
+
+function showEmpDetail(empName){
+  const sec  = document.getElementById('salary-detail-section');
+  const body = document.getElementById('salary-detail-body');
+  const nameEl = document.getElementById('salary-detail-name');
+  if(!sec||!body) return;
+
+  sec.style.display='block';
+  if(nameEl) nameEl.textContent = '👤 ' + empName + ' — كشف الحساب';
+
+  const data  = calcEmpMonthly(empName);
+  const txs   = (S.transactions||[])
+    .filter(t=>(t.employee===empName||t.client===empName)&&t.type&&(t.type.startsWith('sal-')||t.type.startsWith('salary-')))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date)); // من الأحدث للأقدم
+
+  const tLabel={'sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','salary-pay':'💸 سحب','salary-custody':'💰 إيداع','salary-personal':'💰 إيداع','salary-allowance':'🎁 بدل','salary-deduction':'✂️ خصم'};
+  const tBg   ={'sal-deposit':'#D1FAE5','sal-withdraw':'#FEE2E2','sal-allowance':'#FEF3C7','sal-deduction':'#FEF9C3','salary-pay':'#FEE2E2','salary-custody':'#D1FAE5','salary-personal':'#D1FAE5','salary-allowance':'#FEF3C7','salary-deduction':'#FEF9C3'};
+  const tClr  ={'sal-deposit':'#065F46','sal-withdraw':'#991B1B','sal-allowance':'#D97706','sal-deduction':'#92400E','salary-pay':'#991B1B','salary-custody':'#065F46','salary-personal':'#065F46','salary-allowance':'#D97706','salary-deduction':'#92400E'};
+
+  // بطاقة الشهر الحالي
+  const salCard = renderEmpSalaryCard(empName);
+
+  // جدول الحركات
+  let runBal = 0;
+  const allTxsSorted = [...txs].reverse();
+  const txWithBal = allTxsSorted.map(t=>{
+    let d=0;
+    if(['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)) d=(t.amount||0);
+    if(['sal-withdraw','sal-payout','salary-pay'].includes(t.type)) d=-(t.amount||0);
+    if(['sal-allowance','salary-allowance'].includes(t.type)) d=(t.amount||0);
+    if(['sal-deduction','salary-deduction'].includes(t.type)) d=-(t.amount||0);
+    runBal=Math.round((runBal+d)*100)/100;
+    return {t,d,runBal};
+  });
+
+  const rows = txWithBal.reverse().map(({t,d,runBal:rb})=>{
+    const dt = fmtDate(t.date);
+    const bClr=rb>=0?'#065F46':'#991B1B';
+    const bBg =rb>=0?'#D1FAE5':'#FEE2E2';
+    return `<tr style="border-bottom:1px solid var(--b1)">
+      <td style="padding:8px 10px;font-size:10px;color:var(--tx2);white-space:nowrap">${dt.ar}</td>
+      <td style="padding:8px 10px">
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${tBg[t.type]||'var(--g4)'};color:${tClr[t.type]||'var(--g1)'}">${tLabel[t.type]||t.type}</span>
+        ${(t.reason||t.notes)?`<div style="font-size:9px;color:var(--tx2);margin-top:1px">${t.reason||t.notes}</div>`:''}
+      </td>
+      <td style="padding:8px 10px;text-align:left;font-size:13px;font-weight:700;color:${d>=0?'#065F46':'#991B1B'}">${d>=0?'+':''}${fmt(Math.abs(d))}</td>
+      <td style="padding:8px 10px;text-align:left">
+        <span style="font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:${bBg};color:${bClr}">${rb>=0?'له':'عليه'} ${fmt(Math.abs(rb))}</span>
+      </td>
+      <td style="padding:6px;text-align:center">
+        <button onclick="deleteSalTx(${t.id},'${empName.replace(/'/g,"\'")}') " style="padding:3px 7px;border:none;border-radius:5px;background:#FEE2E2;color:#991B1B;cursor:pointer;font-size:10px">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const tableHtml = txs.length
+    ?`<div class="card" style="margin-top:10px">
+        <div class="ch" style="display:flex;justify-content:space-between;align-items:center">
+          <span>📋 سجل الحركات</span>
+          <div style="display:flex;gap:6px">
+            <button onclick="openSalModal('deposit','${empName}')" style="padding:4px 9px;border:none;border-radius:6px;background:#D1FAE5;color:#065F46;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">💰 إيداع</button>
+            <button onclick="openSalModal('withdraw','${empName}')" style="padding:4px 9px;border:none;border-radius:6px;background:#FEE2E2;color:#991B1B;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">💸 سحب</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--c3)">
+            <th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--tx2)">📅 التاريخ</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--tx2)">📌 العملية</th>
+            <th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--tx2)">💰 المبلغ</th>
+            <th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--tx2)">⚖️ الرصيد</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`
+    :`<div class="card" style="margin-top:10px"><div class="cb"><div class="empty"><p>لا توجد حركات بعد</p></div></div></div>`;
+
+  body.innerHTML = salCard + tableHtml;
+
+  // scroll للكشف
+  sec.scrollIntoView({behavior:'smooth', block:'start'});
+}
 
 
 // ══════════════════════════════════════════════════════════════════
@@ -6562,7 +6731,7 @@ function deleteSalTx(id, empName){
   renderAll();
   const sv=document.getElementById('sal-emp-filter-v');
   if(sv) sv.value=empName;
-  buildEmpList(); renderEmpStmt();
+  buildEmpList(); renderEmpStmt(); renderSalary();
   toast('🗑️ تم الحذف');
 }
 
