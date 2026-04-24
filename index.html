@@ -2712,7 +2712,7 @@ function P(id,btn){
   document.getElementById('pg-'+id).classList.add('on');
   btn.classList.add('on');
   closeAllDrops(); renderAll();
-  if(id==='opening') initOpeningPage();
+  if(id==='expenses') refreshExpSafes();
   // عند فتح صفحة الرواتب: عرض قائمة الموظفين فوراً
   if(id==='salary'){
     setTimeout(()=>{
@@ -2860,6 +2860,16 @@ function openStmtS(){
   d.innerHTML = items.length ? items.join('') : `<div class="sde">لا نتائج</div>`;
   d.classList.add('open');
 }
+function refreshExpSafes(){
+  const expSafe = document.getElementById('exp-safe');
+  if(!expSafe) return;
+  const prev = expSafe.value;
+  expSafe.innerHTML = Object.entries(getSM())
+    .filter(([k,v])=>(v.type==='cash'||v.type==='both')&&!k.startsWith('debt')&&k!=='discount')
+    .map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+  if(prev && expSafe.querySelector(`option[value="${prev}"]`)) expSafe.value = prev;
+}
+
 function selStmt(val,label){
   document.getElementById('stmt-v').value=val;
   document.getElementById('stmt-s').value=label;
@@ -6706,7 +6716,7 @@ function calcEmpMonthly(empName){
       txs: m.txs,
       isOverdrawn: remaining < 0
     };
-    carryover = remaining < 0 ? remaining : 0; // الدين يترحل
+    carryover = remaining; // الرصيد كاملاً يترحل (إيجابي = له، سالب = عليه دين)
     return result;
   });
 
@@ -6737,7 +6747,7 @@ function renderEmpSalaryCard(empName){
       <div style="font-size:10px;font-weight:700;color:${remClr};margin-bottom:3px">📅 ${thisMonth.label}</div>
       <div style="font-size:26px;font-weight:900;color:${remClr}">${fmt(Math.abs(rem))} ر</div>
       <div style="font-size:12px;font-weight:800;color:${remClr}">${remLbl}</div>
-      ${thisMonth.isOverdrawn?`<div style="font-size:10px;color:${remClr};margin-top:3px">⚠️ يترحل للشهر القادم</div>`:''}
+      ${Math.abs(rem)>0.01?`<div style="font-size:10px;color:${remClr};margin-top:3px">${rem>=0?'✅ يترحل للشهر القادم':'⚠️ دين يترحل للشهر القادم'}</div>`:''}
     </div>
 
     <!-- تفصيل الشهر -->
@@ -6783,7 +6793,7 @@ function renderEmpHistoryCard(empName){
       </div>
       <div style="text-align:left">
         <div style="font-size:14px;font-weight:900;color:${clr}">${fmt(Math.abs(m.remaining))} ر</div>
-        <div style="font-size:9px;color:${clr}">${m.remaining>=0?'له':'عليه'}${m.isOverdrawn?' ➡ ترحل':''}</div>
+        <div style="font-size:9px;color:${clr}">${m.remaining>=0?'له':'عليه'} ➡ ترحل</div>
       </div>
     </div>`;
   }).join('');
@@ -7610,12 +7620,14 @@ function setReturnType(type){
   // إظهار صف الضريبة
   const vatRow = document.getElementById('ret-vat-row');
   if(vatRow) vatRow.style.display = 'block';
-  // ملء الصناديق في المصروف
+  // ملء الصناديق في المصروف — دائماً
   const expSafe = document.getElementById('exp-safe');
-  if(expSafe && !expSafe.options.length){
+  if(expSafe){
+    const prev = expSafe.value;
     expSafe.innerHTML = Object.entries(getSM())
       .filter(([k,v])=>(v.type==='cash'||v.type==='both')&&!k.startsWith('debt')&&k!=='discount')
       .map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+    if(prev && expSafe.querySelector(`option[value="${prev}"]`)) expSafe.value = prev;
   }
   // عرض فواتير العميل/المورد للمرجعة
   renderRetCliInvoices();
@@ -8214,12 +8226,12 @@ function renderPending(){
 
 function renderAll(){
   SM=getSM();
-  // إعادة حساب الصناديق من المعاملات
   const computed = calcSafes();
   Object.keys(computed).forEach(k=>{ S.safes[k]=computed[k]; });
   renderHome();renderHist();renderClients();renderSafes();renderStmt();renderTfDrops();
   renderUsers();
   renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
+  refreshExpSafes();
 }
 
 // ══════════════════════════════════════════════════════
