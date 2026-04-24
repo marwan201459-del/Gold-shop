@@ -1301,19 +1301,21 @@ body{
     </div>
   </div>
   <!-- إضافة مبلغ على العميل مع وصف -->
-  <div id="stmt-charge-panel" style="display:none;background:var(--c2);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--io-bd)">
-    <div style="font-size:12px;font-weight:800;color:var(--io);margin-bottom:8px">💵 إضافة مبلغ على العميل</div>
+  <div id="stmt-charge-panel" style="display:none;background:var(--c2);border-radius:12px;padding:12px;margin-bottom:10px;border:2px solid var(--io-bd)">
+    <div style="font-size:13px;font-weight:800;color:var(--io);margin-bottom:10px">💵 إضافة مبلغ على العميل</div>
     <div class="g2">
       <div class="fr">
         <label>المبلغ (ريال)</label>
-        <input type="number" id="charge-amount" inputmode="decimal" placeholder="0" style="border:1.5px solid var(--io-bd);background:#FFF8EE">
+        <input type="number" id="charge-amount" inputmode="decimal" placeholder="0"
+          style="background:var(--c1);border:2px solid var(--io);color:var(--tx1);font-weight:700">
       </div>
       <div class="fr">
         <label>الوصف / السبب</label>
-        <input type="text" id="charge-desc" placeholder="مثال: غرامة تأخير..." autocomplete="off">
+        <input type="text" id="charge-desc" placeholder="مثال: لؤلؤ، غرامة تأخير..."
+          autocomplete="off" style="background:var(--c1);border:1.5px solid var(--b2);color:var(--tx1)">
       </div>
     </div>
-    <button class="btn btn-gold" style="width:100%;margin-top:6px" onclick="addStmtCharge()">➕ إضافة المبلغ للحساب</button>
+    <button class="btn btn-gold" style="width:100%;margin-top:8px;font-size:14px;padding:12px" onclick="addStmtCharge()">➕ إضافة المبلغ للحساب</button>
   </div>
   <button class="btn btn-blue" id="print-btn" style="display:none;margin-bottom:12px;border-radius:var(--rc)" onclick="printStmt()">
     🖨️ طباعة / تصدير PDF
@@ -2141,6 +2143,7 @@ body{
 // ══════════════════════════════════════════════════════
 function convertTo24(weight, karat) {
   const w = parseFloat(weight) || 0;
+  if(karat === 'gems') return 0; // الأحجار لا تُحول لعيار 24
   const k = parseFloat(karat);
   if (!k || k <= 0 || k > 24 || isNaN(k)) return 0;
   return w * k / 24;
@@ -2292,6 +2295,7 @@ function calcSafes(){
     if(t.type==='sell'||t.type==='sell-debt'){
       // ❌ لا يوجد تأثير على الكاش هنا — التسوية تتم فقط في "تسوية دين"
       items.forEach(i=>{
+        if(i.karat==='gems') return; // الأحجار لا تؤثر على مخزون الذهب
         const w = i.weight||0;
         // خصم من المشغول دائماً (لا يوجد كسر)
         if(k21(i.karat))      safes.worked21 -= w;
@@ -2309,6 +2313,7 @@ function calcSafes(){
       // ❌ لا يوجد تأثير على الكاش هنا — التسوية تتم فقط في "تسوية دين"
       // الذهب يدخل للمشغول دائماً (لا يوجد كسر)
       items.forEach(i=>{
+        if(i.karat==='gems') return; // الأحجار لا تؤثر على مخزون الذهب
         const w = i.weight||0;
         if(k21(i.karat))      safes.worked21 += w;
         else if(k18(i.karat)) safes.worked18 += w;
@@ -2873,24 +2878,27 @@ function addStmtCharge(){
     toast('⚠️ اختر عميلاً أو مورداً أولاً'); return;
   }
   const amount = parseFloat(document.getElementById('charge-amount')?.value)||0;
-  const desc   = document.getElementById('charge-desc')?.value?.trim()||'';
+  const desc   = (document.getElementById('charge-desc')?.value||'').trim();
   if(amount<=0){ toast('⚠️ أدخل مبلغاً صحيحاً'); return; }
   if(!desc){ toast('⚠️ أدخل وصف المبلغ'); return; }
 
   const tx = {
-    id: Date.now(),
-    type: 'charge',
-    date: new Date().toISOString(),
+    id:     Date.now(),
+    type:   'charge',
+    date:   new Date().toISOString(),
     client,
     amount,
     desc,
-    notes: desc,
-    total: amount
+    notes:  desc,
+    total:  amount,
+    // حتى لا يؤثر على الصناديق — فقط دين على العميل
+    goldTotal:0, ajTotal:0, weight:0, cash:0, goldPay:0
   };
   S.transactions.push(tx);
-  saveS();
+  sv();
   document.getElementById('charge-amount').value='';
   document.getElementById('charge-desc').value='';
+  renderAll();
   renderStmt();
   toast(`✅ تمت إضافة ${fmt(amount)} ريال على ${client}`);
 }
@@ -2994,24 +3002,31 @@ function renderItemSummary(id){
 }
 
 function renderInvSummary(){
-  const goldAmt =draftItems.reduce((a,i)=>a+i.weight*(i.price||0),0);
-  const ajSum   =draftItems.reduce((a,i)=>a+i.weight*(i.ajour||0),0);
-  const total   =goldAmt+ajSum;
+  const goldOnly = draftItems.filter(i=>i.karat!=='gems');
+  const gemsOnly = draftItems.filter(i=>i.karat==='gems');
 
-  // حساب الأوزان حسب العيار (خام)
-  const w21 = draftItems.filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
-  const w18 = draftItems.filter(i=>i.karat==='18'||i.karat==='18k').reduce((a,i)=>a+(i.weight||0),0);
-  const w24raw = draftItems.filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
-  // إجمالي معادل عيار 24 (للمقارنة الصحيحة مع كشف الحساب)
-  const total24disp = Math.round(draftItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
+  const goldAmt  = goldOnly.reduce((a,i)=>a+i.weight*(i.price||0),0);
+  const ajSum    = goldOnly.reduce((a,i)=>a+i.weight*(i.ajour||0),0);
+  // قيمة الأحجار من الأصناف (وزن × أجور)
+  const gemsItemsAmt = gemsOnly.reduce((a,i)=>a+(i.weight||0)*(i.ajour||0),0);
+  const total    = goldAmt+ajSum;
 
-  // بناء نص الذهب: وزن خام لكل عيار + معادل ع24
+  // حساب الأوزان حسب العيار (ذهب فقط — بدون الأحجار)
+  const w21 = goldOnly.filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
+  const w18 = goldOnly.filter(i=>i.karat==='18'||i.karat==='18k').reduce((a,i)=>a+(i.weight||0),0);
+  const w24raw = goldOnly.filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
+  const total24disp = Math.round(goldOnly.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
+
   let goldParts = [];
   if(w21>0) goldParts.push(`${fmtG(w21)} ج عيار 21`);
   if(w18>0) goldParts.push(`${fmtG(w18)} ج عيار 18`);
   if(w24raw>0) goldParts.push(`${fmtG(w24raw)} ج عيار 24`);
+  if(gemsOnly.length>0){
+    const wGems = gemsOnly.reduce((a,i)=>a+(i.weight||0),0);
+    goldParts.push(`<span style="color:var(--pu);font-size:11px">💎 ${fmtG(wGems)} ج أحجار (لا تُحتسب)</span>`);
+  }
   const goldLabel = goldParts.length
-    ? goldParts.join(' + ') + ` <span style="color:var(--g1);font-size:11px">= ${fmtG(total24disp)} ج ع24</span>`
+    ? goldParts.join(' + ') + (total24disp>0?` <span style="color:var(--g1);font-size:11px">= ${fmtG(total24disp)} ج ع24</span>`:'')
     : '0 جرام';
 
   const el = document.getElementById('sum-gold');
@@ -3019,7 +3034,6 @@ function renderInvSummary(){
   const elAj = document.getElementById('sum-ajour');
   if(elAj) elAj.textContent = fmt(ajSum)+' ريال';
 
-  // ضريبة 15%
   const vatCheck = document.getElementById('vat-check');
   const vatOn = vatCheck && vatCheck.checked;
   const vatAmt = vatOn ? Math.round(ajSum * 0.15 * 100)/100 : 0;
@@ -3032,7 +3046,6 @@ function renderInvSummary(){
   const vatAmountEl = document.getElementById('vat-amount');
   if(vatAmountEl) vatAmountEl.textContent = fmt(vatAmt)+' ريال';
 
-  // أجور الشحن
   const shippingAmt = parseFloat(document.getElementById('f-shipping')?.value)||0;
   const totalWithShipping = totalWithVat + shippingAmt;
   const shippingPreview = document.getElementById('shipping-preview');
@@ -3040,30 +3053,25 @@ function renderInvSummary(){
   if(shippingPreview) shippingPreview.style.display = shippingAmt>0 ? 'flex' : 'none';
   if(shippingAfterEl && shippingAmt>0) shippingAfterEl.textContent = fmt(totalWithShipping)+' ريال';
 
-  // خصم
   const discAmt = parseFloat(document.getElementById('f-discount')?.value)||0;
   const totalFinal = totalWithShipping - discAmt;
 
-  // إضافة الأحجار للإجمالي
-  const gemTot = typeof getGemTotal === 'function' ? getGemTotal() : 0;
+  const gemTot = (typeof getGemTotal === 'function' ? getGemTotal() : 0) + gemsItemsAmt;
   const stoneTot = typeof getStoneTotal === 'function' ? getStoneTotal() : 0;
   const extraAmt = parseFloat(document.getElementById('f-extra-amount')?.value)||0;
   const extraDesc = document.getElementById('f-extra-desc')?.value||'مبلغ إضافي';
   const totalWithGems = totalFinal + gemTot + stoneTot + extraAmt;
 
-  // صف الأحجار (gems)
   const sumGemsRow = document.getElementById('sum-gems-row');
   const sumGemsEl  = document.getElementById('sum-gems');
   if(sumGemsRow) sumGemsRow.style.display = gemTot>0?'flex':'none';
   if(sumGemsEl && gemTot>0) sumGemsEl.textContent = fmt(gemTot)+' ريال';
 
-  // صف صنف الأحجار (stones)
   const stonesRow = document.getElementById('sum-stones-row');
   const stonesEl  = document.getElementById('sum-stones');
   if(stonesRow) stonesRow.style.display = stoneTot>0?'flex':'none';
   if(stonesEl && stoneTot>0) stonesEl.textContent = fmt(stoneTot)+' ريال';
 
-  // صف المبلغ الإضافي
   const extraRow = document.getElementById('sum-extra-row');
   const extraEl  = document.getElementById('sum-extra');
   const extraLbl = document.getElementById('sum-extra-lbl');
@@ -3081,12 +3089,19 @@ function renderDraftItems(){
     el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--tx2);font-size:13px">اضغط "＋ إضافة صنف" لبدء الفاتورة</div>`;
     renderInvSummary(); return;
   }
-  el.innerHTML=draftItems.map((item,idx)=>`
-    <div class="inv-item">
+  el.innerHTML=draftItems.map((item,idx)=>{
+    const isGems = item.karat==='gems';
+    // للأحجار: السعر = 0، المجموع = الوزن × الأجور فقط
+    const itemTotal = isGems
+      ? (item.weight||0) * (item.ajour||0)
+      : (item.weight*item.price) + (item.weight*item.ajour);
+
+    return `
+    <div class="inv-item" style="${isGems?'border-color:var(--pu-bd);':''}">
       <div class="inv-item-head">
-        <span class="item-num">📦 صنف ${idx+1}</span>
+        <span class="item-num">${isGems?'💎':'📦'} صنف ${idx+1}${isGems?' — أحجار كريمة':''}</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="item-total" id="item-total-${item.id}">${fmt((item.weight*item.price)+(item.weight*item.ajour))} ريال</span>
+          <span class="item-total" id="item-total-${item.id}" style="${isGems?'color:var(--pu)':''}">${fmt(itemTotal)} ريال</span>
           <button class="del-item" onclick="removeItem(${item.id})">✕</button>
         </div>
       </div>
@@ -3097,13 +3112,34 @@ function renderDraftItems(){
               <option value="21" ${item.karat==='21'?'selected':''}>عيار 21</option>
               <option value="18" ${item.karat==='18'?'selected':''}>عيار 18</option>
               <option value="24" ${item.karat==='24'?'selected':''}>عيار 24 صافي</option>
+              <option value="gems" ${item.karat==='gems'?'selected':''}>💎 أحجار كريمة</option>
             </select>
           </div>
           <div class="fr"><label>الوصف (اختياري)</label>
-            <input type="text" value="${item.desc}" placeholder="خاتم، سلسلة..." onchange="updateItem(${item.id},'desc',this.value)">
+            <input type="text" value="${item.desc}" placeholder="${isGems?'لؤلؤ، ألماس...':'خاتم، سلسلة...'}" onchange="updateItem(${item.id},'desc',this.value)">
           </div>
         </div>
-        <!-- 💍 ذهب مشغول فقط — حُذف خيار الكسر -->
+        ${isGems ? `
+        <div style="background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:8px;padding:8px;font-size:11px;color:var(--pu);margin-bottom:6px;font-weight:600">
+          💡 وزن الأحجار لا يُضاف لوزن الذهب — فقط القيمة (وزن × أجور) تُضاف للفاتورة
+        </div>
+        <div class="g2">
+          <div class="fr"><label>وزن الأحجار (جرام)</label>
+            <input type="number" value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
+              oninput="updateItem(${item.id},'weight',this.value)"
+              style="border:1.5px solid var(--pu-bd)">
+          </div>
+          <div class="fr"><label>أجور الأحجار / جرام</label>
+            <input type="number" value="${item.ajour||''}" placeholder="0" inputmode="decimal"
+              oninput="updateItem(${item.id},'ajour',this.value)"
+              style="background:var(--pu-bg);color:var(--pu);border:1.5px solid var(--pu-bd);font-weight:700">
+          </div>
+        </div>
+        <div style="background:var(--pu-bg);border-radius:8px;padding:7px 10px;font-size:12px;display:flex;justify-content:space-between">
+          <span style="color:var(--pu);">💎 ${fmtG(item.weight||0)} جرام × ${fmt(item.ajour||0)} ر/ج</span>
+          <span style="font-weight:700;color:var(--pu)">${fmt(itemTotal)} ريال</span>
+        </div>
+        ` : `
         <div class="g3">
           <div class="fr"><label>الوزن (جرام)</label>
             <input type="number" value="${item.weight||''}" placeholder="0.000" step="0.001" inputmode="decimal"
@@ -3123,9 +3159,10 @@ function renderDraftItems(){
           <span style="color:#7C2D12;">ذهب: ${fmt(item.weight*item.price)} · أجور: ${fmt(item.weight*item.ajour)}</span>
           <span style="font-weight:700;color:var(--g1)">${fmt(item.weight*item.price+item.weight*item.ajour)} ريال</span>
         </div>
+        `}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   renderInvSummary();
 }
 
@@ -3138,6 +3175,7 @@ function checkStock(items, type){
   const safes = calcSafes();
   const warnings = [];
   for(const i of items){
+    if(i.karat==='gems') continue; // الأحجار ليست ذهباً
     const w = i.weight||0;
     if(w<=0) continue;
     // المخزون دائماً من المشغول (لا يوجد كسر)
@@ -3346,20 +3384,26 @@ function saveInvoice(){
     toast('⚠️ ' + stockCheck.warning.split(' | ')[0]);
   }
 
-  const goldTotal =draftItems.reduce((a,i)=>a+i.weight*i.price,0);
-  const ajTotal   =draftItems.reduce((a,i)=>a+i.weight*i.ajour,0);
-  const gemTotal  =getGemTotal();
-  const stoneTotal=getStoneTotal();
-  const extraAmount=parseFloat(document.getElementById("f-extra-amount")?.value)||0;
-  const extraDesc =document.getElementById("f-extra-desc")?.value||'';
-  const discount  =parseFloat(document.getElementById("f-discount")?.value)||0;
-  const shipping  =parseFloat(document.getElementById("f-shipping")?.value)||0;
-  const vatCheck  = document.getElementById('vat-check');
-  const vatOn     = vatCheck && vatCheck.checked;
-  const vatAmt    = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
-  const invTotal  =goldTotal+ajTotal+vatAmt+shipping+gemTotal+stoneTotal+extraAmount-discount;
-  const totalWeight=draftItems.reduce((a,i)=>a+i.weight,0);
-  const total24   =Math.round(draftItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
+  const goldItems  = draftItems.filter(i=>i.karat!=='gems');
+  const gemItems2  = draftItems.filter(i=>i.karat==='gems');
+
+  const goldTotal  = goldItems.reduce((a,i)=>a+i.weight*i.price,0);
+  const ajTotal    = goldItems.reduce((a,i)=>a+i.weight*i.ajour,0);
+  // قيمة الأحجار الكريمة من الأصناف (وزن × أجور)
+  const gemsInItems= gemItems2.reduce((a,i)=>a+(i.weight||0)*(i.ajour||0),0);
+  const gemTotal   = getGemTotal() + gemsInItems;  // gems widget + items gems
+  const stoneTotal = getStoneTotal();
+  const extraAmount= parseFloat(document.getElementById("f-extra-amount")?.value)||0;
+  const extraDesc  = document.getElementById("f-extra-desc")?.value||'';
+  const discount   = parseFloat(document.getElementById("f-discount")?.value)||0;
+  const shipping   = parseFloat(document.getElementById("f-shipping")?.value)||0;
+  const vatCheck   = document.getElementById('vat-check');
+  const vatOn      = vatCheck && vatCheck.checked;
+  const vatAmt     = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
+  const invTotal   = goldTotal+ajTotal+vatAmt+shipping+gemTotal+stoneTotal+extraAmount-discount;
+  // الوزن = ذهب فقط (بدون الأحجار)
+  const totalWeight= goldItems.reduce((a,i)=>a+i.weight,0);
+  const total24    = Math.round(goldItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
   // البيع والشراء آجل دائماً
   const isDebt = selType==='sell';
   const isBuyDebt = selType==='buy';
@@ -3748,10 +3792,13 @@ function renderInvModal(tx,editing){
       return;
     }
 
-    const goldWeight = (tx.items||[]).reduce((a,i)=>a+(i.weight||0),0);
-    const by21 = (tx.items||[]).filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
-    const by18 = (tx.items||[]).filter(i=>i.karat==='18').reduce((a,i)=>a+(i.weight||0),0);
-    const by24 = (tx.items||[]).filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
+    const goldItems3 = (tx.items||[]).filter(i=>i.karat!=='gems');
+    const gemsItems3 = (tx.items||[]).filter(i=>i.karat==='gems');
+    const goldWeight = goldItems3.reduce((a,i)=>a+(i.weight||0),0);
+    const by21 = goldItems3.filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
+    const by18 = goldItems3.filter(i=>i.karat==='18').reduce((a,i)=>a+(i.weight||0),0);
+    const by24 = goldItems3.filter(i=>i.karat==='24').reduce((a,i)=>a+(i.weight||0),0);
+    const gemsValue = gemsItems3.reduce((a,i)=>a+(i.weight||0)*(i.ajour||0),0);
 
     let html=`
       <div style="display:flex;gap:8px;margin-bottom:12px">
