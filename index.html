@@ -5272,9 +5272,9 @@ function getClientBalance(cli){
   // المبدأ: كل البيع دين على العميل، كل الشراء دين علينا للمورد
   // التسوية (payment / supplier-payment) هي الوحيدة التي تُخفِّض
 
-  // دين البيع على العميل — t.total يحتوي الإجمالي الكامل (ذهب + أجور + شحن + ضريبة ...)
+  // دين البيع على العميل — t.total الإجمالي الكامل (fallback للفواتير القديمة)
   const sellDebt = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
-                      .reduce((a,t)=>a+(t.total||0),0);
+                      .reduce((a,t)=>a+(t.total||((t.goldTotal||0)+(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0))||0),0);
 
   // مرتجع مبيعات يُخفِّض الدين على العميل
   const salesRetDebt = txs.filter(t=>t.type==='return'||t.type==='sales-return')
@@ -5292,9 +5292,9 @@ function getClientBalance(cli){
   const cashTransferOut = txs.filter(t=>t.type==='transfer' && t.toSafe===('__cli__'+cli))
                              .reduce((a,t)=>a+(t.amount||0),0);
 
-  // دين الشراء علينا للمورد — t.total يحتوي الإجمالي الكامل (ذهب + أجور + شحن ...)
+  // دين الشراء علينا للمورد — t.total الإجمالي الكامل (fallback للفواتير القديمة)
   const buyDebt = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
-                     .reduce((a,t)=>a+(t.total||0),0);
+                     .reduce((a,t)=>a+(t.total||((t.goldTotal||0)+(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0))||0),0);
 
   // مرتجع مشتريات يُخفِّض الدين علينا للمورد
   const purchRetDebt = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
@@ -9451,11 +9451,30 @@ function renderStmt(){
           <div style="font-size:18px;font-weight:900;color:var(--ok)">${payTxs.length}</div>
         </div>
       </div>
+
+      <!-- تشخيص تفصيلي -->
+      ${isSupp ? `
+      <details style="margin-top:8px">
+        <summary style="font-size:11px;color:var(--tx2);cursor:pointer;padding:4px">🔍 تفاصيل الحساب (للتحقق)</summary>
+        <div style="background:var(--c1);border-radius:8px;padding:10px;margin-top:4px;font-size:11px">
+          <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--b1)">
+            <span>📦 إجمالي الفواتير</span><span style="font-weight:700;color:var(--no)">${fmt(totalInvoiced)} ر</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--b1)">
+            <span>💸 إجمالي المدفوع</span><span style="font-weight:700;color:var(--ok)">${fmt(totalPaid)} ر</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:800">
+            <span>🔢 الفرق</span>
+            <span style="color:${Math.abs(totalInvoiced-totalPaid)<0.1?'var(--ok)':'var(--no)'}">${fmt(Math.round(Math.abs(totalInvoiced-totalPaid)*100)/100)} ر</span>
+          </div>
+        </div>
+      </details>` : ''}
     </div>
   `;
 
+  let balRows = ''; // مطلوب للتوافق مع HTML template أدناه
+
   // ── تفصيل الحركات ──
-  // حساب Running Balance من الأقدم للأحدث
   const to24rb = (w,k) => (w||0)*parseFloat(k||'21')/24;
   const txsSortedAsc = [...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
   // نبدأ الرصيد من الافتتاحي إن وجد
@@ -9468,7 +9487,7 @@ function renderStmt(){
     let dCash = 0;
     if(isSupp){
       if(t.type==='buy'||t.type==='buy-debt')
-        dCash = -(t.total||0);
+        dCash = -( t.total || ((t.goldTotal||0)+(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0)) || 0 );
       else if(t.type==='supplier-payment')
         dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0);
       else if(t.type==='purchase-return'||t.type==='supplier-return')
@@ -9479,7 +9498,7 @@ function renderStmt(){
       }
     } else {
       if(t.type==='sell'||t.type==='sell-debt')
-        dCash = (t.total||0);
+        dCash = t.total || ((t.goldTotal||0)+(t.ajTotal||0)+(t.vatAmt||0)+(t.shipping||0)) || 0;
       else if(t.type==='payment')                                      dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0);
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
       else if(t.type==='sales-return'||t.type==='return')             dCash = -(t.ajTotal||t.cashRefund||0) - (t.vatAmt||0);
