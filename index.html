@@ -923,51 +923,6 @@ body{
           </div>
         </div>
 
-        <!-- ── قسم: استلام كسر بدلاً عن دين نقدي ── -->
-        <div id="scrap-for-cash-sec" style="display:none;margin-bottom:10px;background:var(--g4);border:2px solid var(--g5);border-radius:12px;padding:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:13px;font-weight:900;color:var(--g1)">🔄 كسر بدلاً عن دين نقدي</span>
-            <button type="button" onclick="hideScrapForCash()" style="background:none;border:none;color:var(--tx2);font-size:16px;cursor:pointer">✕</button>
-          </div>
-          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;line-height:1.6">
-            💡 عندما يعطيك العميل ذهباً أكثر من دينه الذهبي — الزيادة تُحوَّل لتسوية الدين النقدي بسعر اليوم.
-          </div>
-          <div class="g2">
-            <div class="fr">
-              <label>⚖️ وزن الكسر الزائد (جرام)</label>
-              <input type="number" id="sfc-gram" inputmode="decimal" placeholder="0.000" step="0.001"
-                oninput="calcScrapForCash()" style="border:1.5px solid var(--g5)">
-            </div>
-            <div class="fr">
-              <label>العيار</label>
-              <select id="sfc-karat" onchange="calcScrapForCash()">
-                <option value="21">كسر عيار 21</option>
-                <option value="18">كسر عيار 18</option>
-                <option value="24">عيار 24 صافي</option>
-              </select>
-            </div>
-          </div>
-          <div class="fr">
-            <label>💰 سعر الجرام اليوم (ريال/جرام)</label>
-            <input type="number" id="sfc-price" inputmode="decimal" placeholder="مثال: 200.00"
-              oninput="calcScrapForCash()"
-              style="background:#FFF8EE;border:1.5px solid var(--g5);font-weight:700;font-size:14px">
-          </div>
-          <div id="sfc-result" style="display:none;background:var(--c2);border-radius:8px;padding:10px;margin-top:6px">
-            <div id="sfc-formula" style="font-size:12px;color:var(--g1);font-weight:700;margin-bottom:6px"></div>
-            <button type="button" onclick="applySFCToPayment()"
-              style="width:100%;padding:9px;background:var(--g1);color:#1C1208;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">
-              ✅ تطبيق — يصفّر الدين النقدي
-            </button>
-          </div>
-        </div>
-        <!-- زر تفعيل القسم -->
-        <button type="button" id="scrap-for-cash-btn" onclick="showScrapForCash()"
-          style="width:100%;margin-bottom:10px;padding:9px;background:var(--g4);border:1.5px dashed var(--g5);
-                 border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;color:var(--g1);cursor:pointer">
-          🔄 كسر بدلاً عن دين نقدي — حوّل الذهب لتسوية نقدية
-        </button>
-
         <!-- ── فرق الصافي ── -->
         <div style="background:var(--in-bg);border:1.5px solid var(--in-bd);border-radius:var(--rb);padding:12px;margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -5153,13 +5108,9 @@ function setPayType(type){
   const content = document.getElementById('pay-content');
   if(content) content.style.display = 'block';
 
-  // إظهار/إخفاء قسم "كسر بدلاً عن نقد" — فقط عند القبض
-  const sfcBtn = document.getElementById('scrap-for-cash-btn');
-  const sfcSec = document.getElementById('scrap-for-cash-sec');
-  if(sfcBtn) sfcBtn.style.display = isReceipt ? 'block' : 'none';
-  if(sfcSec) sfcSec.style.display = 'none';
-
-  // تحديث زر الإرسال
+  // إظهار محتوى السداد
+  const payContent = document.getElementById('pay-content');
+  if(payContent) payContent.style.display = 'block';
   const btn = document.getElementById('pay-submit-btn');
   if(btn){
     btn.textContent  = isReceipt ? '📥 تسجيل قبض من عميل' : '📤 تسجيل صرف لمورد';
@@ -9163,91 +9114,77 @@ function renderStmt(){
   // ── كشف موظف ──
   if(v && v.startsWith('__emp__')){
     const empName = v.replace('__emp__','');
-    // نعرض كشف الموظف داخل stmt-body
-    const empObj=(S.clients||[]).find(c=>c.name===empName&&c.type==='موظف');
-    const baseSal=empObj?.baseSalary||0;
-    const txs=(S.transactions||[]).filter(t=>(t.employee===empName||t.client===empName)&&t.type&&(t.type.startsWith('sal-')||t.type.startsWith('salary-'))).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const totDep=txs.filter(t=>['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
-    const totWith=txs.filter(t=>['sal-withdraw','sal-payout','salary-pay'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
-    const totAllow=txs.filter(t=>['sal-allowance','salary-allowance'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
-    const totDed=txs.filter(t=>['sal-deduction','salary-deduction'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
-    const netBal=Math.round((totDep+totAllow-totWith-totDed)*100)/100;
-    const balClr=netBal>=0?'#065F46':'#991B1B';
-    const balLbl=netBal>=0?'له مستحق':'عليه مديون';
-    // جدول الحركات
-    let runBal=0;
-    const typeLabel={'sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','salary-pay':'💸 سحب','salary-custody':'💰 إيداع','salary-personal':'💰 إيداع','salary-allowance':'🎁 بدل','salary-deduction':'✂️ خصم'};
-    const typeBg={'sal-deposit':'#D1FAE5','sal-withdraw':'#FEE2E2','sal-allowance':'#FEF3C7','sal-deduction':'#FEF9C3','salary-pay':'#FEE2E2','salary-custody':'#D1FAE5','salary-personal':'#D1FAE5','salary-allowance':'#FEF3C7','salary-deduction':'#FEF9C3'};
-    const typeClr={'sal-deposit':'#065F46','sal-withdraw':'#991B1B','sal-allowance':'#D97706','sal-deduction':'#92400E','salary-pay':'#991B1B','salary-custody':'#065F46','salary-personal':'#065F46','salary-allowance':'#D97706','salary-deduction':'#92400E'};
-    const rows=txs.map(t=>{
-      let delta=0;
+    // ── استخدام نفس renderEmpStmt لعرض كشف موحد ──
+    body.innerHTML = `
+      <div style="background:var(--c2);border-radius:14px;padding:12px;margin-bottom:12px;border:1px solid var(--b2)">
+        <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:8px">👤 ${empName}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <button onclick="openSalModal('deposit','${empName.replace(/'/g,"\\'")}')"
+            style="padding:10px;border:none;border-radius:10px;background:#D1FAE5;color:#065F46;font-family:inherit;font-weight:700;cursor:pointer;font-size:12px">💰 إيداع</button>
+          <button onclick="openSalModal('withdraw','${empName.replace(/'/g,"\\'")}')"
+            style="padding:10px;border:none;border-radius:10px;background:#FEE2E2;color:#991B1B;font-family:inherit;font-weight:700;cursor:pointer;font-size:12px">💸 سحب</button>
+          <button onclick="openSalModal('allowance','${empName.replace(/'/g,"\\'")}')"
+            style="padding:10px;border:none;border-radius:10px;background:#FEF3C7;color:#D97706;font-family:inherit;font-weight:700;cursor:pointer;font-size:12px">🎁 بدل</button>
+          <button onclick="openSalModal('deduction','${empName.replace(/'/g,"\\'")}')"
+            style="padding:10px;border:none;border-radius:10px;background:#FEF9C3;color:#92400E;font-family:inherit;font-weight:700;cursor:pointer;font-size:12px">✂️ خصم</button>
+        </div>
+      </div>
+      <div id="emp-stmt-inline"></div>`;
+
+    // بناء كشف الموظف مباشرة
+    const empObj2=(S.clients||[]).find(c=>c.name===empName&&c.type==='موظف');
+    const salCard2 = (typeof renderEmpSalaryCard==='function') ? renderEmpSalaryCard(empName) : '';
+    const histCard2 = (typeof renderEmpHistoryCard==='function') ? renderEmpHistoryCard(empName) : '';
+    const txsEmp=(S.transactions||[]).filter(t=>
+      (t.employee===empName||t.client===empName) && t.type &&
+      (t.type.startsWith('salary-')||t.type.startsWith('sal-'))
+    ).sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+    const tlbl={'sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم',
+      'salary-pay':'💸 سحب','salary-custody':'💰 إيداع','salary-personal':'💰 إيداع',
+      'salary-allowance':'🎁 بدل','salary-deduction':'✂️ خصم'};
+    const tbg={'sal-deposit':'#D1FAE5','sal-withdraw':'#FEE2E2','sal-allowance':'#FEF3C7','sal-deduction':'#FEF9C3',
+      'salary-pay':'#FEE2E2','salary-custody':'#D1FAE5','salary-personal':'#D1FAE5',
+      'salary-allowance':'#FEF3C7','salary-deduction':'#FEF9C3'};
+    const tclr={'sal-deposit':'#065F46','sal-withdraw':'#991B1B','sal-allowance':'#D97706','sal-deduction':'#92400E',
+      'salary-pay':'#991B1B','salary-custody':'#065F46','salary-personal':'#065F46',
+      'salary-allowance':'#D97706','salary-deduction':'#92400E'};
+
+    let rb=0;
+    const empRows=txsEmp.map(function(t){
+      const dt=fmtDate(t.date);
+      var delta=0;
       if(['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)) delta=(t.amount||0);
       if(['sal-withdraw','sal-payout','salary-pay'].includes(t.type)) delta=-(t.amount||0);
       if(['sal-allowance','salary-allowance'].includes(t.type)) delta=(t.amount||0);
       if(['sal-deduction','salary-deduction'].includes(t.type)) delta=-(t.amount||0);
-      runBal=Math.round((runBal+delta)*100)/100;
-      const dt=fmtDate(t.date);
-      const bClr=runBal>=0?'#065F46':'#991B1B';
-      return `<tr style="border-bottom:1px solid var(--b1)">
-        <td style="padding:7px 8px;font-size:10px;color:var(--tx2)">${dt.ar}</td>
-        <td style="padding:7px 8px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:${typeBg[t.type]||'var(--g4)'};color:${typeClr[t.type]||'var(--g1)'}">${typeLabel[t.type]||t.type}</span>
-          ${(t.reason||t.notes)?`<div style="font-size:9px;color:var(--tx2);margin-top:1px">${t.reason||t.notes}</div>`:''}</td>
-        <td style="padding:7px 8px;text-align:left;font-size:13px;font-weight:700;color:${delta>=0?'#065F46':'#991B1B'}">${delta>=0?'+':''}${fmt(Math.abs(delta))}</td>
-        <td style="padding:7px 8px;text-align:left;font-size:11px;font-weight:700;color:${bClr}">${runBal>=0?'له':'عليه'}: ${fmt(Math.abs(runBal))}</td>
-      </tr>`;
-    }).join('');
-    body.innerHTML=`
-      <div class="card">
-        <div class="ch">💼 كشف حساب الموظف — ${empName}</div>
-        <div class="cb">
-          <!-- بطاقة الرصيد -->
-          <div style="background:${netBal>=0?'#D1FAE5':'#FEE2E2'};border-radius:14px;padding:14px;margin-bottom:12px;border:2px solid ${balClr};text-align:center">
-            <div style="font-size:11px;font-weight:700;color:${balClr};margin-bottom:4px">⚖️ صافي الرصيد</div>
-            <div style="font-size:28px;font-weight:900;color:${balClr}">${fmt(Math.abs(netBal))} ر</div>
-            <div style="font-size:13px;font-weight:800;color:${balClr}">${balLbl}</div>
-          </div>
-          <!-- تفصيل الأرقام -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
-            <div style="background:#D1FAE5;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:9px;color:#065F46;font-weight:700">💰 إجمالي الإيداع</div>
-              <div style="font-size:16px;font-weight:900;color:#065F46">${fmt(totDep)}</div>
-            </div>
-            <div style="background:#FEE2E2;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:9px;color:#991B1B;font-weight:700">💸 إجمالي السحوب</div>
-              <div style="font-size:16px;font-weight:900;color:#991B1B">${fmt(totWith)}</div>
-            </div>
-            <div style="background:#FEF3C7;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:9px;color:#D97706;font-weight:700">🎁 بدلات</div>
-              <div style="font-size:16px;font-weight:900;color:#D97706">${fmt(totAllow)}</div>
-            </div>
-            <div style="background:#FEF9C3;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:9px;color:#92400E;font-weight:700">✂️ خصومات</div>
-              <div style="font-size:16px;font-weight:900;color:#92400E">${fmt(totDed)}</div>
-            </div>
-          </div>
-          <!-- سجل الحركات -->
-          ${txs.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
-            <thead><tr style="background:var(--c3)">
-              <th style="padding:7px 8px;text-align:right;font-size:10px;color:var(--tx2)">📅 التاريخ</th>
-              <th style="padding:7px 8px;text-align:right;font-size:10px;color:var(--tx2)">📌 العملية</th>
-              <th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--tx2)">💰 المبلغ</th>
-              <th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--tx2)">⚖️ الرصيد</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table></div>`:'<div class=\"empty\"><p>لا توجد حركات</p></div>'}
-          <!-- أزرار سريعة -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px">
-            <button onclick="openSalModal('deposit','${empName}')"
-              style="padding:10px;border:none;border-radius:10px;background:#D1FAE5;color:#065F46;font-family:inherit;font-weight:700;cursor:pointer">💰 إيداع</button>
-            <button onclick="openSalModal('withdraw','${empName}')"
-              style="padding:10px;border:none;border-radius:10px;background:#FEE2E2;color:#991B1B;font-family:inherit;font-weight:700;cursor:pointer">💸 سحب</button>
-            <button onclick="openSalModal('allowance','${empName}')"
-              style="padding:10px;border:none;border-radius:10px;background:#FEF3C7;color:#D97706;font-family:inherit;font-weight:700;cursor:pointer">🎁 بدل</button>
-            <button onclick="openSalModal('deduction','${empName}')"
-              style="padding:10px;border:none;border-radius:10px;background:#FEF9C3;color:#92400E;font-family:inherit;font-weight:700;cursor:pointer">✂️ خصم</button>
-          </div>
-        </div>
-      </div>`;
+      rb=Math.round((rb+delta)*100)/100;
+      const bClr=rb>=0?'#065F46':'#991B1B';
+      const bBg=rb>=0?'#D1FAE5':'#FEE2E2';
+      return '<div style="border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;padding:10px 12px">'
+        +'<div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'
+        +'<span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;background:'+(tbg[t.type]||'var(--g4)')+';color:'+(tclr[t.type]||'var(--g1)')+'">'+( tlbl[t.type]||t.type)+'</span>'
+        +'<span style="font-size:10px;color:var(--tx3)">'+dt.ar+'</span>'
+        +'</div>'
+        +((t.reason||t.notes)?'<div style="font-size:10px;color:var(--tx2)">📝 '+(t.reason||t.notes)+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<div style="text-align:left">'
+        +'<div style="font-size:15px;font-weight:900;color:'+(delta>=0?'#065F46':'#991B1B')+'">'+(delta>=0?'+':'')+fmt(Math.abs(delta))+'</div>'
+        +'<div style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;background:'+bBg+';color:'+bClr+'">'+(rb>=0?'له':'عليه')+': '+fmt(Math.abs(rb))+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:3px">'
+        +'<button onclick="editSalTx('+t.id+')" style="padding:4px 7px;border-radius:6px;border:1px solid var(--b2);background:var(--c2);font-size:11px;cursor:pointer">✏️</button>'
+        +'<button onclick="deleteSalTx('+t.id+',\''+empName.replace(/'/g,"\\'")+'\') " style="padding:4px 7px;border-radius:6px;border:none;background:#FEE2E2;font-size:11px;cursor:pointer;color:#991B1B">🗑️</button>'
+        +'</div></div></div>';
+    });
+
+    const txSection2 = txsEmp.length
+      ? '<div class="card"><div class="ch">📋 سجل الحركات ('+txsEmp.length+')</div><div class="cb" style="padding:0">'+empRows.join('')+'</div></div>'
+      : '<div class="card"><div class="cb"><div class="empty"><p>لا توجد حركات بعد</p></div></div></div>';
+
+    const inlineEl = document.getElementById('emp-stmt-inline');
+    if(inlineEl) inlineEl.innerHTML = salCard2 + histCard2 + txSection2;
     return;
   }
   if(!v){body.innerHTML='<div class="empty"><div class="ei">📊</div><p>اختر جهة أو صندوق من البحث</p></div>';return;}
@@ -9611,8 +9548,20 @@ function renderStmt(){
       : 'var(--ok)';
     // تفاصيل العملية
     let detail='';
-    if(t.items&&t.items.length)
+    if(t.items&&t.items.length){
       detail=t.items.map(i=>`${kNames[i.karat]||i.karat}: ${fmtG(i.weight)}ج${i.ajour>0?' · '+fmt(i.ajour)+'/ج':''}`).join(' | ');
+      // تفصيل مالي واضح
+      const gV=t.goldTotal||0, aV=t.ajTotal||0, vV=t.vatAmt||0, sV=t.shipping||0;
+      if(gV>0||aV>0){
+        let fin='<div style="font-size:9px;color:var(--tx2);margin-top:2px;line-height:1.5">';
+        if(gV>0) fin+=`🥇 ذهب: <b>${fmt(gV)} ر</b>  `;
+        if(aV>0) fin+=`⚒️ أجور: <b>${fmt(aV)} ر</b>  `;
+        if(vV>0) fin+=`<span style="color:#F59E0B">🧾 ضريبة أجور: <b>${fmt(vV)} ر</b></span>  `;
+        if(sV>0) fin+=`🚚 شحن: <b>${fmt(sV)} ر</b>`;
+        fin+='</div>';
+        detail+=fin;
+      }
+    }
     if(t.type==='payment'){
       const parts=[`نقد: ${fmt(t.ajourPaid||0)} ر`];
       if(t.change>0)   parts.push(`فكة: ${fmt(t.change)} ر`);
@@ -9722,30 +9671,6 @@ function renderStmt(){
   }
 
   let html=`
-  <!-- 4 كروت الملخص -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-    <div style="background:#FEE2E2;border:2px solid #FECACA;border-radius:14px;padding:12px;text-align:center">
-      <div style="font-size:10px;font-weight:700;color:#DC2626;margin-bottom:4px">⬆️ إجمالي عليه</div>
-      <div style="font-size:20px;font-weight:900;color:#DC2626">${fmt(totalInvoiced)}</div>
-      <div style="font-size:10px;color:#EF4444">ريال</div>
-    </div>
-    <div style="background:#FEF3C7;border:2px solid #FCD34D;border-radius:14px;padding:12px;text-align:center">
-      <div style="font-size:10px;font-weight:700;color:#D97706;margin-bottom:4px">⬇️ إجمالي له</div>
-      <div style="font-size:20px;font-weight:900;color:#D97706">${fmt(totalPaidAmt)}</div>
-      <div style="font-size:10px;color:#F59E0B">ريال</div>
-    </div>
-    <div style="background:${sBg};border:2px solid ${sColor}55;border-radius:14px;padding:12px;text-align:center">
-      <div style="font-size:10px;font-weight:700;color:${sColor};margin-bottom:4px">⚖️ الصافي</div>
-      <div style="font-size:20px;font-weight:900;color:${sColor}">${fmt(netAbs)}</div>
-      <div style="background:${sColor};color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;margin-top:4px;display:inline-block">${sLabel}</div>
-    </div>
-    <div style="background:var(--c1);border:2px solid var(--b2);border-radius:14px;padding:12px;text-align:center">
-      <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:4px">📄 عدد الفواتير</div>
-      <div style="font-size:32px;font-weight:900;color:var(--tx1)">${invoiceCount}</div>
-      <div style="font-size:10px;color:var(--tx2)">فاتورة</div>
-    </div>
-  </div>
-
   <!-- بطاقة الجهة -->
   <div style="background:var(--c1);border-radius:14px;border:2px solid ${sColor}40;margin-bottom:12px;overflow:hidden">
     <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:${sBg}40">
@@ -9755,6 +9680,7 @@ function renderStmt(){
         <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">
           <span style="background:${sColor};color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">${entityType}</span>
           ${entityPhone?`<span style="font-size:11px;color:var(--tx2)">📞 ${entityPhone}</span>`:''}
+          <span style="background:var(--c2);border:1px solid var(--b2);color:var(--tx2);font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px">📄 ${invoiceCount} فاتورة</span>
         </div>
       </div>
       <div style="text-align:center;background:${sBg};border-radius:10px;padding:8px 12px;border:1.5px solid ${sColor}55">
