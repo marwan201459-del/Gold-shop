@@ -2816,7 +2816,7 @@ function openStmtS(){
   const SM = getSM();
   let items=[];
 
-  S.clients.filter(cl=>!q||cl.name.toLowerCase().includes(q)).forEach(cl=>{
+  S.clients.filter(cl=>cl.type!=='موظف'&&(!q||cl.name.toLowerCase().includes(q))).forEach(cl=>{
     const bal    = getClientBalance(cl.name);
     const isSupp = cl.type==='مورد';
     const abs    = Math.abs(bal.cashOwed||0);
@@ -2833,8 +2833,9 @@ function openStmtS(){
       <div style="flex:1"><span class="sdn">${cl.name}</span> <span class="sdt">${cl.type}</span></div>
       <div style="font-size:11px;font-weight:700">${balTxt}</div>
     </div>`);
+  });
 
-  // ── موظفون في كشف الحساب ──
+  // ── موظفون في كشف الحساب ── (خارج حلقة العملاء لمنع التكرار)
   S.clients.filter(cl=>cl.type==='موظف'&&(!q||cl.name.toLowerCase().includes(q))).forEach(cl=>{
     const etxs=(S.transactions||[]).filter(t=>(t.employee===cl.name||t.client===cl.name)&&t.type&&(t.type.startsWith('sal-')||t.type.startsWith('salary-')));
     const eDep=etxs.filter(t=>['sal-deposit','sal-personal','sal-collect','salary-custody','salary-personal'].includes(t.type)).reduce((a,t)=>a+(t.amount||0),0);
@@ -2849,8 +2850,6 @@ function openStmtS(){
       <div style="flex:1"><span class="sdn">${cl.name}</span> <span class="sdt" style="color:#D97706">👤 موظف</span></div>
       <div style="font-size:11px;font-weight:700">${eBalTxt}</div>
     </div>`);
-  });
-
   });
 
   Object.keys(SM).filter(k=>!q||SM[k].label.includes(q)).forEach(k=>{
