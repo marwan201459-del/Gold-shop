@@ -5231,18 +5231,45 @@ function getClientBalance(cli){
   txs.filter(t=>t.type==='transfer' && t.toSafe===('__cli__'+cli) && (t.goldAmount||0)>0)
      .forEach(t=>{ goldTransferOut24 += convertTo24(t.goldAmount,t.goldKarat||'21'); });
 
-  // تسوية دين بذهب
+  // تسوية دين بذهب (بدون سعر = تسوية ذهبية)
+  // تسوية نقدية بذهب (مع سعر = تحويل لريال، لا تؤثر على رصيد الذهب)
   let payGoldIn24 = 0;
+  let payGoldCashValue = 0; // قيمة الذهب المحوَّل لنقد (عند وجود سعر)
   txs.filter(t=>t.type==='payment').forEach(t=>{
-    if(t.goldItems&&t.goldItems.length>0)
-      t.goldItems.forEach(gi=>{ payGoldIn24 += convertTo24(gi.weight,gi.karat||'21'); });
-    else payGoldIn24 += convertTo24(t.goldWeight,t.goldKarat||'21');
+    if(t.goldItems&&t.goldItems.length>0){
+      t.goldItems.forEach(gi=>{
+        if((gi.price||0)>0){
+          // ذهب بسعر = تحويل لريال — يضاف للنقد المسدد
+          payGoldCashValue += Math.round((gi.weight||0)*(gi.price||0)*100)/100;
+        } else {
+          // ذهب بدون سعر = تسوية ذهبية
+          payGoldIn24 += convertTo24(gi.weight,gi.karat||'21');
+        }
+      });
+    } else if((t.goldPrice||0)>0){
+      // سجل قديم مع سعر
+      payGoldCashValue += Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100;
+    } else {
+      payGoldIn24 += convertTo24(t.goldWeight,t.goldKarat||'21');
+    }
   });
+
   let payGoldOut24 = 0;
+  let suppGoldCashValue = 0; // قيمة الذهب المدفوع للمورد كنقد
   txs.filter(t=>t.type==='supplier-payment').forEach(t=>{
-    if(t.goldItems&&t.goldItems.length>0)
-      t.goldItems.forEach(gi=>{ payGoldOut24 += convertTo24(gi.weight,gi.karat||'21'); });
-    else payGoldOut24 += convertTo24(t.goldWeight,t.goldKarat||'21');
+    if(t.goldItems&&t.goldItems.length>0){
+      t.goldItems.forEach(gi=>{
+        if((gi.price||0)>0){
+          suppGoldCashValue += Math.round((gi.weight||0)*(gi.price||0)*100)/100;
+        } else {
+          payGoldOut24 += convertTo24(gi.weight,gi.karat||'21');
+        }
+      });
+    } else if((t.goldPrice||0)>0){
+      suppGoldCashValue += Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100;
+    } else {
+      payGoldOut24 += convertTo24(t.goldWeight,t.goldKarat||'21');
+    }
   });
 
   // مردود جزئي قديم (return) + مردود للمورد
@@ -5294,11 +5321,12 @@ function getClientBalance(cli){
   const salesRetDebt = txs.filter(t=>t.type==='return'||t.type==='sales-return')
                           .reduce((a,t)=>a+(t.total||t.ajTotal||0),0);
 
-  // تسوية دين من العميل (نقد + خصم + فكة + فرق الصافي) + قبض نقد مباشر
+  // تسوية دين من العميل (نقد + خصم + فكة + فرق الصافي + ذهب محوَّل لنقد) + قبض نقد مباشر
   const clientSettled = txs.filter(t=>t.type==='payment')
                            .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0),0)
                          + txs.filter(t=>t.type==='cash-receipt')
-                              .reduce((a,t)=>a+(t.amount||0),0);
+                              .reduce((a,t)=>a+(t.amount||0),0)
+                         + payGoldCashValue; // ذهب بسعر = يُحتسب كنقد مسدد
 
   // تحويلات نقدية
   const cashTransferIn  = txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+cli))
@@ -5314,9 +5342,10 @@ function getClientBalance(cli){
   const purchRetDebt = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
                           .reduce((a,t)=>a+(t.total||t.ajTotal||0),0);
 
-  // تسوية دين للمورد (نقد + خصم + فكة)
+  // تسوية دين للمورد (نقد + خصم + فكة + ذهب محوَّل لنقد)
   const supplierSettled = txs.filter(t=>t.type==='supplier-payment')
-                             .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0);
+                             .reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0)
+                           + suppGoldCashValue; // ذهب بسعر دفعناه للمورد = يُحتسب كنقد مسدد
 
   // تصفير حساب (discount-adj) — يُضاف كتسوية مباشرة
   const settleAdj = txs.filter(t=>t.type==='discount-adj'&&t.isSettle);
@@ -5703,7 +5732,7 @@ function doPayment(){
     type: txType,
     fromSafe:cashSafe, goldDest, goldSafe,
     goldKarat:goldK, goldWeight:goldW, goldAs24,
-    goldItems: goldItems.map(i=>({karat:i.karat, weight:i.weight, safe:i.safe})),
+    goldItems: goldItems.map(i=>({karat:i.karat, weight:i.weight, safe:i.safe, price:i.price||0})),
     client,
     ajourPaid:ajour, amount:ajour,
     discount, change,
@@ -9670,85 +9699,119 @@ function renderStmt(){
     sColor='#D97706'; sBg='#FEF9C3'; sLabel=isSupp?'له زيادة عندنا':'له رصيد عندنا'; sIcon='🟡';
   }
 
-  let html=`
-  <!-- بطاقة الجهة -->
-  <div style="background:var(--c1);border-radius:14px;border:2px solid ${sColor}40;margin-bottom:12px;overflow:hidden">
-    <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:${sBg}40">
-      <div style="font-size:32px">${entityIcon}</div>
-      <div style="flex:1">
-        <div style="font-size:18px;font-weight:900;color:var(--tx1)">${v}</div>
-        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">
-          <span style="background:${sColor};color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">${entityType}</span>
-          ${entityPhone?`<span style="font-size:11px;color:var(--tx2)">📞 ${entityPhone}</span>`:''}
-          <span style="background:var(--c2);border:1px solid var(--b2);color:var(--tx2);font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px">📄 ${invoiceCount} فاتورة</span>
-        </div>
-      </div>
-      <div style="text-align:center;background:${sBg};border-radius:10px;padding:8px 12px;border:1.5px solid ${sColor}55">
-        <div style="font-size:22px">${sIcon}</div>
-        <div style="font-size:11px;font-weight:800;color:${sColor}">${sLabel}</div>
-        <div style="font-size:18px;font-weight:900;color:${sColor}">${fmt(netAbs)} ر</div>
-      </div>
-    </div>
-    <!-- شريط التسديد -->
-    <div style="padding:8px 14px">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px">
-        <span>نسبة التسديد</span><span style="font-weight:700;color:${sColor}">${paidPct}%</span>
-      </div>
-      <div style="background:var(--b1);border-radius:8px;height:10px;overflow:hidden">
-        <div style="width:${paidPct}%;height:100%;background:${sColor};border-radius:8px"></div>
-      </div>
-    </div>
-    ${Math.abs(gold24)>0.001?`
-    <div style="padding:8px 14px;border-top:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:11px;font-weight:700;color:var(--g1)">🥇 رصيد الذهب</span>
-      <span style="font-size:16px;font-weight:900;color:var(--g1)">${fmtG(Math.abs(gold24))} ج ع24 (${gold24>0?'عليه':'له'})</span>
-    </div>`:''}
-  </div>
+  // ── حسابات الأجور والضريبة (الضريبة على الأجور فقط) ──
+  const totalGoldVal = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
+    .reduce((a,t)=>a+(t.goldTotal||0),0);
+  const totalAjour   = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
+    .reduce((a,t)=>a+(t.ajTotal||0),0);
+  const totalVatOnly = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
+    .reduce((a,t)=>a+(t.vatAmt||0),0);  // ضريبة الأجور فقط
+  const totalAjWithVat = totalAjour + totalVatOnly;
+  const netCash = Math.abs(cash);
 
-  <!-- بطاقة الصافي + أزرار التصفير -->
-  <div style="background:${sBg};border:2px solid ${sColor};border-radius:14px;padding:14px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${!isSettled?'12px':'0'}">
-      <div>
-        <div style="font-size:13px;font-weight:800;color:${sColor}">${sIcon} ${sLabel}</div>
-        <div style="font-size:11px;color:${sColor};opacity:.8;margin-top:2px">الفواتير: ${fmt(totalInvoiced)} — المدفوع: ${fmt(totalPaidAmt)}</div>
-      </div>
-      <div style="text-align:left">
-        <div style="font-size:28px;font-weight:900;color:${sColor}">${fmt(netAbs)}</div>
-        <div style="font-size:11px;color:${sColor}">ريال</div>
-      </div>
-    </div>
-    ${!isSettled?`<div style="display:flex;flex-wrap:wrap;gap:8px">
-      ${Math.abs(bal.cashOwed)>0.01?`<button onclick="settleClientAccount('${v}','cash')" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:var(--rc);background:var(--in);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">💵 تصفير النقد<br><span style="font-size:10px;font-weight:400">${fmt(Math.abs(bal.cashOwed))} ر</span></button>`:''}
-      ${Math.abs(bal.goldOwedAs24||0)>0.001?`<button onclick="settleClientAccount('${v}','gold')" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:var(--rc);background:var(--g1);color:#060300;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">🥇 تصفير الذهب<br><span style="font-size:10px;font-weight:400">${fmtG(Math.abs(bal.goldOwedAs24))} ج</span></button>`:''}
-    </div>`:''}
-  </div>
+  let html = '';
 
-  <!-- شرح الألوان -->
-  <div style="display:flex;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--c2);border-radius:10px;margin-bottom:12px;font-size:11px">
-    <span style="font-weight:700;color:var(--tx2)">الألوان:</span>
-    <span>🔴 عليه (دين)</span><span>🟡 له (رصيد)</span><span>🟢 مسدد</span>
-  </div>
+  // ── بطاقة الجهة ──
+  html += '<div style="background:var(--c1);border-radius:14px;border:2px solid ' + sColor + '40;margin-bottom:12px;overflow:hidden">';
+  html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:' + sBg + '40">';
+  html += '<div style="font-size:32px">' + entityIcon + '</div>';
+  html += '<div style="flex:1">';
+  html += '<div style="font-size:18px;font-weight:900;color:var(--tx1)">' + v + '</div>';
+  html += '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">';
+  html += '<span style="background:' + sColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">' + entityType + '</span>';
+  if(entityPhone) html += '<span style="font-size:11px;color:var(--tx2)">📞 ' + entityPhone + '</span>';
+  html += '<span style="background:var(--c2);border:1px solid var(--b2);color:var(--tx2);font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px">📄 ' + invoiceCount + ' فاتورة</span>';
+  html += '</div></div>';
+  html += '<div style="text-align:center;background:' + sBg + ';border-radius:10px;padding:8px 12px;border:1.5px solid ' + sColor + '55">';
+  html += '<div style="font-size:22px">' + sIcon + '</div>';
+  html += '<div style="font-size:11px;font-weight:800;color:' + sColor + '">' + sLabel + '</div>';
+  html += '<div style="font-size:18px;font-weight:900;color:' + sColor + '">' + fmt(netCash) + ' ر</div>';
+  html += '</div></div>';
+  // شريط التسديد
+  html += '<div style="padding:8px 14px">';
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px"><span>نسبة التسديد</span><span style="font-weight:700;color:' + sColor + '">' + paidPct + '%</span></div>';
+  html += '<div style="background:var(--b1);border-radius:8px;height:10px;overflow:hidden"><div style="width:' + paidPct + '%;height:100%;background:' + sColor + ';border-radius:8px"></div></div>';
+  html += '</div>';
+  html += '</div>'; // end entity card
 
-  <!-- سجل الحركات -->
-  <div class="card">
-    <div class="ch">📋 سجل الحركات (${txs.length})</div>
-    <div class="cb">
-      ${txRows?`<div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">
-          <th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">📅 التاريخ</th>
-          <th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">النوع</th>
-          <th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">البيان</th>
-          <th style="padding:7px 8px;text-align:center;font-size:11px;color:#DC2626;font-weight:700">عليه</th>
-          <th style="padding:7px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:700">له</th>
-          <th style="padding:7px 8px;text-align:center;font-size:11px;color:var(--tx2)">الرصيد</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>
-        </tr></thead>
-        <tbody>${txRows}</tbody>
-      </table></div>`
-      :'<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>'}
-    </div>
-  </div>`;
+  // ── القسم الأول: الذهب ──
+  if(Math.abs(gold24)>0.001){
+    var gClr2 = gold24>0 ? '#DC2626' : '#16A34A';
+    var gBg2  = gold24>0 ? '#FEE2E2' : '#DCFCE7';
+    html += '<div style="background:var(--g4);border:2px solid var(--g5);border-radius:14px;padding:14px;margin-bottom:10px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+    html += '<div><div style="font-size:12px;font-weight:800;color:var(--g1)">📦 رصيد الذهب</div>';
+    html += '<div style="font-size:10px;color:var(--tx2);margin-top:2px">بدون ضريبة ✓</div></div>';
+    html += '<span style="background:var(--g4);border:1px solid var(--g5);color:var(--g1);font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px">بدون ضريبة</span>';
+    html += '</div>';
+    html += '<div style="background:' + gBg2 + ';border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">';
+    html += '<div style="font-size:11px;color:' + gClr2 + ';font-weight:700">' + (gold24>0?'عليه':'له') + '</div>';
+    html += '<div style="font-size:22px;font-weight:900;color:' + gClr2 + '">' + fmtG(Math.abs(gold24)) + ' ج ع24</div>';
+    html += '</div>';
+    if(totalGoldVal>0) html += '<div style="font-size:10px;color:var(--tx2);margin-top:6px;text-align:left">إجمالي قيمة الذهب: <b>' + fmt(totalGoldVal) + ' ر</b> — <span style="color:var(--g1)">لا ضريبة على الذهب</span></div>';
+    html += '</div>';
+  }
+
+  // ── القسم الثاني: الأجور ──
+  if(totalAjour>0){
+    html += '<div style="background:var(--c1);border:2px solid #D97706;border-radius:14px;padding:14px;margin-bottom:10px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">';
+    html += '<div style="font-size:12px;font-weight:800;color:#D97706">💰 الأجور</div>';
+    html += '<span style="background:#FEF3C7;border:1px solid #FCD34D;color:#D97706;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px">شامل الضريبة</span>';
+    html += '</div>';
+    html += '<div style="display:grid;gap:6px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 10px;background:#FEF9C3;border-radius:8px">';
+    html += '<span style="color:#D97706">إجمالي الأجور (قبل الضريبة)</span><b>' + fmt(totalAjour) + ' ر</b></div>';
+    if(totalVatOnly>0){
+      html += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 10px;background:#FEF3C7;border-radius:8px">';
+      html += '<span style="color:#F59E0B">🧾 الضريبة 15% (على الأجور فقط)</span><b style="color:#F59E0B">' + fmt(totalVatOnly) + ' ر</b></div>';
+    }
+    html += '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:900;padding:8px 10px;background:#D97706;border-radius:8px;color:#fff">';
+    html += '<span>إجمالي الأجور (بعد الضريبة)</span><span>' + fmt(totalAjWithVat) + ' ر</span></div>';
+    html += '</div></div>';
+  }
+
+  // ── القسم الثالث: الرصيد النقدي النهائي ──
+  var cashClrFinal = sColor;
+  var cashBgFinal  = sBg;
+  html += '<div style="background:' + cashBgFinal + ';border:2px solid ' + cashClrFinal + ';border-radius:14px;padding:14px;margin-bottom:12px">';
+  html += '<div style="font-size:12px;font-weight:800;color:' + cashClrFinal + ';margin-bottom:8px">🧾 الرصيد النقدي النهائي</div>';
+  html += '<div style="font-size:11px;color:' + cashClrFinal + ';opacity:.8;margin-bottom:8px">الفواتير: ' + fmt(totalInvoiced) + ' — المدفوع: ' + fmt(totalPaidAmt) + '</div>';
+  html += '<div style="font-size:32px;font-weight:900;color:' + cashClrFinal + ';margin-bottom:4px">' + fmt(netCash) + ' ريال</div>';
+  html += '<div style="font-size:13px;font-weight:800;color:' + cashClrFinal + '">' + sIcon + ' ' + sLabel + '</div>';
+  if(!isSettled){
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">';
+    if(Math.abs(bal.cashOwed)>0.01) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'cash\')" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:var(--rc);background:var(--in);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">💵 تصفير النقد<br><span style="font-size:10px;font-weight:400">' + fmt(Math.abs(bal.cashOwed)) + ' ر</span></button>';
+    if(Math.abs(bal.goldOwedAs24||0)>0.001) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:var(--rc);background:var(--g1);color:#060300;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">🥇 تصفير الذهب<br><span style="font-size:10px;font-weight:400">' + fmtG(Math.abs(bal.goldOwedAs24)) + ' ج</span></button>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // ── شرح الألوان ──
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--c2);border-radius:10px;margin-bottom:12px;font-size:11px">';
+  html += '<span style="font-weight:700;color:var(--tx2)">الألوان:</span>';
+  html += '<span>🔴 عليه (دين)</span><span>🟡 له (رصيد)</span><span>🟢 مسدد</span>';
+  html += '</div>';
+
+  // ── سجل الحركات ──
+  html += '<div class="card">';
+  html += '<div class="ch">📋 سجل الحركات (' + txs.length + ')</div>';
+  html += '<div class="cb">';
+  if(txRows){
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">';
+    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">📅 التاريخ</th>';
+    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">النوع</th>';
+    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">البيان</th>';
+    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#DC2626;font-weight:700">عليه</th>';
+    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:700">له</th>';
+    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:var(--tx2)">الرصيد</th>';
+    html += '<th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>';
+    html += '</tr></thead><tbody>' + txRows + '</tbody></table></div>';
+  } else {
+    html += '<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>';
+  }
+  html += '</div></div>';
 
   body.innerHTML=html;
 }
