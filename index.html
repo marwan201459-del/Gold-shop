@@ -9753,38 +9753,56 @@ function renderStmt(){
 
   // ── القسم الثاني: الأجور ──
   if(totalAjour>0){
+    // الباقي من الأجور = إجمالي الأجور شامل الضريبة ناقص ما دُفع
+    const ajRemaining = Math.round((totalAjWithVat - totalPaidAmt) * 100) / 100;
+    const ajRemAbs    = Math.abs(ajRemaining);
+    const ajPaid      = Math.min(totalPaidAmt, totalAjWithVat); // ما دُفع من الأجور فعلياً
+    const ajPaidPct   = totalAjWithVat > 0 ? Math.min(100, Math.round(ajPaid / totalAjWithVat * 100)) : 0;
+
+    let ajRemClr, ajRemBg, ajRemIcon, ajRemLbl;
+    if(ajRemAbs < 0.01){
+      ajRemClr='#16A34A'; ajRemBg='#DCFCE7'; ajRemIcon='✅'; ajRemLbl='تم السداد بالكامل';
+    } else if(ajRemaining > 0){
+      ajRemClr='#DC2626'; ajRemBg='#FEE2E2'; ajRemIcon='🔴'; ajRemLbl='باقي عليه';
+    } else {
+      ajRemClr='#D97706'; ajRemBg='#FEF9C3'; ajRemIcon='🟡'; ajRemLbl='له فائض';
+    }
+
     html += '<div style="background:var(--c1);border:2px solid #D97706;border-radius:14px;padding:14px;margin-bottom:10px">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">';
     html += '<div style="font-size:12px;font-weight:800;color:#D97706">💰 الأجور</div>';
     html += '<span style="background:#FEF3C7;border:1px solid #FCD34D;color:#D97706;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px">شامل الضريبة</span>';
     html += '</div>';
     html += '<div style="display:grid;gap:6px">';
+    // السطر 1: الأجور قبل الضريبة
     html += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 10px;background:#FEF9C3;border-radius:8px">';
     html += '<span style="color:#D97706">إجمالي الأجور (قبل الضريبة)</span><b>' + fmt(totalAjour) + ' ر</b></div>';
+    // السطر 2: الضريبة (إن وجدت)
     if(totalVatOnly>0){
       html += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 10px;background:#FEF3C7;border-radius:8px">';
       html += '<span style="color:#F59E0B">🧾 الضريبة 15% (على الأجور فقط)</span><b style="color:#F59E0B">' + fmt(totalVatOnly) + ' ر</b></div>';
     }
+    // السطر 3: الإجمالي بعد الضريبة
     html += '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:900;padding:8px 10px;background:#D97706;border-radius:8px;color:#fff">';
     html += '<span>إجمالي الأجور (بعد الضريبة)</span><span>' + fmt(totalAjWithVat) + ' ر</span></div>';
+    // السطر 4: المدفوع حتى الآن
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 10px;background:#DCFCE7;border-radius:8px">';
+    html += '<span style="color:#16A34A">✅ المدفوع حتى الآن</span><b style="color:#16A34A">' + fmt(totalPaidAmt) + ' ر</b></div>';
+    // شريط تقدم السداد
+    html += '<div style="padding:2px 0 4px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px"><span>نسبة سداد الأجور</span><span style="font-weight:700;color:#D97706">' + ajPaidPct + '%</span></div>';
+    html += '<div style="background:#FEF3C7;border-radius:6px;height:8px;overflow:hidden"><div style="width:' + ajPaidPct + '%;height:100%;background:#D97706;border-radius:6px;transition:width .3s"></div></div>';
+    html += '</div>';
+    // السطر 5: الباقي — البطاقة الكبيرة
+    html += '<div style="background:' + ajRemBg + ';border:2px solid ' + ajRemClr + ';border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">';
+    html += '<div>';
+    html += '<div style="font-size:10px;font-weight:700;color:' + ajRemClr + ';margin-bottom:2px">' + ajRemIcon + ' ' + ajRemLbl + ' من الأجور</div>';
+    html += '<div style="font-size:10px;color:' + ajRemClr + ';opacity:.75">' + fmt(totalAjWithVat) + ' − ' + fmt(totalPaidAmt) + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:26px;font-weight:900;color:' + ajRemClr + '">' + fmt(ajRemAbs) + ' <span style="font-size:14px">ر</span></div>';
+    html += '</div>';
     html += '</div></div>';
   }
-
-  // ── القسم الثالث: الرصيد النقدي النهائي ──
-  var cashClrFinal = sColor;
-  var cashBgFinal  = sBg;
-  html += '<div style="background:' + cashBgFinal + ';border:2px solid ' + cashClrFinal + ';border-radius:14px;padding:14px;margin-bottom:12px">';
-  html += '<div style="font-size:12px;font-weight:800;color:' + cashClrFinal + ';margin-bottom:8px">🧾 الرصيد النقدي النهائي</div>';
-  html += '<div style="font-size:11px;color:' + cashClrFinal + ';opacity:.8;margin-bottom:8px">الفواتير: ' + fmt(totalInvoiced) + ' — المدفوع: ' + fmt(totalPaidAmt) + '</div>';
-  html += '<div style="font-size:32px;font-weight:900;color:' + cashClrFinal + ';margin-bottom:4px">' + fmt(netCash) + ' ريال</div>';
-  html += '<div style="font-size:13px;font-weight:800;color:' + cashClrFinal + '">' + sIcon + ' ' + sLabel + '</div>';
-  if(!isSettled){
-    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">';
-    if(Math.abs(bal.cashOwed)>0.01) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'cash\')" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:var(--rc);background:var(--in);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">💵 تصفير النقد<br><span style="font-size:10px;font-weight:400">' + fmt(Math.abs(bal.cashOwed)) + ' ر</span></button>';
-    if(Math.abs(bal.goldOwedAs24||0)>0.001) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="flex:1;min-width:110px;padding:9px;border:none;border-radius:var(--rc);background:var(--g1);color:#060300;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">🥇 تصفير الذهب<br><span style="font-size:10px;font-weight:400">' + fmtG(Math.abs(bal.goldOwedAs24)) + ' ج</span></button>';
-    html += '</div>';
-  }
-  html += '</div>';
 
   // ── شرح الألوان ──
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--c2);border-radius:10px;margin-bottom:12px;font-size:11px">';
