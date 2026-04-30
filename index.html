@@ -1043,6 +1043,21 @@ body{
         <div style="background:var(--c2);border:1px solid var(--b1);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--tx2)">
           🔄 تحويل — نقل نقد أو ذهب من صندوق لصندوق آخر أو لعميل/مورد
         </div>
+        <!-- نوع التحويل: عادي أم سداد -->
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">🎯 الغرض من التحويل</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button id="tf-type-normal" onclick="setTfType('normal')"
+              style="padding:10px;border-radius:10px;border:2px solid var(--in);background:var(--in);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+              🔄 تحويل عادي<br><span style="font-size:10px;font-weight:400;opacity:.85">لا يؤثر على المديونية</span>
+            </button>
+            <button id="tf-type-settle" onclick="setTfType('settle')"
+              style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+              💳 سداد<br><span style="font-size:10px;font-weight:400;opacity:.85">يُخصم من مديونية الجهة</span>
+            </button>
+          </div>
+          <input type="hidden" id="tf-purpose" value="normal">
+        </div>
         <div class="g2">
           <div class="fr"><label>📤 من</label>
             <div class="sw"><span class="si">🔍</span>
@@ -3679,6 +3694,19 @@ function onTfAmtChange(){
   else prev.style.display='none';
 }
 
+function setTfType(type){
+  document.getElementById('tf-purpose').value = type;
+  const btnNormal = document.getElementById('tf-type-normal');
+  const btnSettle = document.getElementById('tf-type-settle');
+  if(type==='normal'){
+    btnNormal.style.background='var(--in)'; btnNormal.style.borderColor='var(--in)'; btnNormal.style.color='#fff';
+    btnSettle.style.background='var(--c2)'; btnSettle.style.borderColor='var(--b2)'; btnSettle.style.color='var(--tx2)';
+  } else {
+    btnSettle.style.background='#16A34A'; btnSettle.style.borderColor='#16A34A'; btnSettle.style.color='#fff';
+    btnNormal.style.background='var(--c2)'; btnNormal.style.borderColor='var(--b2)'; btnNormal.style.color='var(--tx2)';
+  }
+}
+
 function doTransfer(){
   const from=document.getElementById('tf-from').value;
   const to=document.getElementById('tf-to').value;
@@ -3690,9 +3718,17 @@ function doTransfer(){
   if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
   if(from===to){toast('⚠️ اختر صناديق مختلفة');return;}
 
+  const purpose = document.getElementById('tf-purpose')?.value || 'normal';
+  const isSettle = purpose === 'settle';
+
   const fromCli=from.startsWith('__cli__')?from.replace('__cli__',''):null;
   const toCli=to.startsWith('__cli__')?to.replace('__cli__',''):null;
   const cliName=fromCli||toCli||'';
+
+  // للسداد: الجهة لازم تكون طرف في التحويل
+  if(isSettle && !cliName){
+    toast('⚠️ اختر جهة (عميل/مورد) كمصدر أو وجهة للسداد'); return;
+  }
 
   const tfDate=document.getElementById('tf-date')?.value;
   const tfISO=tfDate?new Date(tfDate).toISOString():new Date().toISOString();
@@ -3704,16 +3740,36 @@ function doTransfer(){
   const fromLabel = fromCli?fromCli:(_SM[from]?.label||from||'');
   const toLabel   = toCli  ?toCli  :(_SM[to]  ?.label||to  ||'');
 
-  const tx={
-    id:Date.now(), date:tfISO, type:'transfer',
-    fromSafe, toSafe, fromLabel, toLabel,
-    amount:amt, goldAmount:gAmt, goldKarat:tfKarat,
-    ajour,          // أجور الصياغة (اختياري)
-    unit:gAmt>0&&amt<=0?'جرام':'ريال',
-    notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
-    client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
-    cash:amt, goldPay:gAmt, weight:gAmt
-  };
+  // إذا سداد: نُنشئ معاملة payment/supplier-payment بدل transfer لتؤثر على المديونية
+  let tx;
+  if(isSettle && cliName){
+    const cliObj = (S.clients||[]).find(c=>c.name===cliName);
+    const isSupp = cliObj?.type==='مورد';
+    // من العميل إلينا = عميل يسدد | منا إليه = مورد يسدد
+    const settleTxType = isSupp ? 'supplier-payment' : 'payment';
+    tx = {
+      id:Date.now(), date:tfISO, type:settleTxType,
+      client:cliName,
+      ajourPaid:amt, amount:amt,
+      goldWeight:gAmt||0, goldKarat:tfKarat,
+      discount:0, change:0,
+      fromSafe, toSafe, fromLabel, toLabel,
+      settlePurpose:'transfer',  // علامة أن الأصل تحويل
+      notes: note || `سداد عبر تحويل — من ${fromLabel} إلى ${toLabel}`,
+      items:[], total:amt
+    };
+  } else {
+    tx={
+      id:Date.now(), date:tfISO, type:'transfer',
+      fromSafe, toSafe, fromLabel, toLabel,
+      amount:amt, goldAmount:gAmt, goldKarat:tfKarat,
+      ajour,
+      unit:gAmt>0&&amt<=0?'جرام':'ريال',
+      notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
+      client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
+      cash:amt, goldPay:gAmt, weight:gAmt
+    };
+  }
   if(!acquireSave()) return;
   if(!safeSave(tx)){ releaseSave(); return; }
   renderAll(); releaseSave();
@@ -3724,7 +3780,10 @@ function doTransfer(){
   const tfd=document.getElementById('tf-date');if(tfd)tfd.value='';
   ['tf-from-lbl','tf-to-lbl'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=''; });
   const amtMsg=[amt>0?fmt(amt)+' ريال':'', gAmt>0?fmtG(gAmt)+' جرام ع'+tfKarat:'', ajour>0?'أجور: '+fmt(ajour)+' ر':''].filter(Boolean).join(' · ');
-  toast('✅ تم التحويل: '+amtMsg);
+  const toastMsg = isSettle ? '✅ تم السداد عبر تحويل: '+amtMsg : '✅ تم التحويل: '+amtMsg;
+  // إعادة تعيين زر النوع
+  setTfType('normal');
+  toast(toastMsg);
 }
 
 // ── Delete TX ──────────────────────────────────────────────────────
@@ -4441,7 +4500,7 @@ function printStmt(){
 function fmt(n){return(Math.round((n||0)*100)/100).toLocaleString('ar-SA')}
 function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')}
 
-const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات',
+const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات','payment-transfer':'💳 سداد عبر تحويل','supplier-payment-transfer':'💳 سداد عبر تحويل',
   'salary-pay':'💸 صرف','salary-custody':'📥 تحصيل','salary-personal':'💰 دفع شخصي','salary-deduction':'✂️ خصم','salary-allowance':'🎁 بدل','sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','sal-collect':'💰 إيداع','sal-advance':'💸 سحب','sal-personal':'💰 إيداع','sal-payout':'💸 صرف',
   'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون','charge':'💵 مبلغ إضافي'};
 const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy'};
@@ -4457,9 +4516,20 @@ function txHtml(t){
     const fromLbl = t.fromLabel || (t.fromSafe?(_SM[t.fromSafe]?.label||t.fromSafe):'—');
     const toLbl   = t.toLabel   || (t.toSafe  ?(_SM[t.toSafe]  ?.label||t.toSafe  ):'—');
     sub = `${fromLbl} ← ${toLbl}`;
+  } else if(t.settlePurpose==='transfer'){
+    // سداد عبر تحويل — نوضح المسار
+    const _SM=getSM();
+    const fromLbl = t.fromLabel || '';
+    const toLbl   = t.toLabel   || '';
+    sub = fromLbl&&toLbl ? `💳 سداد: ${fromLbl} ← ${toLbl}` : (t.client||'—');
   } else {
     sub = t.client||'—';
   }
+  // تسمية خاصة للسداد عبر تحويل
+  const txLbl = t.settlePurpose==='transfer'
+    ? '💳 سداد عبر تحويل'
+    : (TLBL[t.type]||t.type);
+  const txBdg = t.settlePurpose==='transfer' ? 'bg-teal' : (TBDG[t.type]||'bg-gold');
     const debtTag=t.isDebt?`<span class="badge bg-purple" style="font-size:9px">دين</span> `:t.isBuyDebt?`<span class="badge bg-red" style="font-size:9px">آجل مورد</span> `:t.type==='supplier-return'?`<span class="badge bg-orange" style="font-size:9px">↩️ مورد</span> `:'';
 
   // items summary for invoices
@@ -4488,7 +4558,7 @@ function txHtml(t){
   return `<div class="txi ${cls}" onclick="viewInv(${t.id})" style="cursor:pointer">
     <div class="txi-row">
       <div style="flex:1">
-        <div class="tm">${debtTag}<span class="badge ${TBDG[t.type]||'bg-gold'}">${TLBL[t.type]||t.type}</span>${t.items&&t.items.length>1?` <span style="font-size:10px;color:var(--tx2)">(${t.items.length} أصناف)</span>`:''}</div>
+        <div class="tm">${debtTag}<span class="badge ${txBdg}">${txLbl}</span>${t.items&&t.items.length>1?` <span style="font-size:10px;color:var(--tx2)">(${t.items.length} أصناف)</span>`:''}</div>
         <div class="ts">${sub}</div>
         <div class="date-line"><span>${dt.ar}</span><span>${dt.en}</span><span>${dt.time}</span></div>
         ${t.isReturned?'<div class="ts" style="color:var(--pu)">↩️ تم الإرجاع</div>':''}
@@ -9628,11 +9698,16 @@ function renderStmt(){
       if(t.goldAmount>0)parts.push(`ذهب: ${fmtG(t.goldAmount)}ج ع${t.goldKarat||'21'}`);
       detail=parts.join(' · ');
     }
+    // سداد عبر تحويل — عرض واضح
+    if((t.type==='payment'||t.type==='supplier-payment') && t.settlePurpose==='transfer'){
+      detail=`💳 سداد عبر تحويل — ${fmt(t.ajourPaid||t.amount||0)} ر`;
+      if(t.fromLabel&&t.toLabel) detail += ` · من ${t.fromLabel} إلى ${t.toLabel}`;
+    }
 
     // هل العملية "عليه" أم "له"؟
     const isDebit  = (!isSupp && dCash>0.01) || (isSupp && dCash<-0.01);
     const isCredit = (!isSupp && dCash<-0.01)|| (isSupp && dCash>0.01);
-    const isSetRow = t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt';
+    const isSetRow = t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||(t.settlePurpose==='transfer');
     const rowBg = isDebit ? 'rgba(220,38,38,.05)' : isSetRow ? 'rgba(22,163,74,.05)' : isCredit ? 'rgba(217,119,6,.05)' : '';
     const debitAmt  = isDebit  ? fmt(Math.abs(dCash)) : '–';
     const creditAmt = isCredit||isSetRow ? fmt(Math.abs(dCash)) : '–';
@@ -9711,6 +9786,16 @@ function renderStmt(){
   let html = '';
 
   // ── بطاقة الجهة ──
+  // حساب رصيد الذهب للعرض السريع في البطاقة العلوية
+  const _goldAbs   = Math.abs(gold24);
+  const _cashAbs   = Math.abs(cash);
+  const _hasGold   = _goldAbs > 0.001;
+  const _hasCash   = _cashAbs > 0.01;
+  const _cashClr   = (!isSupp && cash>0)||(isSupp && cash<0) ? '#DC2626' : cash===0 ? '#16A34A' : '#D97706';
+  const _goldClr   = gold24>0 ? '#DC2626' : '#16A34A';
+  const _cashDir   = Math.abs(cash)<0.01 ? '✅ مسدد' : (!isSupp&&cash>0)||(isSupp&&cash<0) ? 'عليه نقد' : 'له نقد';
+  const _goldDir   = Math.abs(gold24)<0.001 ? '' : gold24>0 ? 'عليه ذهب' : 'له ذهب';
+
   html += '<div style="background:var(--c1);border-radius:14px;border:2px solid ' + sColor + '40;margin-bottom:12px;overflow:hidden">';
   html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:' + sBg + '40">';
   html += '<div style="font-size:32px">' + entityIcon + '</div>';
@@ -9721,13 +9806,28 @@ function renderStmt(){
   if(entityPhone) html += '<span style="font-size:11px;color:var(--tx2)">📞 ' + entityPhone + '</span>';
   html += '<span style="background:var(--c2);border:1px solid var(--b2);color:var(--tx2);font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px">📄 ' + invoiceCount + ' فاتورة</span>';
   html += '</div></div>';
-  html += '<div style="text-align:center;background:' + sBg + ';border-radius:10px;padding:8px 12px;border:1.5px solid ' + sColor + '55">';
-  html += '<div style="font-size:22px">' + sIcon + '</div>';
-  html += '<div style="font-size:11px;font-weight:800;color:' + sColor + '">' + sLabel + '</div>';
-  html += '<div style="font-size:18px;font-weight:900;color:' + sColor + '">' + fmt(netCash) + ' ر</div>';
-  html += '</div></div>';
+  html += '</div>';
+
+  // ── صندوق الملخص السريع (نقد + ذهب في لمحة) ──
+  html += '<div style="padding:10px 14px 4px;display:grid;grid-template-columns:' + (_hasGold ? '1fr 1fr' : '1fr') + ';gap:8px">';
+  // خانة النقد
+  html += '<div style="background:' + (_cashAbs<0.01?'#DCFCE7':'#FEE2E2') + ';border:2px solid ' + _cashClr + ';border-radius:10px;padding:10px 12px">';
+  html += '<div style="font-size:10px;color:' + _cashClr + ';font-weight:700;margin-bottom:4px">💵 ' + _cashDir + '</div>';
+  html += '<div style="font-size:' + (_cashAbs>999999?'16':'20') + 'px;font-weight:900;color:' + _cashClr + ';line-height:1.1">' + (_cashAbs<0.01?'—':fmt(_cashAbs)) + '</div>';
+  if(_cashAbs>0.01) html += '<div style="font-size:10px;color:' + _cashClr + ';opacity:.75;margin-top:2px">ريال</div>';
+  html += '</div>';
+  // خانة الذهب (فقط لو في رصيد ذهب)
+  if(_hasGold){
+    html += '<div style="background:' + (gold24>0?'#FEE2E2':'#DCFCE7') + ';border:2px solid ' + _goldClr + ';border-radius:10px;padding:10px 12px">';
+    html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
+    html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
+    html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+
   // شريط التسديد
-  html += '<div style="padding:8px 14px">';
+  html += '<div style="padding:8px 14px 12px">';
   html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px"><span>نسبة التسديد</span><span style="font-weight:700;color:' + sColor + '">' + paidPct + '%</span></div>';
   html += '<div style="background:var(--b1);border-radius:8px;height:10px;overflow:hidden"><div style="width:' + paidPct + '%;height:100%;background:' + sColor + ';border-radius:8px"></div></div>';
   html += '</div>';
