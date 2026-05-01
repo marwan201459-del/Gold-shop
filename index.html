@@ -9754,10 +9754,13 @@ function renderStmt(){
   const totalInvoiced = isSupp
     ? txs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.total||0),0)
     : txs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.total||0),0);
+  const cashTransferInAmt = txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+v))
+                               .reduce((a,t)=>a+(t.amount||0),0);
   const totalPaidAmt = isSupp
     ? txs.filter(t=>t.type==='supplier-payment').reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0)
     : txs.filter(t=>t.type==='payment').reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0),0)
-      + txs.filter(t=>t.type==='cash-receipt').reduce((a,t)=>a+(t.amount||0),0);
+      + txs.filter(t=>t.type==='cash-receipt').reduce((a,t)=>a+(t.amount||0),0)
+      + cashTransferInAmt; // تحويلات نقدية من العميل = سداد فعلي
   const invoiceCount = isSupp
     ? txs.filter(t=>t.type==='buy'||t.type==='buy-debt').length
     : txs.filter(t=>t.type==='sell'||t.type==='sell-debt').length;
@@ -9786,15 +9789,8 @@ function renderStmt(){
   let html = '';
 
   // ── بطاقة الجهة ──
-  // حساب رصيد الذهب للعرض السريع في البطاقة العلوية
-  const _goldAbs   = Math.abs(gold24);
-  const _cashAbs   = Math.abs(cash);
-  const _hasGold   = _goldAbs > 0.001;
-  const _hasCash   = _cashAbs > 0.01;
-  const _cashClr   = (!isSupp && cash>0)||(isSupp && cash<0) ? '#DC2626' : cash===0 ? '#16A34A' : '#D97706';
-  const _goldClr   = gold24>0 ? '#DC2626' : '#16A34A';
-  const _cashDir   = Math.abs(cash)<0.01 ? '✅ مسدد' : (!isSupp&&cash>0)||(isSupp&&cash<0) ? 'عليه نقد' : 'له نقد';
-  const _goldDir   = Math.abs(gold24)<0.001 ? '' : gold24>0 ? 'عليه ذهب' : 'له ذهب';
+  const _cashAbs2  = Math.abs(cash);
+  const _cashClr2  = (!isSupp && cash>0)||(isSupp && cash<0) ? '#DC2626' : cash===0 ? '#16A34A' : '#D97706';
 
   html += '<div style="background:var(--c1);border-radius:14px;border:2px solid ' + sColor + '40;margin-bottom:12px;overflow:hidden">';
   html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:' + sBg + '40">';
@@ -9808,13 +9804,24 @@ function renderStmt(){
   html += '</div></div>';
   html += '</div>';
 
-  // ── صندوق الملخص السريع (نقد + ذهب في لمحة) ──
+  // ── صندوق الملخص السريع — الباقي من الأجور + الذهب ──
+  // نحسب الباقي من الأجور هنا لاستخدامه في البطاقة العلوية
+  const _ajRemaining  = Math.round((totalAjWithVat - totalPaidAmt) * 100) / 100;
+  const _ajRemAbs     = Math.abs(_ajRemaining);
+  const _ajClr        = _ajRemAbs < 0.01 ? '#16A34A' : _ajRemaining > 0 ? '#DC2626' : '#D97706';
+  const _ajBg         = _ajRemAbs < 0.01 ? '#DCFCE7' : _ajRemaining > 0 ? '#FEE2E2' : '#FEF9C3';
+  const _ajDir        = _ajRemAbs < 0.01 ? '✅ مسدد' : _ajRemaining > 0 ? 'باقي عليه (أجور)' : 'له فائض';
+  const _goldAbs      = Math.abs(gold24);
+  const _hasGold      = _goldAbs > 0.001;
+  const _goldClr      = gold24 > 0 ? '#DC2626' : '#16A34A';
+  const _goldDir      = Math.abs(gold24)<0.001 ? '' : gold24>0 ? 'عليه ذهب' : 'له ذهب';
+
   html += '<div style="padding:10px 14px 4px;display:grid;grid-template-columns:' + (_hasGold ? '1fr 1fr' : '1fr') + ';gap:8px">';
-  // خانة النقد
-  html += '<div style="background:' + (_cashAbs<0.01?'#DCFCE7':'#FEE2E2') + ';border:2px solid ' + _cashClr + ';border-radius:10px;padding:10px 12px">';
-  html += '<div style="font-size:10px;color:' + _cashClr + ';font-weight:700;margin-bottom:4px">💵 ' + _cashDir + '</div>';
-  html += '<div style="font-size:' + (_cashAbs>999999?'16':'20') + 'px;font-weight:900;color:' + _cashClr + ';line-height:1.1">' + (_cashAbs<0.01?'—':fmt(_cashAbs)) + '</div>';
-  if(_cashAbs>0.01) html += '<div style="font-size:10px;color:' + _cashClr + ';opacity:.75;margin-top:2px">ريال</div>';
+  // خانة الباقي من الأجور
+  html += '<div style="background:' + _ajBg + ';border:2px solid ' + _ajClr + ';border-radius:10px;padding:10px 12px">';
+  html += '<div style="font-size:10px;color:' + _ajClr + ';font-weight:700;margin-bottom:4px">💵 ' + _ajDir + '</div>';
+  html += '<div style="font-size:' + (_ajRemAbs>999999?'16':'20') + 'px;font-weight:900;color:' + _ajClr + ';line-height:1.1">' + (_ajRemAbs<0.01?'—':fmt(_ajRemAbs)) + '</div>';
+  if(_ajRemAbs>0.01) html += '<div style="font-size:10px;color:' + _ajClr + ';opacity:.75;margin-top:2px">ريال</div>';
   html += '</div>';
   // خانة الذهب (فقط لو في رصيد ذهب)
   if(_hasGold){
