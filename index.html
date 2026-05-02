@@ -9859,17 +9859,14 @@ function renderStmt(){
     sColor='#D97706'; sBg='#FEF9C3'; sLabel=isSupp?'له زيادة عندنا':'له رصيد عندنا'; sIcon='🟡';
   }
 
-  // ── حسابات الأجور الصحيحة (صافي بعد المرتجعات) ──
-  // يطابق getClientBalance تماماً: sellDebt = ajTotal+vatAmt، salesRetDebt = ajTotal+vatAmt
-  const totalAjour = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
-    .reduce((a,t)=>a+(t.ajTotal||0),0)
-    - txs.filter(t=>t.type==='return'||t.type==='sales-return')
-         .reduce((a,t)=>a+(t.ajTotal||0),0);
-  const totalVatOnly = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
-    .reduce((a,t)=>a+(t.vatAmt||0),0)
-    - txs.filter(t=>t.type==='return'||t.type==='sales-return')
-         .reduce((a,t)=>a+(t.vatAmt||0),0);
-  const totalAjWithVat = Math.max(0, totalAjour + totalVatOnly);
+  // ── حسابات الأجور والضريبة (الضريبة على الأجور فقط) ──
+  const totalGoldVal = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
+    .reduce((a,t)=>a+(t.goldTotal||0),0);
+  const totalAjour   = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
+    .reduce((a,t)=>a+(t.ajTotal||0),0);
+  const totalVatOnly = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
+    .reduce((a,t)=>a+(t.vatAmt||0),0);  // ضريبة الأجور فقط
+  const totalAjWithVat = totalAjour + totalVatOnly;
   const netCash = Math.abs(cash);
 
   let html = '';
