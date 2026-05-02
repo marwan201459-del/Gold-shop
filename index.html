@@ -1041,22 +1041,7 @@ body{
       <!-- ── تحويل بين صناديق ── -->
       <div id="tf-sec" style="display:none">
         <div style="background:var(--c2);border:1px solid var(--b1);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--tx2)">
-          🔄 تحويل — نقل نقد أو ذهب من صندوق لصندوق آخر أو لعميل/مورد
-        </div>
-        <!-- نوع التحويل: عادي أم سداد -->
-        <div style="margin-bottom:10px">
-          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">🎯 الغرض من التحويل</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <button id="tf-type-normal" onclick="setTfType('normal')"
-              style="padding:10px;border-radius:10px;border:2px solid var(--in);background:var(--in);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-              🔄 تحويل عادي<br><span style="font-size:10px;font-weight:400;opacity:.85">لا يؤثر على المديونية</span>
-            </button>
-            <button id="tf-type-settle" onclick="setTfType('settle')"
-              style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-              💳 سداد<br><span style="font-size:10px;font-weight:400;opacity:.85">يُخصم من مديونية الجهة</span>
-            </button>
-          </div>
-          <input type="hidden" id="tf-purpose" value="normal">
+          🔄 تحويل — نقل نقد أو ذهب من صندوق لصندوق آخر أو لعميل/مورد (بدون تأثير على الديون)
         </div>
         <div class="g2">
           <div class="fr"><label>📤 من</label>
@@ -3694,19 +3679,6 @@ function onTfAmtChange(){
   else prev.style.display='none';
 }
 
-function setTfType(type){
-  document.getElementById('tf-purpose').value = type;
-  const btnNormal = document.getElementById('tf-type-normal');
-  const btnSettle = document.getElementById('tf-type-settle');
-  if(type==='normal'){
-    btnNormal.style.background='var(--in)'; btnNormal.style.borderColor='var(--in)'; btnNormal.style.color='#fff';
-    btnSettle.style.background='var(--c2)'; btnSettle.style.borderColor='var(--b2)'; btnSettle.style.color='var(--tx2)';
-  } else {
-    btnSettle.style.background='#16A34A'; btnSettle.style.borderColor='#16A34A'; btnSettle.style.color='#fff';
-    btnNormal.style.background='var(--c2)'; btnNormal.style.borderColor='var(--b2)'; btnNormal.style.color='var(--tx2)';
-  }
-}
-
 function doTransfer(){
   const from=document.getElementById('tf-from').value;
   const to=document.getElementById('tf-to').value;
@@ -3718,17 +3690,9 @@ function doTransfer(){
   if(amt<=0&&gAmt<=0){toast('⚠️ أدخل المبلغ أو الكمية');return;}
   if(from===to){toast('⚠️ اختر صناديق مختلفة');return;}
 
-  const purpose = document.getElementById('tf-purpose')?.value || 'normal';
-  const isSettle = purpose === 'settle';
-
   const fromCli=from.startsWith('__cli__')?from.replace('__cli__',''):null;
   const toCli=to.startsWith('__cli__')?to.replace('__cli__',''):null;
   const cliName=fromCli||toCli||'';
-
-  // للسداد: الجهة لازم تكون طرف في التحويل
-  if(isSettle && !cliName){
-    toast('⚠️ اختر جهة (عميل/مورد) كمصدر أو وجهة للسداد'); return;
-  }
 
   const tfDate=document.getElementById('tf-date')?.value;
   const tfISO=tfDate?new Date(tfDate).toISOString():new Date().toISOString();
@@ -3740,36 +3704,17 @@ function doTransfer(){
   const fromLabel = fromCli?fromCli:(_SM[from]?.label||from||'');
   const toLabel   = toCli  ?toCli  :(_SM[to]  ?.label||to  ||'');
 
-  // إذا سداد: نُنشئ معاملة payment/supplier-payment بدل transfer لتؤثر على المديونية
-  let tx;
-  if(isSettle && cliName){
-    const cliObj = (S.clients||[]).find(c=>c.name===cliName);
-    const isSupp = cliObj?.type==='مورد';
-    // من العميل إلينا = عميل يسدد | منا إليه = مورد يسدد
-    const settleTxType = isSupp ? 'supplier-payment' : 'payment';
-    tx = {
-      id:Date.now(), date:tfISO, type:settleTxType,
-      client:cliName,
-      ajourPaid:amt, amount:amt,
-      goldWeight:gAmt||0, goldKarat:tfKarat,
-      discount:0, change:0,
-      fromSafe, toSafe, fromLabel, toLabel,
-      settlePurpose:'transfer',  // علامة أن الأصل تحويل
-      notes: note || `سداد عبر تحويل — من ${fromLabel} إلى ${toLabel}`,
-      items:[], total:amt
-    };
-  } else {
-    tx={
-      id:Date.now(), date:tfISO, type:'transfer',
-      fromSafe, toSafe, fromLabel, toLabel,
-      amount:amt, goldAmount:gAmt, goldKarat:tfKarat,
-      ajour,
-      unit:gAmt>0&&amt<=0?'جرام':'ريال',
-      notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
-      client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
-      cash:amt, goldPay:gAmt, weight:gAmt
-    };
-  }
+  // تحويل واحد فقط — نقل نقد أو ذهب بين الصناديق، بدون تأثير على الديون
+  const tx={
+    id:Date.now(), date:tfISO, type:'transfer',
+    fromSafe, toSafe, fromLabel, toLabel,
+    amount:amt, goldAmount:gAmt, goldKarat:tfKarat,
+    ajour,
+    unit:gAmt>0&&amt<=0?'جرام':'ريال',
+    notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
+    client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
+    cash:amt, goldPay:gAmt, weight:gAmt
+  };
   if(!acquireSave()) return;
   if(!safeSave(tx)){ releaseSave(); return; }
   renderAll(); releaseSave();
@@ -3780,10 +3725,7 @@ function doTransfer(){
   const tfd=document.getElementById('tf-date');if(tfd)tfd.value='';
   ['tf-from-lbl','tf-to-lbl'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=''; });
   const amtMsg=[amt>0?fmt(amt)+' ريال':'', gAmt>0?fmtG(gAmt)+' جرام ع'+tfKarat:'', ajour>0?'أجور: '+fmt(ajour)+' ر':''].filter(Boolean).join(' · ');
-  const toastMsg = isSettle ? '✅ تم السداد عبر تحويل: '+amtMsg : '✅ تم التحويل: '+amtMsg;
-  // إعادة تعيين زر النوع
-  setTfType('normal');
-  toast(toastMsg);
+  toast('✅ تم التحويل: '+amtMsg);
 }
 
 // ── Delete TX ──────────────────────────────────────────────────────
@@ -5127,17 +5069,17 @@ function renderPayGoldItems(){
             oninput="updatePayGoldItem(${item.id},'weight',this.value)">
         </div>
       </div>
-      <!-- حقل السعر — إلزامي -->
+      <!-- حقل السعر — اختياري -->
       <div style="margin:6px 0">
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;flex-wrap:wrap">
           <span style="font-size:10px;font-weight:700;color:#B35A00">💰 سعر الجرام اليوم (ريال)</span>
-          <span style="background:#DC2626;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px">إلزامي</span>
-          <span style="font-size:10px;color:var(--tx2)">— الذهب = سداد نقدي</span>
+          <span style="background:#D97706;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px">اختياري</span>
         </div>
+        <div style="font-size:9px;color:var(--tx2);margin-bottom:4px">بدون سعر = ذهب فقط (دخول/خروج) · بسعر = يُحوَّل لنقد تلقائياً</div>
         <input type="number" id="pgi-price-${item.id}"
-          value="${item.price||''}" placeholder="أدخل سعر الجرام الحالي" inputmode="decimal"
-          style="width:100%;padding:8px;border-radius:7px;border:2px solid ${(item.price||0)>0?'#D97706':'#DC262688'};background:#FFFBF0;font-family:inherit;box-sizing:border-box;color:#1A0A00;font-weight:700;font-size:14px"
-          oninput="updatePayGoldItem(${item.id},'price',this.value);this.style.border='2px solid #D97706'">
+          value="${item.price||''}" placeholder="اتركه فارغاً لو ذهب فقط" inputmode="decimal"
+          style="width:100%;padding:8px;border-radius:7px;border:1.5px solid var(--b2);background:var(--c2);font-family:inherit;box-sizing:border-box;color:var(--tx1);font-weight:600;font-size:13px"
+          oninput="updatePayGoldItem(${item.id},'price',this.value);this.style.borderColor=(this.value?'#D97706':'var(--b2)')">
       </div>
       <div>
         <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">الصندوق</div>
@@ -5807,18 +5749,7 @@ function doPayment(){
 
   if(!client){ toast('⚠️ اختر الجهة'); return; }
   if(!ajour&&goldItems.length===0&&!discount&&!change&&!netDiffV.riyal&&!netDiffV.gram){ toast('⚠️ أدخل المبلغ أو أضف صنف ذهب'); return; }
-
-  // ── إجبار إدخال سعر الجرام لكل صنف ذهب ──
-  const missingPrice = goldItems.filter(i=>(i.weight||0)>0 && !(i.price||0));
-  if(missingPrice.length>0){
-    toast('⚠️ أدخل سعر الجرام اليوم لجميع أصناف الذهب — الذهب يُحتسب كسداد نقدي بالسعر الحالي');
-    // تمييز الحقول الفارغة
-    missingPrice.forEach(i=>{
-      const el = document.getElementById('pgi-price-'+i.id);
-      if(el){ el.style.border='2px solid var(--no)'; el.focus(); }
-    });
-    return;
-  }
+  // السعر اختياري — بدون سعر = ذهب فقط | بسعر = تحويل ذهب↔نقد تلقائي
 
   // الصندوق المستخدم
   const cashSafe = document.getElementById('pay-cash-safe')?.value || 'cash';
