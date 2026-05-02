@@ -4299,7 +4299,7 @@ function printStmt(){
         else if(t.type==='cash-receipt')
           dCash=-(t.amount||0);
         else if(t.type==='sales-return'||t.type==='return')
-          dCash=-((t.ajTotal||t.cashRefund||0)+(t.vatAmt||0));
+          dCash=-(t.total||t.ajTotal||0);  // موحّد مع getClientBalance
         else if(t.type==='charge')
           dCash=(t.amount||0);
         else if(t.type==='transfer'){
@@ -4381,9 +4381,17 @@ function printStmt(){
         detail=parts.join(' + ')+`<br><b style="color:#2D7A4F">= ${fmtG(Math.round(correct24*1000)/1000)} ج ع24</b>`;
         wtStr=fmtG(t.weight||0)+' ج'; gold24Str=fmtG(Math.round(correct24*1000)/1000)+' ج'; amtStr='—';
       } else if(t.type==='sales-return'||t.type==='return'){
-        detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>')+
-               (t.ajTotal>0?`<br>خصم دين: ${fmt(t.ajTotal)} ر`:'');
-        amtStr=`<span style="color:#1D6FAF;font-weight:700">↩️ خصم ${fmt((t.ajTotal||0)+(t.vatAmt||0))} ر</span>`;
+        const retGoldV = t.goldTotal||0;
+        const retAjV   = t.ajTotal||0;
+        const retTotal = t.total||(retGoldV+retAjV);
+        detail=(t.items||[]).map(i=>{
+          const gv=Math.round((i.weight||0)*(i.price||0)*100)/100;
+          const av=Math.round((i.weight||0)*(i.ajour||0)*100)/100;
+          return `↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · ${fmt(gv)} ر ذهب + ${fmt(av)} ر أجور`;
+        }).join('<br>');
+        if(retAjV>0)   detail+=`<br>إجمالي الأجور: ${fmt(retAjV)} ر`;
+        if(retGoldV>0) detail+=`<br>إجمالي الذهب: ${fmt(retGoldV)} ر`;
+        amtStr=`<span style="color:#1D6FAF;font-weight:700">↩️ خصم ${fmt(retTotal)} ر</span>`;
         const rawWt=(t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
         const wt24=(t.items||[]).reduce((a,i)=>a+convertTo24(i.weight,i.karat),0);
         wtStr=fmtG(rawWt)+' ج'; gold24Str=fmtG(Math.round(wt24*1000)/1000)+' ج';
@@ -9613,7 +9621,7 @@ function renderStmt(){
         dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_goldCashValCli);
       }
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
-      else if(t.type==='sales-return'||t.type==='return')             dCash = -(t.ajTotal||t.cashRefund||0) - (t.vatAmt||0);
+      else if(t.type==='sales-return'||t.type==='return')             dCash = -(t.total||t.ajTotal||0);  // موحّد مع getClientBalance
       else if(t.type==='salary-custody')                               dCash = (t.amount||0);
       else if(t.type==='salary-pay')                                   dCash = -(t.amount||0);
       else if(t.type==='charge')                                       dCash = (t.amount||0);
@@ -9737,6 +9745,15 @@ function renderStmt(){
       detail=_sParts.join(' · ');
     }
     if(t.type==='supplier-return') detail=(t.items||[]).map(i=>`↩️ ${kNames[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join(' | ');
+    if(t.type==='return'||t.type==='sales-return'){
+      const _retTotal = t.total||(( t.goldTotal||0)+(t.ajTotal||0));
+      const _retItems = (t.items||[]).map(i=>{
+        const gv=Math.round((i.weight||0)*(i.price||0)*100)/100;
+        const av=Math.round((i.weight||0)*(i.ajour||0)*100)/100;
+        return `↩️ ${kNames[i.karat]||i.karat}: ${fmtG(i.weight)}ج (ذهب ${fmt(gv)} + أجور ${fmt(av)})`;
+      }).join(' | ');
+      detail = _retItems + ((_retTotal>0)?` · إجمالي الخصم: ${fmt(_retTotal)} ر`:'');
+    }
     if(t.type==='scrap'){
       if(t.scrapItems&&t.scrapItems.length>0){
         const parts = t.scrapItems.filter(si=>si.weight>0).map(si=>`ع${si.karat}: ${fmtG(si.weight)}ج`);
