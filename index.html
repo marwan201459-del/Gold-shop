@@ -4271,91 +4271,173 @@ function printStmt(){
     let runGold24=_obEntry?(_obEntry.gold24||0):0;
     const rows=txs.map(t=>{
       const dt=fmtDate(t.date);
-      let dCash=0;
-      // منطق الدين — مفصول حسب نوع الجهة:
-      // العميل/الموزع: البيع يزيد ما عليه، القبض يُنقصه
-      // المورد: الشراء يزيد ما علينا، الصرف يُنقصه
+      let dCash=0, dGold24=0;
+
+      // ── منطق dCash موحّد تماماً مع renderStmt ──
       if(isSupp){
-        // مورد — استخدام t.total الذي يشمل كل المكونات
-        if(t.type==='buy'||t.type==='buy-debt')            dCash=-(t.total||0); // دين علينا (سالب)
-        else if(t.type==='supplier-payment')               dCash=(t.ajourPaid||0)+(t.discount||0)+(t.change||0); // سددنا (+)
-        else if(t.type==='purchase-return'||t.type==='supplier-return') dCash=(t.total||t.ajTotal||0); // مرتجع يُقلل ما علينا (+)
+        if(t.type==='buy'||t.type==='buy-debt')
+          dCash = -(t.total||0);
+        else if(t.type==='supplier-payment'){
+          const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
+                   +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
+          dCash=(t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_gcv;
+        }
+        else if(t.type==='purchase-return'||t.type==='supplier-return')
+          dCash=(t.total||t.ajTotal||0);
         else if(t.type==='transfer'){
           if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
           if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
         }
       } else {
-        // عميل / موزع — استخدام t.total الذي يشمل كل المكونات (ذهب+أجور+ضريبة+شحن)
-        if(t.type==='sell'||t.type==='sell-debt')          dCash=(t.total||0);  // دين عليه (+)
-        else if(t.type==='payment')                        dCash=-(t.ajourPaid||0)-(t.discount||0)-(t.change||0)-(t.netDiff?.riyal||0); // سدد (-)
-        else if(t.type==='cash-receipt')                   dCash=-(t.amount||0); // قبض نقد (-)
-        else if(t.type==='sales-return'||t.type==='return') dCash=-(t.total||t.ajTotal||0); // مرتجع يُقلل ما عليه (-)
+        if(t.type==='sell'||t.type==='sell-debt')
+          dCash=(t.total||0);
+        else if(t.type==='payment'){
+          const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
+                   +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
+          dCash=-((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcv);
+        }
+        else if(t.type==='cash-receipt')
+          dCash=-(t.amount||0);
+        else if(t.type==='sales-return'||t.type==='return')
+          dCash=-((t.ajTotal||t.cashRefund||0)+(t.vatAmt||0));
+        else if(t.type==='charge')
+          dCash=(t.amount||0);
         else if(t.type==='transfer'){
           if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
           if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
         }
       }
-      runCash=Math.round((runCash+dCash)*100)/100;
-      let detail='',amtStr='',wtStr='—';
+
+      // ── dGold24 موحّد مع renderStmt ──
+      if(t.type==='sell'||t.type==='sell-debt')
+        (t.items||[]).forEach(i=>{ dGold24+=convertTo24(i.weight,i.karat); });
+      else if(t.type==='buy'||t.type==='buy-debt')
+        (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
+      else if(t.type==='scrap')
+        dGold24=-scrapTo24(t);
+      else if(t.type==='payment'){
+        const pGoldItems=t.goldItems||[];
+        if(pGoldItems.length) pGoldItems.forEach(gi=>{ dGold24-=convertTo24(gi.weight,gi.karat||'21'); });
+        else dGold24=-convertTo24(t.goldWeight,t.goldKarat||'21');
+      }
+      else if(t.type==='supplier-payment'){
+        const spGoldItems=t.goldItems||[];
+        if(spGoldItems.length) spGoldItems.forEach(gi=>{ dGold24+=convertTo24(gi.weight,gi.karat||'21'); });
+        else dGold24=convertTo24(t.goldWeight,t.goldKarat||'21');
+      }
+      else if(t.type==='sales-return'||t.type==='return')
+        (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
+      else if(t.type==='supplier-return'||t.type==='purchase-return')
+        (t.items||[]).forEach(i=>{ dGold24+=convertTo24(i.weight,i.karat); });
+
+      runCash  =Math.round((runCash  +dCash  )*100)/100;
+      runGold24=Math.round((runGold24+dGold24)*1000)/1000;
+
+      // ── تفاصيل + مبلغ + وزن ──
+      let detail='', amtStr='', wtStr='—', gold24Str='';
+
       if(t.type==='sell'||t.type==='sell-debt'){
         detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · سعر ${fmt(i.price)}/ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>')+
-          ((t.vatAmt||0)>0?`<br>ضريبة 15%: ${fmt(t.vatAmt)} ر`:'')+
+          ((t.vatAmt||0)>0?`<br>ضريبة أجور: ${fmt(t.vatAmt)} ر`:'')+
           ((t.shipping||0)>0?`<br>🚚 شحن: ${fmt(t.shipping)} ر`:'')+
           ((t.discount||0)>0?`<br>خصم: ${fmt(t.discount)} ر`:'');
-        const invTotal = t.total||0;
-        amtStr=`<span class="neg">${fmt(invTotal)} ر</span>`;
-        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+        amtStr=`<span class="neg">${fmt(t.total||0)} ر</span>`;
+        const rawWt=(t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+        const wt24=(t.items||[]).reduce((a,i)=>a+convertTo24(i.weight,i.karat),0);
+        wtStr=fmtG(rawWt)+' ج';
+        gold24Str=fmtG(Math.round(wt24*1000)/1000)+' ج';
       } else if(t.type==='buy'||t.type==='buy-debt'){
         detail=(t.items||[]).map(i=>`${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج · أجور ${fmt(i.ajour||0)}/ج`).join('<br>');
         amtStr=`<span class="pos">${fmt(t.ajTotal||t.total||0)} ر</span>`;
-        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+        const rawWt=(t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+        const wt24=(t.items||[]).reduce((a,i)=>a+convertTo24(i.weight,i.karat),0);
+        wtStr=fmtG(rawWt)+' ج';
+        gold24Str=fmtG(Math.round(wt24*1000)/1000)+' ج';
       } else if(t.type==='payment'){
-        detail=`تسوية: ${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0))} ر`+(t.goldWeight>0?`<br>ذهب ${t.goldKarat||''}: ${fmtG(t.goldWeight)}ج`:'')+(t.discount>0?`<br>خصم: ${fmt(t.discount)} ر`:'')+(t.netDiff?.riyal>0||t.netDiff?.gram>0?`<br>⚖️ فرق الصافي: ${t.netDiff.hasGram&&t.netDiff.gram>0?fmtG(t.netDiff.gram)+'ج ع'+t.netDiff.karat:fmt(t.netDiff.riyal)+' ر'}`:'');
-        amtStr=`<span class="pos">${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0))} ر</span>`;
-        if(t.goldWeight>0) wtStr=fmtG(t.goldWeight)+' ج';
+        const _gcv2=(t.goldItems||[]).filter(gi=>(gi.weight||0)>0&&(gi.price||0)>0).reduce((a,gi)=>a+Math.round(gi.weight*gi.price*100)/100,0);
+        const totalPaid=(t.ajourPaid||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcv2;
+        detail=`تسوية: ${fmt(totalPaid)} ر`;
+        if(_gcv2>0) detail+=`<br>🥇 ذهب كسداد: ${fmt(_gcv2)} ر`;
+        if(t.goldWeight>0&&!_gcv2) detail+=`<br>ذهب ${t.goldKarat||''}: ${fmtG(t.goldWeight)}ج`;
+        if(t.discount>0) detail+=`<br>خصم: ${fmt(t.discount)} ر`;
+        if(t.netDiff?.riyal>0||t.netDiff?.gram>0) detail+=`<br>⚖️ فرق الصافي: ${t.netDiff.hasGram&&t.netDiff.gram>0?fmtG(t.netDiff.gram)+'ج ع'+t.netDiff.karat:fmt(t.netDiff.riyal)+' ر'}`;
+        amtStr=`<span class="pos">${fmt(totalPaid)} ر</span>`;
+        if((t.goldItems||[]).length){
+          const gw24=(t.goldItems||[]).reduce((a,gi)=>a+convertTo24(gi.weight,gi.karat||'21'),0);
+          if(gw24>0){ wtStr=fmtG(Math.round(gw24*1000)/1000)+' ج'; gold24Str=wtStr; }
+        } else if(t.goldWeight>0){
+          wtStr=fmtG(t.goldWeight)+' ج';
+          gold24Str=fmtG(Math.round(convertTo24(t.goldWeight,t.goldKarat||'21')*1000)/1000)+' ج';
+        }
       } else if(t.type==='supplier-payment'){
-        detail=`تسوية: ${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0))} ر`+(t.discount>0?` (خصم: ${fmt(t.discount)} ر)`:'');
-        amtStr=`<span class="neg">${fmt((t.ajourPaid||0)+(t.discount||0)+(t.change||0))} ر</span>`;
+        const _scv2=(t.goldItems||[]).filter(gi=>(gi.weight||0)>0&&(gi.price||0)>0).reduce((a,gi)=>a+Math.round(gi.weight*gi.price*100)/100,0);
+        const totalPaid2=(t.ajourPaid||0)+(t.discount||0)+(t.change||0)+_scv2;
+        detail=`تسوية: ${fmt(totalPaid2)} ر`+(t.discount>0?` (خصم: ${fmt(t.discount)} ر)`:'');
+        if(_scv2>0) detail+=`<br>🥇 ذهب كسداد: ${fmt(_scv2)} ر`;
+        amtStr=`<span class="neg">${fmt(totalPaid2)} ر</span>`;
       } else if(t.type==='scrap'){
         const parts=t.scrapItems?.length?t.scrapItems.filter(si=>si.weight>0).map(si=>`${kN[si.karat]||si.karat}: ${fmtG(si.weight)}ج`):[`${kN[t.karat]||t.karat}: ${fmtG(t.weight||0)}ج`];
-        // حساب إجمالي عيار 24 الصحيح من scrapItems
-        const correct24 = scrapTo24(t); // دالة موحدة
-        detail=parts.join(' + ')+`<br><span style="color:var(--g1);font-weight:700">= ${fmtG(Math.round(correct24*1000)/1000)} ج ع24</span>`;
-        wtStr=fmtG(t.weight||0)+' ج';
-        amtStr='—';
+        const correct24=scrapTo24(t);
+        detail=parts.join(' + ')+`<br><b style="color:#2D7A4F">= ${fmtG(Math.round(correct24*1000)/1000)} ج ع24</b>`;
+        wtStr=fmtG(t.weight||0)+' ج'; gold24Str=fmtG(Math.round(correct24*1000)/1000)+' ج'; amtStr='—';
       } else if(t.type==='sales-return'||t.type==='return'){
         detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>')+
                (t.ajTotal>0?`<br>خصم دين: ${fmt(t.ajTotal)} ر`:'');
-        amtStr=`<span style="color:var(--in);font-size:11px;font-weight:700">↩️ خصم ${fmt(t.ajTotal||0)} ر</span>`;
-        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+        amtStr=`<span style="color:#1D6FAF;font-weight:700">↩️ خصم ${fmt((t.ajTotal||0)+(t.vatAmt||0))} ر</span>`;
+        const rawWt=(t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+        const wt24=(t.items||[]).reduce((a,i)=>a+convertTo24(i.weight,i.karat),0);
+        wtStr=fmtG(rawWt)+' ج'; gold24Str=fmtG(Math.round(wt24*1000)/1000)+' ج';
       } else if(t.type==='purchase-return'||t.type==='supplier-return'){
         detail=(t.items||[]).map(i=>`↩️ ${kN[i.karat]||i.karat}: ${fmtG(i.weight)}ج`).join('<br>')+
                (t.ajTotal>0?`<br>خصم دين: ${fmt(t.ajTotal)} ر`:'');
-        amtStr=`<span style="color:var(--in);font-size:11px;font-weight:700">↩️ خصم ${fmt(t.ajTotal||0)} ر</span>`;
-        wtStr=fmtG((t.items||[]).reduce((a,i)=>a+(i.weight||0),0))+' ج';
+        amtStr=`<span style="color:#1D6FAF;font-weight:700">↩️ خصم ${fmt(t.ajTotal||t.total||0)} ر</span>`;
+        const rawWt=(t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+        const wt24=(t.items||[]).reduce((a,i)=>a+convertTo24(i.weight,i.karat),0);
+        wtStr=fmtG(rawWt)+' ج'; gold24Str=fmtG(Math.round(wt24*1000)/1000)+' ج';
       } else if(t.type==='transfer'){
         const fLbl=t.fromLabel||(t.fromSafe||'');
         const tLbl=t.toLabel  ||(t.toSafe  ||'');
         detail=`${fLbl} → ${tLbl}`;
-        if(t.goldAmount>0){detail+=`<br>ذهب: ${fmtG(t.goldAmount)}ج ع${t.goldKarat||''}`;wtStr=fmtG(t.goldAmount)+' ج';}
+        if(t.goldAmount>0){
+          const gw24=convertTo24(t.goldAmount,t.goldKarat||'21');
+          detail+=`<br>ذهب: ${fmtG(t.goldAmount)}ج ع${t.goldKarat||''}`;
+          wtStr=fmtG(t.goldAmount)+' ج'; gold24Str=fmtG(Math.round(gw24*1000)/1000)+' ج';
+        }
         if(t.ajour>0) detail+=`<br>أجور: ${fmt(t.ajour)} ر`;
         amtStr=t.amount>0?`${fmt(t.amount)} ر`:'—';
       } else if(t.type==='cash-receipt'){
         detail=`قبض نقد: ${fmt(t.amount||0)} ر`;
         amtStr=`<span class="pos">${fmt(t.amount||0)} ر</span>`;
-      } else if(t.type==='expense'){
-        detail=t.notes||'مصروف';
+      } else if(t.type==='charge'){
+        detail=t.desc||t.notes||'إضافة على الحساب';
         amtStr=`<span class="neg">${fmt(t.amount||0)} ر</span>`;
+      } else if(t.type==='expense'){
+        detail=t.notes||'مصروف'; amtStr=`<span class="neg">${fmt(t.amount||0)} ر</span>`;
+      } else { amtStr=fmt(t.total||0)+' ر'; }
+
+      // ── الرصيد المتراكم ──
+      const absRunC=Math.abs(runCash), absRunG=Math.abs(runGold24);
+      let balLabel='';
+      if(absRunC<0.01 && absRunG<0.001){
+        balLabel='<span class="pos">✅ مسوى</span>';
       } else {
-        amtStr=fmt(t.total||0)+' ر';
+        if(absRunC>=0.01){
+          const rDebit=isSupp?(runCash<0):(runCash>0);
+          balLabel+=`<span class="${rDebit?'neg':'pos'}">${rDebit?'عليه':'له'} ${fmt(absRunC)} ر</span>`;
+        }
+        if(absRunG>=0.001){
+          const gDebit=isSupp?(runGold24>0):(runGold24>0);
+          if(balLabel) balLabel+='<br>';
+          balLabel+=`<span class="${gDebit?'neg':'pos'}" style="font-size:10px">${gDebit?'عليه':'له'} ${fmtG(absRunG)} ج ع24</span>`;
+        }
       }
-      const balLabel=Math.abs(runCash)<0.01?'مسوى':`${isSupp?(runCash<0?'له':'له↑'):(runCash>0?'عليه':'له')} ${fmt(Math.abs(runCash))} ر`;
+
       return `<tr><td style="white-space:nowrap">${dt.ar}<br><small>${dt.en}</small></td>
         <td><b>${TLBL[t.type]||t.type}</b>${t.isDebt?'<br><small class="badge-debt">آجل</small>':''}</td>
         <td style="font-size:11px">${detail||'—'}</td>
         <td>${amtStr}</td>
-        <td style="font-size:11px">${wtStr}</td>
-        <td class="${Math.abs(runCash)>0.01?(isSupp?(runCash<0?'neg':'pos'):(runCash>0?'neg':'pos')):''}" style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
+        <td style="font-size:11px;white-space:nowrap">${wtStr}${gold24Str&&gold24Str!==wtStr?`<br><span style="color:#C9922A;font-size:10px">ع24: ${gold24Str}</span>`:''}</td>
+        <td style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
     }).join('');
     const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?`
       <tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
@@ -4371,7 +4453,7 @@ function printStmt(){
       ${isSettled?`<div class="settled">✅ الحساب مسدد بالكامل</div>`:balRows}
     </div>
     <div class="section-title">تفصيل الحركات (${txs.length} عملية)</div>
-    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن</th><th>الرصيد المتراكم</th></tr></thead>
+    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن / ع24</th><th>الرصيد المتراكم</th></tr></thead>
     <tbody>${obRow}${rows}</tbody></table>
     <div class="final-summary">
       <div class="fs-title">الملخص النهائي</div>
