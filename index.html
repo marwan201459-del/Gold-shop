@@ -2819,19 +2819,34 @@ function openStmtS(){
   S.clients.filter(cl=>cl.type!=='موظف'&&(!q||cl.name.toLowerCase().includes(q))).forEach(cl=>{
     const bal    = getClientBalance(cl.name);
     const isSupp = cl.type==='مورد';
-    const abs    = Math.abs(bal.cashOwed||0);
-    const balTxt = abs<0.01 ? '<span style="color:var(--ok)">✅ مسوى</span>'
-      : isSupp
-        ? (bal.cashOwed<0
-            ? `<span style="color:var(--no)">له: ${fmt(abs)} ر</span>`
-            : `<span style="color:var(--ok)">له↑: ${fmt(abs)} ر</span>`)
-        : (bal.cashOwed>0
-            ? `<span style="color:var(--no)">عليه: ${fmt(abs)} ر</span>`
-            : `<span style="color:var(--ok)">له: ${fmt(abs)} ر</span>`);
+    const absC   = Math.abs(bal.cashOwed||0);
+    const absG   = Math.abs(bal.goldOwedAs24||0);
+
+    // رصيد النقد (الأجور)
+    let cashTxt = '';
+    if(absC < 0.01){
+      cashTxt = '<span style="color:var(--ok);font-size:10px">✅ مسوى</span>';
+    } else if(isSupp){
+      cashTxt = bal.cashOwed < 0
+        ? `<span style="color:#DC2626;font-size:11px;font-weight:800">له: ${fmt(absC)} ر</span>`
+        : `<span style="color:#D97706;font-size:11px;font-weight:800">له↑: ${fmt(absC)} ر</span>`;
+    } else {
+      cashTxt = bal.cashOwed > 0
+        ? `<span style="color:#DC2626;font-size:11px;font-weight:800">عليه: ${fmt(absC)} ر</span>`
+        : `<span style="color:#D97706;font-size:11px;font-weight:800">له: ${fmt(absC)} ر</span>`;
+    }
+
+    // رصيد الذهب
+    let goldTxt = '';
+    if(absG >= 0.001){
+      const gDir = isSupp ? (bal.goldOwedAs24>0 ? 'عليه ذهب' : 'له ذهب') : (bal.goldOwedAs24>0 ? 'عليه ذهب' : 'له ذهب');
+      const gClr = bal.goldOwedAs24 > 0 ? '#DC2626' : '#D97706';
+      goldTxt = `<span style="color:${gClr};font-size:10px;font-weight:700"> · 🥇${gDir}: ${fmtG(absG)}ج</span>`;
+    }
 
     items.push(`<div class="sdi" onclick="selStmt('${cl.name.replace(/'/g,"\'")}','${cl.name.replace(/'/g,"\'")}')">
       <div style="flex:1"><span class="sdn">${cl.name}</span> <span class="sdt">${cl.type}</span></div>
-      <div style="font-size:11px;font-weight:700">${balTxt}</div>
+      <div style="text-align:left;line-height:1.6">${cashTxt}${goldTxt}</div>
     </div>`);
   });
 
@@ -9859,14 +9874,17 @@ function renderStmt(){
     sColor='#D97706'; sBg='#FEF9C3'; sLabel=isSupp?'له زيادة عندنا':'له رصيد عندنا'; sIcon='🟡';
   }
 
-  // ── حسابات الأجور والضريبة (الضريبة على الأجور فقط) ──
-  const totalGoldVal = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
-    .reduce((a,t)=>a+(t.goldTotal||0),0);
-  const totalAjour   = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
-    .reduce((a,t)=>a+(t.ajTotal||0),0);
-  const totalVatOnly = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='buy'||t.type==='buy-debt')
-    .reduce((a,t)=>a+(t.vatAmt||0),0);  // ضريبة الأجور فقط
-  const totalAjWithVat = totalAjour + totalVatOnly;
+  // ── حسابات الأجور الصحيحة (صافي بعد المرتجعات) ──
+  // يطابق getClientBalance تماماً: sellDebt = ajTotal+vatAmt، salesRetDebt = ajTotal+vatAmt
+  const totalAjour = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+    .reduce((a,t)=>a+(t.ajTotal||0),0)
+    - txs.filter(t=>t.type==='return'||t.type==='sales-return')
+         .reduce((a,t)=>a+(t.ajTotal||0),0);
+  const totalVatOnly = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+    .reduce((a,t)=>a+(t.vatAmt||0),0)
+    - txs.filter(t=>t.type==='return'||t.type==='sales-return')
+         .reduce((a,t)=>a+(t.vatAmt||0),0);
+  const totalAjWithVat = Math.max(0, totalAjour + totalVatOnly);
   const netCash = Math.abs(cash);
 
   let html = '';
