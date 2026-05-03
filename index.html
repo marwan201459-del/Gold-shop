@@ -437,7 +437,7 @@ body{
           background-size:200% auto;
           -webkit-background-clip:text;-webkit-text-fill-color:transparent;
           animation:shimmer 3s linear infinite">
-          جوهرة كيان الرائده
+          منظوم
         </div>
         <div style="font-size:10px;color:rgba(255,255,255,.20);margin-top:6px;letter-spacing:2.5px;font-weight:600">
           GOLD MANAGEMENT SYSTEM
@@ -506,7 +506,7 @@ body{
 
         <!-- خط سفلي -->
         <div style="text-align:center;margin-top:22px;font-size:10px;color:rgba(255,255,255,.12);letter-spacing:1px">
-          جوهرة كيان © 2026
+          منظوم © 2026
         </div>
       </div>
     </div>
@@ -515,7 +515,7 @@ body{
 <div id="app-wrap" style="display:none">
 <div id="data-loading" style="position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,#1E2535,#16182A);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px">
   <div style="font-size:40px">💍</div>
-  <div style="font-size:18px;font-weight:800;color:#E8B840;font-family:Tajawal,sans-serif">جوهرة كيان الرائده</div>
+  <div style="font-size:18px;font-weight:800;color:#E8B840;font-family:Tajawal,sans-serif">منظوم</div>
   <div style="font-size:13px;color:rgba(255,255,255,.6);font-family:Tajawal,sans-serif">⟳ جاري تحميل بياناتك...</div>
   <div style="width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
     <div style="height:100%;background:linear-gradient(90deg,#C8961E,#E8B840);border-radius:4px;animation:ldbar 1.5s ease-in-out infinite"></div>
@@ -524,7 +524,7 @@ body{
 </div>
 <div class="hdr">
   <div class="hdr-top">
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:#EDF0FF">جوهرة كيان</div><div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:500">الرائده للذهب والمجوهرات</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:#EDF0FF">منظوم</div><div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:500">نظام إدارة الذهب والمجوهرات</div></div></div>
     <div style="display:flex;align-items:center;gap:6px">
       <div class="hdr-date" id="hdr-date"></div>
       <!-- زر إدارة المستخدمين — للمالك فقط -->
@@ -6400,7 +6400,7 @@ function exportBackup(){
   const data = {
     version: 3,
     exportDate: new Date().toISOString(),
-    appName: 'جوهرة كيان الرائده',
+    appName: 'منظوم',
     transactions: S.transactions,
     clients: S.clients,
     safes: S.safes,
@@ -7407,6 +7407,15 @@ async function doLogin(){
     return;
   }
 
+  // التحقق من انتهاء اشتراك المالك المستقل
+  if(found.role==='tenant' && found.subEnd){
+    if(new Date(found.subEnd) < new Date()){
+      errEl.textContent='⏰ انتهى اشتراكك — تواصل مع المالك للتجديد';
+      errEl.style.display='block';
+      return;
+    }
+  }
+
   // حفظ الجلسة
   const uid = found.username.toLowerCase();
   ['auth','auth-user','auth-role'].forEach(k=>{
@@ -7422,7 +7431,7 @@ async function doLogin(){
 
   // إظهار زر المستخدمين للمالك فقط
   const ubtn = document.getElementById('btn-users-panel');
-  if(ubtn) ubtn.style.display = found.role==='owner' ? 'inline-block' : 'none';
+  if(ubtn) ubtn.style.display = (found.role==='owner' || found.role==='tenant') ? 'inline-block' : 'none';
 
   setTimeout(()=>{ if(typeof logActivity==='function') logActivity('login','دخول: '+(found.label||found.username)+' ('+found.role+')'); },2500);
 }
@@ -7440,52 +7449,114 @@ function logout(){
 //  لوحة إدارة المستخدمين — للمالك فقط
 // ══════════════════════════════════════════════════════
 
-const _ROLE_LBL = { owner:'👑 مالك', admin:'🔑 مدير', accountant:'📊 محاسب', user:'👤 موظف' };
+const _ROLE_LBL = { owner:'👑 مالك', tenant:'🏢 مالك مستقل', admin:'🔑 مدير', accountant:'📊 محاسب', user:'👤 موظف' };
 
 async function openUsersPanel(){
   const myRole = sessionStorage.getItem('auth-role')||'user';
-  if(myRole!=='owner'){ toast('⛔ هذه اللوحة للمالك فقط'); return; }
+  if(myRole!=='owner' && myRole!=='tenant'){ toast('⛔ هذه اللوحة للمالك فقط'); return; }
+  const isOwner = myRole==='owner';
+  const myUsername = sessionStorage.getItem('auth-user')||'';
 
   let users = [];
   if(typeof window._loadUsers==='function') try{ users=await window._loadUsers(); }catch(e){}
 
   function userCard(u){
     const active = u.status!=='disabled';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c2);border-radius:10px;margin-bottom:7px;flex-wrap:wrap">
+    const isTenant = u.role==='tenant';
+    const cardBg = isTenant ? 'var(--g4)' : 'var(--c2)';
+    const cardBorder = isTenant ? 'border:1.5px solid var(--g5)' : '';
+    // حساب حالة الاشتراك
+    let subBadge = '';
+    if(isTenant){
+      if(u.subEnd){
+        const daysLeft = Math.ceil((new Date(u.subEnd)-Date.now())/(1000*60*60*24));
+        if(daysLeft<=0){
+          subBadge=`<span style="background:#7F1D1D;color:#FCA5A5;font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px">⏰ انتهى</span>`;
+        } else if(daysLeft<=7){
+          subBadge=`<span style="background:#78350F;color:#FCD34D;font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px">⚠️ ${daysLeft} يوم</span>`;
+        } else {
+          subBadge=`<span style="background:#14532D;color:#86EFAC;font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px">✅ ${daysLeft} يوم</span>`;
+        }
+      } else {
+        subBadge=`<span style="background:#1E3A5F;color:#93C5FD;font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px">∞ دائم</span>`;
+      }
+    }
+    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:${cardBg};${cardBorder};border-radius:10px;margin-bottom:7px;flex-wrap:wrap">
       <div style="flex:1;min-width:130px">
-        <div style="font-weight:800;font-size:13px">${u.label||u.username}</div>
+        <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':'var(--tx1)'}">${isTenant?'🏢 ':''}${u.label||u.username}</div>
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
+        ${isTenant&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
       </div>
+      ${subBadge}
       <span style="background:${active?'#DCFCE7':'#FEE2E2'};color:${active?'#16A34A':'#DC2626'};font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px">
         ${active?'✅ نشط':'⛔ موقوف'}
       </span>
       <button onclick="_toggleUser('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:${active?'#DC2626':'#16A34A'};color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
         ${active?'إيقاف':'تفعيل'}
       </button>
+      ${isTenant?`<button onclick="_extendSub('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📅 اشتراك</button>`:''}
       <button onclick="_resetPass('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔑</button>
       <button onclick="_deleteUser('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:#aaa;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🗑</button>
     </div>`;
   }
 
+  const tenants = users.filter(u=>u.role==='tenant');
+  const staff   = users.filter(u=>u.role!=='tenant');
+
   const html=`<div style="padding:14px">
     <div style="font-size:15px;font-weight:900;margin-bottom:14px;color:var(--g1)">👥 إدارة المستخدمين</div>
 
-    <!-- إضافة مستخدم جديد -->
-    <div style="background:var(--g4);border:1.5px solid var(--g5);border-radius:12px;padding:12px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:10px">➕ إضافة مستخدم جديد</div>
+    <!-- تبويبات الإضافة -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+      <button onclick="document.getElementById('_add_staff_form').style.display='block';document.getElementById('_add_tenant_form').style.display='none';this.style.background='var(--g1)';this.style.color='#fff';document.getElementById('_tab_tenant').style.background='var(--c2)';document.getElementById('_tab_tenant').style.color='var(--tx1)'" id="_tab_staff"
+        style="padding:8px;border-radius:9px;border:none;background:var(--g1);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+        👤 إضافة موظف/مدير
+      </button>
+      <button onclick="document.getElementById('_add_tenant_form').style.display='block';document.getElementById('_add_staff_form').style.display='none';this.style.background='var(--g1)';this.style.color='#fff';document.getElementById('_tab_staff').style.background='var(--c2)';document.getElementById('_tab_staff').style.color='var(--tx1)'" id="_tab_tenant"
+        style="padding:8px;border-radius:9px;border:none;background:var(--c2);color:var(--tx1);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+        🏢 إضافة مالك مستقل
+      </button>
+    </div>
+
+    <!-- فورم إضافة موظف -->
+    <div id="_add_staff_form" style="background:var(--g4);border:1.5px solid var(--g5);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:10px">➕ موظف / مدير / محاسب</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
-        <input id="_nu_lbl"  placeholder="الاسم الكامل" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
-        <input id="_nu_usr"  placeholder="اليوزر (انجليزي)" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
+        <input id="_nu_lbl" placeholder="الاسم الكامل" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+        <input id="_nu_usr" placeholder="اليوزر (انجليزي)" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
-        <input id="_nu_pwd"  placeholder="كلمة المرور" type="password" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
+        <input id="_nu_pwd" placeholder="كلمة المرور" type="password" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
         <select id="_nu_rol" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
           <option value="user">👤 موظف</option>
           <option value="accountant">📊 محاسب</option>
           <option value="admin">🔑 مدير</option>
         </select>
       </div>
-      <button onclick="_addUser()" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--g1);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">➕ إضافة</button>
+      <button onclick="_addUser('staff')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--g1);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">➕ إضافة</button>
+    </div>
+
+    <!-- فورم إضافة مالك مستقل -->
+    <div id="_add_tenant_form" style="display:none;background:linear-gradient(135deg,#1a1505,#2a1f05);border:1.5px solid var(--g5);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:10px">🏢 مالك مستقل — بيانات منفصلة بالكامل</div>
+      <div style="background:rgba(200,150,30,.1);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--tx2);margin-bottom:10px;border:1px solid rgba(200,150,30,.2)">
+        ⚡ سيحصل على حساب مستقل بالكامل — بياناته منعزلة 100% عن باقي المستخدمين
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+        <input id="_nt_lbl" placeholder="الاسم الكامل" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+        <input id="_nt_usr" placeholder="اليوزر (انجليزي)" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+        <input id="_nt_pwd" placeholder="كلمة المرور" type="password" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
+        <select id="_nt_sub" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+          <option value="0">∞ بدون انتهاء</option>
+          <option value="30">📅 شهر (30 يوم)</option>
+          <option value="90">📅 3 أشهر</option>
+          <option value="180">📅 6 أشهر</option>
+          <option value="365">📅 سنة</option>
+        </select>
+      </div>
+      <button onclick="_addUser('tenant')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--g1);color:#060300;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">🏢 إضافة مالك مستقل</button>
     </div>
 
     <!-- الحساب الرئيسي -->
@@ -7495,25 +7566,37 @@ async function openUsersPanel(){
         <div style="font-size:11px;color:var(--tx2)">@Marwan · 👑 المالك</div></div>
       <span style="background:#DCFCE7;color:#16A34A;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px">✅ دائم</span>
     </div>
-    <div id="_users_list">${users.length?users.map(userCard).join(''):'<div style="text-align:center;color:var(--tx2);padding:20px;font-size:13px">لا يوجد مستخدمون بعد</div>'}</div>
+
+    ${tenants.length?`
+    <div style="font-size:11px;font-weight:700;color:var(--g1);margin-bottom:6px;margin-top:10px;border-bottom:1px solid var(--g5);padding-bottom:4px">🏢 الملاك المستقلون (${tenants.length})</div>
+    <div id="_tenants_list">${tenants.map(userCard).join('')}</div>`:''}
+
+    ${staff.length?`
+    <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;margin-top:10px">👤 الموظفون والمديرون (${staff.length})</div>
+    <div id="_users_list">${staff.map(userCard).join('')}</div>`
+    :`<div id="_users_list">${users.length===0?'<div style="text-align:center;color:var(--tx2);padding:20px;font-size:13px">لا يوجد مستخدمون بعد</div>':''}</div>`}
   </div>`;
 
   // عرض في modal
-  const m=document.getElementById('modal-overlay')||document.createElement('div');
+  const m=document.getElementById('_users_modal')||document.createElement('div');
   m.id='_users_modal';
   m.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto';
   m.innerHTML=`<div style="background:var(--c1);border-radius:16px;width:min(460px,96vw);max-height:85vh;overflow-y:auto;position:relative">
     <button onclick="document.getElementById('_users_modal').remove()" style="position:absolute;top:10px;left:10px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2)">✕</button>
     ${html}
   </div>`;
-  document.body.appendChild(m);
+  if(!document.getElementById('_users_modal')) document.body.appendChild(m);
+  else { document.getElementById('_users_modal').replaceWith(m); document.body.appendChild(m); }
 }
 
-async function _addUser(){
-  const label=(document.getElementById('_nu_lbl').value||'').trim();
-  const username=(document.getElementById('_nu_usr').value||'').trim().replace(/[^a-zA-Z0-9_]/g,'');
-  const password=document.getElementById('_nu_pwd').value||'';
-  const role=document.getElementById('_nu_rol').value||'user';
+async function _addUser(type){
+  type = type || 'staff';
+  const isTenant = type === 'tenant';
+  const prefix = isTenant ? '_nt' : '_nu';
+  const label    = (document.getElementById(prefix+'_lbl').value||'').trim();
+  const username = (document.getElementById(prefix+'_usr').value||'').trim().replace(/[^a-zA-Z0-9_]/g,'');
+  const password = document.getElementById(prefix+'_pwd').value||'';
+  const role     = isTenant ? 'tenant' : (document.getElementById('_nu_rol').value||'user');
   if(!label||!username||!password){ toast('⚠️ أدخل جميع البيانات'); return; }
   if(password.length<4){ toast('⚠️ كلمة المرور 4 أحرف على الأقل'); return; }
   if(username.toLowerCase()==='marwan'){ toast('⚠️ هذا اليوزر محجوز'); return; }
@@ -7522,9 +7605,22 @@ async function _addUser(){
   if(typeof window._loadUsers==='function') try{users=await window._loadUsers();}catch(e){}
   if(users.find(u=>u.username.toLowerCase()===username.toLowerCase())){ toast('⚠️ اليوزر موجود مسبقاً'); return; }
 
-  users.push({username, password, role, label, status:'active', createdAt:Date.now()});
+  // حساب تاريخ انتهاء الاشتراك للتينانت
+  let subEnd = null;
+  if(isTenant){
+    const subDays = parseInt(document.getElementById('_nt_sub').value)||0;
+    if(subDays>0){
+      const d = new Date(); d.setDate(d.getDate()+subDays);
+      subEnd = d.toISOString();
+    }
+  }
+
+  const newUser = {username, password, role, label, status:'active', createdAt:Date.now()};
+  if(isTenant && subEnd) newUser.subEnd = subEnd;
+
+  users.push(newUser);
   if(typeof window._saveUsers==='function') await window._saveUsers(users);
-  toast('✅ تم إضافة '+label);
+  toast('✅ تم إضافة '+label+(isTenant?' كمالك مستقل':''));
   document.getElementById('_users_modal')?.remove();
   openUsersPanel();
 }
@@ -7560,6 +7656,27 @@ async function _deleteUser(username){
   openUsersPanel();
 }
 
+async function _extendSub(username){
+  const days = prompt('أدخل عدد الأيام للتمديد (مثال: 30 أو 365):\n0 = بدون انتهاء (دائم)');
+  if(days===null) return;
+  const d = parseInt(days)||0;
+  let users=[]; if(typeof window._loadUsers==='function') try{users=await window._loadUsers();}catch(e){}
+  const u=users.find(x=>x.username===username); if(!u) return;
+  if(d===0){
+    delete u.subEnd;
+    toast('✅ '+u.label+' — اشتراك دائم');
+  } else {
+    // التمديد من اليوم أو من نهاية الاشتراك الحالي (أيهما أبعد)
+    const base = (u.subEnd && new Date(u.subEnd)>new Date()) ? new Date(u.subEnd) : new Date();
+    base.setDate(base.getDate()+d);
+    u.subEnd = base.toISOString();
+    toast('✅ '+u.label+' — مُمدد حتى '+base.toLocaleDateString('ar-SA'));
+  }
+  if(typeof window._saveUsers==='function') await window._saveUsers(users);
+  document.getElementById('_users_modal')?.remove();
+  openUsersPanel();
+}
+
 // ── تغيير كلمة مرور المستخدم لنفسه ──
 async function changeMyPassword(){
   const myUser=sessionStorage.getItem('auth-user')||'';
@@ -7583,10 +7700,11 @@ async function changeMyPassword(){
 // ══════════════════════════════════════════════════════
 
 const ROLES = {
-  owner:      { label:'👑 مالك',    level:4 },
-  admin:      { label:'🔑 مدير',    level:3 },
-  accountant: { label:'📊 محاسب',   level:2 },
-  user:       { label:'👤 موظف',    level:1 },
+  owner:      { label:'👑 مالك',         level:5 },
+  tenant:     { label:'🏢 مالك مستقل',   level:4 },
+  admin:      { label:'🔑 مدير',          level:3 },
+  accountant: { label:'📊 محاسب',         level:2 },
+  user:       { label:'👤 موظف',          level:1 },
 };
 
 // الصلاحيات لكل دور
@@ -10063,7 +10181,6 @@ function renderStmt(){
   html += '<div style="font-size:10px;color:' + _ajClr + ';font-weight:700;margin-bottom:4px">💵 ' + _ajDir + '</div>';
   html += '<div style="font-size:' + (_ajRemAbs>999999?'16':'20') + 'px;font-weight:900;color:' + _ajClr + ';line-height:1.1">' + (_ajRemAbs<0.01?'—':fmt(_ajRemAbs)) + '</div>';
   if(_ajRemAbs>0.01) html += '<div style="font-size:10px;color:' + _ajClr + ';opacity:.75;margin-top:2px">ريال</div>';
-  if(_ajRemAbs>0.01) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'cash\')" style="margin-top:6px;padding:3px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#DC2626;color:#fff;cursor:pointer;font-family:inherit;opacity:.85" title="تصفير الرصيد النقدي">⚖️ تصفير نقد</button>';
   html += '</div>';
   // خانة الذهب (فقط لو في رصيد ذهب)
   if(_hasGold){
@@ -10071,7 +10188,6 @@ function renderStmt(){
     html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
     html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
     html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
-    html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="margin-top:6px;padding:3px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit;opacity:.85" title="تصفير الرصيد الذهبي">⚖️ تصفير ذهب</button>';
     html += '</div>';
   }
   html += '</div>';
@@ -10682,7 +10798,7 @@ window.addEventListener('load',()=>{
     const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
     // إظهار زر المستخدمين للمالك
     const ubtn=document.getElementById('btn-users-panel');
-    if(ubtn) ubtn.style.display=role==='owner'?'inline-block':'none';
+    if(ubtn) ubtn.style.display=(role==='owner'||role==='tenant')?'inline-block':'none';
     startSession(user.toLowerCase());
   }
   setTimeout(()=>{
