@@ -10181,6 +10181,7 @@ function renderStmt(){
   html += '<div style="font-size:10px;color:' + _ajClr + ';font-weight:700;margin-bottom:4px">💵 ' + _ajDir + '</div>';
   html += '<div style="font-size:' + (_ajRemAbs>999999?'16':'20') + 'px;font-weight:900;color:' + _ajClr + ';line-height:1.1">' + (_ajRemAbs<0.01?'—':fmt(_ajRemAbs)) + '</div>';
   if(_ajRemAbs>0.01) html += '<div style="font-size:10px;color:' + _ajClr + ';opacity:.75;margin-top:2px">ريال</div>';
+  if(_ajRemAbs>0.01) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'cash\')" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#DC2626;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير نقد</button>';
   html += '</div>';
   // خانة الذهب (فقط لو في رصيد ذهب)
   if(_hasGold){
@@ -10188,6 +10189,7 @@ function renderStmt(){
     html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
     html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
     html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
+    html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير ذهب</button>';
     html += '</div>';
   }
   html += '</div>';
