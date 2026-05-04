@@ -6540,15 +6540,23 @@ function importBackup(input){
       S.clients       = data.clients      || [];
       S.customSafes   = data.customSafes  || [];
       S.snapshots     = data.snapshots    || [];
+      S.safes         = data.safes        || S.safes || {};
       if(data.users && data.users.length) S.users = data.users;
       if(data.openingBalance) S.openingBalance = data.openingBalance;
       if(data.safesBase)      S.safesBase      = data.safesBase;
       if(data.pendingItems)   S.pendingItems   = data.pendingItems;
       if(data.activityLog)    S.activityLog    = data.activityLog;
-      sv(); renderAll();
-      toast('✅ تم استيراد البيانات — '+S.transactions.length+' معاملة');
+
+      const count = S.transactions.length;
+
+      // ── التصحيح: إجبار _lastSave على قيمة مستقبلية لمنع onSnapshot من الكتابة فوق البيانات ──
+      if(typeof window._forceLastSave === 'function') window._forceLastSave();
+
+      sv();
+      renderAll();
+      toast('✅ تم استيراد البيانات — ' + count + ' معاملة');
     } catch(err){
-      toast('❌ خطأ في الملف: '+err.message);
+      toast('❌ خطأ في الملف: ' + err.message);
     }
   };
   reader.readAsText(file);
@@ -11275,6 +11283,10 @@ async function _doSave(n){
     throw e;
   }
 }
+   // ── [تصحيح] منع onSnapshot من الكتابة فوق بيانات الاستيراد ──
+window._forceLastSave = function(){
+  _lastSave = Date.now() + 10000; // 10 ثوانٍ حماية
+};
 window.sv_save=function(){
   showSync('⟳ جاري الحفظ...');
   _saveQueue=_saveQueue.then(async()=>{
@@ -11441,8 +11453,9 @@ window.addEventListener('load',()=>{
     const ubtn=document.getElementById('btn-users-panel');
     if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
     // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
-    const dataUid = owner || user.toLowerCase();
-    startSession(dataUid);
+// ── [تصحيح] نفس منطق تسجيل الدخول بالضبط ──
+const dataUid = (owner && owner.trim()) ? owner.trim().toLowerCase() : (user ? user.toLowerCase() : '');
+   startSession(dataUid);console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
      // ── [إضافة] بدء تتبع الحضور ──
 if(typeof window._startPresence==='function') window._startPresence(dataUid);
   }
