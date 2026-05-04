@@ -1687,7 +1687,75 @@ body{
       <button class="btn btn-gold" onclick="saveOpeningSafes()" style="margin-top:10px">💾 حفظ أرصدة الصناديق</button>
     </div>
   </div>
+<!-- ══ [إضافة] رصيد افتتاحي مباشر للمعادن ══ -->
+<div class="card" style="border:2px solid var(--g5)">
+  <div class="ch" style="background:linear-gradient(135deg,var(--g4),transparent)">
+    ➕ إضافة رصيد افتتاحي — ذهب / فضة
+  </div>
+  <div class="cb">
+    <div style="font-size:11px;color:var(--tx2);margin-bottom:12px;padding:8px 10px;background:var(--g4);border-radius:var(--rc);border:1px solid var(--g5)">
+      💡 أدخل رصيد الذهب أو الفضة الافتتاحي، حدد النوع، وأضف ملاحظة اختيارية
+    </div>
 
+    <!-- نوع المعدن -->
+    <div class="fr">
+      <label>🪙 نوع المعدن</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" id="ob-metal-gold-btn"
+          onclick="obSelectMetal('gold')"
+          style="padding:12px 8px;border-radius:var(--rb);border:2px solid var(--g5);
+            background:var(--g4);color:var(--g1);
+            font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s">
+          🥇 ذهب
+        </button>
+        <button type="button" id="ob-metal-silver-btn"
+          onclick="obSelectMetal('silver')"
+          style="padding:12px 8px;border-radius:var(--rb);border:2px solid var(--b2);
+            background:var(--c2);color:var(--tx2);
+            font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s">
+          🥈 فضة
+        </button>
+      </div>
+    </div>
+
+    <!-- القيمة -->
+    <div class="fr">
+      <label>⚖️ الكمية (جرام)</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" onclick="obAdjustValue(-0.5)"
+          style="width:42px;height:42px;flex-shrink:0;border-radius:var(--rc);border:1.5px solid var(--no-bd);
+            background:var(--no-bg);color:var(--no);font-size:20px;font-weight:900;
+            cursor:pointer;font-family:inherit;line-height:1">−</button>
+        <input type="number" id="ob-metal-value" value="" placeholder="0.000"
+          inputmode="decimal" step="0.001"
+          style="flex:1;padding:10px;border-radius:var(--rb);border:1.5px solid var(--g5);
+            background:var(--c1);font-family:inherit;font-size:17px;font-weight:900;
+            color:var(--g1);text-align:center">
+        <button type="button" onclick="obAdjustValue(0.5)"
+          style="width:42px;height:42px;flex-shrink:0;border-radius:var(--rc);border:1.5px solid var(--ok-bd);
+            background:var(--ok-bg);color:var(--ok);font-size:20px;font-weight:900;
+            cursor:pointer;font-family:inherit;line-height:1">+</button>
+      </div>
+    </div>
+
+    <!-- التفاصيل والملاحظات -->
+    <div class="fr">
+      <label>📝 تفاصيل / ملاحظات</label>
+      <input type="text" id="ob-metal-note" placeholder="مثال: ذهب محل قديم — صندوق رقم 3..."
+        style="width:100%;padding:10px 13px;border-radius:var(--rb);border:1.5px solid var(--b2);
+          background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
+    </div>
+
+    <!-- زر الإضافة -->
+    <button type="button" class="btn btn-gold" onclick="obSaveMetalBalance()" style="margin-top:4px;font-size:15px">
+      ➕ إضافة رصيد افتتاحي
+    </button>
+
+    <!-- عرض ما تم إضافته -->
+    <div id="ob-metal-entries" style="margin-top:14px"></div>
+  </div>
+</div>
+<!-- ══ نهاية الإضافة ══ -->
   <!-- الجهات -->
   <div class="card">
     <div class="ch">👥 حسابات العملاء والموردين</div>
@@ -10733,7 +10801,132 @@ function initOpeningPage(){
   renderObClientsList();
   renderObSummary();
 }
+// ══ [إضافة] رصيد افتتاحي مباشر — ذهب/فضة ══
+(function(){
+  let _selectedMetal = 'gold'; // القيمة الافتراضية: ذهب
 
+  window.obSelectMetal = function(type){
+    _selectedMetal = type;
+    const gBtn = document.getElementById('ob-metal-gold-btn');
+    const sBtn = document.getElementById('ob-metal-silver-btn');
+    if(!gBtn || !sBtn) return;
+    if(type === 'gold'){
+      gBtn.style.border   = '2px solid var(--g1)';
+      gBtn.style.background = 'var(--g4)';
+      gBtn.style.color    = 'var(--g1)';
+      sBtn.style.border   = '2px solid var(--b2)';
+      sBtn.style.background = 'var(--c2)';
+      sBtn.style.color    = 'var(--tx2)';
+    } else {
+      sBtn.style.border   = '2px solid #8890A8';
+      sBtn.style.background = 'rgba(136,144,168,.12)';
+      sBtn.style.color    = '#8890A8';
+      gBtn.style.border   = '2px solid var(--b2)';
+      gBtn.style.background = 'var(--c2)';
+      gBtn.style.color    = 'var(--tx2)';
+    }
+  };
+
+  window.obAdjustValue = function(delta){
+    const inp = document.getElementById('ob-metal-value');
+    if(!inp) return;
+    let v = parseFloat(inp.value) || 0;
+    v = Math.max(0, parseFloat((v + delta).toFixed(3)));
+    inp.value = v;
+  };
+
+  window.obSaveMetalBalance = function(){
+    const valRaw = parseFloat(document.getElementById('ob-metal-value')?.value) || 0;
+    const note   = (document.getElementById('ob-metal-note')?.value || '').trim();
+    if(valRaw <= 0){ toast('⚠️ أدخل كمية أكبر من صفر'); return; }
+
+    // تحديد مفتاح التخزين
+    const key = _selectedMetal === 'gold' ? 'ob_metal_gold' : 'ob_metal_silver';
+    const label = _selectedMetal === 'gold' ? '🥇 ذهب' : '🥈 فضة';
+
+    // حفظ في openingBalance.safes باستخدام المفتاح المخصص
+    const ob = getOB();
+    ob.safes[key] = (ob.safes[key] || 0) + valRaw;
+    S.openingBalance = ob;
+    sv();
+
+    // حفظ سجل الإدخالات للعرض فقط (localStorage)
+    const storageKey = 'ob_metal_entries_' + key;
+    const entries = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    entries.push({ val: valRaw, note: note, date: new Date().toLocaleDateString('ar-SA'), metal: label });
+    localStorage.setItem(storageKey, JSON.stringify(entries));
+
+    toast('✅ تم إضافة ' + valRaw.toFixed(3) + ' جرام ' + label);
+    logActivity('opening-balance', 'إضافة رصيد افتتاحي: ' + label + ' - ' + valRaw + ' جرام' + (note ? ' - ' + note : ''));
+
+    // إعادة تعيين الحقول
+    const vi = document.getElementById('ob-metal-value');
+    const ni = document.getElementById('ob-metal-note');
+    if(vi) vi.value = '';
+    if(ni) ni.value = '';
+
+    obRenderMetalEntries();
+    renderObSummary();
+  };
+
+  window.obRenderMetalEntries = function(){
+    const el = document.getElementById('ob-metal-entries');
+    if(!el) return;
+    const ob = getOB();
+    const goldVal   = ob.safes['ob_metal_gold']   || 0;
+    const silverVal = ob.safes['ob_metal_silver']  || 0;
+
+    const ge = JSON.parse(localStorage.getItem('ob_metal_entries_ob_metal_gold')   || '[]');
+    const se = JSON.parse(localStorage.getItem('ob_metal_entries_ob_metal_silver')  || '[]');
+    const all = [...ge.map(e=>({...e,type:'gold'})), ...se.map(e=>({...e,type:'silver'}))];
+
+    if(!all.length && goldVal <= 0 && silverVal <= 0){ el.innerHTML=''; return; }
+
+    let html = `<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">📋 الإدخالات المضافة</div>`;
+
+    if(goldVal > 0 || silverVal > 0){
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">`;
+      if(goldVal > 0)
+        html += `<div style="background:var(--g4);border:1px solid var(--g5);border-radius:var(--rb);padding:10px 12px;text-align:center">
+          <div style="font-size:11px;color:var(--tx2);font-weight:700;margin-bottom:3px">🥇 إجمالي الذهب</div>
+          <div style="font-size:18px;font-weight:900;color:var(--g1)">${goldVal.toFixed(3)} <span style="font-size:11px">جرام</span></div>
+        </div>`;
+      if(silverVal > 0)
+        html += `<div style="background:rgba(136,144,168,.10);border:1px solid rgba(136,144,168,.25);border-radius:var(--rb);padding:10px 12px;text-align:center">
+          <div style="font-size:11px;color:var(--tx2);font-weight:700;margin-bottom:3px">🥈 إجمالي الفضة</div>
+          <div style="font-size:18px;font-weight:900;color:#8890A8">${silverVal.toFixed(3)} <span style="font-size:11px">جرام</span></div>
+        </div>`;
+      html += `</div>`;
+    }
+
+    if(all.length){
+      html += `<div style="display:flex;flex-direction:column;gap:6px">`;
+      all.slice().reverse().forEach(e=>{
+        const clr = e.type==='gold' ? 'var(--g1)' : '#8890A8';
+        const bg  = e.type==='gold' ? 'var(--g4)' : 'rgba(136,144,168,.08)';
+        const bd  = e.type==='gold' ? 'var(--g5)' : 'rgba(136,144,168,.20)';
+        html += `<div style="background:${bg};border:1px solid ${bd};border-radius:var(--rc);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="flex:1">
+            <span style="font-size:13px;font-weight:800;color:${clr}">${e.metal} — ${e.val.toFixed(3)} جرام</span>
+            ${e.note ? `<div style="font-size:11px;color:var(--tx2);margin-top:2px">📝 ${e.note}</div>` : ''}
+          </div>
+          <span style="font-size:10px;color:var(--tx3);flex-shrink:0">${e.date}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    el.innerHTML = html;
+  };
+
+  // تهيئة عند فتح الصفحة
+  const _origInit = window.initOpeningPage;
+  window.initOpeningPage = function(){
+    if(_origInit) _origInit();
+    setTimeout(()=>{ obSelectMetal('gold'); obRenderMetalEntries(); }, 50);
+  };
+})();
+// ══ نهاية الإضافة ══
 // ── Init ───────────────────────────────────────────────────────────
 renderAll();
 addItem();
