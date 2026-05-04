@@ -7428,6 +7428,16 @@ async function doLogin(){
     sessionStorage.setItem(k,v); localStorage.setItem(k,v);
   });
 
+  // ── حفظ ownerId للعزل الكامل بين الحسابات ──
+  // Super Admin (Marwan) → ownerId = 'marwan'
+  // مالك مستقل (tenant) → ownerId = username تبعه
+  // موظف تابع لمالك → ownerId = ownerId تبع المالك اللي أضافه
+  const ownerVal = found.role==='owner'
+    ? found.username.toLowerCase()
+    : (found.ownerId || found.tenantId || found.username.toLowerCase());
+  sessionStorage.setItem('auth-owner', ownerVal);
+  localStorage.setItem('auth-owner', ownerVal);
+
   document.getElementById('login-screen').style.display='none';
   const aw=document.getElementById('app-wrap'); if(aw) aw.style.display='block';
 
@@ -7443,7 +7453,7 @@ async function doLogin(){
 
 function logout(){
   sessionStorage.clear();
-  ['auth','auth-user','auth-role'].forEach(k=>localStorage.removeItem(k));
+  ['auth','auth-user','auth-role','auth-owner'].forEach(k=>localStorage.removeItem(k));
   const ls=document.getElementById('login-screen'); if(ls) ls.style.display='flex';
   const aw=document.getElementById('app-wrap');     if(aw) aw.style.display='none';
   ['li-user','li-pass'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
@@ -7462,8 +7472,11 @@ async function openUsersPanel(){
   const isOwner = true;
   const myUsername = sessionStorage.getItem('auth-user')||'';
 
-  let users = [];
-  if(typeof window._loadUsers==='function') try{ users=await window._loadUsers(); }catch(e){}
+  let allUsers = [];
+  if(typeof window._loadUsers==='function') try{ allUsers=await window._loadUsers(); }catch(e){}
+
+  // ── Super Admin يشوف الكل، مالك مستقل يشوف موظفيه فقط ──
+  const users = allUsers;
 
   function userCard(u){
     const active = u.status!=='disabled';
@@ -7623,6 +7636,11 @@ async function _addUser(type){
   const newUser = {username, password, role, label, status:'active', createdAt:Date.now()};
   if(isTenant && subEnd) newUser.subEnd = subEnd;
 
+  // ── ownerId للعزل الكامل ──
+  // مالك مستقل → ownerId = username تبعه (هو مالك نفسه)
+  // موظف/مدير → ownerId = ownerId تبع من أضافه
+  newUser.ownerId = isTenant ? username.toLowerCase() : currentOwner();
+
   users.push(newUser);
   if(typeof window._saveUsers==='function') await window._saveUsers(users);
   toast('✅ تم إضافة '+label+(isTenant?' كمالك مستقل':''));
@@ -7739,6 +7757,14 @@ const PERMISSIONS = {
 function currentRole(){
   return sessionStorage.getItem('auth-role') || 'user';
 }
+// مَن هو المالك الفعلي للجلسة الحالية (للعزل)
+function currentOwner(){
+  return sessionStorage.getItem('auth-owner') || sessionStorage.getItem('auth-user') || '';
+}
+// هل المستخدم الحالي هو Super Admin
+function isSuperAdmin(){
+  return currentRole()==='owner';
+}
 function currentUser(){
   return sessionStorage.getItem('auth-user') || '';
 }
@@ -7786,11 +7812,12 @@ function applyPermissions(){
 function logActivity(action, details, targetId=''){
   if(!S.activityLog) S.activityLog = [];
   const entry = {
-    id:     Date.now(),
-    ts:     new Date().toISOString(),
-    user:   currentUser(),
-    role:   currentRole(),
-    action, // add | edit | delete | login | approve
+    id:      Date.now(),
+    ts:      new Date().toISOString(),
+    user:    currentUser(),
+    role:    currentRole(),
+    ownerId: currentOwner(),   // ← العزل: كل سجل يحمل ownerId
+    action,
     details,
     targetId,
   };
@@ -7803,12 +7830,27 @@ function logActivity(action, details, targetId=''){
 function renderActivityLog(filterUser='', filterDate=''){
   const el = document.getElementById('activity-log-list');
   if(!el) return;
-  // سجل النشاط للمالك الرئيسي فقط
-  if(currentRole()!=='owner'){
+
+  const role    = currentRole();
+  const myOwner = currentOwner();
+
+  // ── صلاحيات العرض ──
+  // Super Admin (owner) → يشوف الكل
+  // مالك مستقل (tenant) → يشوف سجلاته وسجلات موظفيه فقط
+  // موظف → يشوف سجلاته هو فقط
+  // باقي الأدوار بدون صلاحية actlog → رسالة رفض
+  if(role!=='owner' && role!=='tenant' && !PERMISSIONS[role]?.actlog){
     el.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx2)">⛔ غير مصرح</div>';
     return;
   }
+
   const logs = (S.activityLog||[]).filter(l=>{
+    // ── عزل البيانات حسب ownerId ──
+    if(!isSuperAdmin()){
+      // السجلات القديمة بدون ownerId: نعاملها كـ Super Admin (نخفيها عن الفرعيين)
+      const logOwner = l.ownerId || 'marwan';
+      if(logOwner.toLowerCase() !== myOwner.toLowerCase()) return false;
+    }
     if(filterUser && l.user !== filterUser) return false;
     if(filterDate && !l.ts.startsWith(filterDate)) return false;
     return true;
@@ -10828,10 +10870,13 @@ window.addEventListener('load',()=>{
   const auth=sessionStorage.getItem('auth')||localStorage.getItem('auth');
   const user=sessionStorage.getItem('auth-user')||localStorage.getItem('auth-user');
   const role=sessionStorage.getItem('auth-role')||localStorage.getItem('auth-role')||'user';
+  const owner=sessionStorage.getItem('auth-owner')||localStorage.getItem('auth-owner')||user||'';
   if(auth==='1'&&user){
     ['auth','auth-user','auth-role'].forEach(k=>{
       sessionStorage.setItem(k,k==='auth'?'1':k==='auth-user'?user:role);
     });
+    // استعادة auth-owner
+    sessionStorage.setItem('auth-owner', owner);
     const ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
     const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
     // إظهار زر المستخدمين للمالك
