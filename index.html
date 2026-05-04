@@ -7584,6 +7584,10 @@ async function openUsersPanel(){
   if(myRole!=='owner'){ toast('⛔ هذه اللوحة للمالك الرئيسي فقط'); return; }
   const isOwner = true;
   const myUsername = sessionStorage.getItem('auth-user')||'';
+   // ── [إضافة] تحميل بيانات الحضور ──
+if(typeof window._subscribeAllPresence==='function') window._subscribeAllPresence();
+// انتظر 400ms عشان تجي البيانات من Firestore
+await new Promise(r=>setTimeout(r,400));
 
   let allUsers = [];
   if(typeof window._loadUsers==='function') try{ allUsers=await window._loadUsers(); }catch(e){}
@@ -7594,6 +7598,24 @@ async function openUsersPanel(){
   function userCard(u){
     const active = u.status!=='disabled';
     const isTenant = u.role==='tenant';
+     // ── [إضافة] حالة الاتصال ──
+const _uid = (u.ownerId||u.username).toLowerCase();
+const _pres = (window._presenceData||{})[_uid]||{};
+const _isOnline = _pres.status==='online' && _pres.lastSeen && (Date.now()-_pres.lastSeen < 120000);
+const _lastSeenMs = _pres.lastSeen||0;
+function _fmtLastSeen(ms){
+  if(!ms) return 'لم يسجّل دخول بعد';
+  const diff = Date.now()-ms;
+  if(diff < 60000) return 'منذ أقل من دقيقة';
+  if(diff < 3600000) return 'منذ '+Math.floor(diff/60000)+' دقيقة';
+  if(diff < 86400000) return 'منذ '+Math.floor(diff/3600000)+' ساعة';
+  return new Date(ms).toLocaleString('ar-SA');
+}
+const _presenceBadge = `<div style="font-size:10px;margin-top:3px;display:flex;align-items:center;gap:4px">
+  <span style="width:8px;height:8px;border-radius:50%;background:${_isOnline?'#22C77A':'#888'};display:inline-block;flex-shrink:0;${_isOnline?'box-shadow:0 0 0 2px rgba(34,199,122,.3)':''}"></span>
+  <span style="color:${_isOnline?'#22C77A':'var(--tx3)'};font-weight:700">${_isOnline?'متصل الآن':'غير متصل'}</span>
+  ${!_isOnline && _lastSeenMs ? `<span style="color:var(--tx3)">· ${_fmtLastSeen(_lastSeenMs)}</span>` : ''}
+</div>`;
     const cardBg = isTenant ? 'var(--g4)' : 'var(--c2)';
     const cardBorder = isTenant ? 'border:1.5px solid var(--g5)' : '';
     // حساب حالة الاشتراك
@@ -7617,6 +7639,7 @@ async function openUsersPanel(){
         <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':'var(--tx1)'}">${isTenant?'🏢 ':''}${u.label||u.username}</div>
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
         ${isTenant&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
+        ${isTenant ? _presenceBadge : ''}
       </div>
       ${subBadge}
       <span style="background:${active?'#DCFCE7':'#FEE2E2'};color:${active?'#16A34A':'#DC2626'};font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px">
@@ -11181,9 +11204,13 @@ addItem();
 <!-- ── Firebase Multi-User ── -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot }
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
+   // تصدير collection+onSnapshot للـ presence system
+window._presenceColUnsub = function(db, colName, cb){
+  return onSnapshot(collection(db, colName), cb);
+};
+   
 const FB_CFG = {
   apiKey:           "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
   authDomain:       "gold-shop-3e7f5.firebaseapp.com",
@@ -11294,6 +11321,79 @@ function startSession(uid){
   });
 }
 window._startSession=startSession;
+   // ══ [إضافة] نظام Presence — آخر ظهور وحالة الاتصال ══
+const PRESENCE_COL = 'presence'; // مجموعة منفصلة في Firestore
+let _presenceRef  = null;
+let _presenceUnsub = null;
+let _heartbeatTimer = null;
+const ONLINE_TIMEOUT = 90000; // 90 ثانية بدون نشاط = offline
+
+// كتابة حالة المستخدم الحالي
+async function _writePresence(status){
+  if(!_presenceRef) return;
+  try {
+    await setDoc(_presenceRef, {
+      status,
+      lastSeen: Date.now(),
+      updatedAt: Date.now()
+    }, { merge: true });
+  } catch(e){ /* تجاهل أخطاء الصلاحيات */ }
+}
+
+// إرسال heartbeat كل 45 ثانية
+function _startHeartbeat(uid){
+  if(_heartbeatTimer) clearInterval(_heartbeatTimer);
+  _writePresence('online');
+  _heartbeatTimer = setInterval(()=> _writePresence('online'), 45000);
+}
+
+// تسجيل آخر ظهور عند الخروج / إغلاق التبويب
+function _registerOfflineOnExit(){
+  const _setOffline = () => {
+    if(!_presenceRef) return;
+    // استخدام sendBeacon لضمان التنفيذ حتى عند إغلاق التبويب
+    const url = `https://firestore.googleapis.com/v1/projects/${FB_CFG.projectId}/databases/(default)/documents/${PRESENCE_COL}/${_presenceRef.id}`;
+    navigator.sendBeacon && navigator.sendBeacon('/beacon-noop'); // fallback
+    _writePresence('offline');
+  };
+  window.addEventListener('beforeunload', _setOffline);
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) _writePresence('offline');
+    else { _writePresence('online'); _startHeartbeat(); }
+  });
+}
+
+// بدء تتبع حضور المستخدم الحالي
+function startPresence(uid){
+  if(!uid) return;
+  _presenceRef = doc(db, PRESENCE_COL, uid.toLowerCase());
+  _startHeartbeat(uid);
+  _registerOfflineOnExit();
+  // تسجيل النشاط عند أي تفاعل
+  ['click','keydown','touchstart'].forEach(ev=>{
+    document.addEventListener(ev, ()=>{
+      if(_presenceRef) _writePresence('online');
+    }, { passive:true });
+  });
+}
+window._startPresence = startPresence;
+
+// الاشتراك في حالات جميع المستخدمين (للمالك فقط)
+let _allPresenceUnsub = null;
+window._presenceData = {}; // كاش محلي للحالات
+
+function subscribeAllPresence(){
+  if(_allPresenceUnsub){ _allPresenceUnsub(); _allPresenceUnsub=null; }
+  const { collection, onSnapshot: _onSnap } = window._fbColUtils || {};
+  // نستخدم onSnapshot مع collection — نحتاج import إضافي (راجع الجزء الثاني)
+  if(typeof window._presenceColUnsub === 'function'){
+    window._presenceColUnsub(db, PRESENCE_COL, (snap)=>{
+      snap.forEach(d=>{ window._presenceData[d.id] = d.data(); });
+    });
+  }
+}
+window._subscribeAllPresence = subscribeAllPresence;
+// ══ نهاية إضافة Presence ══
 
 // ── loadUsers الداخلية — بدون فحص دور (للاستخدام في تسجيل الدخول فقط) ──
 async function _loadUsersInternal(){
@@ -11343,6 +11443,8 @@ window.addEventListener('load',()=>{
     // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
     const dataUid = owner || user.toLowerCase();
     startSession(dataUid);
+     // ── [إضافة] بدء تتبع الحضور ──
+if(typeof window._startPresence==='function') window._startPresence(dataUid);
   }
   setTimeout(()=>{
     if(!_firstLoad)return;
