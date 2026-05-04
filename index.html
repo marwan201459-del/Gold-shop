@@ -10518,6 +10518,7 @@ function renderObSafesForm(){
   const el=document.getElementById('ob-safes-form');
   if(!el) return;
   const ob=getOB();
+  if(!ob.safesExtra) ob.safesExtra={};
   const safesConfig=[
     {key:'cash',    label:'💵 الصندوق النقدي',   unit:'ريال',type:'cash'},
     {key:'khazina', label:'🏦 الخزينة',          unit:'ريال',type:'cash'},
@@ -10530,25 +10531,52 @@ function renderObSafesForm(){
   (S.customSafes||[]).forEach(cs=>{
     safesConfig.push({key:'cs_'+cs.id,label:cs.icon+' '+cs.name,unit:cs.type==='gold'?'جرام':'ريال',type:cs.type||'cash'});
   });
-  let html='<div style="display:flex;flex-direction:column;gap:8px">';
+  let html='<div style="display:flex;flex-direction:column;gap:10px">';
   safesConfig.forEach(sc=>{
     const v=ob.safes[sc.key]||0;
+    const extra=ob.safesExtra[sc.key]||{};
     const isGold=sc.type==='gold';
     const bg=isGold?'var(--g4)':'var(--ok-bg)';
     const bdr=isGold?'var(--g5)':'var(--ok-bd)';
     const clr=isGold?'var(--g1)':'var(--ok)';
-    html+=`<div style="display:flex;align-items:center;gap:10px;background:${bg};border:1px solid ${bdr};border-radius:var(--rb);padding:10px 12px">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:var(--tx1)">${sc.label}</div>
-        <div style="font-size:10px;color:var(--tx2)">الرصيد بالـ${sc.unit}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
+    // نوع الرصيد المحفوظ — الافتراضي حسب نوع الصندوق
+    const savedKind = extra.kind || (isGold ? 'gold' : 'cash');
+    const noteVal   = extra.note || '';
+    html+=`<div style="background:${bg};border:1px solid ${bdr};border-radius:var(--rb);padding:10px 12px">
+      <!-- اسم الصندوق -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--tx1)">${sc.label}</div>
+          <div style="font-size:10px;color:var(--tx2)">الرصيد بالـ${sc.unit}</div>
+        </div>
         <input type="number" id="ob-safe-${sc.key}" value="${v||''}" placeholder="0"
           inputmode="decimal" step="${isGold?'0.001':'1'}"
           style="width:110px;padding:8px;border-radius:var(--rc);border:1.5px solid ${bdr};
             background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:${clr};text-align:left">
-        <span style="font-size:11px;font-weight:700;color:${clr};min-width:28px">${sc.unit}</span>
       </div>
+      <!-- نوع الرصيد -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px">
+        <button type="button" id="ob-kind-gold-${sc.key}"
+          onclick="obSetKind('${sc.key}','gold')"
+          style="padding:6px;border-radius:var(--rc);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
+            border:2px solid ${savedKind==='gold'?'var(--g1)':'var(--b2)'};
+            background:${savedKind==='gold'?'var(--g4)':'var(--c1)'};
+            color:${savedKind==='gold'?'var(--g1)':'var(--tx2)'}">
+          🥇 ذهب
+        </button>
+        <button type="button" id="ob-kind-cash-${sc.key}"
+          onclick="obSetKind('${sc.key}','cash')"
+          style="padding:6px;border-radius:var(--rc);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
+            border:2px solid ${savedKind==='cash'?'var(--ok)':'var(--b2)'};
+            background:${savedKind==='cash'?'var(--ok-bg)':'var(--c1)'};
+            color:${savedKind==='cash'?'var(--ok)':'var(--tx2)'}">
+          💵 ريال
+        </button>
+      </div>
+      <!-- ملاحظات -->
+      <input type="text" id="ob-note-${sc.key}" value="${noteVal}" placeholder="تفاصيل / ملاحظات (اختياري)..."
+        style="width:100%;padding:7px 10px;border-radius:var(--rc);border:1px solid var(--b2);
+          background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
     </div>`;
   });
   html+='</div>';
@@ -10557,20 +10585,51 @@ function renderObSafesForm(){
 
 function saveOpeningSafes(){
   const ob=getOB();
+  if(!ob.safesExtra) ob.safesExtra={};
   const keys=['cash','khazina','worked21','worked18','scrap21','scrap18','pure24'];
   (S.customSafes||[]).forEach(cs=>keys.push('cs_'+cs.id));
   keys.forEach(k=>{
+    // القيمة
     const el=document.getElementById('ob-safe-'+k);
     if(!el) return;
     const v=parseFloat(el.value);
     ob.safes[k]=isNaN(v)?0:Math.max(0,v);
+    // نوع الرصيد
+    const kindGoldBtn=document.getElementById('ob-kind-gold-'+k);
+    const kindCashBtn=document.getElementById('ob-kind-cash-'+k);
+    let kind='';
+    if(kindGoldBtn && kindGoldBtn.style.color.includes('var(--g1)')) kind='gold';
+    else if(kindCashBtn && kindCashBtn.style.color.includes('var(--ok)')) kind='cash';
+    // ملاحظات
+    const noteEl=document.getElementById('ob-note-'+k);
+    const note=noteEl?noteEl.value.trim():'';
+    ob.safesExtra[k]={kind, note};
   });
   S.openingBalance=ob;
   sv(); renderObSummary();
   toast('✅ تم حفظ الرصيد الافتتاحي للصناديق');
   logActivity('opening-balance','تعديل الرصيد الافتتاحي للصناديق');
 }
-
+   function obSetKind(key, kind){
+  const gBtn=document.getElementById('ob-kind-gold-'+key);
+  const cBtn=document.getElementById('ob-kind-cash-'+key);
+  if(!gBtn||!cBtn) return;
+  if(kind==='gold'){
+    gBtn.style.border='2px solid var(--g1)';
+    gBtn.style.background='var(--g4)';
+    gBtn.style.color='var(--g1)';
+    cBtn.style.border='2px solid var(--b2)';
+    cBtn.style.background='var(--c1)';
+    cBtn.style.color='var(--tx2)';
+  } else {
+    cBtn.style.border='2px solid var(--ok)';
+    cBtn.style.background='var(--ok-bg)';
+    cBtn.style.color='var(--ok)';
+    gBtn.style.border='2px solid var(--b2)';
+    gBtn.style.background='var(--c1)';
+    gBtn.style.color='var(--tx2)';
+  }
+}
 function renderObCliSearch(){
   const q=(document.getElementById('ob-cli-search')?.value||'').toLowerCase().trim();
   const drop=document.getElementById('ob-cli-drop');
