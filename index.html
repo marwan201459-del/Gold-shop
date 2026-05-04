@@ -7385,20 +7385,27 @@ function renderAnalytics(){
 const _OWNER = {username:'Marwan', password:'2139989681', role:'owner', label:'مروان', status:'active'};
 
 async function doLogin(){
+  // تنظيف المدخلات (إزالة مسافات البداية والنهاية)
   const u = (document.getElementById('li-user').value||'').trim();
-  const p = document.getElementById('li-pass').value||'';
+  const p = (document.getElementById('li-pass').value||'').trim();
   const errEl = document.getElementById('li-err');
   errEl.style.display='none';
   if(!u||!p){ errEl.textContent='أدخل اليوزر وكلمة المرور'; errEl.style.display='block'; return; }
 
-  // تحميل المستخدمين
+  // تحميل المستخدمين — نستخدم النسخة الداخلية (بدون فحص دور) لأن الجلسة ما اتحفظت بعد
   let users = [_OWNER];
-  if(typeof window._loadUsers==='function'){
-    try{ const list=await window._loadUsers(); if(list.length) users=[_OWNER,...list.filter(x=>x.username!=='Marwan')]; }
-    catch(e){}
-  }
+  try{
+    const list = typeof _loadUsersInternal==='function'
+      ? await _loadUsersInternal()
+      : (typeof window._loadUsers==='function' ? await window._loadUsers() : []);
+    if(list && list.length) users=[_OWNER,...list.filter(x=>x.username.toLowerCase()!=='marwan')];
+  }catch(e){ console.warn('login: فشل تحميل المستخدمين',e); }
 
-  const found = users.find(x=>x.username===u && x.password===p);
+  // مقارنة بدون case-sensitive على اليوزر، مع الحفاظ على كلمة المرور كما هي
+  const found = users.find(x=>
+    x.username.toLowerCase()===u.toLowerCase() &&
+    String(x.password).trim()===String(p).trim()
+  );
   if(!found){
     errEl.textContent='❌ اسم المستخدم أو كلمة المرور غير صحيحة';
     errEl.style.display='block';
@@ -7441,8 +7448,14 @@ async function doLogin(){
   document.getElementById('login-screen').style.display='none';
   const aw=document.getElementById('app-wrap'); if(aw) aw.style.display='block';
 
-  // ربط Firebase بـ doc المستخدم الخاص
-  if(typeof window._startSession==='function') window._startSession(uid);
+  // ── ربط Firebase: كل مستخدم يتصل بـ userData تبع مالكه ──
+  // Super Admin (owner) → userData/marwan
+  // مالك مستقل (tenant) → userData/{username تبعه}
+  // موظف تابع لمالك → userData/{ownerId تبع مالكه} = نفس قاعدة بيانات مالكه
+  const dataUid = found.role==='owner'
+    ? found.username.toLowerCase()
+    : (found.ownerId || found.tenantId || found.username.toLowerCase());
+  if(typeof window._startSession==='function') window._startSession(dataUid);
 
   // إظهار زر المستخدمين للـ owner فقط
   const ubtn = document.getElementById('btn-users-panel');
@@ -10843,15 +10856,20 @@ function startSession(uid){
 }
 window._startSession=startSession;
 
-// ── تحميل/حفظ قائمة المستخدمين — owner فقط ──
+// ── loadUsers الداخلية — بدون فحص دور (للاستخدام في تسجيل الدخول فقط) ──
+async function _loadUsersInternal(){
+  try{const s=await getDoc(USERS_DOC);return s.exists()?(s.data().list||[]):[];}
+  catch(e){return [];}
+}
+
+// ── تحميل/حفظ قائمة المستخدمين — owner فقط (للوحة الإدارة) ──
 async function loadUsers(){
-  // حماية مزدوجة: فحص الدور قبل أي طلب Firestore
+  // حماية: فحص الدور قبل أي طلب Firestore من لوحة الإدارة
   if(currentRole()!=='owner'){
     console.warn('⛔ محاولة وصول غير مصرح: loadUsers');
     return [];
   }
-  try{const s=await getDoc(USERS_DOC);return s.exists()?(s.data().list||[]):[];}
-  catch(e){return [];}
+  return _loadUsersInternal();
 }
 async function saveUsers(list){
   // حماية مزدوجة: فحص الدور قبل أي كتابة Firestore
@@ -10861,6 +10879,7 @@ async function saveUsers(list){
   }
   await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
 }
+window._loadUsersInternal=_loadUsersInternal;
 window._loadUsers=loadUsers;
 window._saveUsers=saveUsers;
 
@@ -10882,7 +10901,9 @@ window.addEventListener('load',()=>{
     // إظهار زر المستخدمين للمالك
     const ubtn=document.getElementById('btn-users-panel');
     if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
-    startSession(user.toLowerCase());
+    // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
+    const dataUid = owner || user.toLowerCase();
+    startSession(dataUid);
   }
   setTimeout(()=>{
     if(!_firstLoad)return;
