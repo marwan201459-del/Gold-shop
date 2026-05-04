@@ -1329,6 +1329,31 @@ body{
     </div>
     <button class="btn btn-gold" style="width:100%;margin-top:8px;font-size:14px;padding:12px" onclick="addStmtCharge()">➕ إضافة المبلغ للحساب</button>
   </div>
+   <!-- ══ [إضافة] اختيار العيار في كشف الحساب ══ -->
+<div id="stmt-karat-row" style="display:none;margin-bottom:10px">
+  <div style="background:var(--g4);border:1.5px solid var(--g5);border-radius:var(--rb);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:800;color:var(--g1)">🥇 عرض الذهب بعيار:</span>
+    <div style="display:flex;gap:6px">
+      <button type="button" id="karat-btn-24" onclick="stmtSetKarat(24)"
+        style="padding:6px 14px;border-radius:var(--rc);border:2px solid var(--g1);background:var(--g4);color:var(--g1);
+          font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s">
+        24
+      </button>
+      <button type="button" id="karat-btn-21" onclick="stmtSetKarat(21)"
+        style="padding:6px 14px;border-radius:var(--rc);border:2px solid var(--b2);background:var(--c1);color:var(--tx2);
+          font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s">
+        21
+      </button>
+      <button type="button" id="karat-btn-18" onclick="stmtSetKarat(18)"
+        style="padding:6px 14px;border-radius:var(--rc);border:2px solid var(--b2);background:var(--c1);color:var(--tx2);
+          font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s">
+        18
+      </button>
+    </div>
+    <span id="stmt-karat-note" style="font-size:11px;color:var(--tx2)"></span>
+  </div>
+</div>
+<!-- ══ نهاية إضافة اختيار العيار ══ -->
   <button class="btn btn-blue" id="print-btn" style="display:none;margin-bottom:12px;border-radius:var(--rc)" onclick="printStmt()">
     🖨️ طباعة / تصدير PDF
   </button>
@@ -10345,6 +10370,13 @@ function renderStmt(){
     html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
     html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
     html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
+     // ── [إضافة] عرض بالعيار المختار ──
+  if(typeof stmtGetKarat==='function' && stmtGetKarat()!==24){
+    const _karat = stmtGetKarat();
+    const _converted = stmtConvertGold(_goldAbs);
+    html += '<div style="font-size:11px;font-weight:700;color:'+_goldClr+';margin-top:4px;background:rgba(0,0,0,.08);border-radius:6px;padding:3px 7px">≈ '+fmtG(_converted)+' ج ع'+_karat+'</div>';
+  }
+  // ── نهاية الإضافة ──
     html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير ذهب</button>';
     html += '</div>';
   }
@@ -10867,6 +10899,54 @@ function initOpeningPage(){
   renderObClientsList();
   renderObSummary();
 }
+   // ══ [إضافة] اختيار العيار في كشف الحساب ══
+(function(){
+  let _stmtKarat = 24; // الافتراضي: عيار 24
+
+  // معامل التحويل من 24 إلى العيار المطلوب
+  function _k(k){ return 24 / k; }
+
+  window.stmtSetKarat = function(k){
+    _stmtKarat = k;
+    // تحديث أزرار العيار
+    [24,21,18].forEach(n=>{
+      const btn = document.getElementById('karat-btn-'+n);
+      if(!btn) return;
+      if(n === k){
+        btn.style.border='2px solid var(--g1)';
+        btn.style.background='var(--g4)';
+        btn.style.color='var(--g1)';
+      } else {
+        btn.style.border='2px solid var(--b2)';
+        btn.style.background='var(--c1)';
+        btn.style.color='var(--tx2)';
+      }
+    });
+    const note = document.getElementById('stmt-karat-note');
+    if(note) note.textContent = k===24 ? '' : `(الذهب يُعرض محوّلاً من ع24 ÷ ${_k(k).toFixed(4).replace(/\.?0+$/,'')})`;
+    // إعادة رسم الكشف
+    renderStmt();
+  };
+
+  // دالة تحويل من ع24 للعيار المختار — تُستخدم في العرض فقط
+  window.stmtConvertGold = function(grams24){
+    if(!grams24 || Math.abs(grams24)<0.0001) return 0;
+    return Math.round(grams24 * _k(_stmtKarat) * 1000) / 1000;
+  };
+
+  window.stmtGetKarat = function(){ return _stmtKarat; };
+
+  // إظهار/إخفاء شريط العيار عند فتح كشف عميل
+  const _origRenderStmt = window.renderStmt;
+  window.renderStmt = function(){
+    if(_origRenderStmt) _origRenderStmt.apply(this, arguments);
+    // أظهر الشريط فقط إذا اختير عميل/جهة
+    const v = document.getElementById('stmt-v')?.value||'';
+    const row = document.getElementById('stmt-karat-row');
+    if(row) row.style.display = v ? 'block' : 'none';
+  };
+})();
+// ══ نهاية إضافة اختيار العيار ══
 // ══ [إضافة] رصيد افتتاحي مباشر ══
 (function(){
   let _selectedMetal = 'gold';
