@@ -2719,6 +2719,11 @@ document.getElementById('hdr-date').innerHTML=
 
 // ── Nav ───────────────────────────────────────────────────────────
 function P(id,btn){
+  // حماية: صفحة المستخدمين وسجل النشاط للمالك فقط
+  if((id==='users'||id==='actlog') && currentRole()!=='owner'){
+    toast('⛔ هذه الصفحة للمالك الرئيسي فقط');
+    return;
+  }
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   document.getElementById('pg-'+id).classList.add('on');
@@ -7429,9 +7434,9 @@ async function doLogin(){
   // ربط Firebase بـ doc المستخدم الخاص
   if(typeof window._startSession==='function') window._startSession(uid);
 
-  // إظهار زر المستخدمين للمالك فقط
+  // إظهار زر المستخدمين للـ owner فقط
   const ubtn = document.getElementById('btn-users-panel');
-  if(ubtn) ubtn.style.display = (found.role==='owner' || found.role==='tenant') ? 'inline-block' : 'none';
+  if(ubtn) ubtn.style.display = found.role==='owner' ? 'inline-block' : 'none';
 
   setTimeout(()=>{ if(typeof logActivity==='function') logActivity('login','دخول: '+(found.label||found.username)+' ('+found.role+')'); },2500);
 }
@@ -7453,8 +7458,8 @@ const _ROLE_LBL = { owner:'👑 مالك', tenant:'🏢 مالك مستقل', ad
 
 async function openUsersPanel(){
   const myRole = sessionStorage.getItem('auth-role')||'user';
-  if(myRole!=='owner' && myRole!=='tenant'){ toast('⛔ هذه اللوحة للمالك فقط'); return; }
-  const isOwner = myRole==='owner';
+  if(myRole!=='owner'){ toast('⛔ هذه اللوحة للمالك الرئيسي فقط'); return; }
+  const isOwner = true;
   const myUsername = sessionStorage.getItem('auth-user')||'';
 
   let users = [];
@@ -7709,17 +7714,25 @@ const ROLES = {
 
 // الصلاحيات لكل دور
 const PERMISSIONS = {
+  owner: {
+    add:true, edit:true, delete:true, approve:true,
+    reports:true, settings:true, users:true, actlog:true,
+  },
   admin: {
     add:true, edit:true, delete:true, approve:true,
-    reports:true, settings:true, users:true,
+    reports:true, settings:true, users:false, actlog:false,
+  },
+  tenant: {
+    add:true, edit:true, delete:true, approve:true,
+    reports:true, settings:true, users:false, actlog:false,
   },
   accountant: {
     add:true, edit:true, delete:false, approve:false,
-    reports:true, settings:false, users:false,
+    reports:true, settings:false, users:false, actlog:false,
   },
   user: {
     add:false, edit:false, delete:false, approve:false,
-    reports:false, settings:false, users:false,
+    reports:false, settings:false, users:false, actlog:false,
   },
 };
 
@@ -7753,9 +7766,17 @@ function applyPermissions(){
   document.querySelectorAll('[data-perm="edit"]').forEach(el=>{
     el.style.display = perm.edit ? '' : 'none';
   });
-  // تبويب الإعدادات
-  const usersTab = document.querySelector('[onclick*="users"]');
-  if(usersTab) usersTab.style.display = perm.users ? '' : 'none';
+
+  // ── تبويب المستخدمين — owner فقط ──
+  document.querySelectorAll('.tab').forEach(btn=>{
+    const oc = btn.getAttribute('onclick')||'';
+    if(oc.includes("'users'"))   btn.style.display = perm.users  ? '' : 'none';
+    if(oc.includes("'actlog'"))  btn.style.display = perm.actlog ? '' : 'none';
+  });
+
+  // ── زر "المستخدمون" في الهيدر — owner فقط ──
+  const ubtn = document.getElementById('btn-users-panel');
+  if(ubtn) ubtn.style.display = perm.users ? 'inline-block' : 'none';
 }
 
 // ═══════════════════════════════════════════════
@@ -7782,6 +7803,11 @@ function logActivity(action, details, targetId=''){
 function renderActivityLog(filterUser='', filterDate=''){
   const el = document.getElementById('activity-log-list');
   if(!el) return;
+  // سجل النشاط للمالك الرئيسي فقط
+  if(currentRole()!=='owner'){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx2)">⛔ غير مصرح</div>';
+    return;
+  }
   const logs = (S.activityLog||[]).filter(l=>{
     if(filterUser && l.user !== filterUser) return false;
     if(filterDate && !l.ts.startsWith(filterDate)) return false;
@@ -10775,12 +10801,22 @@ function startSession(uid){
 }
 window._startSession=startSession;
 
-// ── تحميل/حفظ قائمة المستخدمين ──
+// ── تحميل/حفظ قائمة المستخدمين — owner فقط ──
 async function loadUsers(){
+  // حماية مزدوجة: فحص الدور قبل أي طلب Firestore
+  if(currentRole()!=='owner'){
+    console.warn('⛔ محاولة وصول غير مصرح: loadUsers');
+    return [];
+  }
   try{const s=await getDoc(USERS_DOC);return s.exists()?(s.data().list||[]):[];}
   catch(e){return [];}
 }
 async function saveUsers(list){
+  // حماية مزدوجة: فحص الدور قبل أي كتابة Firestore
+  if(currentRole()!=='owner'){
+    console.warn('⛔ محاولة وصول غير مصرح: saveUsers');
+    return;
+  }
   await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
 }
 window._loadUsers=loadUsers;
@@ -10800,7 +10836,7 @@ window.addEventListener('load',()=>{
     const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
     // إظهار زر المستخدمين للمالك
     const ubtn=document.getElementById('btn-users-panel');
-    if(ubtn) ubtn.style.display=(role==='owner'||role==='tenant')?'inline-block':'none';
+    if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
     startSession(user.toLowerCase());
   }
   setTimeout(()=>{
