@@ -4624,49 +4624,61 @@ function printStmt(){
     </div>`;
   }
 
-  const printHTML=`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
-  <meta charset="UTF-8"><title>${title}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff;direction:rtl}
-    .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
-    .header h1{font-size:20px;font-weight:900;color:#C9922A}
-    .header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
-    .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-    .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
-    .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
-    .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
-    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
-    .bal-row:last-child{border-bottom:none}
-    .bal-val{font-size:15px;font-weight:900}
-    .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
-    .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
-    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
-    th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
-    td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
-    tr:nth-child(even) td{background:#FDFAF3}
-    .pos{color:#2D7A4F;font-weight:700}
-    .neg{color:#B83232;font-weight:700}
-    .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-    .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-    .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
-    small{color:#7A6540;font-size:10px}
-    .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
-    .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
-    .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
-    .fs-row:last-child{border-bottom:none}
-    .fs-val{font-size:16px;font-weight:900}
-    .print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
-    @media print{.print-btn{display:none!important}body{padding:8px}}
-  </style></head><body>
-  <div class="header">
-    <h2>${title}</h2>
-    <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
-  </div>
-  ${bodyHtml}
-  <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
-</body></html>`;
+const printHTML = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff;direction:rtl}
+.header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
+.header h1{font-size:20px;font-weight:900;color:#C9922A}
+.header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
+.header .dates{font-size:11px;color:#7A6540;margin-top:5px}
+.bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
+.bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
+.bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
+.bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
+.bal-row:last-child{border-bottom:none}
+.bal-val{font-size:15px;font-weight:900}
+.settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
+.section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
+td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
+tr:nth-child(even) td{background:#FDFAF3}
+.pos{color:#2D7A4F;font-weight:700}
+.neg{color:#B83232;font-weight:700}
+.dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+.dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+.badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
+small{color:#7A6540;font-size:10px}
+.final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
+.fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
+.fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+.fs-row:last-child{border-bottom:none}
+.fs-val{font-size:16px;font-weight:900}
+.print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+@media print{.print-btn{display:none!important}body{padding:8px}}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h2>${title}</h2>
+  <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
+</div>
+
+${bodyHtml}
+
+<button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+
+</body>
+</html>`;
 
   const blob=new Blob([printHTML],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -11486,50 +11498,58 @@ window._loadUsersInternal=_loadUsersInternal;
 window._loadUsers=loadUsers;
 window._saveUsers=saveUsers;
 
-// ── استعادة الجلسة عند تحميل الصفحة ──
-window.addEventListener('load',()=>{
-// initTheme();
-   const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
-   const user=sessionStorage.getItem('auth-user')||localStorage.getItem('auth-user');
-  const role=sessionStorage.getItem('auth-role')||localStorage.getItem('auth-role')||'user';
-  const owner=sessionStorage.getItem('auth-owner')||localStorage.getItem('auth-owner')||user||'';
-  if(auth==='1'&&user){
-    ['auth','auth-user','auth-role'].forEach(k=>{
-      sessionStorage.setItem(k,k==='auth'?'1':k==='auth-user'?user:role);
+window.addEventListener('load', () => {
+
+  // initTheme();
+
+  const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
+  const user = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user');
+  const role = sessionStorage.getItem('auth-role') || localStorage.getItem('auth-role') || 'user';
+  const owner = sessionStorage.getItem('auth-owner') || localStorage.getItem('auth-owner') || user || '';
+
+  if (auth === '1' && user) {
+
+    ['auth','auth-user','auth-role'].forEach(k => {
+      sessionStorage.setItem(k, k === 'auth' ? '1' : k === 'auth-user' ? user : role);
     });
-    // استعادة auth-owner
+
     sessionStorage.setItem('auth-owner', owner);
-    const ls=document.getElementById('login-screen');
-   const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
-    // إظهار زر المستخدمين للمالك
-    const ubtn=document.getElementById('btn-users-panel');
-    if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
-    // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
-// ── [تصحيح] نفس منطق تسجيل الدخول بالضبط ──
-const dataUid =
-  (owner && owner.trim())
-    ? owner.trim().toLowerCase()
-    : (user ? user.toLowerCase() : '');
 
-if (dataUid) {
-  startSession(dataUid);
-} else {
-  renderAll();
-}
+    const ls = document.getElementById('login-screen');
+    const aw = document.getElementById('app-wrap');
+    if (aw) aw.style.display = 'block';
 
-console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
+    const ubtn = document.getElementById('btn-users-panel');
+    if (ubtn) ubtn.style.display = (role === 'owner') ? 'inline-block' : 'none';
 
-// ── [إضافة] بدء تتبع الحضور ──
-if (typeof window._startPresence === 'function') {
-  window._startPresence(dataUid);
-}
-  setTimeout(()=>{
-    if(!_firstLoad)return;
-    _firstLoad=false;
-    const ld=document.getElementById('data-loading');if(ld)ld.style.display='none';
-    showSync('📴 بدون اتصال — محلي',4000);renderAll();
-  },9000);
+    const dataUid =
+      (owner && owner.trim())
+        ? owner.trim().toLowerCase()
+        : (user ? user.toLowerCase() : '');
+
+    if (dataUid) {
+      startSession(dataUid);
+    } else {
+      renderAll();
+    }
+
+    console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
+
+    if (typeof window._startPresence === 'function') {
+      window._startPresence(dataUid);
+    }
+  }
+
+  setTimeout(() => {
+    if (!_firstLoad) return;
+    _firstLoad = false;
+
+    const ld = document.getElementById('data-loading');
+    if (ld) ld.style.display = 'none';
+
+    showSync('📴 بدون اتصال — محلي', 4000);
+    renderAll();
+
+  }, 9000);
+
 });
-</script>
-</body>
-</html>
