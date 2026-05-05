@@ -11499,8 +11499,6 @@ window.addEventListener('load',()=>{
     });
     // استعادة auth-owner
     sessionStorage.setItem('auth-owner', owner);
-       }
-
     const ls=document.getElementById('login-screen');
    const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
     // إظهار زر المستخدمين للمالك
@@ -11519,10 +11517,12 @@ if (dataUid) {
   renderAll();
 }
 
-console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);   startSession(dataUid);console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
-     // ── [إضافة] بدء تتبع الحضور ──
-if(typeof window._startPresence==='function') window._startPresence(dataUid);
-  }
+console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
+
+// ── [إضافة] بدء تتبع الحضور ──
+if (typeof window._startPresence === 'function') {
+  window._startPresence(dataUid);
+}
   setTimeout(()=>{
     if(!_firstLoad)return;
     _firstLoad=false;
