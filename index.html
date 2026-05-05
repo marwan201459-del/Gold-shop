@@ -4446,7 +4446,7 @@ function printStmt(){
         else if(t.type==='payment'){
           const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
                    +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
-          dCash=-((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcv);
+          dCash=-((t.ajourPaid || 0)amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcv);
         }
         else if(t.type==='cash-receipt')
           dCash=-(t.amount||0);
