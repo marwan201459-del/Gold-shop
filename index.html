@@ -11488,8 +11488,9 @@ window._saveUsers=saveUsers;
 
 // ── استعادة الجلسة عند تحميل الصفحة ──
 window.addEventListener('load',()=>{
-// initTheme();  const auth=sessionStorage.getItem('auth')||localStorage.getItem('auth');
-  const user=sessionStorage.getItem('auth-user')||localStorage.getItem('auth-user');
+// initTheme();
+   const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
+   const user=sessionStorage.getItem('auth-user')||localStorage.getItem('auth-user');
   const role=sessionStorage.getItem('auth-role')||localStorage.getItem('auth-role')||'user';
   const owner=sessionStorage.getItem('auth-owner')||localStorage.getItem('auth-owner')||user||'';
   if(auth==='1'&&user){
@@ -11499,9 +11500,9 @@ window.addEventListener('load',()=>{
     // استعادة auth-owner
     sessionStorage.setItem('auth-owner', owner);
        }
-});
-    const ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
-    const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
+
+    const ls=document.getElementById('login-screen');
+   const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
     // إظهار زر المستخدمين للمالك
     const ubtn=document.getElementById('btn-users-panel');
     if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
