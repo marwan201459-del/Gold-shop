@@ -3577,7 +3577,21 @@ function saveInvoice(){
   clearInvForm(); renderAll(); releaseSave();
   toast('✅ تم حفظ الفاتورة');
 }
-
+// ══ [إضافة] خصم قيمة الذهب المسعّر من دين العميل ══
+(function(){
+  const lastTx = S.transactions[S.transactions.length-1];
+  if(!lastTx) return;
+  // فقط إذا كانت فاتورة بيع وفيها أصناف مسعّرة
+  if(lastTx.type!=='sell'&&lastTx.type!=='sell-debt') return;
+  const goldCashVal = (lastTx.items||[])
+    .filter(i=>i.karat!=='gems'&&(i.price||0)>0)
+    .reduce((a,i)=>a+Math.round((i.weight||0)*(i.price||0)*100)/100, 0);
+  if(goldCashVal<=0) return;
+  // حقن goldCashVal داخل الـ transaction نفسه عشان renderStmt يقرأه
+  lastTx.goldCashVal = goldCashVal;
+  sv();
+})();
+// ══ نهاية الإضافة ══
 function clearInvForm(){
   gemItems=[]; gemCounter=0; renderGems();
   stoneItems=[]; stoneCounter=0; renderStoneItems();
@@ -4407,8 +4421,12 @@ function printStmt(){
 
       // ── منطق dCash موحّد تماماً مع renderStmt ──
       if(isSupp){
-        if(t.type==='buy'||t.type==='buy-debt')
-          dCash = -(t.ajTotal||0);  // أجور الشراء فقط — الذهب في dGold24
+       if(t.type==='buy'||t.type==='buy-debt'){
+  const _bGCV=(t.items||[]).filter(i=>(i.price||0)>0)
+    .reduce((a,i)=>a+Math.round((i.weight||0)*(i.price||0)*100)/100,0);
+
+  dCash = -((t.ajTotal||0)+_bGCV);
+}
         else if(t.type==='supplier-payment'){
           const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
                    +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
@@ -4424,6 +4442,7 @@ function printStmt(){
         // أجور فقط هي الدين النقدي — الذهب في dGold24
         if(t.type==='sell'||t.type==='sell-debt')
           dCash=(t.ajTotal||0)+(t.vatAmt||0);
+           if((t.goldCashVal||0)>0) dCash += t.goldCashVal;
         else if(t.type==='payment'){
           const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
                    +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
@@ -4445,7 +4464,7 @@ function printStmt(){
       if(t.type==='sell'||t.type==='sell-debt')
         (t.items||[]).forEach(i=>{ dGold24+=convertTo24(i.weight,i.karat); });
       else if(t.type==='buy'||t.type==='buy-debt')
-        (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
+        (t.items||[]).forEach(i=>{ if((i.price||0)>0) return; // المسعّر يتحول ريال dGold24-=convertTo24(i.weight,i.karat); });
       else if(t.type==='scrap')
         dGold24=-scrapTo24(t);
       else if(t.type==='payment'){
@@ -5551,9 +5570,18 @@ function getClientBalance(cli){
   const _settleAdj2 = txs.filter(t=>t.type==='discount-adj'&&t.isSettle);
   const _settleGoldAdj24 = _settleAdj2.reduce((a,t)=>a+(t.settleGold24||0),0);
 
+ // ── [تصحيح] الذهب المسعَّر عند الشراء يخرج من رصيد الذهب ويدخل للنقد ──
+  let _buyGoldPricedAs24 = 0;
+  if(_isSupp2){
+    txs.filter(t=>t.type==='buy'||t.type==='buy-debt').forEach(t=>{
+      (t.items||[]).forEach(i=>{
+        if((i.price||0)>0) _buyGoldPricedAs24 += convertTo24(i.weight,i.karat);
+      });
+    });
+  }
   const goldOwedAs24 = _isSupp2
     ? Math.round((
-        -(goldIn24 - purchRetGold24 - suppRetGold24)
+        -(goldIn24 - _buyGoldPricedAs24 - purchRetGold24 - suppRetGold24)
         - goldTransferIn24 + goldTransferOut24
         + payGoldOut24 - payGoldIn24
         + _settleGoldAdj24
@@ -5596,8 +5624,30 @@ function getClientBalance(cli){
                              .reduce((a,t)=>a+(t.amount||0),0);
 
   // أجور الشراء علينا للمورد
-  const buyDebt = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
-                     .reduce((a,t)=>a+(t.ajTotal||0),0);
+ // أجور الشراء علينا للمورد
+let buyGoldCashValue = 0;
+   const buyDebt = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
+  .reduce((a,t)=>{
+    (t.items||[]).forEach(i=>{
+      if((i.price||0)>0){
+        buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
+      }
+    });
+   .reduce((a,t)=>{
+  (t.items||[]).forEach(i=>{
+    if((i.price||0)>0){
+      buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
+    }
+  });
+  return a+(t.ajTotal||0);
+},0);
+  // ── [تصحيح] قيمة الذهب المسعَّر عند الشراء من المورد → تُضاف لدين الأجور ──
+  let buyGoldCashValue = 0;
+  txs.filter(t=>t.type==='buy'||t.type==='buy-debt').forEach(t=>{
+    (t.items||[]).forEach(i=>{
+      if((i.price||0)>0) buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
+    });
+  });
 
   // أجور مرتجع مشتريات تُخفِّض الدين
   const purchRetDebt = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
@@ -5620,8 +5670,8 @@ function getClientBalance(cli){
   const _cli = (S.clients||[]).find(c=>c.name===cli);
   const _isSupplier = _cli?.type === 'مورد';
 
-  const cashOwed = _isSupplier
-    ? Math.round((-(buyDebt - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut + settleCashAdj + chargeTotal)*100)/100
+ const cashOwed = _isSupplier
+    ? Math.round((-(buyDebt + buyGoldCashValue - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut + settleCashAdj + chargeTotal)*100)/100
     : Math.round(((sellDebt - salesRetDebt - clientSettled - cashTransferIn + cashTransferOut + settleCashAdj + chargeTotal))*100)/100;
 
   // تفصيل بالعيارات للعرض
@@ -10089,7 +10139,8 @@ function renderStmt(){
       else if(t.type==='supplier-payment'){
         // نقد + خصم + فكة + ذهب بسعر (كله يُخفِّض الدين للمورد)
         const _goldCashVal = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
-                           + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
+                   + (t.goldCashVal||0)
+                   + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
         dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_goldCashVal;
       }
       else if(t.type==='purchase-return'||t.type==='supplier-return')
@@ -10103,8 +10154,9 @@ function renderStmt(){
       if(t.type==='sell'||t.type==='sell-debt')
         dCash = (t.ajTotal||0)+(t.vatAmt||0);
       else if(t.type==='payment'){
-        const _goldCashValCli = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
-                              + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
+       const _goldCashValCli = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
+                      + (t.goldCashVal||0)
+                      + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
         dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_goldCashValCli);
       }
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
