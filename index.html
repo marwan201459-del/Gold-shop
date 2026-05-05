@@ -11280,7 +11280,7 @@ const FB_CFG = {
   appId:            "1:765590903624:web:0e6197924d1f520ab4317d"
 };
 const app = initializeApp(FB_CFG);
-const db  = getFirestore(app);
+const db = getFirestore(app);
 
 // doc المستخدمين (المالك فقط يكتب عليه)
 const USERS_DOC = doc(db,'system','users');
@@ -11506,8 +11506,18 @@ window.addEventListener('load',()=>{
     if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
     // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
 // ── [تصحيح] نفس منطق تسجيل الدخول بالضبط ──
-const dataUid = (owner && owner.trim()) ? owner.trim().toLowerCase() : (user ? user.toLowerCase() : '');
-   startSession(dataUid);console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
+const dataUid =
+  (owner && owner.trim())
+    ? owner.trim().toLowerCase()
+    : (user ? user.toLowerCase() : '');
+
+if (dataUid) {
+  startSession(dataUid);
+} else {
+  renderAll();
+}
+
+console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);   startSession(dataUid);console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
      // ── [إضافة] بدء تتبع الحضور ──
 if(typeof window._startPresence==='function') window._startPresence(dataUid);
   }
