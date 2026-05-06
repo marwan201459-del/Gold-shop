@@ -11497,6 +11497,17 @@ window.addEventListener('load', () => {
     showSync('📴 بدون اتصال — محلي', 4000);
     renderAll();
 
-  }, 9000);
+}, 9000); 
 
-});
+}); // نهاية window.addEventListener
+
+// ── دالة تسجيل الخروج (اختياري إذا لم تكن موجودة) ──
+function logout() {
+  sessionStorage.clear();
+  localStorage.clear();
+  window.location.reload();
+}
+</script>
+
+</body>
+</html>
