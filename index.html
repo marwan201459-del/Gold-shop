@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>مكتب الذهب والمجوهرات</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
@@ -377,6 +378,20 @@ body{
   // ── تحقق مبكر من الجلسة ──
   (function(){
     try {
+      const isAuth = (
+        (sessionStorage.getItem('auth') === '1' || localStorage.getItem('auth') === '1') &&
+        (sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user'))
+      );
+
+      if (isAuth) {
+        document.addEventListener("DOMContentLoaded", function () {
+          const login = document.getElementById('login-screen');
+          if (login) login.style.display = 'none';
+        });
+      }
+
+      return;
+
       const ok = (sessionStorage.getItem('auth')==='1' || localStorage.getItem('auth')==='1')
                 && (sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user'));
       if(ok){
@@ -4303,6 +4318,7 @@ function _doPrintBalances(filterType){
 
   const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head>
   <meta charset="UTF-8"><title>${titleText}</title>
+<link rel="icon" type="image/png" href="favicon.png">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
@@ -4343,6 +4359,11 @@ function _doPrintBalances(filterType){
     <div class="sb"><div class="l">🏅 ${filterType==='مورد'?'ذهب لنا عليهم':'ذهب مستحق لهم'}</div><div class="v green">${fmt2(totGoldCredit)} جرام</div></div>
   </div>
   <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+<script>
+window.addEventListener("error", function(e){
+  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
+});
+</script>
 </body></html>`;
 
   const w = window.open('','_blank');
@@ -4635,6 +4656,7 @@ function printStmt(){
 <head>
 <meta charset="UTF-8">
 <title>\${title}</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -4673,6 +4695,11 @@ small{color:#7A6540;font-size:10px}
 <body>
     <div id="print-content"></div>
     <button class="print-btn" onclick="window.print()">طباعة التقرير</button>
+<script>
+window.addEventListener("error", function(e){
+  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
+});
+</script>
 </body>
 </html>\`;`; // تم إغلاق النص بشكل صحيح
 <div class="header">
@@ -4684,6 +4711,11 @@ ${bodyHtml}
 
 <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
 
+<script>
+window.addEventListener("error", function(e){
+  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
+});
+</script>
 </body>
 </html>`;
 
@@ -11507,6 +11539,11 @@ if (typeof window.renderAll !== 'function') {
 function closeHTML() {
     return '</div>';
 }
+</script>
+<script>
+window.addEventListener("error", function(e){
+  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
+});
 </script>
 </body>
 </html>
