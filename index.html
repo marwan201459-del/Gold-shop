@@ -4594,38 +4594,43 @@ function printStmt(){
         <td>${amtStr}</td>
         <td style="font-size:11px;white-space:nowrap">${wtStr}${gold24Str&&gold24Str!==wtStr?`<br><span style="color:#C9922A;font-size:10px">ع24: ${gold24Str}</span>`:''}</td>
         <td style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
-    }).join('');
-    const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?`
-      <tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
-        <td>—<br><small>رصيد مرحّل</small></td>
-        <td><b>🏁 رصيد افتتاحي</b>${_obEntry.note?`<br><small>${_obEntry.note}</small>`:''}</td>
-        <td>${Math.abs(_obEntry.cash||0)>0.01?`${_obEntry.cash>0?'عليه':'له'} ${fmt(Math.abs(_obEntry.cash))} ر`:''}${Math.abs(_obEntry.gold24||0)>0.001?`<br>${fmtG(Math.abs(_obEntry.gold24))} ج ع24`:''}</td>
-        <td>${Math.abs(_obEntry.cash||0)>0.01?`<span class="${_obEntry.cash>0?'neg':'pos'}">${fmt(Math.abs(_obEntry.cash))} ر</span>`:'—'}</td>
-        <td>${Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—'}</td>
-        <td>—</td></tr>`:'';
-    bodyHtml=`
-    <div class="bal-card ${isSettled?'settled-card':''}">
-      <div class="bal-title">${isSettled?'الحساب مسدد':'الرصيد الحالي'}</div>
-      ${isSettled?`<div class="settled">✅ الحساب مسدد بالكامل</div>`:balRows}
-    </div>
-    <div class="section-title">تفصيل الحركات (${txs.length} عملية)</div>
-    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن / ع24</th><th>الرصيد المتراكم</th></tr></thead>
-    <tbody>${obRow}${rows}</tbody></table>
-    <div class="final-summary">
-      <div class="fs-title">الملخص النهائي</div>
-      <div class="fs-row"><span>الرصيد النقدي</span>
-        <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
-      ${Math.abs(bal.goldOwedAs24||0)>0.001?`<div class="fs-row"><span>الرصيد الذهبي</span>
-        <span class="fs-val ${bal.goldOwedAs24>0?'neg':'pos'}">${bal.goldOwedAs24>0?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`:''}
-    </div>`;
+}).join('');
+    const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?
+      '<tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">'+
+        '<td>—<br><small>رصيد مرحّل</small></td>'+
+        '<td><b>🏁 رصيد افتتاحي</b>'+(_obEntry.note?'<br><small>'+_obEntry.note+'</small>':'')+' </td>'+
+        '<td>'+(Math.abs(_obEntry.cash||0)>0.01?(_obEntry.cash>0?'عليه':'له')+' '+fmt(Math.abs(_obEntry.cash))+' ر':'')+
+              (Math.abs(_obEntry.gold24||0)>0.001?'<br>'+fmtG(Math.abs(_obEntry.gold24))+' ج ع24':'')+' </td>'+
+        '<td>'+(Math.abs(_obEntry.cash||0)>0.01?'<span class="'+(_obEntry.cash>0?'neg':'pos')+'">'+fmt(Math.abs(_obEntry.cash))+' ر</span>':'—')+'</td>'+
+        '<td>'+(Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—')+'</td>'+
+        '<td>—</td></tr>'
+      :'';
+    const _cashClass=isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'));
+    const _cashText=isSettled?'مسوى ✅':((isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا'))+' '+fmt(Math.abs(bal.cashOwed))+' ريال');
+    const _goldRow=Math.abs(bal.goldOwedAs24||0)>0.001?
+      '<div class="fs-row"><span>الرصيد الذهبي</span>'+
+      '<span class="fs-val '+(bal.goldOwedAs24>0?'neg':'pos')+'">'+(bal.goldOwedAs24>0?'عليه':'له')+' '+fmtG(Math.abs(bal.goldOwedAs24))+' جرام عيار 24</span></div>'
+      :'';
+    bodyHtml=
+    '<div class="bal-card '+(isSettled?'settled-card':'')+'>'+
+      '<div class="bal-title">'+(isSettled?'الحساب مسدد':'الرصيد الحالي')+'</div>'+
+      (isSettled?'<div class="settled">✅ الحساب مسدد بالكامل</div>':balRows)+
+    '</div>'+
+    '<div class="section-title">تفصيل الحركات ('+txs.length+' عملية)</div>'+
+    '<table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن / ع24</th><th>الرصيد المتراكم</th></tr></thead>'+
+    '<tbody>'+obRow+rows+'</tbody></table>'+
+    '<div class="final-summary">'+
+      '<div class="fs-title">الملخص النهائي</div>'+
+      '<div class="fs-row"><span>الرصيد النقدي</span>'+
+        '<span class="fs-val '+_cashClass+'">'+_cashText+'</span></div>'+
+      _goldRow+
+    '</div>';
   }
-
 const printHTML = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <title>${title}</title>
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
