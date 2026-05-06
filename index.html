@@ -4628,8 +4628,8 @@ function printStmt(){
       '<div class="fs-row"><span>الرصيد النقدي</span>' + 
 '<span class="fs-val ' + _cashClass + '">' + _cashText + '</span></div>' + 
       _goldRow + 
-    '</div>'); // <--- لاحظ هنا أضفنا القوس قبل الفاصلة المنقوطة
-}
+'</div>';
+    }
 const printHTML = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -11482,18 +11482,23 @@ window.addEventListener('load', () => {
 
     console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
 
-    if (typeof window._startPresence === 'function') {
+  if (typeof window._startPresence === 'function') {
       window._startPresence(dataUid);
     }
   }
 
-  // هذا المؤقت يعمل فقط إذا فشل الاتصال تماماً ولم تنجح دالة startSession في تغيير قيمة _firstLoad
- }, 9000); 
+  // هذا هو المؤقت (Timeout) بشكل صحيح
+  setTimeout(() => {
+    if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
+    _firstLoad = false;
+    const ld = document.getElementById('data-loading');
+    if (ld) ld.style.display = 'none';
+    renderAll();
+  }, 9000); 
 
-}); // إغلاق دالة التحميل الأساسية
+}); // إغلاق دالة window.addEventListener
 
 // --- تعريف الدوال عالمياً لكي تعمل الأزرار في HTML ---
-
 window.P = function(pageId, btn) {
     document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
@@ -11512,7 +11517,7 @@ window.logout = function() {
 
 window.renderAll = function() {
     console.log("تم تحديث البيانات بنجاح");
-    // أضف هنا أي دالة تحديث أخرى إذا كانت موجودة
+    // إذا كانت دالة renderAll الأصلية موجودة في مكان آخر، يفضل عدم تكرارها هنا
 };
 
 </script>
