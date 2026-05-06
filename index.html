@@ -4628,7 +4628,8 @@ function printStmt(){
       '<div class="fs-row"><span>الرصيد النقدي</span>' + 
 '<span class="fs-val ' + _cashClass + '">' + _cashText + '</span></div>' + 
       _goldRow + 
-'</div>';
+// السطر 4631
+    '</div>'; // تأكد أنه ينتهي بفاصلة منقوطة فقط، بدون أي قوس دائري )
     }
 const printHTML = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -11507,6 +11508,33 @@ window.P = function(pageId, btn) {
     if (btn) btn.classList.add('on');
 };
 
+// --- الجزء الأخير من الكود ---
+
+    if (typeof window._startPresence === 'function') {
+      window._startPresence(dataUid);
+    }
+  } // إغلاق شرط الـ if (auth === '1')
+
+  // مؤقت الأمان للتحميل
+  setTimeout(() => {
+    if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
+    _firstLoad = false;
+    const ld = document.getElementById('data-loading');
+    if (ld) ld.style.display = 'none';
+    if (typeof renderAll === 'function') renderAll();
+  }, 9000); 
+
+}); // إغلاق window.addEventListener الأساسي
+
+// --- تعريف الدوال عالمياً لتعمل أزرار الـ HTML ---
+window.P = function(pageId, btn) {
+    document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
+    const target = document.getElementById('pg-' + pageId);
+    if (target) target.classList.add('on');
+    if (btn) btn.classList.add('on');
+};
+
 window.logout = function() {
     if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
         sessionStorage.clear();
@@ -11516,8 +11544,8 @@ window.logout = function() {
 };
 
 window.renderAll = function() {
-    console.log("تم تحديث البيانات بنجاح");
-    // إذا كانت دالة renderAll الأصلية موجودة في مكان آخر، يفضل عدم تكرارها هنا
+    console.log("تم استدعاء تحديث البيانات");
+    // إذا كان لديك دالة renderAll أخرى بالأعلى، سيقوم المتصفح باستخدام هذه
 };
 
 </script>
