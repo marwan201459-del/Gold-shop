@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>مكتب الذهب والمجوهرات</title>
-<link rel="icon" type="image/png" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
@@ -378,20 +377,6 @@ body{
   // ── تحقق مبكر من الجلسة ──
   (function(){
     try {
-      const isAuth = (
-        (sessionStorage.getItem('auth') === '1' || localStorage.getItem('auth') === '1') &&
-        (sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user'))
-      );
-
-      if (isAuth) {
-        document.addEventListener("DOMContentLoaded", function () {
-          const login = document.getElementById('login-screen');
-          if (login) login.style.display = 'none';
-        });
-      }
-
-      return;
-
       const ok = (sessionStorage.getItem('auth')==='1' || localStorage.getItem('auth')==='1')
                 && (sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user'));
       if(ok){
@@ -483,14 +468,14 @@ body{
         </div>
 
         <!-- حقل كلمة المرور -->
-       <div style="margin-bottom:26px">
-  <div style="font-size:11px;color:rgba(200,150,30,.65);font-weight:700;
-    letter-spacing:.8px;margin-bottom:7px;display:flex;align-items:center;gap:5px">
-    <span style="opacity:.7">🔒</span> كلمة المرور
-  </div>
-  <input id="li-pass" type="password" placeholder="••••••••••" class="li-inp"
-    autocomplete="current-password"
-    onkeydown="if(event.key==='Enter') window.doLogin()">
+        <div style="margin-bottom:26px">
+          <div style="font-size:11px;color:rgba(200,150,30,.65);font-weight:700;
+            letter-spacing:.8px;margin-bottom:7px;display:flex;align-items:center;gap:5px">
+            <span style="opacity:.7">🔒</span> كلمة المرور
+          </div>
+          <input id="li-pass" type="password" placeholder="••••••••••" class="li-inp"
+            autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()">
         </div>
 
         <!-- رسالة الخطأ -->
@@ -502,7 +487,7 @@ body{
         </div>
 
         <!-- زر الدخول -->
-        <button id="li-btn" onclick="window.doLogin()"
+        <button onclick="doLogin()" id="li-btn"
           style="width:100%;padding:15px;border:none;border-radius:14px;
             background:linear-gradient(135deg,#6B4F0C,#C8961E 45%,#E8B840 75%,#C8961E);
             background-size:200% auto;
@@ -1344,31 +1329,6 @@ body{
     </div>
     <button class="btn btn-gold" style="width:100%;margin-top:8px;font-size:14px;padding:12px" onclick="addStmtCharge()">➕ إضافة المبلغ للحساب</button>
   </div>
-   <!-- ══ [إضافة] اختيار العيار في كشف الحساب ══ -->
-<div id="stmt-karat-row" style="display:none;margin-bottom:10px">
-  <div style="background:var(--g4);border:1.5px solid var(--g5);border-radius:var(--rb);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-size:12px;font-weight:800;color:var(--g1)">🥇 عرض الذهب بعيار:</span>
-    <div style="display:flex;gap:6px">
-      <button type="button" id="karat-btn-24" onclick="stmtSetKarat(24)"
-        style="padding:6px 14px;border-radius:var(--rc);border:2px solid var(--g1);background:var(--g4);color:var(--g1);
-          font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s">
-        24
-      </button>
-      <button type="button" id="karat-btn-21" onclick="stmtSetKarat(21)"
-        style="padding:6px 14px;border-radius:var(--rc);border:2px solid var(--b2);background:var(--c1);color:var(--tx2);
-          font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s">
-        21
-      </button>
-      <button type="button" id="karat-btn-18" onclick="stmtSetKarat(18)"
-        style="padding:6px 14px;border-radius:var(--rc);border:2px solid var(--b2);background:var(--c1);color:var(--tx2);
-          font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s">
-        18
-      </button>
-    </div>
-    <span id="stmt-karat-note" style="font-size:11px;color:var(--tx2)"></span>
-  </div>
-</div>
-<!-- ══ نهاية إضافة اختيار العيار ══ -->
   <button class="btn btn-blue" id="print-btn" style="display:none;margin-bottom:12px;border-radius:var(--rc)" onclick="printStmt()">
     🖨️ طباعة / تصدير PDF
   </button>
@@ -1727,82 +1687,7 @@ body{
       <button class="btn btn-gold" onclick="saveOpeningSafes()" style="margin-top:10px">💾 حفظ أرصدة الصناديق</button>
     </div>
   </div>
-<!-- ══ [إضافة] رصيد افتتاحي مباشر ══ -->
-<div class="card" style="border:2px solid var(--g5)">
-  <div class="ch" style="background:linear-gradient(135deg,var(--g4),transparent)">
-    ➕ إضافة رصيد افتتاحي
-  </div>
-  <div class="cb">
-    <div style="font-size:11px;color:var(--tx2);margin-bottom:12px;padding:8px 10px;background:var(--g4);border-radius:var(--rc);border:1px solid var(--g5)">
-      💡 أدخل المبلغ، حدد الصندوق المرتبط، وأضف ملاحظة اختيارية
-    </div>
 
-    <!-- نوع الرصيد: ذهب أو نقد -->
-    <div class="fr">
-      <label>🪙 نوع الرصيد</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button type="button" id="ob-metal-gold-btn" onclick="obSelectMetal('gold')"
-          style="padding:12px 8px;border-radius:var(--rb);border:2px solid var(--g1);
-            background:var(--g4);color:var(--g1);
-            font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s">
-          🥇 ذهب
-        </button>
-        <button type="button" id="ob-metal-cash-btn" onclick="obSelectMetal('cash')"
-          style="padding:12px 8px;border-radius:var(--rb);border:2px solid var(--b2);
-            background:var(--c2);color:var(--tx2);
-            font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s">
-          💵 نقد (ريال)
-        </button>
-      </div>
-    </div>
-
-    <!-- اختيار الصندوق -->
-    <div class="fr">
-      <label>🗄️ الصندوق المرتبط</label>
-      <select id="ob-metal-safe"
-        style="width:100%;padding:10px 13px;border-radius:var(--rb);border:1.5px solid var(--b2);
-          background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
-      </select>
-    </div>
-
-    <!-- القيمة -->
-    <div class="fr">
-      <label id="ob-metal-value-label">⚖️ الكمية (جرام)</label>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button type="button" onclick="obAdjustValue(-0.5)"
-          style="width:42px;height:42px;flex-shrink:0;border-radius:var(--rc);border:1.5px solid var(--no-bd);
-            background:var(--no-bg);color:var(--no);font-size:20px;font-weight:900;
-            cursor:pointer;font-family:inherit;line-height:1">−</button>
-        <input type="number" id="ob-metal-value" value="" placeholder="0.000"
-          inputmode="decimal" step="0.001"
-          style="flex:1;padding:10px;border-radius:var(--rb);border:1.5px solid var(--g5);
-            background:var(--c1);font-family:inherit;font-size:17px;font-weight:900;
-            color:var(--g1);text-align:center">
-        <button type="button" onclick="obAdjustValue(0.5)"
-          style="width:42px;height:42px;flex-shrink:0;border-radius:var(--rc);border:1.5px solid var(--ok-bd);
-            background:var(--ok-bg);color:var(--ok);font-size:20px;font-weight:900;
-            cursor:pointer;font-family:inherit;line-height:1">+</button>
-      </div>
-    </div>
-
-    <!-- ملاحظات -->
-    <div class="fr">
-      <label>📝 تفاصيل / ملاحظات</label>
-      <input type="text" id="ob-metal-note" placeholder="ملاحظة اختيارية..."
-        style="width:100%;padding:10px 13px;border-radius:var(--rb);border:1.5px solid var(--b2);
-          background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
-    </div>
-
-    <!-- زر الإضافة -->
-    <button type="button" class="btn btn-gold" onclick="obSaveMetalBalance()" style="margin-top:4px;font-size:15px">
-      ➕ إضافة رصيد افتتاحي
-    </button>
-
-    <!-- قائمة الإدخالات -->
-    <div id="ob-metal-entries" style="margin-top:14px"></div>
-  </div>
-</div>
-<!-- ══ نهاية الإضافة ══ -->
   <!-- الجهات -->
   <div class="card">
     <div class="ch">👥 حسابات العملاء والموردين</div>
@@ -2492,11 +2377,14 @@ function calcSafes(){
         // أصناف متعددة
         pItems.forEach(gi=>{
           const w=gi.weight||0, gk=gi.karat||'18';
-          const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+         const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
           if(w>0 && safes[dest]!=null) safes[dest] += w;
-          if(k21(gk)) safes.debt21 -= w;
-          else if(k18(gk)) safes.debt18 -= w;
-          else if(k24(gk)) safes.debt24 -= w;
+          // الخصم من مديونية الذهب فقط إذا لم يكن هناك سعر (تسوية ذهب بذهب)
+          if(!gi.price || gi.price <= 0) {
+            if(k21(gk)) safes.debt21 -= w;
+            else if(k18(gk)) safes.debt18 -= w;
+            else if(k24(gk)) safes.debt24 -= w;
+          }
         });
       } else if(t.goldWeight && t.goldWeight>0){
         // توافق مع السجلات القديمة (صنف واحد)
@@ -3592,21 +3480,7 @@ function saveInvoice(){
   clearInvForm(); renderAll(); releaseSave();
   toast('✅ تم حفظ الفاتورة');
 }
-// ══ [إضافة] خصم قيمة الذهب المسعّر من دين العميل ══
-(function(){
-  const lastTx = S.transactions[S.transactions.length-1];
-  if(!lastTx) return;
-  // فقط إذا كانت فاتورة بيع وفيها أصناف مسعّرة
-  if(lastTx.type!=='sell'&&lastTx.type!=='sell-debt') return;
-  const goldCashVal = (lastTx.items||[])
-    .filter(i=>i.karat!=='gems'&&(i.price||0)>0)
-    .reduce((a,i)=>a+Math.round((i.weight||0)*(i.price||0)*100)/100, 0);
-  if(goldCashVal<=0) return;
-  // حقن goldCashVal داخل الـ transaction نفسه عشان renderStmt يقرأه
-  lastTx.goldCashVal = goldCashVal;
-  sv();
-})();
-// ══ نهاية الإضافة ══
+
 function clearInvForm(){
   gemItems=[]; gemCounter=0; renderGems();
   stoneItems=[]; stoneCounter=0; renderStoneItems();
@@ -4318,7 +4192,6 @@ function _doPrintBalances(filterType){
 
   const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head>
   <meta charset="UTF-8"><title>${titleText}</title>
-<link rel="icon" type="image/png" href="favicon.png">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
@@ -4359,11 +4232,6 @@ function _doPrintBalances(filterType){
     <div class="sb"><div class="l">🏅 ${filterType==='مورد'?'ذهب لنا عليهم':'ذهب مستحق لهم'}</div><div class="v green">${fmt2(totGoldCredit)} جرام</div></div>
   </div>
   <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
-<script>
-window.addEventListener("error", function(e){
-  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
-});
-</script>
 </body></html>`;
 
   const w = window.open('','_blank');
@@ -4440,27 +4308,25 @@ function printStmt(){
       const dt=fmtDate(t.date);
       let dCash=0, dGold24=0;
 
-// ── منطق dCash موحّد تماماً مع renderStmt ──
+      // ── منطق dCash موحّد تماماً مع renderStmt ──
       if(isSupp){
-        if(t.type==='buy'||t.type==='buy-debt'){
-          const _bGCV=(t.items||[]).filter(i=>(i.price||0)>0)
-            .reduce((a,i)=>a+Math.round((i.weight||0)*(i.price||0)*100)/100,0);
-          dCash=-((t.ajTotal||0)+_bGCV);
-        }
+        if(t.type==='buy'||t.type==='buy-debt')
+          dCash = -(t.ajTotal||0);  // أجور الشراء فقط — الذهب في dGold24
         else if(t.type==='supplier-payment'){
           const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
                    +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
           dCash=(t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_gcv;
         }
         else if(t.type==='purchase-return'||t.type==='supplier-return')
-          dCash=(t.ajTotal||0);
+          dCash=(t.ajTotal||0);  // أجور المرتجع فقط
         else if(t.type==='transfer'){
           if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
           if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
         }
       } else {
+        // أجور فقط هي الدين النقدي — الذهب في dGold24
         if(t.type==='sell'||t.type==='sell-debt')
-          dCash=(t.ajTotal||0)+(t.vatAmt||0)+(t.goldCashVal||0);
+          dCash=(t.ajTotal||0)+(t.vatAmt||0);
         else if(t.type==='payment'){
           const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
                    +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
@@ -4469,7 +4335,7 @@ function printStmt(){
         else if(t.type==='cash-receipt')
           dCash=-(t.amount||0);
         else if(t.type==='sales-return'||t.type==='return')
-          dCash=-((t.ajTotal||0)+(t.vatAmt||0));
+          dCash=-((t.ajTotal||0)+(t.vatAmt||0));  // أجور المرتجع فقط
         else if(t.type==='charge')
           dCash=(t.amount||0);
         else if(t.type==='transfer'){
@@ -4477,23 +4343,34 @@ function printStmt(){
           if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
         }
       }
+
       // ── dGold24 موحّد مع renderStmt ──
       if(t.type==='sell'||t.type==='sell-debt')
         (t.items||[]).forEach(i=>{ dGold24+=convertTo24(i.weight,i.karat); });
       else if(t.type==='buy'||t.type==='buy-debt')
-        (t.items||[]).forEach(i=>{ if((i.price||0)>0) return; // المسعّر يتحول ريال dGold24-=convertTo24(i.weight,i.karat); });
+        (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
       else if(t.type==='scrap')
         dGold24=-scrapTo24(t);
       else if(t.type==='payment'){
-        const pGoldItems=t.goldItems||[];
-        if(pGoldItems.length) pGoldItems.forEach(gi=>{ dGold24-=convertTo24(gi.weight,gi.karat||'21'); });
-        else dGold24=-convertTo24(t.goldWeight,t.goldKarat||'21');
+      const pGoldItems=t.goldItems||[];
+      if(pGoldItems.length) {
+        pGoldItems.forEach(gi=>{
+          if(!gi.price || gi.price <= 0) dGold24 -= convertTo24(gi.weight,gi.karat||'21');
+        });
+      } else {
+        if(!t.goldPrice || t.goldPrice <= 0) dGold24 = -convertTo24(t.goldWeight,t.goldKarat||'21');
       }
-      else if(t.type==='supplier-payment'){
-        const spGoldItems=t.goldItems||[];
-        if(spGoldItems.length) spGoldItems.forEach(gi=>{ dGold24+=convertTo24(gi.weight,gi.karat||'21'); });
-        else dGold24=convertTo24(t.goldWeight,t.goldKarat||'21');
+    }
+    else if(t.type==='supplier-payment'){
+      const spGoldItems=t.goldItems||[];
+      if(spGoldItems.length) {
+        spGoldItems.forEach(gi=>{
+           if(!gi.price || gi.price <= 0) dGold24 += convertTo24(gi.weight,gi.karat||'21');
+        });
+      } else {
+        if(!t.goldPrice || t.goldPrice <= 0) dGold24 = convertTo24(t.goldWeight,t.goldKarat||'21');
       }
+    }
       else if(t.type==='sales-return'||t.type==='return')
         (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
       else if(t.type==='supplier-return'||t.type==='purchase-return')
@@ -4592,7 +4469,7 @@ function printStmt(){
         detail=t.notes||'مصروف'; amtStr=`<span class="neg">${fmt(t.amount||0)} ر</span>`;
       } else { amtStr=fmt(t.total||0)+' ر'; }
 
-    // ── الرصيد المتراكم ──
+      // ── الرصيد المتراكم ──
       const absRunC=Math.abs(runCash), absRunG=Math.abs(runGold24);
       let balLabel='';
       if(absRunC<0.01 && absRunG<0.001){
@@ -4615,109 +4492,75 @@ function printStmt(){
         <td>${amtStr}</td>
         <td style="font-size:11px;white-space:nowrap">${wtStr}${gold24Str&&gold24Str!==wtStr?`<br><span style="color:#C9922A;font-size:10px">ع24: ${gold24Str}</span>`:''}</td>
         <td style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
-}).join('');
+    }).join('');
+    const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?`
+      <tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
+        <td>—<br><small>رصيد مرحّل</small></td>
+        <td><b>🏁 رصيد افتتاحي</b>${_obEntry.note?`<br><small>${_obEntry.note}</small>`:''}</td>
+        <td>${Math.abs(_obEntry.cash||0)>0.01?`${_obEntry.cash>0?'عليه':'له'} ${fmt(Math.abs(_obEntry.cash))} ر`:''}${Math.abs(_obEntry.gold24||0)>0.001?`<br>${fmtG(Math.abs(_obEntry.gold24))} ج ع24`:''}</td>
+        <td>${Math.abs(_obEntry.cash||0)>0.01?`<span class="${_obEntry.cash>0?'neg':'pos'}">${fmt(Math.abs(_obEntry.cash))} ر</span>`:'—'}</td>
+        <td>${Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—'}</td>
+        <td>—</td></tr>`:'';
+    bodyHtml=`
+    <div class="bal-card ${isSettled?'settled-card':''}">
+      <div class="bal-title">${isSettled?'الحساب مسدد':'الرصيد الحالي'}</div>
+      ${isSettled?`<div class="settled">✅ الحساب مسدد بالكامل</div>`:balRows}
+    </div>
+    <div class="section-title">تفصيل الحركات (${txs.length} عملية)</div>
+    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن / ع24</th><th>الرصيد المتراكم</th></tr></thead>
+    <tbody>${obRow}${rows}</tbody></table>
+    <div class="final-summary">
+      <div class="fs-title">الملخص النهائي</div>
+      <div class="fs-row"><span>الرصيد النقدي</span>
+        <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
+      ${Math.abs(bal.goldOwedAs24||0)>0.001?`<div class="fs-row"><span>الرصيد الذهبي</span>
+        <span class="fs-val ${bal.goldOwedAs24>0?'neg':'pos'}">${bal.goldOwedAs24>0?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`:''}
+    </div>`;
+  }
 
-    const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?
-      '<tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">'+
-        '<td>—<br><small>رصيد مرحّل</small></td>'+
-        '<td><b>🏁 رصيد افتتاحي</b>'+(_obEntry.note?'<br><small>'+_obEntry.note+'</small>':'')+' </td>'+
-        '<td>'+(Math.abs(_obEntry.cash||0)>0.01?(_obEntry.cash>0?'عليه':'له')+' '+fmt(Math.abs(_obEntry.cash))+' ر':'')+
-              (Math.abs(_obEntry.gold24||0)>0.001?'<br>'+fmtG(Math.abs(_obEntry.gold24))+' ج ع24':'')+' </td>'+
-        '<td>'+(Math.abs(_obEntry.cash||0)>0.01?'<span class="'+(_obEntry.cash>0?'neg':'pos')+'">'+fmt(Math.abs(_obEntry.cash))+' ر</span>':'—')+'</td>'+
-        '<td>'+(Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—')+'</td>'+
-        '<td>—</td></tr>'
-      :'';
-
-    const _cashClass=isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'));
-    const _cashText=isSettled?'مسوى ✅':((isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا'))+' '+fmt(Math.abs(bal.cashOwed))+' ريال');
-    
-    const _goldRow=Math.abs(bal.goldOwedAs24||0)>0.001?
-      '<div class="fs-row"><span>الرصيد الذهبي</span>'+
-      '<span class="fs-val '+(bal.goldOwedAs24>0?'neg':'pos')+'">'+(bal.goldOwedAs24>0?'عليه':'له')+' '+fmtG(Math.abs(bal.goldOwedAs24))+' جرام عيار 24</span></div>'
-      :'';
-
-    bodyHtml = 
-    '<div class="bal-card ' + (isSettled ? 'settled-card' : '') + '">' + 
-      '<div class="bal-title">' + (isSettled ? 'الحساب مسدد' : 'الرصيد الحالي') + '</div>' + 
-      (isSettled ? '<div class="settled">✅ الحساب مسدد بالكامل</div>' : balRows) + 
-'</div>' + 
-    '<div class="section-title">تفصيل الحركات (' + txs.length + ' عملية)</div>' + 
-    '<table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن / ع24</th><th>الرصيد المتراكم</th></tr></thead>' + 
-    '<tbody>' + obRow + rows + '</tbody></table>' + 
-    '<div class="final-summary">' + 
-      '<div class="fs-title">الملخص النهائي</div>' + 
-      '<div class="fs-row"><span>الرصيد النقدي</span>' + 
-        '<span class="fs-val ' + _cashClass + '">' + _cashText + '</span></div>' + 
-      _goldRow + 
-    '</div>');
-}; // هذا القوس يغلق الدالة التي بدأت بالأعلى
-   const printHTML = `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>\${title}</title>
-<link rel="icon" type="image/png" href="favicon.png">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff;direction:rtl}
-.header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
-.header h1{font-size:20px;font-weight:900;color:#C9922A}
-.header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
-.header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-.bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
-.bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
-.bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
-.bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
-.bal-row:last-child{border-bottom:none}
-.bal-val{font-size:15px;font-weight:900}
-.settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
-.section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
-th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
-td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
-tr:nth-child(even) td{background:#FDFAF3}
-.pos{color:#2D7A4F;font-weight:700}
-.neg{color:#B83232;font-weight:700}
-.dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-.dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-.badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
-small{color:#7A6540;font-size:10px}
-.final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
-.fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
-.fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
-.fs-row:last-child{border-bottom:none}
-.fs-val{font-size:16px;font-weight:900}
-.print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
-@media print{.print-btn{display:none!important}body{padding:8px}}
-</style>
-</head>
-<body>
-    <div id="print-content"></div>
-    <button class="print-btn" onclick="window.print()">طباعة التقرير</button>
-<script>
-window.addEventListener("error", function(e){
-  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
-});
-</script>
-</body>
-</html>\`;`; // تم إغلاق النص بشكل صحيح
-<div class="header">
-  <h2>${title}</h2>
-  <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
-</div>
-
-${bodyHtml}
-
-<button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
-
-<script>
-window.addEventListener("error", function(e){
-  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
-});
-</script>
-</body>
-</html>`;
+  const printHTML=`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+  <meta charset="UTF-8"><title>${title}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff;direction:rtl}
+    .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
+    .header h1{font-size:20px;font-weight:900;color:#C9922A}
+    .header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
+    .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
+    .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
+    .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
+    .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
+    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
+    .bal-row:last-child{border-bottom:none}
+    .bal-val{font-size:15px;font-weight:900}
+    .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
+    .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
+    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+    th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
+    td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
+    tr:nth-child(even) td{background:#FDFAF3}
+    .pos{color:#2D7A4F;font-weight:700}
+    .neg{color:#B83232;font-weight:700}
+    .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+    .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+    .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
+    small{color:#7A6540;font-size:10px}
+    .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
+    .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
+    .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+    .fs-row:last-child{border-bottom:none}
+    .fs-val{font-size:16px;font-weight:900}
+    .print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+    @media print{.print-btn{display:none!important}body{padding:8px}}
+  </style></head><body>
+  <div class="header">
+    <h2>${title}</h2>
+    <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
+  </div>
+  ${bodyHtml}
+  <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+</body></html>`;
 
   const blob=new Blob([printHTML],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -5621,18 +5464,9 @@ function getClientBalance(cli){
   const _settleAdj2 = txs.filter(t=>t.type==='discount-adj'&&t.isSettle);
   const _settleGoldAdj24 = _settleAdj2.reduce((a,t)=>a+(t.settleGold24||0),0);
 
- // ── [تصحيح] الذهب المسعَّر عند الشراء يخرج من رصيد الذهب ويدخل للنقد ──
-  let _buyGoldPricedAs24 = 0;
-  if(_isSupp2){
-    txs.filter(t=>t.type==='buy'||t.type==='buy-debt').forEach(t=>{
-      (t.items||[]).forEach(i=>{
-        if((i.price||0)>0) _buyGoldPricedAs24 += convertTo24(i.weight,i.karat);
-      });
-    });
-  }
   const goldOwedAs24 = _isSupp2
     ? Math.round((
-        -(goldIn24 - _buyGoldPricedAs24 - purchRetGold24 - suppRetGold24)
+        -(goldIn24 - purchRetGold24 - suppRetGold24)
         - goldTransferIn24 + goldTransferOut24
         + payGoldOut24 - payGoldIn24
         + _settleGoldAdj24
@@ -5674,16 +5508,9 @@ function getClientBalance(cli){
   const cashTransferOut = txs.filter(t=>t.type==='transfer' && t.toSafe===('__cli__'+cli))
                              .reduce((a,t)=>a+(t.amount||0),0);
 
-// أجور الشراء علينا للمورد + قيمة الذهب المسعَّر
-  let buyGoldCashValue = 0;
+  // أجور الشراء علينا للمورد
   const buyDebt = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
-                     .reduce((a,t)=>{
-                       (t.items||[]).forEach(i=>{
-                         if((i.price||0)>0)
-                           buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
-                       });
-                       return a+(t.ajTotal||0);
-                     },0);
+                     .reduce((a,t)=>a+(t.ajTotal||0),0);
 
   // أجور مرتجع مشتريات تُخفِّض الدين
   const purchRetDebt = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
@@ -5706,8 +5533,8 @@ function getClientBalance(cli){
   const _cli = (S.clients||[]).find(c=>c.name===cli);
   const _isSupplier = _cli?.type === 'مورد';
 
- const cashOwed = _isSupplier
-    ? Math.round((-(buyDebt + buyGoldCashValue - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut + settleCashAdj + chargeTotal)*100)/100
+  const cashOwed = _isSupplier
+    ? Math.round((-(buyDebt - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut + settleCashAdj + chargeTotal)*100)/100
     : Math.round(((sellDebt - salesRetDebt - clientSettled - cashTransferIn + cashTransferOut + settleCashAdj + chargeTotal))*100)/100;
 
   // تفصيل بالعيارات للعرض
@@ -5728,8 +5555,17 @@ function getClientBalance(cli){
       if(t.karat===k && t.karat!=='mixed') return a + (t.weight||0);
       return a;
     },0);
-    const payG   = txs.filter(t=>(t.type==='payment'||t.type==='supplier-payment')&&t.goldKarat===k)
-                      .reduce((a,t)=>a+(t.goldWeight||0),0);
+    const payG = txs.filter(t=>t.type==='payment'||t.type==='supplier-payment').reduce((a,t)=>{
+      let w = 0;
+      if(t.goldItems && t.goldItems.length){
+        t.goldItems.forEach(gi => {
+          if((gi.karat||'21') === k && (!gi.price || gi.price <= 0)) w += (gi.weight||0);
+        });
+      } else {
+        if((t.goldKarat||'21') === k && (!t.goldPrice || t.goldPrice <= 0)) w += (t.goldWeight||0);
+      }
+      return a + w;
+    }, 0);
     const ret    = txs.filter(t=>t.type==='return')
                       .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
     goldOwed[k] = sold - sret - bought + pret - scr - payG - ret;
@@ -6625,7 +6461,46 @@ function importBackup(input){
       S.transactions  = data.transactions || [];
       S.clients       = data.clients      || [];
       S.customSafes   = data.customSafes  || [];
-      S.snapshots     = data.snapshots    || [];function renderProfit(){
+      S.snapshots     = data.snapshots    || [];
+      if(data.users && data.users.length) S.users = data.users;
+      if(data.openingBalance) S.openingBalance = data.openingBalance;
+      if(data.safesBase)      S.safesBase      = data.safesBase;
+      if(data.pendingItems)   S.pendingItems   = data.pendingItems;
+      if(data.activityLog)    S.activityLog    = data.activityLog;
+      sv(); renderAll();
+      toast('✅ تم استيراد البيانات — '+S.transactions.length+' معاملة');
+    } catch(err){
+      toast('❌ خطأ في الملف: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function renderBackup(){
+  const el = document.getElementById('backup-info');
+  if(!el) return;
+  const lastTx = S.transactions[0];
+  const lastDate = lastTx ? fmtDate(lastTx.date).ar : 'لا يوجد';
+  el.innerHTML = `
+    <div>📋 عدد المعاملات: <b>${S.transactions.length}</b></div>
+    <div>👥 عدد العملاء والموردين: <b>${S.clients.length}</b></div>
+    <div>📸 عدد التسويات: <b>${(S.snapshots||[]).length}</b></div>
+    <div>📅 آخر معاملة: <b>${lastDate}</b></div>
+  `;
+}
+
+function setProfitRange(r){
+  const now = new Date();
+  let from, to = new Date();
+  if(r==='month'){ from=new Date(now.getFullYear(),now.getMonth(),1); }
+  else if(r==='year'){ from=new Date(now.getFullYear(),0,1); }
+  document.getElementById('profit-from').value = from.toISOString().split('T')[0];
+  document.getElementById('profit-to').value   = to.toISOString().split('T')[0];
+  renderProfit();
+}
+
+function renderProfit(){
   const el = document.getElementById('profit-body');
   if(!el) return;
   const fromVal = document.getElementById('profit-from')?.value;
@@ -6638,11 +6513,11 @@ function importBackup(input){
   if(fromD) txs = txs.filter(t=> new Date(t.date) >= fromD);
   if(toD)   txs = txs.filter(t=> new Date(t.date) <= toD);
 
-  const sellTxs    = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
-  const buyTxs     = txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
-  const retTxs     = txs.filter(t=>t.type==='return');
-  const suppRetTxs = txs.filter(t=>t.type==='supplier-return');
-  const payTxs     = txs.filter(t=>t.type==='payment');
+  const sellTxs   = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
+  const buyTxs    = txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
+  const retTxs    = txs.filter(t=>t.type==='return');
+  const suppRetTxs= txs.filter(t=>t.type==='supplier-return');
+  const payTxs    = txs.filter(t=>t.type==='payment');
 
   // ── إجمالي المبيعات ──
   const totalSellGold  = sellTxs.reduce((a,t)=>a+(t.goldTotal||0),0);
@@ -6664,17 +6539,15 @@ function importBackup(input){
   const netBuy  = totalBuy  - totalRetBuy;
 
   // ── الأرباح ──
+  // ربح الأجور = أجور البيع − أجور الشراء
   const ajProfit = totalSellAjour - totalBuyAjour;
+  // ربح الذهب = قيمة بيع الذهب − تكلفة شرائه
   const goldProfit = totalSellGold - totalBuyGold;
+  // إجمالي الربح
   const totalProfit = ajProfit + goldProfit - totalDiscount;
 
   // ── عدد الفواتير ──
   const sellCount = sellTxs.length;
-
-  // --- هنا كان النقص ---
-  // يجب إضافة كود لعرض النتائج في الـ HTML وإغلاق الدالة
-  el.innerHTML = `<div>إجمالي الربح: ${totalProfit}</div>`; // مثال للعرض
-} // هذا القوس هو الذي كان مفقوداً ويسبب الخطأ
   const buyCount  = buyTxs.length;
 
   // ── الربح حسب العيار ──
@@ -7533,8 +7406,8 @@ function renderAnalytics(){
 
 const _OWNER = {username:'Marwan', password:'2139989681', role:'owner', label:'مروان', status:'active'};
 
-window.doLogin = async function doLogin(){
-   // تنظيف المدخلات (إزالة مسافات البداية والنهاية)
+async function doLogin(){
+  // تنظيف المدخلات (إزالة مسافات البداية والنهاية)
   const u = (document.getElementById('li-user').value||'').trim();
   const p = (document.getElementById('li-pass').value||'').trim();
   const errEl = document.getElementById('li-err');
@@ -7633,10 +7506,6 @@ async function openUsersPanel(){
   if(myRole!=='owner'){ toast('⛔ هذه اللوحة للمالك الرئيسي فقط'); return; }
   const isOwner = true;
   const myUsername = sessionStorage.getItem('auth-user')||'';
-   // ── [إضافة] تحميل بيانات الحضور ──
-if(typeof window._subscribeAllPresence==='function') window._subscribeAllPresence();
-// انتظر 400ms عشان تجي البيانات من Firestore
-await new Promise(r=>setTimeout(r,400));
 
   let allUsers = [];
   if(typeof window._loadUsers==='function') try{ allUsers=await window._loadUsers(); }catch(e){}
@@ -7647,24 +7516,6 @@ await new Promise(r=>setTimeout(r,400));
   function userCard(u){
     const active = u.status!=='disabled';
     const isTenant = u.role==='tenant';
-     // ── [إضافة] حالة الاتصال ──
-const _uid = (u.ownerId||u.username).toLowerCase();
-const _pres = (window._presenceData||{})[_uid]||{};
-const _isOnline = _pres.status==='online' && _pres.lastSeen && (Date.now()-_pres.lastSeen < 120000);
-const _lastSeenMs = _pres.lastSeen||0;
-function _fmtLastSeen(ms){
-  if(!ms) return 'لم يسجّل دخول بعد';
-  const diff = Date.now()-ms;
-  if(diff < 60000) return 'منذ أقل من دقيقة';
-  if(diff < 3600000) return 'منذ '+Math.floor(diff/60000)+' دقيقة';
-  if(diff < 86400000) return 'منذ '+Math.floor(diff/3600000)+' ساعة';
-  return new Date(ms).toLocaleString('ar-SA');
-}
-const _presenceBadge = `<div style="font-size:10px;margin-top:3px;display:flex;align-items:center;gap:4px">
-  <span style="width:8px;height:8px;border-radius:50%;background:${_isOnline?'#22C77A':'#888'};display:inline-block;flex-shrink:0;${_isOnline?'box-shadow:0 0 0 2px rgba(34,199,122,.3)':''}"></span>
-  <span style="color:${_isOnline?'#22C77A':'var(--tx3)'};font-weight:700">${_isOnline?'متصل الآن':'غير متصل'}</span>
-  ${!_isOnline && _lastSeenMs ? `<span style="color:var(--tx3)">· ${_fmtLastSeen(_lastSeenMs)}</span>` : ''}
-</div>`;
     const cardBg = isTenant ? 'var(--g4)' : 'var(--c2)';
     const cardBorder = isTenant ? 'border:1.5px solid var(--g5)' : '';
     // حساب حالة الاشتراك
@@ -7688,7 +7539,6 @@ const _presenceBadge = `<div style="font-size:10px;margin-top:3px;display:flex;a
         <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':'var(--tx1)'}">${isTenant?'🏢 ':''}${u.label||u.username}</div>
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
         ${isTenant&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
-        ${isTenant ? _presenceBadge : ''}
       </div>
       ${subBadge}
       <span style="background:${active?'#DCFCE7':'#FEE2E2'};color:${active?'#16A34A':'#DC2626'};font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px">
@@ -10130,8 +9980,7 @@ function renderStmt(){
       else if(t.type==='supplier-payment'){
         // نقد + خصم + فكة + ذهب بسعر (كله يُخفِّض الدين للمورد)
         const _goldCashVal = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
-                   + (t.goldCashVal||0)
-                   + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
+                           + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
         dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_goldCashVal;
       }
       else if(t.type==='purchase-return'||t.type==='supplier-return')
@@ -10145,9 +9994,8 @@ function renderStmt(){
       if(t.type==='sell'||t.type==='sell-debt')
         dCash = (t.ajTotal||0)+(t.vatAmt||0);
       else if(t.type==='payment'){
-       const _goldCashValCli = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
-                      + (t.goldCashVal||0)
-                      + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
+        const _goldCashValCli = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
+                              + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
         dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_goldCashValCli);
       }
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
@@ -10444,13 +10292,6 @@ function renderStmt(){
     html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
     html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
     html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
-     // ── [إضافة] عرض بالعيار المختار ──
-  if(typeof stmtGetKarat==='function' && stmtGetKarat()!==24){
-    const _karat = stmtGetKarat();
-    const _converted = stmtConvertGold(_goldAbs);
-    html += '<div style="font-size:11px;font-weight:700;color:'+_goldClr+';margin-top:4px;background:rgba(0,0,0,.08);border-radius:6px;padding:3px 7px">≈ '+fmtG(_converted)+' ج ع'+_karat+'</div>';
-  }
-  // ── نهاية الإضافة ──
     html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير ذهب</button>';
     html += '</div>';
   }
@@ -10631,7 +10472,6 @@ function renderObSafesForm(){
   const el=document.getElementById('ob-safes-form');
   if(!el) return;
   const ob=getOB();
-  if(!ob.safesExtra) ob.safesExtra={};
   const safesConfig=[
     {key:'cash',    label:'💵 الصندوق النقدي',   unit:'ريال',type:'cash'},
     {key:'khazina', label:'🏦 الخزينة',          unit:'ريال',type:'cash'},
@@ -10644,52 +10484,25 @@ function renderObSafesForm(){
   (S.customSafes||[]).forEach(cs=>{
     safesConfig.push({key:'cs_'+cs.id,label:cs.icon+' '+cs.name,unit:cs.type==='gold'?'جرام':'ريال',type:cs.type||'cash'});
   });
-  let html='<div style="display:flex;flex-direction:column;gap:10px">';
+  let html='<div style="display:flex;flex-direction:column;gap:8px">';
   safesConfig.forEach(sc=>{
     const v=ob.safes[sc.key]||0;
-    const extra=ob.safesExtra[sc.key]||{};
     const isGold=sc.type==='gold';
     const bg=isGold?'var(--g4)':'var(--ok-bg)';
     const bdr=isGold?'var(--g5)':'var(--ok-bd)';
     const clr=isGold?'var(--g1)':'var(--ok)';
-    // نوع الرصيد المحفوظ — الافتراضي حسب نوع الصندوق
-    const savedKind = extra.kind || (isGold ? 'gold' : 'cash');
-    const noteVal   = extra.note || '';
-    html+=`<div style="background:${bg};border:1px solid ${bdr};border-radius:var(--rb);padding:10px 12px">
-      <!-- اسم الصندوق -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--tx1)">${sc.label}</div>
-          <div style="font-size:10px;color:var(--tx2)">الرصيد بالـ${sc.unit}</div>
-        </div>
+    html+=`<div style="display:flex;align-items:center;gap:10px;background:${bg};border:1px solid ${bdr};border-radius:var(--rb);padding:10px 12px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--tx1)">${sc.label}</div>
+        <div style="font-size:10px;color:var(--tx2)">الرصيد بالـ${sc.unit}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
         <input type="number" id="ob-safe-${sc.key}" value="${v||''}" placeholder="0"
           inputmode="decimal" step="${isGold?'0.001':'1'}"
           style="width:110px;padding:8px;border-radius:var(--rc);border:1.5px solid ${bdr};
             background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:${clr};text-align:left">
+        <span style="font-size:11px;font-weight:700;color:${clr};min-width:28px">${sc.unit}</span>
       </div>
-      <!-- نوع الرصيد -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px">
-        <button type="button" id="ob-kind-gold-${sc.key}"
-          onclick="obSetKind('${sc.key}','gold')"
-          style="padding:6px;border-radius:var(--rc);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
-            border:2px solid ${savedKind==='gold'?'var(--g1)':'var(--b2)'};
-            background:${savedKind==='gold'?'var(--g4)':'var(--c1)'};
-            color:${savedKind==='gold'?'var(--g1)':'var(--tx2)'}">
-          🥇 ذهب
-        </button>
-        <button type="button" id="ob-kind-cash-${sc.key}"
-          onclick="obSetKind('${sc.key}','cash')"
-          style="padding:6px;border-radius:var(--rc);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
-            border:2px solid ${savedKind==='cash'?'var(--ok)':'var(--b2)'};
-            background:${savedKind==='cash'?'var(--ok-bg)':'var(--c1)'};
-            color:${savedKind==='cash'?'var(--ok)':'var(--tx2)'}">
-          💵 ريال
-        </button>
-      </div>
-      <!-- ملاحظات -->
-      <input type="text" id="ob-note-${sc.key}" value="${noteVal}" placeholder="تفاصيل / ملاحظات (اختياري)..."
-        style="width:100%;padding:7px 10px;border-radius:var(--rc);border:1px solid var(--b2);
-          background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
     </div>`;
   });
   html+='</div>';
@@ -10698,51 +10511,20 @@ function renderObSafesForm(){
 
 function saveOpeningSafes(){
   const ob=getOB();
-  if(!ob.safesExtra) ob.safesExtra={};
   const keys=['cash','khazina','worked21','worked18','scrap21','scrap18','pure24'];
   (S.customSafes||[]).forEach(cs=>keys.push('cs_'+cs.id));
   keys.forEach(k=>{
-    // القيمة
     const el=document.getElementById('ob-safe-'+k);
     if(!el) return;
     const v=parseFloat(el.value);
     ob.safes[k]=isNaN(v)?0:Math.max(0,v);
-    // نوع الرصيد
-    const kindGoldBtn=document.getElementById('ob-kind-gold-'+k);
-    const kindCashBtn=document.getElementById('ob-kind-cash-'+k);
-    let kind='';
-    if(kindGoldBtn && kindGoldBtn.style.color.includes('var(--g1)')) kind='gold';
-    else if(kindCashBtn && kindCashBtn.style.color.includes('var(--ok)')) kind='cash';
-    // ملاحظات
-    const noteEl=document.getElementById('ob-note-'+k);
-    const note=noteEl?noteEl.value.trim():'';
-    ob.safesExtra[k]={kind, note};
   });
   S.openingBalance=ob;
   sv(); renderObSummary();
   toast('✅ تم حفظ الرصيد الافتتاحي للصناديق');
   logActivity('opening-balance','تعديل الرصيد الافتتاحي للصناديق');
 }
-   function obSetKind(key, kind){
-  const gBtn=document.getElementById('ob-kind-gold-'+key);
-  const cBtn=document.getElementById('ob-kind-cash-'+key);
-  if(!gBtn||!cBtn) return;
-  if(kind==='gold'){
-    gBtn.style.border='2px solid var(--g1)';
-    gBtn.style.background='var(--g4)';
-    gBtn.style.color='var(--g1)';
-    cBtn.style.border='2px solid var(--b2)';
-    cBtn.style.background='var(--c1)';
-    cBtn.style.color='var(--tx2)';
-  } else {
-    cBtn.style.border='2px solid var(--ok)';
-    cBtn.style.background='var(--ok-bg)';
-    cBtn.style.color='var(--ok)';
-    gBtn.style.border='2px solid var(--b2)';
-    gBtn.style.background='var(--c1)';
-    gBtn.style.color='var(--tx2)';
-  }
-}
+
 function renderObCliSearch(){
   const q=(document.getElementById('ob-cli-search')?.value||'').toLowerCase().trim();
   const drop=document.getElementById('ob-cli-drop');
@@ -10973,280 +10755,7 @@ function initOpeningPage(){
   renderObClientsList();
   renderObSummary();
 }
-   // ══ [إضافة] اختيار العيار في كشف الحساب ══
-(function(){
-  let _stmtKarat = 24; // الافتراضي: عيار 24
 
-  // معامل التحويل من 24 إلى العيار المطلوب
-  function _k(k){ return 24 / k; }
-
-  window.stmtSetKarat = function(k){
-    _stmtKarat = k;
-    // تحديث أزرار العيار
-    [24,21,18].forEach(n=>{
-      const btn = document.getElementById('karat-btn-'+n);
-      if(!btn) return;
-      if(n === k){
-        btn.style.border='2px solid var(--g1)';
-        btn.style.background='var(--g4)';
-        btn.style.color='var(--g1)';
-      } else {
-        btn.style.border='2px solid var(--b2)';
-        btn.style.background='var(--c1)';
-        btn.style.color='var(--tx2)';
-      }
-    });
-    const note = document.getElementById('stmt-karat-note');
-    if(note) note.textContent = k===24 ? '' : `(الذهب يُعرض محوّلاً من ع24 ÷ ${_k(k).toFixed(4).replace(/\.?0+$/,'')})`;
-    // إعادة رسم الكشف
-    renderStmt();
-  };
-
-  // دالة تحويل من ع24 للعيار المختار — تُستخدم في العرض فقط
-  window.stmtConvertGold = function(grams24){
-    if(!grams24 || Math.abs(grams24)<0.0001) return 0;
-    return Math.round(grams24 * _k(_stmtKarat) * 1000) / 1000;
-  };
-
-  window.stmtGetKarat = function(){ return _stmtKarat; };
-
-  // إظهار/إخفاء شريط العيار عند فتح كشف عميل
-  const _origRenderStmt = window.renderStmt;
-  window.renderStmt = function(){
-    if(_origRenderStmt) _origRenderStmt.apply(this, arguments);
-    // أظهر الشريط فقط إذا اختير عميل/جهة
-    const v = document.getElementById('stmt-v')?.value||'';
-    const row = document.getElementById('stmt-karat-row');
-    if(row) row.style.display = v ? 'block' : 'none';
-  };
-})();
-// ══ نهاية إضافة اختيار العيار ══
-// ══ [إضافة] رصيد افتتاحي مباشر ══
-(function(){
-  let _selectedMetal = 'gold';
-
-  // قائمة الصناديق حسب النوع المختار
-  function _getSafesOptions(type){
-    const goldSafes = [
-      {key:'worked21', label:'💍 مشغول عيار 21'},
-      {key:'worked18', label:'💍 مشغول عيار 18'},
-      {key:'scrap21',  label:'🗃️ كسر عيار 21'},
-      {key:'scrap18',  label:'🗃️ كسر عيار 18'},
-      {key:'pure24',   label:'✨ ذهب صافي 24'},
-    ];
-    const cashSafes = [
-      {key:'cash',    label:'💵 الصندوق النقدي'},
-      {key:'khazina', label:'🏦 الخزينة'},
-    ];
-    let list = type === 'gold' ? goldSafes : cashSafes;
-    (S.customSafes||[]).forEach(cs=>{
-      const csType = cs.type||'cash';
-      if(csType === type) list.push({key:'cs_'+cs.id, label:cs.icon+' '+cs.name});
-    });
-    return list;
-  }
-
-  function _fillSafeDropdown(type, selectedKey){
-    const sel = document.getElementById('ob-metal-safe');
-    if(!sel) return;
-    const opts = _getSafesOptions(type);
-    sel.innerHTML = opts.map(o=>
-      `<option value="${o.key}" ${o.key===(selectedKey||opts[0].key)?'selected':''}>${o.label}</option>`
-    ).join('');
-  }
-
-  window.obSelectMetal = function(type){
-    _selectedMetal = type;
-    const gBtn = document.getElementById('ob-metal-gold-btn');
-    const cBtn = document.getElementById('ob-metal-cash-btn');
-    const lbl  = document.getElementById('ob-metal-value-label');
-    const inp  = document.getElementById('ob-metal-value');
-    if(gBtn && cBtn){
-      if(type === 'gold'){
-        gBtn.style.border='2px solid var(--g1)'; gBtn.style.background='var(--g4)'; gBtn.style.color='var(--g1)';
-        cBtn.style.border='2px solid var(--b2)'; cBtn.style.background='var(--c2)'; cBtn.style.color='var(--tx2)';
-      } else {
-        cBtn.style.border='2px solid var(--ok)'; cBtn.style.background='var(--ok-bg)'; cBtn.style.color='var(--ok)';
-        gBtn.style.border='2px solid var(--b2)'; gBtn.style.background='var(--c2)'; gBtn.style.color='var(--tx2)';
-      }
-    }
-    if(lbl) lbl.textContent = type==='gold' ? '⚖️ الكمية (جرام)' : '💰 المبلغ (ريال)';
-    if(inp){ inp.step = type==='gold'?'0.001':'1'; inp.placeholder = type==='gold'?'0.000':'0'; }
-    _fillSafeDropdown(type);
-  };
-
-  window.obAdjustValue = function(delta){
-    const inp = document.getElementById('ob-metal-value');
-    if(!inp) return;
-    const step = _selectedMetal==='gold' ? 0.5 : 100;
-    const d = delta > 0 ? step : -step;
-    let v = parseFloat(inp.value)||0;
-    v = Math.max(0, parseFloat((v+d).toFixed(3)));
-    inp.value = v;
-  };
-
-  window.obSaveMetalBalance = function(editIdx){
-    const valRaw  = parseFloat(document.getElementById('ob-metal-value')?.value)||0;
-    const note    = (document.getElementById('ob-metal-note')?.value||'').trim();
-    const safeKey = document.getElementById('ob-metal-safe')?.value||'';
-    if(valRaw <= 0){ toast('⚠️ أدخل قيمة أكبر من صفر'); return; }
-    if(!safeKey){ toast('⚠️ اختر الصندوق'); return; }
-
-    const isGold  = _selectedMetal === 'gold';
-    const label   = isGold ? '🥇 ذهب' : '💵 نقد';
-    const entries = JSON.parse(localStorage.getItem('ob_metal_entries')||'[]');
-
-    if(editIdx !== undefined){
-      // وضع التعديل: طرح القيمة القديمة وإضافة الجديدة
-      const old = entries[editIdx];
-      if(old){
-        const ob = getOB();
-        ob.safes[old.safeKey] = Math.max(0,(ob.safes[old.safeKey]||0) - old.val);
-        S.openingBalance = ob;
-      }
-      entries[editIdx] = {val:valRaw, note, safeKey, metal:label, type:_selectedMetal, date:new Date().toLocaleDateString('ar-SA')};
-    } else {
-      entries.push({val:valRaw, note, safeKey, metal:label, type:_selectedMetal, date:new Date().toLocaleDateString('ar-SA')});
-    }
-    localStorage.setItem('ob_metal_entries', JSON.stringify(entries));
-
-    // تحديث openingBalance.safes
-    const ob = getOB();
-    // إعادة حساب كل الإدخالات من الصفر لهذا الصندوق
-    const allEntries = JSON.parse(localStorage.getItem('ob_metal_entries')||'[]');
-    // جمع كل الإدخالات لكل مفتاح صندوق
-    const totals = {};
-    allEntries.forEach(e=>{ totals[e.safeKey] = (totals[e.safeKey]||0) + e.val; });
-    Object.keys(totals).forEach(k=>{ ob.safes[k] = totals[k]; });
-    S.openingBalance = ob;
-    sv();
-
-    toast(editIdx!==undefined ? '✅ تم تعديل الرصيد' : '✅ تم إضافة الرصيد');
-    logActivity('opening-balance', (editIdx!==undefined?'تعديل':'إضافة')+' رصيد افتتاحي: '+label+' - '+valRaw+' - '+safeKey+(note?' - '+note:''));
-
-    // تفريغ الحقول
-    document.getElementById('ob-metal-value').value = '';
-    document.getElementById('ob-metal-note').value  = '';
-
-    obRenderMetalEntries();
-    renderObSummary();
-  };
-
-  window.obEditEntry = function(idx){
-    const entries = JSON.parse(localStorage.getItem('ob_metal_entries')||'[]');
-    const e = entries[idx];
-    if(!e) return;
-    // تحديد النوع
-    obSelectMetal(e.type||'gold');
-    // تعبئة الحقول
-    setTimeout(()=>{
-      _fillSafeDropdown(e.type||'gold', e.safeKey);
-      document.getElementById('ob-metal-value').value = e.val;
-      document.getElementById('ob-metal-note').value  = e.note||'';
-      // تغيير زر الحفظ لوضع التعديل
-      const btn = document.querySelector('[onclick="obSaveMetalBalance()"]');
-      if(btn){
-        btn.textContent = '💾 حفظ التعديل';
-        btn.onclick = ()=>obSaveMetalBalance(idx);
-      }
-      document.getElementById('ob-metal-entries').scrollIntoView({behavior:'smooth',block:'nearest'});
-    },50);
-  };
-
-  window.obDeleteEntry = function(idx){
-    if(!confirm('هل تريد حذف هذا الرصيد الافتتاحي نهائياً؟')) return;
-    const entries = JSON.parse(localStorage.getItem('ob_metal_entries')||'[]');
-    const old = entries[idx];
-    if(old){
-      // طرح القيمة من الصندوق
-      const ob = getOB();
-      ob.safes[old.safeKey] = Math.max(0,(ob.safes[old.safeKey]||0) - old.val);
-      S.openingBalance = ob;
-    }
-    entries.splice(idx,1);
-    localStorage.setItem('ob_metal_entries', JSON.stringify(entries));
-    sv();
-    toast('🗑️ تم حذف الرصيد الافتتاحي');
-    // إعادة تعيين زر الحفظ
-    const btn = document.querySelector('[onclick^="obSaveMetalBalance"]');
-    if(btn){ btn.textContent='➕ إضافة رصيد افتتاحي'; btn.onclick=()=>obSaveMetalBalance(); }
-    obRenderMetalEntries();
-    renderObSummary();
-  };
-
-  window.obRenderMetalEntries = function(){
-    const el = document.getElementById('ob-metal-entries');
-    if(!el) return;
-    const entries = JSON.parse(localStorage.getItem('ob_metal_entries')||'[]');
-    if(!entries.length){ el.innerHTML=''; return; }
-
-    // إجماليات
-    let totalGold = 0, totalCash = 0;
-    entries.forEach(e=>{ if(e.type==='gold') totalGold+=e.val; else totalCash+=e.val; });
-
-    let html = `<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;letter-spacing:.4px">📋 الإدخالات المضافة</div>`;
-
-    // بطاقات الإجمالي
-    html += `<div style="display:grid;grid-template-columns:${totalGold>0&&totalCash>0?'1fr 1fr':'1fr'};gap:6px;margin-bottom:10px">`;
-    if(totalGold>0) html += `<div style="background:var(--g4);border:1px solid var(--g5);border-radius:var(--rb);padding:10px 12px;text-align:center">
-      <div style="font-size:11px;color:var(--tx2);font-weight:700;margin-bottom:3px">🥇 إجمالي الذهب</div>
-      <div style="font-size:18px;font-weight:900;color:var(--g1)">${totalGold.toFixed(3)} <span style="font-size:11px">جرام</span></div>
-    </div>`;
-    if(totalCash>0) html += `<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:var(--rb);padding:10px 12px;text-align:center">
-      <div style="font-size:11px;color:var(--tx2);font-weight:700;margin-bottom:3px">💵 إجمالي النقد</div>
-      <div style="font-size:18px;font-weight:900;color:var(--ok)">${totalCash.toLocaleString()} <span style="font-size:11px">ريال</span></div>
-    </div>`;
-    html += `</div>`;
-
-    // قائمة الإدخالات مع أزرار تعديل/حذف
-    html += `<div style="display:flex;flex-direction:column;gap:6px">`;
-    entries.slice().reverse().forEach((e, ri)=>{
-      const idx = entries.length-1-ri;
-      const isGold = e.type==='gold';
-      const clr = isGold?'var(--g1)':'var(--ok)';
-      const bg  = isGold?'var(--g4)':'var(--ok-bg)';
-      const bd  = isGold?'var(--g5)':'var(--ok-bd)';
-      const valStr = isGold ? e.val.toFixed(3)+' جرام' : e.val.toLocaleString()+' ريال';
-      // اسم الصندوق
-      const allSafes=[
-        {key:'cash',label:'💵 الصندوق النقدي'},{key:'khazina',label:'🏦 الخزينة'},
-        {key:'worked21',label:'💍 مشغول 21'},{key:'worked18',label:'💍 مشغول 18'},
-        {key:'scrap21',label:'🗃️ كسر 21'},{key:'scrap18',label:'🗃️ كسر 18'},
-        {key:'pure24',label:'✨ صافي 24'},
-        ...(S.customSafes||[]).map(cs=>({key:'cs_'+cs.id,label:cs.icon+' '+cs.name}))
-      ];
-      const safeLabel = (allSafes.find(s=>s.key===e.safeKey)||{label:e.safeKey}).label;
-      html += `<div style="background:${bg};border:1px solid ${bd};border-radius:var(--rc);padding:8px 12px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:${clr}">${e.metal} — ${valStr}</div>
-            <div style="font-size:11px;color:var(--tx2);margin-top:2px">🗄️ ${safeLabel}</div>
-            ${e.note?`<div style="font-size:11px;color:var(--tx2);margin-top:1px">📝 ${e.note}</div>`:''}
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-            <button type="button" onclick="obEditEntry(${idx})"
-              style="padding:4px 10px;border-radius:var(--rd);border:1px solid var(--in-bd);
-                background:var(--in-bg);color:var(--in);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">✏️ تعديل</button>
-            <button type="button" onclick="obDeleteEntry(${idx})"
-              style="padding:4px 10px;border-radius:var(--rd);border:1px solid var(--no-bd);
-                background:var(--no-bg);color:var(--no);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🗑️ حذف</button>
-          </div>
-        </div>
-        <div style="font-size:10px;color:var(--tx3);margin-top:4px;text-align:left">${e.date}</div>
-      </div>`;
-    });
-    html += `</div>`;
-    el.innerHTML = html;
-  };
-
-  // تهيئة عند فتح الصفحة
-  const _origInit = window.initOpeningPage;
-  window.initOpeningPage = function(){
-    if(_origInit) _origInit();
-    setTimeout(()=>{ obSelectMetal('gold'); obRenderMetalEntries(); }, 50);
-  };
-})();
-// ══ نهاية الإضافة ══
 // ── Init ───────────────────────────────────────────────────────────
 renderAll();
 addItem();
@@ -11255,13 +10764,9 @@ addItem();
 <!-- ── Firebase Multi-User ── -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection }
+import { getFirestore, doc, setDoc, getDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-   // تصدير collection+onSnapshot للـ presence system
-window._presenceColUnsub = function(db, colName, cb){
-  return onSnapshot(collection(db, colName), cb);
-};
-   
+
 const FB_CFG = {
   apiKey:           "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
   authDomain:       "gold-shop-3e7f5.firebaseapp.com",
@@ -11271,7 +10776,7 @@ const FB_CFG = {
   appId:            "1:765590903624:web:0e6197924d1f520ab4317d"
 };
 const app = initializeApp(FB_CFG);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
 // doc المستخدمين (المالك فقط يكتب عليه)
 const USERS_DOC = doc(db,'system','users');
@@ -11326,10 +10831,6 @@ async function _doSave(n){
     throw e;
   }
 }
-   // ── [تصحيح] منع onSnapshot من الكتابة فوق بيانات الاستيراد ──
-window._forceLastSave = function(){
-  _lastSave = Date.now() + 10000; // 10 ثوانٍ حماية
-};
 window.sv_save=function(){
   showSync('⟳ جاري الحفظ...');
   _saveQueue=_saveQueue.then(async()=>{
@@ -11376,79 +10877,6 @@ function startSession(uid){
   });
 }
 window._startSession=startSession;
-   // ══ [إضافة] نظام Presence — آخر ظهور وحالة الاتصال ══
-const PRESENCE_COL = 'presence'; // مجموعة منفصلة في Firestore
-let _presenceRef  = null;
-let _presenceUnsub = null;
-let _heartbeatTimer = null;
-const ONLINE_TIMEOUT = 90000; // 90 ثانية بدون نشاط = offline
-
-// كتابة حالة المستخدم الحالي
-async function _writePresence(status){
-  if(!_presenceRef) return;
-  try {
-    await setDoc(_presenceRef, {
-      status,
-      lastSeen: Date.now(),
-      updatedAt: Date.now()
-    }, { merge: true });
-  } catch(e){ /* تجاهل أخطاء الصلاحيات */ }
-}
-
-// إرسال heartbeat كل 45 ثانية
-function _startHeartbeat(uid){
-  if(_heartbeatTimer) clearInterval(_heartbeatTimer);
-  _writePresence('online');
-  _heartbeatTimer = setInterval(()=> _writePresence('online'), 45000);
-}
-
-// تسجيل آخر ظهور عند الخروج / إغلاق التبويب
-function _registerOfflineOnExit(){
-  const _setOffline = () => {
-    if(!_presenceRef) return;
-    // استخدام sendBeacon لضمان التنفيذ حتى عند إغلاق التبويب
-    const url = `https://firestore.googleapis.com/v1/projects/${FB_CFG.projectId}/databases/(default)/documents/${PRESENCE_COL}/${_presenceRef.id}`;
-    navigator.sendBeacon && navigator.sendBeacon('/beacon-noop'); // fallback
-    _writePresence('offline');
-  };
-  window.addEventListener('beforeunload', _setOffline);
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.hidden) _writePresence('offline');
-    else { _writePresence('online'); _startHeartbeat(); }
-  });
-}
-
-// بدء تتبع حضور المستخدم الحالي
-function startPresence(uid){
-  if(!uid) return;
-  _presenceRef = doc(db, PRESENCE_COL, uid.toLowerCase());
-  _startHeartbeat(uid);
-  _registerOfflineOnExit();
-  // تسجيل النشاط عند أي تفاعل
-  ['click','keydown','touchstart'].forEach(ev=>{
-    document.addEventListener(ev, ()=>{
-      if(_presenceRef) _writePresence('online');
-    }, { passive:true });
-  });
-}
-window._startPresence = startPresence;
-
-// الاشتراك في حالات جميع المستخدمين (للمالك فقط)
-let _allPresenceUnsub = null;
-window._presenceData = {}; // كاش محلي للحالات
-
-function subscribeAllPresence(){
-  if(_allPresenceUnsub){ _allPresenceUnsub(); _allPresenceUnsub=null; }
-  const { collection, onSnapshot: _onSnap } = window._fbColUtils || {};
-  // نستخدم onSnapshot مع collection — نحتاج import إضافي (راجع الجزء الثاني)
-  if(typeof window._presenceColUnsub === 'function'){
-    window._presenceColUnsub(db, PRESENCE_COL, (snap)=>{
-      snap.forEach(d=>{ window._presenceData[d.id] = d.data(); });
-    });
-  }
-}
-window._subscribeAllPresence = subscribeAllPresence;
-// ══ نهاية إضافة Presence ══
 
 // ── loadUsers الداخلية — بدون فحص دور (للاستخدام في تسجيل الدخول فقط) ──
 async function _loadUsersInternal(){
@@ -11458,91 +10886,53 @@ async function _loadUsersInternal(){
 
 // ── تحميل/حفظ قائمة المستخدمين — owner فقط (للوحة الإدارة) ──
 async function loadUsers(){
+  // حماية: فحص الدور قبل أي طلب Firestore من لوحة الإدارة
   if(currentRole()!=='owner'){
+    console.warn('⛔ محاولة وصول غير مصرح: loadUsers');
     return [];
   }
-  return typeof _loadUsersInternal === 'function' ? _loadUsersInternal() : [];
+  return _loadUsersInternal();
 }
-
 async function saveUsers(list){
+  // حماية مزدوجة: فحص الدور قبل أي كتابة Firestore
   if(currentRole()!=='owner'){
+    console.warn('⛔ محاولة وصول غير مصرح: saveUsers');
     return;
   }
-  if (typeof setDoc === 'function' && typeof USERS_DOC !== 'undefined') {
-    await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
-  }
+  await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
 }
+window._loadUsersInternal=_loadUsersInternal;
+window._loadUsers=loadUsers;
+window._saveUsers=saveUsers;
 
-window.loadUsers = loadUsers;
-window.saveUsers = saveUsers;
-
-window.addEventListener('load', () => {
-  const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
-  const user = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user');
-  const role = sessionStorage.getItem('auth-role') || localStorage.getItem('auth-role') || 'user';
-  const owner = sessionStorage.getItem('auth-owner') || localStorage.getItem('auth-owner') || user || '';
-
-  if (auth === '1' && user) {
-    ['auth','auth-user','auth-role'].forEach(k => {
-      sessionStorage.setItem(k, k === 'auth' ? '1' : k === 'auth-user' ? user : role);
+// ── استعادة الجلسة عند تحميل الصفحة ──
+window.addEventListener('load',()=>{
+  initTheme();
+  const auth=sessionStorage.getItem('auth')||localStorage.getItem('auth');
+  const user=sessionStorage.getItem('auth-user')||localStorage.getItem('auth-user');
+  const role=sessionStorage.getItem('auth-role')||localStorage.getItem('auth-role')||'user';
+  const owner=sessionStorage.getItem('auth-owner')||localStorage.getItem('auth-owner')||user||'';
+  if(auth==='1'&&user){
+    ['auth','auth-user','auth-role'].forEach(k=>{
+      sessionStorage.setItem(k,k==='auth'?'1':k==='auth-user'?user:role);
     });
+    // استعادة auth-owner
     sessionStorage.setItem('auth-owner', owner);
-    const ls = document.getElementById('login-screen');
-    const aw = document.getElementById('app-wrap');
-    if (ls) ls.style.display = 'none';
-    if (aw) aw.style.display = 'block';
-    const ubtn = document.getElementById('btn-users-panel');
-    if (ubtn) ubtn.style.display = (role === 'owner') ? 'inline-block' : 'none';
-    const dataUid = (owner && owner.trim()) ? owner.trim().toLowerCase() : (user ? user.toLowerCase() : '');
-    if (dataUid && typeof startSession === 'function') {
-         startSession(dataUid);
-    } else if (typeof renderAll === 'function') {
-      renderAll();
-    }
-    if (typeof window._startPresence === 'function') {
-      window._startPresence(dataUid);
-    }
+    const ls=document.getElementById('login-screen');if(ls)ls.style.display='none';
+    const aw=document.getElementById('app-wrap');if(aw)aw.style.display='block';
+    // إظهار زر المستخدمين للمالك
+    const ubtn=document.getElementById('btn-users-panel');
+    if(ubtn) ubtn.style.display=(role==='owner')?'inline-block':'none';
+    // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
+    const dataUid = owner || user.toLowerCase();
+    startSession(dataUid);
   }
-
-  setTimeout(() => {
-    if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
-    _firstLoad = false;
-    const ld = document.getElementById('data-loading');
-    if (ld) ld.style.display = 'none';
-    if (typeof renderAll === 'function') renderAll();
-  }, 9000); 
-});
-
-window.P = function(pageId, btn) {
-    document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
-    const target = document.getElementById('pg-' + pageId);
-    if (target) target.classList.add('on');
-    if (btn) btn.classList.add('on');
-};
-
-window.logout = function() {
-    if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
-        sessionStorage.clear();
-        localStorage.clear();
-        window.location.reload();
-    }
-};
-
-if (typeof window.renderAll !== 'function') {
-    window.renderAll = function() {
-        console.log("Render executed");
-    };
-}
-
-// تصحيح السطر 4633 وما قبله (استبدل الجزء المكسور بهذا)
-function closeHTML() {
-    return '</div>';
-}
-</script>
-<script>
-window.addEventListener("error", function(e){
-  console.error("JS Error:", e.message, "at", e.filename, "line", e.lineno);
+  setTimeout(()=>{
+    if(!_firstLoad)return;
+    _firstLoad=false;
+    const ld=document.getElementById('data-loading');if(ld)ld.style.display='none';
+    showSync('📴 بدون اتصال — محلي',4000);renderAll();
+  },9000);
 });
 </script>
 </body>
