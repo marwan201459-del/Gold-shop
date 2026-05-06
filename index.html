@@ -11427,28 +11427,28 @@ async function _loadUsersInternal(){
 
 // ── تحميل/حفظ قائمة المستخدمين — owner فقط (للوحة الإدارة) ──
 async function loadUsers(){
-  // حماية: فحص الدور قبل أي طلب Firestore من لوحة الإدارة
   if(currentRole()!=='owner'){
     console.warn('⛔ محاولة وصول غير مصرح: loadUsers');
     return [];
   }
-  return _loadUsersInternal();
+  return typeof _loadUsersInternal === 'function' ? _loadUsersInternal() : [];
 }
+
 async function saveUsers(list){
-  // حماية مزدوجة: فحص الدور قبل أي كتابة Firestore
   if(currentRole()!=='owner'){
     console.warn('⛔ محاولة وصول غير مصرح: saveUsers');
     return;
   }
-  await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
+  if (typeof setDoc === 'function' && typeof USERS_DOC !== 'undefined') {
+    await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
+  }
 }
-window._loadUsersInternal=_loadUsersInternal;
-window._loadUsers=loadUsers;
-window._saveUsers=saveUsers;
+
+// تصدير الدوال للنافذة العالمية
+window.loadUsers = loadUsers;
+window.saveUsers = saveUsers;
 
 window.addEventListener('load', () => {
-
-  // initTheme();
 
   const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
   const user = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user');
@@ -11456,7 +11456,7 @@ window.addEventListener('load', () => {
   const owner = sessionStorage.getItem('auth-owner') || localStorage.getItem('auth-owner') || user || '';
 
   if (auth === '1' && user) {
-
+    
     ['auth','auth-user','auth-role'].forEach(k => {
       sessionStorage.setItem(k, k === 'auth' ? '1' : k === 'auth-user' ? user : role);
     });
@@ -11465,57 +11465,30 @@ window.addEventListener('load', () => {
 
     const ls = document.getElementById('login-screen');
     const aw = document.getElementById('app-wrap');
+    if (ls) ls.style.display = 'none';
     if (aw) aw.style.display = 'block';
 
     const ubtn = document.getElementById('btn-users-panel');
     if (ubtn) ubtn.style.display = (role === 'owner') ? 'inline-block' : 'none';
 
-    const dataUid =
-      (owner && owner.trim())
-        ? owner.trim().toLowerCase()
-        : (user ? user.toLowerCase() : '');
+    const dataUid = (owner && owner.trim()) ? owner.trim().toLowerCase() : (user ? user.toLowerCase() : '');
 
     if (dataUid) {
-      startSession(dataUid);
+      if (typeof startSession === 'function') {
+         startSession(dataUid);
+      }
     } else {
-      renderAll();
+      if (typeof renderAll === 'function') renderAll();
     }
 
     console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
 
-  if (typeof window._startPresence === 'function') {
-      window._startPresence(dataUid);
-    }
-  }
-
-  // هذا هو المؤقت (Timeout) بشكل صحيح
-  setTimeout(() => {
-    if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
-    _firstLoad = false;
-    const ld = document.getElementById('data-loading');
-    if (ld) ld.style.display = 'none';
-    renderAll();
-  }, 9000); 
-
-}); // إغلاق دالة window.addEventListener
-
-// --- تعريف الدوال عالمياً لكي تعمل الأزرار في HTML ---
-window.P = function(pageId, btn) {
-    document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
-    const target = document.getElementById('pg-' + pageId);
-    if (target) target.classList.add('on');
-    if (btn) btn.classList.add('on');
-};
-
-// --- الجزء الأخير من الكود ---
-
     if (typeof window._startPresence === 'function') {
       window._startPresence(dataUid);
     }
-  } // إغلاق شرط الـ if (auth === '1')
+  } // نهاية شرط الـ if (auth === '1')
 
-  // مؤقت الأمان للتحميل
+  // مؤقت الأمان للتحميل (Timeout)
   setTimeout(() => {
     if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
     _firstLoad = false;
@@ -11524,9 +11497,10 @@ window.P = function(pageId, btn) {
     if (typeof renderAll === 'function') renderAll();
   }, 9000); 
 
-}); // إغلاق window.addEventListener الأساسي
+}); // نهاية window.addEventListener
 
-// --- تعريف الدوال عالمياً لتعمل أزرار الـ HTML ---
+// --- تعريف الدوال عالمياً لتعمل الأزرار في HTML ---
+
 window.P = function(pageId, btn) {
     document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
@@ -11543,11 +11517,9 @@ window.logout = function() {
     }
 };
 
-window.renderAll = function() {
-    console.log("تم استدعاء تحديث البيانات");
-    // إذا كان لديك دالة renderAll أخرى بالأعلى، سيقوم المتصفح باستخدام هذه
-};
-
-</script>
-</body>
-</html>
+// ملاحظة: تأكد أن دالة renderAll الأصلية موجودة في الكود بالأعلى، وإلا استخدم هذه:
+if (typeof window.renderAll !== 'function') {
+    window.renderAll = function() {
+        console.log("تم استدعاء تحديث الواجهة (Render)");
+    };
+}
