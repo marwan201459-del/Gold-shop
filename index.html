@@ -5636,31 +5636,16 @@ function getClientBalance(cli){
   const cashTransferOut = txs.filter(t=>t.type==='transfer' && t.toSafe===('__cli__'+cli))
                              .reduce((a,t)=>a+(t.amount||0),0);
 
-  // أجور الشراء علينا للمورد
- // أجور الشراء علينا للمورد
-let buyGoldCashValue = 0;
-   const buyDebt = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
-  .reduce((a,t)=>{
-    (t.items||[]).forEach(i=>{
-      if((i.price||0)>0){
-        buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
-      }
-    });
-   .reduce((a,t)=>{
-  (t.items||[]).forEach(i=>{
-    if((i.price||0)>0){
-      buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
-    }
-  });
-  return a+(t.ajTotal||0);
-},0);
-  // ── [تصحيح] قيمة الذهب المسعَّر عند الشراء من المورد → تُضاف لدين الأجور ──
+// أجور الشراء علينا للمورد + قيمة الذهب المسعَّر
   let buyGoldCashValue = 0;
-  txs.filter(t=>t.type==='buy'||t.type==='buy-debt').forEach(t=>{
-    (t.items||[]).forEach(i=>{
-      if((i.price||0)>0) buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
-    });
-  });
+  const buyDebt = txs.filter(t=>t.type==='buy'||t.type==='buy-debt')
+                     .reduce((a,t)=>{
+                       (t.items||[]).forEach(i=>{
+                         if((i.price||0)>0)
+                           buyGoldCashValue += Math.round((i.weight||0)*(i.price||0)*100)/100;
+                       });
+                       return a+(t.ajTotal||0);
+                     },0);
 
   // أجور مرتجع مشتريات تُخفِّض الدين
   const purchRetDebt = txs.filter(t=>t.type==='supplier-return'||t.type==='purchase-return')
