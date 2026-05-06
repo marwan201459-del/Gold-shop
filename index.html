@@ -11428,7 +11428,6 @@ async function _loadUsersInternal(){
 // ── تحميل/حفظ قائمة المستخدمين — owner فقط (للوحة الإدارة) ──
 async function loadUsers(){
   if(currentRole()!=='owner'){
-    console.warn('⛔ محاولة وصول غير مصرح: loadUsers');
     return [];
   }
   return typeof _loadUsersInternal === 'function' ? _loadUsersInternal() : [];
@@ -11436,7 +11435,6 @@ async function loadUsers(){
 
 async function saveUsers(list){
   if(currentRole()!=='owner'){
-    console.warn('⛔ محاولة وصول غير مصرح: saveUsers');
     return;
   }
   if (typeof setDoc === 'function' && typeof USERS_DOC !== 'undefined') {
@@ -11444,49 +11442,36 @@ async function saveUsers(list){
   }
 }
 
-// تصدير الدوال للنافذة العالمية
 window.loadUsers = loadUsers;
 window.saveUsers = saveUsers;
 
 window.addEventListener('load', () => {
-
   const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
   const user = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user');
   const role = sessionStorage.getItem('auth-role') || localStorage.getItem('auth-role') || 'user';
   const owner = sessionStorage.getItem('auth-owner') || localStorage.getItem('auth-owner') || user || '';
 
   if (auth === '1' && user) {
-    
     ['auth','auth-user','auth-role'].forEach(k => {
       sessionStorage.setItem(k, k === 'auth' ? '1' : k === 'auth-user' ? user : role);
     });
-
     sessionStorage.setItem('auth-owner', owner);
-
     const ls = document.getElementById('login-screen');
     const aw = document.getElementById('app-wrap');
     if (ls) ls.style.display = 'none';
     if (aw) aw.style.display = 'block';
-
     const ubtn = document.getElementById('btn-users-panel');
     if (ubtn) ubtn.style.display = (role === 'owner') ? 'inline-block' : 'none';
-
     const dataUid = (owner && owner.trim()) ? owner.trim().toLowerCase() : (user ? user.toLowerCase() : '');
-
-    if (dataUid) {
-      if (typeof startSession === 'function') {
+    if (dataUid && typeof startSession === 'function') {
          startSession(dataUid);
-      }
-    } else {
-      if (typeof renderAll === 'function') renderAll();
+    } else if (typeof renderAll === 'function') {
+      renderAll();
     }
-
-    console.log('[DEBUG] dataUid =', dataUid, '| owner =', owner, '| user =', user);
-
-   if (typeof window._startPresence === 'function') {
+    if (typeof window._startPresence === 'function') {
       window._startPresence(dataUid);
     }
-  } // إغلاق شرط if (auth === '1')
+  }
 
   setTimeout(() => {
     if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
@@ -11495,10 +11480,8 @@ window.addEventListener('load', () => {
     if (ld) ld.style.display = 'none';
     if (typeof renderAll === 'function') renderAll();
   }, 9000); 
+});
 
-}); // إغلاق window.addEventListener
-
-// الدوال العالمية لضمان عمل أزرار الـ HTML
 window.P = function(pageId, btn) {
     document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
@@ -11514,6 +11497,17 @@ window.logout = function() {
         window.location.reload();
     }
 };
+
+if (typeof window.renderAll !== 'function') {
+    window.renderAll = function() {
+        console.log("Render executed");
+    };
+}
+
+// تصحيح السطر 4633 وما قبله (استبدل الجزء المكسور بهذا)
+function closeHTML() {
+    return '</div>';
+}
 </script>
 </body>
 </html>
