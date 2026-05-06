@@ -475,20 +475,19 @@ body{
   </div>
   <input id="li-pass" type="password" placeholder="••••••••••" class="li-inp"
     autocomplete="current-password"
-onkeydown="if(event.key==='Enter') window.doLogin()"
-     
-     </div>
+    onkeydown="if(event.key==='Enter') window.doLogin()">
+        </div>
 
-<!-- رسالة الخطأ -->
-<div id="li-err" style="display:none;background:rgba(229,85,85,.10);
-  border:1px solid rgba(229,85,85,.25);border-radius:10px;
-  padding:11px 14px;color:#FF7070;font-size:12px;margin-bottom:16px;
-  text-align:center;font-weight:600">
-  ❌ اسم المستخدم أو كلمة المرور غير صحيحة
-</div>
+        <!-- رسالة الخطأ -->
+        <div id="li-err" style="display:none;background:rgba(229,85,85,.10);
+          border:1px solid rgba(229,85,85,.25);border-radius:10px;
+          padding:11px 14px;color:#FF7070;font-size:12px;margin-bottom:16px;
+          text-align:center;font-weight:600">
+          ❌ اسم المستخدم أو كلمة المرور غير صحيحة
+        </div>
 
         <!-- زر الدخول -->
-onclick="window.doLogin()"
+        <button id="li-btn" onclick="window.doLogin()"
           style="width:100%;padding:15px;border:none;border-radius:14px;
             background:linear-gradient(135deg,#6B4F0C,#C8961E 45%,#E8B840 75%,#C8961E);
             background-size:200% auto;
