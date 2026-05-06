@@ -2362,7 +2362,7 @@ function calcSafes(){
     //   ajourPaid = نقد فعلي → يؤثر على الصندوق
     //   discount  = خصم تسوية → لا يؤثر على الصندوق (يُعالج في getClientBalance)
     //   change    = فكة → يؤثر على الصندوق (+ عند قبض، - عند دفع)
-    else if(t.type==='payment'){
+else if(t.type==='payment'){
       // سداد عميل:
       // نقد يدخل صندوقنا (ajourPaid فقط)
       if(t.fromSafe && safes[t.fromSafe]!=null)
@@ -2370,57 +2370,61 @@ function calcSafes(){
       // فكة تدخل (change+) — الفكة جاءت مع العميل
       if((t.change||0)>0 && t.fromSafe && safes[t.fromSafe]!=null)
         safes[t.fromSafe] += (t.change||0);
-      // discount: لا أثر هنا — يُعالج في getClientBalance كتسوية
-      // ذهب يدخل صناديقنا — يدعم أكثر من صنف
+
+      // ذهب يدخل صناديقنا
       const pItems = t.goldItems||[];
       if(pItems.length>0){
-        // أصناف متعددة
         pItems.forEach(gi=>{
-          const w=gi.weight||0, gk=gi.karat||'18';
-         const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+          const w=gi.weight||0, gk=gi.karat||'18', pr=gi.price||0;
+          const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
           if(w>0 && safes[dest]!=null) safes[dest] += w;
-          // الخصم من مديونية الذهب فقط إذا لم يكن هناك سعر (تسوية ذهب بذهب)
-          if(!gi.price || gi.price <= 0) {
+
+          // --- التعديل الجوهري هنا ---
+          if(pr > 0) {
+            // إذا وجد سعر، اخصم القيمة المالية من مديونية النقد العامة
+            safes.debtCash -= (w * pr);
+          } else {
+            // إذا لم يوجد سعر، اخصم من مديونية الذهب حسب العيار
             if(k21(gk)) safes.debt21 -= w;
             else if(k18(gk)) safes.debt18 -= w;
             else if(k24(gk)) safes.debt24 -= w;
           }
         });
       } else if(t.goldWeight && t.goldWeight>0){
-        // توافق مع السجلات القديمة (صنف واحد)
-        const w=t.goldWeight, gk=t.goldKarat||'18';
+        const w=t.goldWeight, gk=t.goldKarat||'18', pr=t.goldPrice||0;
         if(t.goldDest && safes[t.goldDest]!=null) safes[t.goldDest] += w;
-        if(k21(gk)) safes.debt21 -= w;
-        else if(k18(gk)) safes.debt18 -= w;
-        else if(k24(gk)) safes.debt24 -= w;
+        
+        if(pr > 0) {
+          safes.debtCash -= (w * pr);
+        } else {
+          if(k21(gk)) safes.debt21 -= w;
+          else if(k18(gk)) safes.debt18 -= w;
+          else if(k24(gk)) safes.debt24 -= w;
+        }
       }
     }
     else if(t.type==='supplier-payment'){
       // سداد مورد:
-      // نقد يخرج من الصندوق (ajourPaid فقط)
       if((t.ajourPaid||0) > 0){
         const sf = t.fromSafe||'cash';
         if(safes[sf]!=null) safes[sf] -= (t.ajourPaid||0);
       }
-      // فكة تخرج (change-) — الفكة خرجت منا للمورد
       if((t.change||0) > 0){
         const sf = t.fromSafe||'cash';
         if(safes[sf]!=null) safes[sf] -= (t.change||0);
       }
-      // discount: لا أثر هنا — يُعالج في getClientBalance كتسوية
-      // ذهب يخرج من الصناديق المحددة — يدعم أكثر من صنف
       const sItems = t.goldItems||[];
       if(sItems.length>0){
         sItems.forEach(gi=>{
-          const w=gi.weight||0, gk=gi.karat||'21';
+          const w=gi.weight||0, gk=gi.karat||'21', pr=gi.price||0;
           const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
           if(w>0 && safes[dest]!=null) safes[dest] -= w;
+
+          // إذا صرفت ذهب للمورد بسعر، تزيد مديونية النقد عليك (أو تخصم من رصيدك لديه)
+          if(pr > 0) {
+            safes.debtCash += (w * pr);
+          }
         });
-      } else if(t.goldWeight && t.goldWeight>0){
-        // توافق مع السجلات القديمة
-        const w=t.goldWeight, gk=t.goldKarat||'21';
-        const dest=t.goldSafe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
-        if(safes[dest]!=null) safes[dest] -= w;
       }
     }
 
@@ -9991,23 +9995,33 @@ function renderStmt(){
       }
     } else {
       // الأجور فقط هي الدين النقدي — الذهب في goldOwedAs24 منفصلاً
-      if(t.type==='sell'||t.type==='sell-debt')
-        dCash = (t.ajTotal||0)+(t.vatAmt||0);
-      else if(t.type==='payment'){
-        const _goldCashValCli = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
-                              + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
-        dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_goldCashValCli);
-      }
-      else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
-      else if(t.type==='sales-return'||t.type==='return')             dCash = -((t.ajTotal||0)+(t.vatAmt||0));
-      else if(t.type==='salary-custody')                               dCash = (t.amount||0);
-      else if(t.type==='salary-pay')                                   dCash = -(t.amount||0);
-      else if(t.type==='charge')                                       dCash = (t.amount||0);
-      else if(t.type==='transfer'){
-        if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;  // العميل أعطانا — ينخصم من دينه
-        if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
-      }
+     else if(t.type==='payment'){
+  // 1. استخراج قيمة الذهب الذي تم تسعيره (لتحويله لخصم نقدي)
+  const goldCashValue = (t.goldItems||[]).reduce((sum, gi) => {
+    return sum + (Number(gi.weight||0) * Number(gi.price||0));
+  }, 0) + ((Number(t.goldPrice)||0) > 0 ? (Number(t.goldWeight)||0) * (Number(t.goldPrice)||0) : 0);
+
+  // 2. إجمالي النقد (المبلغ المدفوع كاش + قيمة الذهب المسعر)
+  let payCash = (Number(t.amount)||0) + (Number(t.ajourPaid)||0) + goldCashValue;
+  
+  let p18=0, p21=0, p24=0;
+  // 3. حساب أوزان الذهب التي لم تُسعر (تبقى كذهب)
+  (t.goldItems||[]).forEach(gi=>{
+    if(!(Number(gi.price) > 0)) {
+      if(k18(gi.karat)) p18 += Number(gi.weight)||0;
+      else if(k21(gi.karat)) p21 += Number(gi.weight)||0;
+      else if(k24(gi.karat)) p24 += Number(gi.weight)||0;
     }
+  });
+
+  // 4. تحديث الأرصدة التراكمية في الجدول
+  curCash -= payCash;
+  curG18 -= p18; curG21 -= p21; curG24 -= p24;
+  
+  const note = t.note || 'قبض';
+  // 5. إضافة السطر للجدول (الآن payCash تظهر الخصم المالي للذهب بوضوح)
+  rows.push(`<tr><td>${t.date||''}</td><td>${note}</td><td class="neg">${fmt(payCash)}</td><td>-</td><td>${fmt(p18)}</td><td>${fmt(p21)}</td><td>${fmt(p24)}</td><td class="b">${fmt(curCash)}</td><td>${fmt(curG18)}</td><td>${fmt(curG21)}</td><td>${fmt(curG24)}</td></tr>`);
+}
     // تغيير الذهب بعيار 24
     let dGold24 = 0;
     if(t.type==='sell'||t.type==='sell-debt')
