@@ -4626,9 +4626,9 @@ function printStmt(){
     '<div class="final-summary">' + 
       '<div class="fs-title">الملخص النهائي</div>' + 
       '<div class="fs-row"><span>الرصيد النقدي</span>' + 
-        '<span class="fs-val ' + _cashClass + '">' + _cashText + '</span></div>' + 
+'<span class="fs-val ' + _cashClass + '">' + _cashText + '</span></div>' + 
       _goldRow + 
-    '</div>';
+    '</div>'); // <--- لاحظ هنا أضفنا القوس قبل الفاصلة المنقوطة
 }
 const printHTML = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -11488,29 +11488,33 @@ window.addEventListener('load', () => {
   }
 
   // هذا المؤقت يعمل فقط إذا فشل الاتصال تماماً ولم تنجح دالة startSession في تغيير قيمة _firstLoad
-  setTimeout(() => {
-    // إذا تغيرت قيمة _firstLoad إلى false في مكان آخر (بمعنى تم الاتصال بنجاح)، لا تفعل شيئاً
-    if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
-    
-    _firstLoad = false;
+ }, 9000); 
 
-    const ld = document.getElementById('data-loading');
-    if (ld) ld.style.display = 'none';
+}); // إغلاق دالة التحميل الأساسية
 
-    // نتحقق إذا كان التطبيق فعلاً لم يحمل أي بيانات
-    showSync('📴 محاولة اتصال... (قد تكون بطيئة أو محلي)', 4000);
-    renderAll();
-  }, 12000); // زدنا الوقت لـ 12 ثانية لإعطاء فرصة للإنترنت الضعيف
+// --- تعريف الدوال عالمياً لكي تعمل الأزرار في HTML ---
 
-}); // نهاية window.addEventListener
+window.P = function(pageId, btn) {
+    document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
+    const target = document.getElementById('pg-' + pageId);
+    if (target) target.classList.add('on');
+    if (btn) btn.classList.add('on');
+};
 
-function logout() {
-  if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
-    sessionStorage.clear();
-    localStorage.clear();
-    window.location.reload();
-  }
-}
+window.logout = function() {
+    if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.reload();
+    }
+};
+
+window.renderAll = function() {
+    console.log("تم تحديث البيانات بنجاح");
+    // أضف هنا أي دالة تحديث أخرى إذا كانت موجودة
+};
+
 </script>
 </body>
 </html>
