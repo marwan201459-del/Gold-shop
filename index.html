@@ -4628,9 +4628,8 @@ function printStmt(){
       '<div class="fs-row"><span>الرصيد النقدي</span>' + 
 '<span class="fs-val ' + _cashClass + '">' + _cashText + '</span></div>' + 
       _goldRow + 
-// السطر 4631
-    '</div>'; // تأكد أنه ينتهي بفاصلة منقوطة فقط، بدون أي قوس دائري )
-    }
+    '</div>'; // تأكد أن السطر ينتهي بفاصله منقوطة ; فقط
+} // هذا القوس يغلق الدالة التي بدأت بالأعلى
 const printHTML = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -11514,7 +11513,7 @@ window.logout = function() {
         sessionStorage.clear();
         localStorage.clear();
         window.location.reload();
-    }
+   }
 };
 
 // ملاحظة: تأكد أن دالة renderAll الأصلية موجودة في الكود بالأعلى، وإلا استخدم هذه:
