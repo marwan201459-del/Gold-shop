@@ -11487,27 +11487,30 @@ window.addEventListener('load', () => {
     }
   }
 
+  // هذا المؤقت يعمل فقط إذا فشل الاتصال تماماً ولم تنجح دالة startSession في تغيير قيمة _firstLoad
   setTimeout(() => {
-    if (!_firstLoad) return;
+    // إذا تغيرت قيمة _firstLoad إلى false في مكان آخر (بمعنى تم الاتصال بنجاح)، لا تفعل شيئاً
+    if (typeof _firstLoad !== 'undefined' && !_firstLoad) return;
+    
     _firstLoad = false;
 
     const ld = document.getElementById('data-loading');
     if (ld) ld.style.display = 'none';
 
-    showSync('📴 بدون اتصال — محلي', 4000);
+    // نتحقق إذا كان التطبيق فعلاً لم يحمل أي بيانات
+    showSync('📴 محاولة اتصال... (قد تكون بطيئة أو محلي)', 4000);
     renderAll();
-
-}, 9000); 
+  }, 12000); // زدنا الوقت لـ 12 ثانية لإعطاء فرصة للإنترنت الضعيف
 
 }); // نهاية window.addEventListener
 
-// ── دالة تسجيل الخروج (اختياري إذا لم تكن موجودة) ──
 function logout() {
-  sessionStorage.clear();
-  localStorage.clear();
-  window.location.reload();
+  if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
+    sessionStorage.clear();
+    localStorage.clear();
+    window.location.reload();
+  }
 }
 </script>
-
 </body>
 </html>
