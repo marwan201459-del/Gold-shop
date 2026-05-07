@@ -2266,14 +2266,6 @@ function calcSafes(){
   const _allK = new Set([...Object.keys(_sb), ...Object.keys(_ob)]);
   _allK.forEach(k=>{ base[k] = (_sb[k]||0) + (_ob[k]||0); });
 
-  // ── دمج الأرصدة الافتتاحية للمالك المستقل ──
-  // _tenantOB_* تُضاف على المفاتيح القياسية المقابلة لها
-  const _tob = S.tenantOpeningBalance || {};
-  if(_tob.cash)   base.cash    = (base.cash   ||0) + _tob.cash;
-  if(_tob.gold18) base.worked18= (base.worked18||0) + _tob.gold18;
-  if(_tob.gold21) base.worked21= (base.worked21||0) + _tob.gold21;
-  if(_tob.gold24) base.pure24  = (base.pure24  ||0) + _tob.gold24;
-
   const safes = {
     // ─ نقد ─
     cash:        base.cash        || 0,
@@ -7487,10 +7479,7 @@ async function doLogin(){
     : (found.ownerId || found.tenantId || found.username.toLowerCase());
   if(typeof window._startSession==='function') window._startSession(dataUid);
 
-  // ── تفعيل نظام الحضور ──
-  if(typeof window._initPresence==='function') window._initPresence(found.username);
-
-
+  // إظهار زر المستخدمين للـ owner فقط
   const ubtn = document.getElementById('btn-users-panel');
   if(ubtn) ubtn.style.display = found.role==='owner' ? 'inline-block' : 'none';
 
@@ -7524,11 +7513,8 @@ async function openUsersPanel(){
   // ── Super Admin يشوف الكل، مالك مستقل يشوف موظفيه فقط ──
   const users = allUsers;
 
-  // ── جلب بيانات الحضور مع بناء الكروت ──
-
-  function userCard(u, presData){
+  function userCard(u){
     const active = u.status!=='disabled';
-
     const isTenant = u.role==='tenant';
     const cardBg = isTenant ? 'var(--g4)' : 'var(--c2)';
     const cardBorder = isTenant ? 'border:1.5px solid var(--g5)' : '';
@@ -7548,21 +7534,12 @@ async function openUsersPanel(){
         subBadge=`<span style="background:#1E3A5F;color:#93C5FD;font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px">∞ دائم</span>`;
       }
     }
-    // ── بادج الحضور (Online/Offline) ──
-    const pres = presData && presData[u.username] ? presData[u.username] : {};
-    const isOnline = !!pres.online;
-    const lastSeenStr = (typeof window._fmtLastSeen==='function') ? window._fmtLastSeen(pres.lastSeen) : '';
-    const presenceBadge = isOnline
-      ? `<span style="background:#14532D;color:#86EFAC;font-size:9px;font-weight:800;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px"><span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block;animation:_ublink 1.2s infinite"></span>متصل الآن</span>`
-      : `<span style="background:rgba(100,100,100,.18);color:var(--tx3);font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px">غير متصل</span>`;
     return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:${cardBg};${cardBorder};border-radius:10px;margin-bottom:7px;flex-wrap:wrap">
       <div style="flex:1;min-width:130px">
         <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':'var(--tx1)'}">${isTenant?'🏢 ':''}${u.label||u.username}</div>
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
         ${isTenant&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
-        ${lastSeenStr&&!isOnline?`<div style="font-size:9px;color:var(--tx3);margin-top:1px">🕐 آخر ظهور: ${lastSeenStr}</div>`:''}
       </div>
-      ${presenceBadge}
       ${subBadge}
       <span style="background:${active?'#DCFCE7':'#FEE2E2'};color:${active?'#16A34A':'#DC2626'};font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px">
         ${active?'✅ نشط':'⛔ موقوف'}
@@ -7571,7 +7548,6 @@ async function openUsersPanel(){
         ${active?'إيقاف':'تفعيل'}
       </button>
       ${isTenant?`<button onclick="_extendSub('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📅 اشتراك</button>`:''}
-      ${isTenant?`<button onclick="_openTenantOB('${u.username}','${(u.label||u.username).replace(/['"]/g,'')}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--g1);color:#060300;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏁 رصيد</button>`:''}
       <button onclick="_resetPass('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔑</button>
       <button onclick="_deleteUser('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:#aaa;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🗑</button>
     </div>`;
@@ -7580,18 +7556,7 @@ async function openUsersPanel(){
   const tenants = users.filter(u=>u.role==='tenant');
   const staff   = users.filter(u=>u.role!=='tenant');
 
-  // دالة لإعادة رسم الكروت عند تحديث الحضور
-  let _presenceData = {};
-  function _rebuildCards(pd) {
-    _presenceData = pd||{};
-    const tEl = document.getElementById('_tenants_list');
-    const uEl = document.getElementById('_users_list');
-    if(tEl) tEl.innerHTML = tenants.map(u=>userCard(u, _presenceData)).join('');
-    if(uEl) uEl.innerHTML = staff.length ? staff.map(u=>userCard(u, _presenceData)).join('') : (users.length===0?'<div style="text-align:center;color:var(--tx2);padding:20px;font-size:13px">لا يوجد مستخدمون بعد</div>':'');
-  }
-
   const html=`<div style="padding:14px">
-    <style>@keyframes _ublink{0%,100%{opacity:1}50%{opacity:.35}}</style>
     <div style="font-size:15px;font-weight:900;margin-bottom:14px;color:var(--g1)">👥 إدارة المستخدمين</div>
 
     <!-- تبويبات الإضافة -->
@@ -7657,14 +7622,13 @@ async function openUsersPanel(){
 
     ${tenants.length?`
     <div style="font-size:11px;font-weight:700;color:var(--g1);margin-bottom:6px;margin-top:10px;border-bottom:1px solid var(--g5);padding-bottom:4px">🏢 الملاك المستقلون (${tenants.length})</div>
-    <div id="_tenants_list">${tenants.map(u=>userCard(u,{})).join('')}</div>`:''}
+    <div id="_tenants_list">${tenants.map(userCard).join('')}</div>`:''}
 
     ${staff.length?`
     <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;margin-top:10px">👤 الموظفون والمديرون (${staff.length})</div>
-    <div id="_users_list">${staff.map(u=>userCard(u,{})).join('')}</div>`
+    <div id="_users_list">${staff.map(userCard).join('')}</div>`
     :`<div id="_users_list">${users.length===0?'<div style="text-align:center;color:var(--tx2);padding:20px;font-size:13px">لا يوجد مستخدمون بعد</div>':''}</div>`}
   </div>`;
-
 
   // عرض في modal
   const m=document.getElementById('_users_modal')||document.createElement('div');
@@ -7675,13 +7639,7 @@ async function openUsersPanel(){
     ${html}
   </div>`;
   if(!document.getElementById('_users_modal')) document.body.appendChild(m);
-  if(!document.getElementById('_users_modal')) document.body.appendChild(m);
   else { document.getElementById('_users_modal').replaceWith(m); document.body.appendChild(m); }
-  // ── بدء مراقبة الحضور بعد عرض المودال ──
-  if(typeof window._watchPresence==='function'){
-    const allNames = users.map(u=>u.username);
-    window._watchPresence(allNames, _rebuildCards);
-  }
 }
 
 async function _addUser(type){
@@ -7775,109 +7733,6 @@ async function _extendSub(username){
   if(typeof window._saveUsers==='function') await window._saveUsers(users);
   document.getElementById('_users_modal')?.remove();
   openUsersPanel();
-}
-
-// ══════════════════════════════════════════════════════
-// ── الأرصدة الافتتاحية للملاك المستقلين ──
-// تُخزن في Firestore: tenantOpeningBalance/{username}
-// ══════════════════════════════════════════════════════
-async function _openTenantOB(username, label){
-  if(!username){ toast('⚠️ خطأ: لا يوجد مستخدم'); return; }
-  const lowerUser = username.toLowerCase();
-
-  // جلب البيانات الحالية
-  let obData = { cash:0, gold18:0, gold21:0, gold24:0 };
-  try {
-    const snap = await window._getTenantOBDoc(lowerUser);
-    if(snap) obData = { cash: snap.cash||0, gold18: snap.gold18||0, gold21: snap.gold21||0, gold24: snap.gold24||0 };
-  } catch(e){}
-
-  const modalId = '_tenant_ob_modal';
-  const existing = document.getElementById(modalId);
-  if(existing) existing.remove();
-
-  const m = document.createElement('div');
-  m.id = modalId;
-  m.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
-  m.innerHTML = `
-    <div style="background:var(--c1);border-radius:16px;width:min(400px,96vw);overflow:hidden;box-shadow:var(--s3)">
-      <div style="background:linear-gradient(135deg,var(--g3),var(--g1));padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:14px;font-weight:900;color:#fff">🏁 الرصيد الافتتاحي</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">🏢 ${label||username}</div>
-        </div>
-        <button onclick="document.getElementById('${modalId}').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:16px;width:30px;height:30px;border-radius:8px;cursor:pointer;font-family:inherit">✕</button>
-      </div>
-      <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:11px;color:var(--tx2);background:var(--c2);border-radius:8px;padding:8px 10px;border:1px solid var(--b1)">
-          💡 هذه الأرصدة مستقلة لهذا المالك فقط وتدخل في حساباته وتقاريره
-        </div>
-        <!-- نقدي -->
-        <div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:var(--tx1)">💵 رصيد نقدي افتتاحي</div>
-            <div style="font-size:10px;color:var(--tx2)">بالريال السعودي</div>
-          </div>
-          <input type="number" id="_tob_cash" value="${obData.cash||''}" placeholder="0"
-            inputmode="decimal" step="0.01"
-            style="width:110px;padding:8px;border-radius:8px;border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--ok);text-align:left">
-          <span style="font-size:11px;color:var(--ok);font-weight:700;min-width:24px">ر</span>
-        </div>
-        <!-- ذهب 18 -->
-        <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:var(--tx1)">🥈 ذهب عيار 18 افتتاحي</div>
-            <div style="font-size:10px;color:var(--tx2)">بالجرام</div>
-          </div>
-          <input type="number" id="_tob_g18" value="${obData.gold18||''}" placeholder="0"
-            inputmode="decimal" step="0.001"
-            style="width:110px;padding:8px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--g1);text-align:left">
-          <span style="font-size:11px;color:var(--g1);font-weight:700;min-width:24px">ج</span>
-        </div>
-        <!-- ذهب 21 -->
-        <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:var(--tx1)">💛 ذهب عيار 21 افتتاحي</div>
-            <div style="font-size:10px;color:var(--tx2)">بالجرام</div>
-          </div>
-          <input type="number" id="_tob_g21" value="${obData.gold21||''}" placeholder="0"
-            inputmode="decimal" step="0.001"
-            style="width:110px;padding:8px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--g1);text-align:left">
-          <span style="font-size:11px;color:var(--g1);font-weight:700;min-width:24px">ج</span>
-        </div>
-        <!-- ذهب 24 -->
-        <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:var(--tx1)">✨ ذهب عيار 24 افتتاحي</div>
-            <div style="font-size:10px;color:var(--tx2)">بالجرام</div>
-          </div>
-          <input type="number" id="_tob_g24" value="${obData.gold24||''}" placeholder="0"
-            inputmode="decimal" step="0.001"
-            style="width:110px;padding:8px;border-radius:8px;border:1.5px solid var(--g5);background:var(--c1);font-family:inherit;font-size:14px;font-weight:700;color:var(--g1);text-align:left">
-          <span style="font-size:11px;color:var(--g1);font-weight:700;min-width:24px">ج</span>
-        </div>
-        <button onclick="_saveTenantOB('${lowerUser}','${(label||username).replace(/'/g,"\'")}')"
-          style="width:100%;padding:12px;border-radius:10px;border:none;background:var(--g1);color:#060300;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px">
-          💾 حفظ الرصيد الافتتاحي
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(m);
-}
-
-async function _saveTenantOB(lowerUser, label){
-  const cash  = parseFloat(document.getElementById('_tob_cash')?.value)||0;
-  const gold18= parseFloat(document.getElementById('_tob_g18')?.value)||0;
-  const gold21= parseFloat(document.getElementById('_tob_g21')?.value)||0;
-  const gold24= parseFloat(document.getElementById('_tob_g24')?.value)||0;
-  const data = { cash, gold18, gold21, gold24, updatedAt: Date.now(), updatedBy: sessionStorage.getItem('auth-user')||'' };
-  try {
-    await window._setTenantOBDoc(lowerUser, data);
-    document.getElementById('_tenant_ob_modal')?.remove();
-    toast('✅ تم حفظ الرصيد الافتتاحي لـ ' + label);
-  } catch(e) {
-    toast('❌ خطأ في الحفظ: ' + (e.message||e.code||''));
-  }
 }
 
 // ── تغيير كلمة مرور المستخدم لنفسه ──
@@ -10853,52 +10708,47 @@ function renderObSummary(){
   const SM2=getSM();
   const safeRows=Object.entries(ob.safes||{}).filter(([k,v])=>v>0);
   const cliRows=Object.entries(ob.clients||{}).filter(([n,d])=>Math.abs(d.cash||0)>0.01||Math.abs(d.gold24||0)>0.001);
-
-  // ── قسم رصيد المالك المستقل الافتتاحي ──
-  const _tob = S.tenantOpeningBalance || null;
-  const _isTenantRole = (sessionStorage.getItem('auth-role')||'')==='tenant';
-
-  if(!safeRows.length&&!cliRows.length&&!(_isTenantRole&&_tob&&(_tob.cash||_tob.gold18||_tob.gold21||_tob.gold24))){
+  if(!safeRows.length&&!cliRows.length){
     el.innerHTML='<div class="empty" style="padding:16px"><div class="ei">🏁</div><p>لم يتم تسجيل أي رصيد افتتاحي بعد</p></div>';
     return;
   }
   let html='';
-
-  if(_isTenantRole && _tob && (_tob.cash||_tob.gold18||_tob.gold21||_tob.gold24)){
-    html+=`<div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border:1.5px solid var(--g5);border-radius:var(--rb);padding:12px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:800;color:var(--g1);margin-bottom:8px">🏁 رصيدك الافتتاحي (مالك مستقل)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-      ${_tob.cash?`<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:var(--rc);padding:8px 10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--tx2)">💵 نقدي</span><span style="font-size:14px;font-weight:900;color:var(--ok)">${fmt(_tob.cash)} <small>ر</small></span></div>`:''}
-      ${_tob.gold18?`<div style="background:var(--g4);border:1px solid var(--g5);border-radius:var(--rc);padding:8px 10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--tx2)">🥈 ع18</span><span style="font-size:14px;font-weight:900;color:var(--g1)">${fmtG(_tob.gold18)} <small>ج</small></span></div>`:''}
-      ${_tob.gold21?`<div style="background:var(--g4);border:1px solid var(--g5);border-radius:var(--rc);padding:8px 10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--tx2)">💛 ع21</span><span style="font-size:14px;font-weight:900;color:var(--g1)">${fmtG(_tob.gold21)} <small>ج</small></span></div>`:''}
-      ${_tob.gold24?`<div style="background:var(--g4);border:1px solid var(--g5);border-radius:var(--rc);padding:8px 10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--tx2)">✨ ع24</span><span style="font-size:14px;font-weight:900;color:var(--g1)">${fmtG(_tob.gold24)} <small>ج</small></span></div>`:''}
-      </div>
-    </div>`;
-  }
-
   if(safeRows.length){
     html+=`<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🗄️ الصناديق</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px">`;
     safeRows.forEach(([k,v])=>{
       const info=SM2[k]||{label:k,unit:'?'};
       const isGold=info.unit==='جرام';
-      html+=`<div style="background:${isGold?'var(--g4)'  :'var(--ok-bg)'};border:1px solid ${isGold?'var(--g5)'  :'var(--ok-bd)'};border-radius:var(--rb);padding:10px 12px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--tx1);font-weight:600">${info.label||k}</span><span style="font-size:15px;font-weight:900;color:${isGold?'var(--g1)'  :'var(--ok)'}">${isGold?fmtG(v):fmt(v)} <span style="font-size:10px">${info.unit}</span></span></div>`;
+      html+=`<div style="background:${isGold?'var(--g4)':'var(--ok-bg)'};border:1px solid ${isGold?'var(--g5)':'var(--ok-bd)'};
+        border-radius:var(--rb);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--tx1);font-weight:600">${info.label||k}</span>
+        <span style="font-size:15px;font-weight:900;color:${isGold?'var(--g1)':'var(--ok)'}">${isGold?fmtG(v):fmt(v)} <span style="font-size:10px">${info.unit}</span></span>
+      </div>`;
     });
     html+='</div>';
   }
   if(cliRows.length){
     const typeIc={'عميل':'👤','مورد':'🏭','موظف':'👷','موزع':'🚚'};
-    html+=`<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">👥 الجهات (${cliRows.length})</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)"><th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2)">الجهة</th><th style="padding:8px;text-align:left;font-weight:700;color:var(--tx2)">نقد (ريال)</th><th style="padding:8px;text-align:left;font-weight:700;color:var(--g1)">ذهب (ج ع24)</th></tr></thead><tbody>`;
+    html+=`<div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">👥 الجهات (${cliRows.length})</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">
+        <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2)">الجهة</th>
+        <th style="padding:8px;text-align:left;font-weight:700;color:var(--tx2)">نقد (ريال)</th>
+        <th style="padding:8px;text-align:left;font-weight:700;color:var(--g1)">ذهب (ج ع24)</th>
+      </tr></thead><tbody>`;
     cliRows.forEach(([name,data])=>{
       const cc=data.cash>0?'var(--no)':data.cash<0?'var(--ok)':'var(--tx3)';
       const gc=data.gold24>0?'var(--no)':data.gold24<0?'var(--ok)':'var(--tx3)';
-      html+=`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:8px 10px;font-weight:700">${typeIc[data.type]||'👤'} ${name}</td><td style="padding:8px;text-align:left;font-weight:700;color:${cc}">${Math.abs(data.cash||0)>0.01?fmt(Math.abs(data.cash))+(data.cash>0?' (عليه)':' (له)'):'—'}</td><td style="padding:8px;text-align:left;font-weight:700;color:${gc}">${Math.abs(data.gold24||0)>0.001?fmtG(Math.abs(data.gold24))+(data.gold24>0?' (عليه)':' (له)'):'—'}</td></tr>`;
+      html+=`<tr style="border-bottom:1px solid var(--b1)">
+        <td style="padding:8px 10px;font-weight:700">${typeIc[data.type]||'👤'} ${name}</td>
+        <td style="padding:8px;text-align:left;font-weight:700;color:${cc}">${Math.abs(data.cash||0)>0.01?fmt(Math.abs(data.cash))+(data.cash>0?' (عليه)':' (له)'):'—'}</td>
+        <td style="padding:8px;text-align:left;font-weight:700;color:${gc}">${Math.abs(data.gold24||0)>0.001?fmtG(Math.abs(data.gold24))+(data.gold24>0?' (عليه)':' (له)'):'—'}</td>
+      </tr>`;
     });
     html+='</tbody></table></div>';
   }
   el.innerHTML=html;
 }
-
 
 function initOpeningPage(){
   renderObSafesForm();
@@ -10914,10 +10764,8 @@ addItem();
 <!-- ── Firebase Multi-User ── -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, deleteField }
+import { getFirestore, doc, setDoc, getDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import { getDatabase, ref as dbRef, set as dbSet, onValue, onDisconnect, serverTimestamp as rtServerTimestamp }
-  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
 const FB_CFG = {
   apiKey:           "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
@@ -10925,14 +10773,10 @@ const FB_CFG = {
   projectId:        "gold-shop-3e7f5",
   storageBucket:    "gold-shop-3e7f5.firebasestorage.app",
   messagingSenderId:"765590903624",
-  appId:            "1:765590903624:web:0e6197924d1f520ab4317d",
-  databaseURL:      "https://gold-shop-3e7f5-default-rtdb.firebaseio.com"
+  appId:            "1:765590903624:web:0e6197924d1f520ab4317d"
 };
 const app = initializeApp(FB_CFG);
 const db  = getFirestore(app);
-// ── Realtime Database للحضور الفوري (Presence) ──
-let _rtdb = null;
-try { _rtdb = getDatabase(app); } catch(e) { console.warn('RTDB not available'); }
 
 // doc المستخدمين (المالك فقط يكتب عليه)
 const USERS_DOC = doc(db,'system','users');
@@ -10962,9 +10806,6 @@ function clean(o){
 }
 
 function buildPayload(){
-  // تصفية مفاتيح _tenantOB_ من safesBase — هي تُخزن في tenantOpeningBalance منفصلة
-  const _safesBase = {};
-  Object.keys(S.safesBase||{}).forEach(k=>{ if(!k.startsWith('_tenantOB_')) _safesBase[k]=S.safesBase[k]; });
   return clean({
     transactions: (S.transactions||[]).slice(0,3000),
     clients:       S.clients       ||[],
@@ -10973,12 +10814,11 @@ function buildPayload(){
     snapshots:     S.snapshots     ||[],
     pendingItems:  S.pendingItems  ||[],
     activityLog:  (S.activityLog   ||[]).slice(0,500),
-    safesBase:     _safesBase,
+    safesBase:     S.safesBase     ||{},
     openingBalance:S.openingBalance||{safes:{},clients:{}},
     updatedAt:     Date.now()
   });
 }
-
 
 // ── حفظ ──
 async function _doSave(n){
@@ -11025,11 +10865,6 @@ function startSession(uid){
       _firstLoad=false;
       showSync('☁️ تم التحميل',2000);
       const ld=document.getElementById('data-loading');if(ld)ld.style.display='none';
-      // ── جلب الرصيد الافتتاحي للمالك المستقل ──
-      const _role = sessionStorage.getItem('auth-role')||'';
-      if(_role==='tenant' && typeof _loadMyTenantOB==='function'){
-        _loadMyTenantOB(uid);
-      }
     }
     renderAll();
   },(err)=>{
@@ -11043,77 +10878,7 @@ function startSession(uid){
 }
 window._startSession=startSession;
 
-// ══════════════════════════════════════════════════════
-// ── نظام الحضور الفوري (Presence System) ──
-// يتتبع Online/Offline لكل مستخدم في Realtime Database
-// ══════════════════════════════════════════════════════
-let _presenceRef = null;
-let _presenceUsername = null;
-let _presenceUnsubscribers = [];
-
-async function _initPresence(username) {
-  if (!_rtdb || !username) return;
-  _presenceUsername = username;
-  const lowerUser = username.toLowerCase();
-
-  // مسار الحضور في RTDB
-  _presenceRef = dbRef(_rtdb, 'presence/' + lowerUser);
-  const connectedRef = dbRef(_rtdb, '.info/connected');
-
-  onValue(connectedRef, async (snap) => {
-    if (!snap.val()) return; // غير متصل بعد
-    // عند قطع الاتصال: تلقائي Offline
-    onDisconnect(_presenceRef).set({ online: false, lastSeen: rtServerTimestamp() });
-    // الآن: Online
-    await dbSet(_presenceRef, { online: true, lastSeen: rtServerTimestamp() });
-    // حفظ آخر وقت دخول في Firestore أيضاً
-    try {
-      const uDoc = doc(db, 'presence', lowerUser);
-      await setDoc(uDoc, { username: lowerUser, lastLogin: Date.now() }, { merge: true });
-    } catch(e) { /* تجاهل أخطاء Firestore للحضور */ }
-  });
-}
-
-// استمع لحالة مستخدمين متعددين وأرجع map بالنتائج
-function _watchPresence(usernames, callback) {
-  // إلغاء المستمعين القديمة
-  _presenceUnsubscribers.forEach(fn => { try { fn(); } catch(e){} });
-  _presenceUnsubscribers = [];
-  if (!_rtdb || !usernames || !usernames.length) { callback({}); return; }
-
-  const result = {};
-  let pending = usernames.length;
-
-  usernames.forEach(username => {
-    const lowerUser = username.toLowerCase();
-    const ref = dbRef(_rtdb, 'presence/' + lowerUser);
-    const unsub = onValue(ref, (snap) => {
-      const data = snap.val() || {};
-      result[username] = { online: !!data.online, lastSeen: data.lastSeen || null };
-      callback({ ...result });
-    });
-    _presenceUnsubscribers.push(unsub);
-  });
-}
-
-// تنسيق آخر ظهور
-function _fmtLastSeen(ts) {
-  if (!ts) return 'غير معروف';
-  const d = new Date(typeof ts === 'number' ? ts : ts);
-  if (isNaN(d.getTime())) return 'غير معروف';
-  const now = Date.now();
-  const diff = now - d.getTime();
-  if (diff < 60000) return 'منذ لحظات';
-  if (diff < 3600000) return 'منذ ' + Math.floor(diff/60000) + ' دقيقة';
-  if (diff < 86400000) return 'منذ ' + Math.floor(diff/3600000) + ' ساعة';
-  return d.toLocaleDateString('ar-SA') + ' ' + d.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'});
-}
-
-window._initPresence = _initPresence;
-window._watchPresence = _watchPresence;
-window._fmtLastSeen = _fmtLastSeen;
-
-
+// ── loadUsers الداخلية — بدون فحص دور (للاستخدام في تسجيل الدخول فقط) ──
 async function _loadUsersInternal(){
   try{const s=await getDoc(USERS_DOC);return s.exists()?(s.data().list||[]):[];}
   catch(e){return [];}
@@ -11140,46 +10905,7 @@ window._loadUsersInternal=_loadUsersInternal;
 window._loadUsers=loadUsers;
 window._saveUsers=saveUsers;
 
-// ── Tenant Opening Balance — Firestore helpers ──
-// Collection: tenantOpeningBalance/{lowerUsername}
-async function _getTenantOBDoc(lowerUser){
-  try {
-    const d = doc(db, 'tenantOpeningBalance', lowerUser);
-    const s = await getDoc(d);
-    return s.exists() ? s.data() : null;
-  } catch(e){ return null; }
-}
-async function _setTenantOBDoc(lowerUser, data){
-  const d = doc(db, 'tenantOpeningBalance', lowerUser);
-  await setDoc(d, data, { merge: true });
-}
-// دالة لجلب الرصيد الافتتاحي للمالك الحالي (يُستدعى من startSession)
-async function _loadMyTenantOB(lowerUser){
-  const data = await _getTenantOBDoc(lowerUser);
-  if(data){
-    if(!window.S) window.S = {};
-    // حفظ النسخة الأصلية لعرضها في الواجهة
-    window.S.tenantOpeningBalance = {
-      cash:   data.cash   || 0,
-      gold18: data.gold18 || 0,
-      gold21: data.gold21 || 0,
-      gold24: data.gold24 || 0,
-    };
-    // دمج الأرصدة الافتتاحية في safesBase تحت مفاتيح منفصلة (لا تكتب على القيم الأصلية)
-    if(!window.S.safesBase) window.S.safesBase = {};
-    // نستخدم مفاتيح خاصة بالـ tenant opening balance حتى لا تتداخل مع safesBase الأصلي
-    window.S.safesBase._tenantOB_cash   = data.cash   || 0;
-    window.S.safesBase._tenantOB_gold18 = data.gold18 || 0;
-    window.S.safesBase._tenantOB_gold21 = data.gold21 || 0;
-    window.S.safesBase._tenantOB_gold24 = data.gold24 || 0;
-    if(typeof renderAll === 'function') renderAll();
-  }
-}
-window._getTenantOBDoc = _getTenantOBDoc;
-window._setTenantOBDoc = _setTenantOBDoc;
-window._loadMyTenantOB = _loadMyTenantOB;
-
-
+// ── استعادة الجلسة عند تحميل الصفحة ──
 window.addEventListener('load',()=>{
   initTheme();
   const auth=sessionStorage.getItem('auth')||localStorage.getItem('auth');
@@ -11200,9 +10926,7 @@ window.addEventListener('load',()=>{
     // استخدام auth-owner كـ dataUid لضمان صحة مسار Firebase
     const dataUid = owner || user.toLowerCase();
     startSession(dataUid);
-    // ── تفعيل الحضور عند استعادة الجلسة ──
-    if(typeof window._initPresence==='function') window._initPresence(user);
-
+  }
   setTimeout(()=>{
     if(!_firstLoad)return;
     _firstLoad=false;
