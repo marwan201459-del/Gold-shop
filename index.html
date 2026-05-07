@@ -11202,7 +11202,7 @@ window.addEventListener('load',()=>{
     startSession(dataUid);
     // ── تفعيل الحضور عند استعادة الجلسة ──
     if(typeof window._initPresence==='function') window._initPresence(user);
-
+  }
   setTimeout(()=>{
     if(!_firstLoad)return;
     _firstLoad=false;
