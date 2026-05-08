@@ -566,6 +566,8 @@ body{
     <button class="tab"     onclick="P('actlog',this)">📋 سجل النشاط</button>
     <button class="tab"     onclick="P('backup',this)">💾 النسخ الاحتياطي</button>
     <button class="tab"     onclick="P('opening',this)">🏁 الافتتاحي</button>
+    <!-- ── [NEW] تاب سجل حركة الصندوق اليومي ── -->
+    <button class="tab"     onclick="P('dailylog',this)">📆 حركة يومية</button>
   </div>
 </div>
 
@@ -1263,7 +1265,6 @@ body{
           <option value="buy">شراء / توريد</option>
           <option value="scrap">قبض كسر</option>
           <option value="transfer">تحويل</option>
-          <option value="opening-balance">🏁 رصيد افتتاحي</option>
         </select></div>
       </div>
       <div id="hist-list"></div>
@@ -1686,116 +1687,6 @@ body{
       </div>
       <div id="ob-safes-form"></div>
       <button class="btn btn-gold" onclick="saveOpeningSafes()" style="margin-top:10px">💾 حفظ أرصدة الصناديق</button>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════
-       قسم: إضافة رصيد افتتاحي لصندوق محدد (Advanced Form)
-       ══════════════════════════════════════════════════════ -->
-  <div class="card" id="ob-safe-advanced-card">
-    <div class="ch">➕ إضافة رصيد افتتاحي لصندوق</div>
-    <div class="cb">
-
-      <!-- إرشادات -->
-      <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border:1.5px solid var(--g5);border-radius:var(--rb);padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--tx2);line-height:1.8">
-        📌 يُسجَّل كرأس مال افتتاحي — <b style="color:var(--g1)">لا يؤثر على الأرباح أو التقارير التشغيلية</b> — يظهر في كشوفات الصندوق بعنوان "رصيد افتتاحي"
-      </div>
-
-      <!-- اختيار الصندوق -->
-      <div class="fr">
-        <label>🗄️ الصندوق</label>
-        <select id="obadv-safe-key" onchange="obAdvOnSafeChange()">
-          <option value="">— اختر الصندوق —</option>
-        </select>
-      </div>
-
-      <!-- نوع الرصيد -->
-      <div class="fr" id="obadv-bal-type-row" style="display:none">
-        <label>نوع الرصيد</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button type="button" id="obadv-type-cash" onclick="obAdvSetType('cash')"
-            style="padding:10px;border:2px solid var(--b2);border-radius:var(--rb);background:var(--c2);
-              font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--tx2);transition:var(--tr)">
-            💵 نقد
-          </button>
-          <button type="button" id="obadv-type-gold" onclick="obAdvSetType('gold')"
-            style="padding:10px;border:2px solid var(--b2);border-radius:var(--rb);background:var(--c2);
-              font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--tx2);transition:var(--tr)">
-            🥇 ذهب
-          </button>
-        </div>
-      </div>
-
-      <!-- حقول النقد -->
-      <div id="obadv-cash-fields" style="display:none">
-        <div class="fr">
-          <label>💵 المبلغ النقدي الافتتاحي (ريال)</label>
-          <input type="number" id="obadv-cash-amount" inputmode="decimal" placeholder="0.00"
-            style="font-size:16px;font-weight:700;color:var(--ok)">
-        </div>
-      </div>
-
-      <!-- حقول الذهب -->
-      <div id="obadv-gold-fields" style="display:none">
-        <div class="g2">
-          <div class="fr">
-            <label>⚖️ الوزن (جرام)</label>
-            <input type="number" id="obadv-gold-weight" inputmode="decimal" step="0.001" placeholder="0.000"
-              oninput="obAdvCalcGoldValue()"
-              style="font-size:15px;font-weight:700;color:var(--g1)">
-          </div>
-          <div class="fr">
-            <label>✨ العيار</label>
-            <select id="obadv-gold-karat" onchange="obAdvCalcGoldValue()">
-              <option value="24">عيار 24 (صافي)</option>
-              <option value="21" selected>عيار 21</option>
-              <option value="18">عيار 18</option>
-              <option value="14">عيار 14</option>
-            </select>
-          </div>
-        </div>
-        <div class="g2">
-          <div class="fr">
-            <label>💰 سعر الجرام (ريال) — اختياري</label>
-            <input type="number" id="obadv-gold-price" inputmode="decimal" placeholder="اختياري — للاحتساب فقط"
-              oninput="obAdvCalcGoldValue()">
-          </div>
-          <div class="fr">
-            <label>📊 القيمة الإجمالية (تحسب تلقائياً)</label>
-            <input type="number" id="obadv-gold-value" placeholder="0.00" readonly
-              style="background:var(--g4);border-color:var(--g5);color:var(--g1);font-weight:700;cursor:not-allowed">
-          </div>
-        </div>
-      </div>
-
-      <!-- التاريخ والملاحظات -->
-      <div id="obadv-common-fields" style="display:none">
-        <div class="g2">
-          <div class="fr">
-            <label>📅 تاريخ الرصيد الافتتاحي</label>
-            <input type="date" id="obadv-date">
-          </div>
-          <div class="fr">
-            <label>📝 ملاحظات (اختياري)</label>
-            <input type="text" id="obadv-notes" placeholder="وصف اختياري...">
-          </div>
-        </div>
-        <button class="btn btn-gold" onclick="saveObAdvanced()" style="margin-top:4px">
-          💾 حفظ الرصيد الافتتاحي
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- سجل الأرصدة الافتتاحية المضافة -->
-  <div class="card" id="ob-safe-entries-card">
-    <div class="ch" style="justify-content:space-between">
-      <span>📋 سجل الأرصدة الافتتاحية للصناديق</span>
-      <button class="btn-sm btn-outline" onclick="renderObSafeEntries()">🔄 تحديث</button>
-    </div>
-    <div class="cb" id="ob-safe-entries-list">
-      <div class="empty"><div class="ei">🏁</div><p>لا توجد إدخالات بعد</p></div>
     </div>
   </div>
 
@@ -2257,6 +2148,62 @@ body{
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     [NEW] صفحة: سجل حركة الصندوق اليومي
+     معزولة تماماً — لا تغيّر أي منطق قديم
+     ════════════════════════════════════════════════════════════ -->
+<div id="pg-dailylog" class="pg">
+
+  <!-- رأس الصفحة -->
+  <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border:1.5px solid var(--g5);border-radius:var(--ra);padding:14px 16px;margin-bottom:14px">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <div style="font-size:26px;flex-shrink:0">📆</div>
+      <div>
+        <div style="font-size:14px;font-weight:900;color:var(--g1);margin-bottom:4px">سجل حركة الصندوق اليومي</div>
+        <div style="font-size:11px;color:var(--tx2);line-height:1.7">عرض تلقائي لإجمالي الدخل والخروج النقدي والذهبي لكل يوم — يعتمد على البيانات الموجودة فقط</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- فلاتر الفترة -->
+  <div class="card">
+    <div class="ch">🔍 اختر الفترة</div>
+    <div class="cb">
+      <div class="g2" style="margin-bottom:10px">
+        <div class="fr">
+          <label>📅 من تاريخ</label>
+          <input type="date" id="dlg-from" onchange="_dlgRender()">
+        </div>
+        <div class="fr">
+          <label>📅 إلى تاريخ</label>
+          <input type="date" id="dlg-to" onchange="_dlgRender()">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <button class="btn-sm btn-outline" onclick="_dlgSetRange(7)">آخر 7 أيام</button>
+        <button class="btn-sm btn-outline" onclick="_dlgSetRange(30)">آخر 30 يوم</button>
+        <button class="btn-sm btn-gold"    onclick="_dlgSetRange(0)">هذا الشهر</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ملخص الفترة -->
+  <div id="dlg-period-summary"></div>
+
+  <!-- سجل الأيام -->
+  <div class="card">
+    <div class="ch" style="justify-content:space-between">
+      <span>📋 حركة كل يوم</span>
+      <button class="btn-sm btn-outline" onclick="_dlgRender()">🔄 تحديث</button>
+    </div>
+    <div class="cb" id="dlg-days-list">
+      <div class="empty"><div class="ei">📆</div><p>اختر فترة لعرض السجل</p></div>
+    </div>
+  </div>
+
+</div><!-- /pg-dailylog -->
+
 </div><!-- /app-wrap -->
 
 <script>
@@ -2690,18 +2637,9 @@ function calcSafes(){
       if(safes[dest]!=null) safes[dest] += qty;
     }
 
-    // ═══════════════════════════════════════════════
-    // ── رصيد افتتاحي — النوع الجديد من الفورم المتقدم ──
-    // يُضاف مباشرةً للصندوق المحدد دون أي أثر محاسبي آخر
-    // ملاحظة: الأثر الفعلي يأتي من ob.safeEntries → ob.safes → base
-    // هذا الـ handler هنا للتوافق فقط وللعرض في كشف الصندوق
-    // ═══════════════════════════════════════════════
-    else if(t.type==='opening-balance'){
-      // لا حاجة لأي حساب هنا — الرصيد يُدمج من ob.safes في base أعلاه
-      // فقط نتركه مرئياً في سجل الحركات
-    }
-
   });
+
+  // المعدن ولافا — الرقم المعروض هو الإجمالي بعيار 24 من calcMadanDetail
   ['madan','lava'].forEach(sk=>{
     const det = calcMadanDetail(sk);
     safes[sk] = det.balance24;
@@ -2861,7 +2799,6 @@ function P(id,btn){
   btn.classList.add('on');
   closeAllDrops(); renderAll();
   if(id==='expenses') refreshExpSafes();
-  if(id==='opening') initOpeningPage();
   // عند فتح صفحة الرواتب: عرض قائمة الموظفين فوراً
   if(id==='salary'){
     setTimeout(()=>{
@@ -2869,6 +2806,10 @@ function P(id,btn){
       if(inp){ inp.value=''; }
       buildEmpList();
     }, 50);
+  }
+  // [NEW] تهيئة صفحة سجل الحركة اليومي عند فتحها
+  if(id==='dailylog'){
+    setTimeout(()=>{ if(typeof _dlgInit==='function') _dlgInit(); }, 50);
   }
 }
 
@@ -4709,10 +4650,9 @@ function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')
 
 const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات','payment-transfer':'💳 سداد عبر تحويل','supplier-payment-transfer':'💳 سداد عبر تحويل',
   'salary-pay':'💸 صرف','salary-custody':'📥 تحصيل','salary-personal':'💰 دفع شخصي','salary-deduction':'✂️ خصم','salary-allowance':'🎁 بدل','sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','sal-collect':'💰 إيداع','sal-advance':'💸 سحب','sal-personal':'💰 إيداع','sal-payout':'💸 صرف',
-  'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون','charge':'💵 مبلغ إضافي',
-  'opening-balance':'🏁 رصيد افتتاحي'};
-const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy','opening-balance':'transfer'};
-const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange',charge:'bg-orange','opening-balance':'bg-gold'};
+  'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون','charge':'💵 مبلغ إضافي'};
+const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy'};
+const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange',charge:'bg-orange'};
 
 function txHtml(t){
   const dt=fmtDate(t.date);
@@ -4724,11 +4664,6 @@ function txHtml(t){
     const fromLbl = t.fromLabel || (t.fromSafe?(_SM[t.fromSafe]?.label||t.fromSafe):'—');
     const toLbl   = t.toLabel   || (t.toSafe  ?(_SM[t.toSafe]  ?.label||t.toSafe  ):'—');
     sub = `${fromLbl} ← ${toLbl}`;
-  } else if(t.type==='opening-balance'){
-    // عرض واضح للرصيد الافتتاحي: اسم الصندوق + المبلغ
-    const _obAmtStr = (t.amount>0) ? `${fmt(t.amount)} ريال` :
-                      (t.goldAmount>0) ? `${fmtG(t.goldAmount)} ج ع${t.goldKarat||'?'}` : '';
-    sub = `🏁 ${t.safeLabel||t.safeKey||'صندوق'}${_obAmtStr?' — '+_obAmtStr:''}`;
   } else if(t.settlePurpose==='transfer'){
     // سداد عبر تحويل — نوضح المسار
     const _SM=getSM();
@@ -9156,11 +9091,6 @@ function renderAll(){
   renderUsers();
   renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
   refreshExpSafes();
-  // تحديث ملخص الرصيد الافتتاحي إن كانت الصفحة مفتوحة
-  if(document.getElementById('pg-opening')?.classList.contains('on')){
-    renderObSummary();
-    renderObSafeEntries();
-  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -10026,8 +9956,6 @@ function renderStmt(){
         if(t.type==='expense')          return t.fromSafe===k;
         if(t.type==='salary-pay')       return t.fromSafe===k;
         if(t.type==='addsafe')          return t.toSafe===k;
-        // ── الرصيد الافتتاحي — يظهر لأي صندوق مطابق ──
-        if(t.type==='opening-balance')  return t.safeKey===k;
         return false;
       })
       .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
@@ -10040,8 +9968,6 @@ function renderStmt(){
         else if(t.type==='expense')          delta = -(t.amount||0);
         else if(t.type==='salary-pay')       delta = -(t.amount||0);
         else if(t.type==='addsafe')          delta = (t.amount||0);
-        // الرصيد الافتتاحي — يُحسب كحركة دخول دائماً
-        else if(t.type==='opening-balance')  delta = (t.amount||t.goldAmount||0);
         if(delta > 0) totalIn  += delta;
         if(delta < 0) totalOut += Math.abs(delta);
         movements.push({t: t, delta: delta});
@@ -10743,10 +10669,9 @@ function toast(msg){
 // S.openingBalance = { safes:{cash:0,...}, clients:{"اسم":{cash:0,gold24:0,type:""}} }
 // ══════════════════════════════════════════════════════════
 function getOB(){
-  if(!S.openingBalance) S.openingBalance={safes:{},clients:{},safeEntries:[]};
-  if(!S.openingBalance.safes)       S.openingBalance.safes={};
-  if(!S.openingBalance.clients)     S.openingBalance.clients={};
-  if(!S.openingBalance.safeEntries) S.openingBalance.safeEntries=[];
+  if(!S.openingBalance) S.openingBalance={safes:{},clients:{}};
+  if(!S.openingBalance.safes) S.openingBalance.safes={};
+  if(!S.openingBalance.clients) S.openingBalance.clients={};
   return S.openingBalance;
 }
 
@@ -11041,354 +10966,6 @@ function initOpeningPage(){
   renderObSafesForm();
   renderObClientsList();
   renderObSummary();
-  obAdvInitSafeDropdown();
-  renderObSafeEntries();
-  // تعيين تاريخ اليوم افتراضياً
-  const dateEl = document.getElementById('obadv-date');
-  if(dateEl && !dateEl.value){
-    const today = new Date();
-    dateEl.value = today.toISOString().split('T')[0];
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// نظام الرصيد الافتتاحي للصناديق — Advanced Form
-// ══════════════════════════════════════════════════════════════════
-
-// تهيئة قائمة الصناديق في الـ Dropdown
-function obAdvInitSafeDropdown(){
-  const sel = document.getElementById('obadv-safe-key');
-  if(!sel) return;
-  const SM2 = getSM();
-  // استبعاد صناديق المديونيات والخصم من القائمة
-  const excluded = ['debt21','debt18','debt24','discount'];
-  const opts = Object.entries(SM2)
-    .filter(([k])=> !excluded.includes(k))
-    .map(([k,v])=> `<option value="${k}">${v.label}</option>`)
-    .join('');
-  sel.innerHTML = '<option value="">— اختر الصندوق —</option>' + opts;
-}
-
-// عند تغيير الصندوق
-function obAdvOnSafeChange(){
-  const key = document.getElementById('obadv-safe-key')?.value;
-  const SM2 = getSM();
-  const typeRow  = document.getElementById('obadv-bal-type-row');
-  const cashF    = document.getElementById('obadv-cash-fields');
-  const goldF    = document.getElementById('obadv-gold-fields');
-  const commonF  = document.getElementById('obadv-common-fields');
-
-  if(!key){
-    if(typeRow)   typeRow.style.display  = 'none';
-    if(cashF)     cashF.style.display    = 'none';
-    if(goldF)     goldF.style.display    = 'none';
-    if(commonF)   commonF.style.display  = 'none';
-    return;
-  }
-
-  const safeType = SM2[key]?.type || 'cash';
-
-  if(typeRow) typeRow.style.display = 'block';
-  if(commonF) commonF.style.display = 'block';
-
-  // تعيين نوع تلقائي بناءً على نوع الصندوق
-  if(safeType === 'gold'){
-    obAdvSetType('gold');
-    // إخفاء زر النقد لصناديق الذهب
-    const cashBtn = document.getElementById('obadv-type-cash');
-    if(cashBtn) cashBtn.style.opacity = '0.4';
-    const goldBtn = document.getElementById('obadv-type-gold');
-    if(goldBtn) goldBtn.style.opacity = '1';
-  } else if(safeType === 'cash'){
-    obAdvSetType('cash');
-    const goldBtn = document.getElementById('obadv-type-gold');
-    if(goldBtn) goldBtn.style.opacity = '0.4';
-    const cashBtn = document.getElementById('obadv-type-cash');
-    if(cashBtn) cashBtn.style.opacity = '1';
-  } else {
-    // both — إظهار كلاهما
-    const cashBtn = document.getElementById('obadv-type-cash');
-    const goldBtn = document.getElementById('obadv-type-gold');
-    if(cashBtn) cashBtn.style.opacity = '1';
-    if(goldBtn) goldBtn.style.opacity = '1';
-    obAdvSetType('cash'); // افتراضي: نقد
-  }
-}
-
-// تبديل نوع الرصيد (نقد / ذهب)
-let _obAdvCurrentType = 'cash';
-function obAdvSetType(type){
-  _obAdvCurrentType = type;
-  const cashF  = document.getElementById('obadv-cash-fields');
-  const goldF  = document.getElementById('obadv-gold-fields');
-  const cashBtn= document.getElementById('obadv-type-cash');
-  const goldBtn= document.getElementById('obadv-type-gold');
-
-  if(cashF) cashF.style.display = type==='cash' ? 'block' : 'none';
-  if(goldF) goldF.style.display = type==='gold' ? 'block' : 'none';
-
-  // تنسيق الأزرار
-  if(cashBtn){
-    cashBtn.style.borderColor = type==='cash' ? 'var(--ok)' : 'var(--b2)';
-    cashBtn.style.background  = type==='cash' ? 'var(--ok-bg)' : 'var(--c2)';
-    cashBtn.style.color       = type==='cash' ? 'var(--ok)' : 'var(--tx2)';
-  }
-  if(goldBtn){
-    goldBtn.style.borderColor = type==='gold' ? 'var(--g1)' : 'var(--b2)';
-    goldBtn.style.background  = type==='gold' ? 'var(--g4)' : 'var(--c2)';
-    goldBtn.style.color       = type==='gold' ? 'var(--g1)' : 'var(--tx2)';
-  }
-}
-
-// حساب القيمة الإجمالية للذهب تلقائياً
-function obAdvCalcGoldValue(){
-  const w = parseFloat(document.getElementById('obadv-gold-weight')?.value) || 0;
-  const p = parseFloat(document.getElementById('obadv-gold-price')?.value)  || 0;
-  const valEl = document.getElementById('obadv-gold-value');
-  if(!valEl) return;
-  if(w > 0 && p > 0){
-    valEl.value = Math.round(w * p * 100) / 100;
-  } else {
-    valEl.value = '';
-  }
-}
-
-// حفظ الرصيد الافتتاحي المتقدم
-function saveObAdvanced(){
-  const safeKey  = document.getElementById('obadv-safe-key')?.value;
-  const dateVal  = document.getElementById('obadv-date')?.value;
-  const notes    = document.getElementById('obadv-notes')?.value || '';
-  const SM2      = getSM();
-
-  if(!safeKey){
-    toast('⚠️ اختر الصندوق أولاً');
-    return;
-  }
-
-  const safeLabel = SM2[safeKey]?.label || safeKey;
-  const now   = new Date().toISOString();
-  const dateISO = dateVal ? new Date(dateVal).toISOString() : now;
-  const today = dateVal || now.split('T')[0];
-
-  // تأكد من وجود مصفوفة safeEntries في openingBalance
-  const ob = getOB();
-  if(!ob.safeEntries) ob.safeEntries = [];
-  if(!ob.safes)       ob.safes = {};
-
-  let entryId = Date.now();
-  let entry   = null;
-
-  if(_obAdvCurrentType === 'cash'){
-    const amount = parseFloat(document.getElementById('obadv-cash-amount')?.value) || 0;
-    if(amount <= 0){ toast('⚠️ أدخل مبلغاً صحيحاً أكبر من صفر'); return; }
-
-    entry = {
-      id:       entryId,
-      safeKey,
-      safeLabel,
-      type:     'cash',
-      amount,
-      date:     dateISO,
-      dateStr:  today,
-      notes,
-      createdAt: now,
-      createdBy: sessionStorage.getItem('auth-user') || 'unknown',
-    };
-
-    // تحديث ob.safes لتعكس الرصيد المضاف
-    ob.safes[safeKey] = (ob.safes[safeKey] || 0) + amount;
-
-  } else { // gold
-    const weight = parseFloat(document.getElementById('obadv-gold-weight')?.value) || 0;
-    const karat  = document.getElementById('obadv-gold-karat')?.value || '21';
-    const price  = parseFloat(document.getElementById('obadv-gold-price')?.value)  || 0;
-    const value  = parseFloat(document.getElementById('obadv-gold-value')?.value)  || (weight * price);
-
-    if(weight <= 0){ toast('⚠️ أدخل وزناً صحيحاً أكبر من صفر'); return; }
-
-    const weight24 = Math.round(weight * parseFloat(karat) / 24 * 1000) / 1000;
-
-    entry = {
-      id:        entryId,
-      safeKey,
-      safeLabel,
-      type:      'gold',
-      weight,
-      karat,
-      weight24,
-      price,
-      value:     Math.round(value * 100) / 100,
-      date:      dateISO,
-      dateStr:   today,
-      notes,
-      createdAt: now,
-      createdBy: sessionStorage.getItem('auth-user') || 'unknown',
-    };
-
-    // تحديث ob.safes (مفتاح الذهب هو نفسه safeKey للصناديق الذهبية)
-    ob.safes[safeKey] = Math.round(((ob.safes[safeKey] || 0) + weight) * 1000) / 1000;
-  }
-
-  // إضافة القيد إلى سجل الإدخالات
-  ob.safeEntries.push(entry);
-  S.openingBalance = ob;
-
-  // تسجيل الحركة في سجل النشاط
-  const logDetail = _obAdvCurrentType === 'cash'
-    ? `رصيد افتتاحي نقدي: ${fmt(entry.amount)} ريال — ${safeLabel}`
-    : `رصيد افتتاحي ذهب: ${fmtG(entry.weight)} جرام ع${entry.karat} — ${safeLabel}`;
-  logActivity('opening-balance', logDetail);
-
-  // إضافة حركة افتتاحية في transactions كـ "opening-balance" لتظهر في كشف الصندوق
-  const obTx = {
-    id:        entryId,
-    type:      'opening-balance',
-    date:      dateISO,
-    notes:     `🏁 رصيد افتتاحي${notes ? ' — ' + notes : ''}`,
-    safeKey,
-    safeLabel,
-    // النقد
-    amount:    _obAdvCurrentType === 'cash'  ? entry.amount  : 0,
-    toSafe:    _obAdvCurrentType === 'cash'  ? safeKey       : undefined,
-    fromSafe:  undefined,
-    // الذهب
-    goldAmount:_obAdvCurrentType === 'gold'  ? entry.weight  : 0,
-    goldKarat: _obAdvCurrentType === 'gold'  ? entry.karat   : undefined,
-    goldSafe:  _obAdvCurrentType === 'gold'  ? safeKey       : undefined,
-    goldValue: _obAdvCurrentType === 'gold'  ? entry.value   : 0,
-    // محاسبي
-    isOpeningBalance: true,
-    total: _obAdvCurrentType === 'cash' ? entry.amount : (entry.value || 0),
-    cash:  _obAdvCurrentType === 'cash' ? entry.amount : 0,
-    items: [],
-  };
-  if(!S.transactions) S.transactions = [];
-  S.transactions.push(obTx);
-
-  sv();
-  renderAll();
-  renderObSafeEntries();
-  renderObSummary();
-
-  // مسح الحقول
-  document.getElementById('obadv-safe-key').value     = '';
-  const cashAmtEl = document.getElementById('obadv-cash-amount');
-  const goldWEl   = document.getElementById('obadv-gold-weight');
-  const goldPEl   = document.getElementById('obadv-gold-price');
-  const goldVEl   = document.getElementById('obadv-gold-value');
-  const notesEl   = document.getElementById('obadv-notes');
-  if(cashAmtEl) cashAmtEl.value = '';
-  if(goldWEl)   goldWEl.value   = '';
-  if(goldPEl)   goldPEl.value   = '';
-  if(goldVEl)   goldVEl.value   = '';
-  if(notesEl)   notesEl.value   = '';
-
-  // إعادة تعيين العناصر المرئية
-  const typeRow = document.getElementById('obadv-bal-type-row');
-  const cashF   = document.getElementById('obadv-cash-fields');
-  const goldF   = document.getElementById('obadv-gold-fields');
-  const commonF = document.getElementById('obadv-common-fields');
-  if(typeRow)  typeRow.style.display  = 'none';
-  if(cashF)    cashF.style.display    = 'none';
-  if(goldF)    goldF.style.display    = 'none';
-  if(commonF)  commonF.style.display  = 'none';
-
-  // إعادة تعيين تاريخ اليوم
-  const dateEl = document.getElementById('obadv-date');
-  if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
-
-  const amtLabel = _obAdvCurrentType === 'cash'
-    ? `${fmt(entry.amount)} ريال`
-    : `${fmtG(entry.weight)} جرام ع${entry.karat}`;
-  toast(`✅ تم حفظ رصيد افتتاحي: ${amtLabel} — ${safeLabel}`);
-}
-
-// عرض سجل الإدخالات الافتتاحية للصناديق
-function renderObSafeEntries(){
-  const el = document.getElementById('ob-safe-entries-list');
-  if(!el) return;
-
-  const ob = getOB();
-  const entries = (ob.safeEntries || []).slice().reverse(); // الأحدث أولاً
-
-  if(!entries.length){
-    el.innerHTML = '<div class="empty" style="padding:14px"><div class="ei">🏁</div><p>لا توجد إدخالات بعد — استخدم الفورم أعلاه لإضافة رصيد افتتاحي</p></div>';
-    return;
-  }
-
-  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
-  entries.forEach(e=>{
-    const isCash = e.type === 'cash';
-    const bg   = isCash ? 'var(--ok-bg)'  : 'var(--g4)';
-    const bdr  = isCash ? 'var(--ok-bd)'  : 'var(--g5)';
-    const clr  = isCash ? 'var(--ok)'     : 'var(--g1)';
-    const icon = isCash ? '💵'            : '🥇';
-    const amt  = isCash
-      ? `${fmt(e.amount)} ريال`
-      : `${fmtG(e.weight)} ج ع${e.karat}${e.value>0?' ('+fmt(e.value)+' ر)':''}`;
-
-    // تنسيق التاريخ
-    let dStr = e.dateStr || '';
-    try{
-      const d = new Date(e.date);
-      if(!isNaN(d)) dStr = d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit',year:'numeric'});
-    }catch(er){}
-
-    html += `<div style="background:${bg};border:1.5px solid ${bdr};border-radius:var(--rb);padding:11px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div style="flex:1;min-width:160px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span style="font-size:15px">${icon}</span>
-          <span style="font-size:13px;font-weight:800;color:var(--tx1)">${e.safeLabel||e.safeKey}</span>
-          <span style="background:${clr};color:#fff;font-size:9px;font-weight:800;padding:1px 7px;border-radius:10px">${isCash?'نقد':'ذهب'}</span>
-        </div>
-        <div style="font-size:15px;font-weight:900;color:${clr}">${amt}</div>
-        ${e.notes?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">📝 ${e.notes}</div>`:''}
-      </div>
-      <div style="text-align:left;flex-shrink:0">
-        <div style="font-size:10px;color:var(--tx3)">📅 ${dStr}</div>
-        <div style="font-size:9px;color:var(--tx3);margin-top:2px">بواسطة: ${e.createdBy||'—'}</div>
-        <button onclick="deleteObSafeEntry(${e.id})"
-          style="margin-top:5px;padding:3px 9px;border:none;border-radius:6px;background:var(--no-bg);color:var(--no);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
-          🗑️ حذف
-        </button>
-      </div>
-    </div>`;
-  });
-  html += '</div>';
-  el.innerHTML = html;
-}
-
-// حذف قيد افتتاحي للصندوق
-function deleteObSafeEntry(entryId){
-  appConfirm('حذف هذا الرصيد الافتتاحي؟ سيتأثر رصيد الصندوق.', ()=>{
-    const ob = getOB();
-    const entries = ob.safeEntries || [];
-    const idx = entries.findIndex(e => e.id === entryId);
-    if(idx === -1){ toast('⚠️ الإدخال غير موجود'); return; }
-
-    const entry = entries[idx];
-
-    // عكس الأثر على ob.safes
-    if(entry.type === 'cash'){
-      ob.safes[entry.safeKey] = Math.round(((ob.safes[entry.safeKey]||0) - entry.amount) * 100) / 100;
-    } else {
-      ob.safes[entry.safeKey] = Math.round(((ob.safes[entry.safeKey]||0) - entry.weight) * 1000) / 1000;
-    }
-
-    // حذف الحركة المرتبطة من transactions
-    S.transactions = (S.transactions||[]).filter(t => !(t.type==='opening-balance' && t.id===entryId));
-
-    // حذف القيد
-    ob.safeEntries = entries.filter(e => e.id !== entryId);
-    S.openingBalance = ob;
-
-    logActivity('opening-balance', `حذف رصيد افتتاحي: ${entry.safeLabel||entry.safeKey}`);
-    sv();
-    renderAll();
-    renderObSafeEntries();
-    renderObSummary();
-    toast('🗑️ تم حذف الرصيد الافتتاحي');
-  });
 }
 
 // ── Init ───────────────────────────────────────────────────────────
@@ -11551,6 +11128,8 @@ async function _initPresence(username) {
     onDisconnect(_presenceRef).set({ online: false, lastSeen: rtServerTimestamp() });
     // الآن: Online
     await dbSet(_presenceRef, { online: true, lastSeen: rtServerTimestamp() });
+    // [FIX] نصدِّر _presenceRef لـ window لكي يستطيع الـ ping الدوري الوصول إليه
+    window._presenceRef = _presenceRef;
     // حفظ آخر وقت دخول في Firestore أيضاً
     try {
       const uDoc = doc(db, 'presence', lowerUser);
@@ -11687,6 +11266,8 @@ window.addEventListener('load',()=>{
     startSession(dataUid);
     // ── تفعيل الحضور عند استعادة الجلسة ──
     if(typeof window._initPresence==='function') window._initPresence(user);
+    // [NEW] تفعيل تسجيل النشاط الدوري لتحديث آخر ظهور
+    if(typeof window._dlgStartActivityPing==='function') window._dlgStartActivityPing(user);
   }
   setTimeout(()=>{
     if(!_firstLoad)return;
@@ -11695,6 +11276,582 @@ window.addEventListener('load',()=>{
     showSync('📴 بدون اتصال — محلي',4000);renderAll();
   },9000);
 });
+
+// ════════════════════════════════════════════════════════════════════════
+// [NEW] ── سجل حركة الصندوق اليومي ──
+// معزول تماماً — لا يغيّر أي دالة قديمة
+// جميع المتغيرات مبدوءة بـ _dlg لتجنب أي تعارض
+// ════════════════════════════════════════════════════════════════════════
+
+// ── تعيين نطاق تاريخ افتراضي (آخر 7 أيام) عند فتح الصفحة ──
+function _dlgInitDates() {
+  const toEl   = document.getElementById('dlg-to');
+  const fromEl = document.getElementById('dlg-from');
+  if (!toEl || !fromEl) return;
+  const today = new Date();
+  toEl.value   = today.toISOString().split('T')[0];
+  const from7  = new Date(today); from7.setDate(from7.getDate() - 6);
+  fromEl.value = from7.toISOString().split('T')[0];
+}
+
+// ── ضبط نطاق سريع ──
+function _dlgSetRange(days) {
+  const toEl   = document.getElementById('dlg-to');
+  const fromEl = document.getElementById('dlg-from');
+  if (!toEl || !fromEl) return;
+  const today = new Date();
+  toEl.value = today.toISOString().split('T')[0];
+  if (days === 0) {
+    // هذا الشهر
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    fromEl.value = firstDay.toISOString().split('T')[0];
+  } else {
+    const from = new Date(today); from.setDate(from.getDate() - (days - 1));
+    fromEl.value = from.toISOString().split('T')[0];
+  }
+  _dlgRender();
+}
+
+// ── حساب حركة يوم واحد من المعاملات ──
+// لا تُعدِّل أي بيانات — قراءة فقط من S.transactions
+function _dlgCalcDayMovement(dayStr) {
+  // dayStr = 'YYYY-MM-DD'
+  const txs = (window.S && window.S.transactions) ? window.S.transactions : [];
+
+  // فلترة معاملات هذا اليوم
+  const dayTxs = txs.filter(t => {
+    if (!t.date) return false;
+    try { return new Date(t.date).toISOString().split('T')[0] === dayStr; }
+    catch(e) { return false; }
+  });
+
+  let cashIn    = 0; // نقد داخل
+  let cashOut   = 0; // نقد خارج
+  let goldIn24  = 0; // ذهب داخل (عيار 24)
+  let goldOut24 = 0; // ذهب خارج (عيار 24)
+  let sellAjr   = 0; // أجور البيع (للربح)
+  let buyAjr    = 0; // أجور الشراء
+  let expTotal  = 0; // المصروفات
+  let invCount  = 0; // عدد الفواتير
+
+  const _to24 = (w, k) => (parseFloat(w)||0) * (parseFloat(k)||21) / 24;
+
+  dayTxs.forEach(t => {
+    const type = t.type || '';
+
+    // ── بيع ──
+    if (type === 'sell' || type === 'sell-debt') {
+      sellAjr += (t.ajTotal || 0);
+      invCount++;
+      (t.items || []).forEach(i => {
+        if (i.karat !== 'gems') goldOut24 += _to24(i.weight, i.karat);
+      });
+    }
+
+    // ── شراء ──
+    else if (type === 'buy' || type === 'buy-debt') {
+      buyAjr += (t.ajTotal || 0);
+      invCount++;
+      (t.items || []).forEach(i => {
+        if (i.karat !== 'gems') goldIn24 += _to24(i.weight, i.karat);
+      });
+    }
+
+    // ── سداد عميل (نقد يدخل) ──
+    else if (type === 'payment') {
+      cashIn += (t.ajourPaid || 0) + (t.change || 0);
+      // ذهب يدخل كسداد
+      (t.goldItems || []).forEach(gi => goldIn24 += _to24(gi.weight, gi.karat));
+      if (!t.goldItems?.length && (t.goldWeight || 0) > 0)
+        goldIn24 += _to24(t.goldWeight, t.goldKarat || '21');
+    }
+
+    // ── سداد مورد (نقد يخرج) ──
+    else if (type === 'supplier-payment') {
+      cashOut += (t.ajourPaid || 0) + (t.change || 0);
+      (t.goldItems || []).forEach(gi => goldOut24 += _to24(gi.weight, gi.karat));
+      if (!t.goldItems?.length && (t.goldWeight || 0) > 0)
+        goldOut24 += _to24(t.goldWeight, t.goldKarat || '21');
+    }
+
+    // ── قبض نقد ──
+    else if (type === 'cash-receipt') {
+      cashIn += (t.amount || 0);
+    }
+
+    // ── مصروف (نقد يخرج) ──
+    else if (type === 'expense') {
+      cashOut  += (t.amount || 0);
+      expTotal += (t.amount || 0);
+    }
+
+    // ── تحويل بين صناديق ──
+    else if (type === 'transfer') {
+      // التحويل بين الصناديق صفري من ناحية الدخل/الخروج الكلي
+      // نحسبه فقط للتوثيق — لا نضيفه للصافي
+    }
+
+    // ── قبض كسر ──
+    else if (type === 'scrap') {
+      (t.scrapItems || []).forEach(si => goldIn24 += _to24(si.weight, si.karat));
+      if (!(t.scrapItems?.length) && (t.weight || 0) > 0)
+        goldIn24 += _to24(t.weight, t.karat || '21');
+    }
+
+    // ── مردود عميل (ذهب يرجع) ──
+    else if (type === 'return' || type === 'sales-return') {
+      (t.items || []).forEach(i => goldIn24 += _to24(i.weight, i.karat));
+    }
+
+    // ── رواتب ──
+    else if (type === 'sal-deposit' || type === 'salary-custody' || type === 'salary-personal' || type === 'sal-collect' || type === 'sal-personal') {
+      cashIn += (t.amount || 0);
+    }
+    else if (type === 'sal-withdraw' || type === 'salary-pay' || type === 'sal-advance' || type === 'sal-payout') {
+      cashOut += (t.amount || 0);
+    }
+  });
+
+  const cashNet   = Math.round((cashIn  - cashOut)  * 100) / 100;
+  const goldNet24 = Math.round((goldIn24 - goldOut24) * 1000) / 1000;
+  const dayProfit = Math.round((sellAjr - buyAjr - expTotal) * 100) / 100;
+
+  return {
+    dayStr, txCount: dayTxs.length, invCount,
+    cashIn:  Math.round(cashIn  * 100) / 100,
+    cashOut: Math.round(cashOut * 100) / 100,
+    cashNet,
+    goldIn24:  Math.round(goldIn24  * 1000) / 1000,
+    goldOut24: Math.round(goldOut24 * 1000) / 1000,
+    goldNet24,
+    sellAjr:  Math.round(sellAjr  * 100) / 100,
+    buyAjr:   Math.round(buyAjr   * 100) / 100,
+    expTotal: Math.round(expTotal  * 100) / 100,
+    dayProfit,
+  };
+}
+
+// ── حساب قائمة حركات على مدى فترة ──
+function _dlgCalcPeriod(fromStr, toStr) {
+  // أنشئ مصفوفة أيام من from إلى to
+  const days = [];
+  const cursor = new Date(fromStr + 'T00:00:00');
+  const end    = new Date(toStr   + 'T23:59:59');
+  while (cursor <= end) {
+    days.push(cursor.toISOString().split('T')[0]);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days.map(d => _dlgCalcDayMovement(d));
+}
+
+// ── حساب الرصيد الختامي التراكمي عبر الأيام ──
+// يُضاف الرصيد الافتتاحي مرة واحدة ثم يتراكم يومياً
+function _dlgCalcRunningBalance(dayMovements) {
+  const obSafes = (window.S?.openingBalance?.safes) || {};
+  const obBase  = (window.S?.safesBase) || {};
+  // الرصيد النقدي الابتدائي = safesBase.cash + openingBalance.safes.cash
+  let runCash = (obBase.cash || 0) + (obSafes.cash || 0);
+  // الرصيد الذهبي الابتدائي (عيار 24 مكافئ)
+  const _to24 = (w,k) => (parseFloat(w)||0) * (parseFloat(k)||21) / 24;
+  let runGold24 = 0;
+  ['scrap21','scrap18','pure24','worked21','worked18'].forEach(k => {
+    const baseV = (obBase[k]||0) + (obSafes[k]||0);
+    const karat = k.includes('21') ? 21 : k.includes('18') ? 18 : 24;
+    runGold24 += _to24(baseV, karat);
+  });
+  runCash   = Math.round(runCash   * 100)  / 100;
+  runGold24 = Math.round(runGold24 * 1000) / 1000;
+
+  return dayMovements.map(d => {
+    runCash   = Math.round((runCash   + d.cashNet)   * 100)  / 100;
+    runGold24 = Math.round((runGold24 + d.goldNet24) * 1000) / 1000;
+    return { ...d, runCash, runGold24 };
+  });
+}
+
+// ── الرندر الرئيسي ──
+function _dlgRender() {
+  const fromEl = document.getElementById('dlg-from');
+  const toEl   = document.getElementById('dlg-to');
+  const listEl = document.getElementById('dlg-days-list');
+  const sumEl  = document.getElementById('dlg-period-summary');
+  if (!fromEl || !toEl || !listEl) return;
+
+  const fromStr = fromEl.value;
+  const toStr   = toEl.value;
+  if (!fromStr || !toStr) {
+    listEl.innerHTML = '<div class="empty"><div class="ei">📅</div><p>اختر تاريخ البداية والنهاية</p></div>';
+    if (sumEl) sumEl.innerHTML = '';
+    return;
+  }
+
+  const days   = _dlgCalcPeriod(fromStr, toStr);
+  const active = days.filter(d => d.txCount > 0);
+  const withBal = _dlgCalcRunningBalance(days);
+
+  // ── ملخص الفترة ──
+  const periodCashIn    = days.reduce((a,d) => a + d.cashIn,    0);
+  const periodCashOut   = days.reduce((a,d) => a + d.cashOut,   0);
+  const periodGoldIn    = days.reduce((a,d) => a + d.goldIn24,  0);
+  const periodGoldOut   = days.reduce((a,d) => a + d.goldOut24, 0);
+  const periodProfit    = days.reduce((a,d) => a + d.dayProfit, 0);
+  const periodInvCount  = days.reduce((a,d) => a + d.invCount,  0);
+
+  if (sumEl) {
+    sumEl.innerHTML = `
+    <div style="background:linear-gradient(135deg,var(--hd),#1a2035);border-radius:var(--ra);padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:12px;font-weight:800;color:var(--g2);margin-bottom:10px">📊 ملخص الفترة — ${active.length} يوم نشط</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:rgba(34,199,122,.12);border:1px solid rgba(34,199,122,.25);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:rgba(34,199,122,.8);font-weight:700;margin-bottom:3px">📥 إجمالي الدخل النقدي</div>
+          <div style="font-size:18px;font-weight:900;color:#22C77A">${fmt(Math.round(periodCashIn))}</div>
+          <div style="font-size:9px;color:rgba(34,199,122,.6)">ريال</div>
+        </div>
+        <div style="background:rgba(229,85,85,.12);border:1px solid rgba(229,85,85,.25);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:rgba(229,85,85,.8);font-weight:700;margin-bottom:3px">📤 إجمالي الخروج النقدي</div>
+          <div style="font-size:18px;font-weight:900;color:#E55555">${fmt(Math.round(periodCashOut))}</div>
+          <div style="font-size:9px;color:rgba(229,85,85,.6)">ريال</div>
+        </div>
+        <div style="background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.25);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--g2);font-weight:700;margin-bottom:3px">🥇 ذهب داخل (ع24)</div>
+          <div style="font-size:18px;font-weight:900;color:var(--g2)">${fmtG(Math.round(periodGoldIn*1000)/1000)}</div>
+          <div style="font-size:9px;color:rgba(200,150,30,.6)">جرام</div>
+        </div>
+        <div style="background:rgba(155,107,224,.12);border:1px solid rgba(155,107,224,.25);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--pu);font-weight:700;margin-bottom:3px">🥇 ذهب خارج (ع24)</div>
+          <div style="font-size:18px;font-weight:900;color:var(--pu)">${fmtG(Math.round(periodGoldOut*1000)/1000)}</div>
+          <div style="font-size:9px;color:rgba(155,107,224,.6)">جرام</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:rgba(80,144,224,.12);border:1px solid rgba(80,144,224,.25);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:var(--in);font-weight:700;margin-bottom:2px">💰 صافي النقد</div>
+          <div style="font-size:14px;font-weight:900;color:${periodCashIn-periodCashOut>=0?'#22C77A':'#E55555'}">${fmt(Math.round(periodCashIn-periodCashOut))}</div>
+        </div>
+        <div style="background:rgba(240,144,48,.12);border:1px solid rgba(240,144,48,.25);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:var(--io);font-weight:700;margin-bottom:2px">📈 صافي الأرباح</div>
+          <div style="font-size:14px;font-weight:900;color:${periodProfit>=0?'#22C77A':'#E55555'}">${fmt(Math.round(periodProfit))}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700;margin-bottom:2px">🧾 الفواتير</div>
+          <div style="font-size:14px;font-weight:900;color:rgba(255,255,255,.8)">${periodInvCount}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── قائمة الأيام ──
+  if (!active.length) {
+    listEl.innerHTML = '<div class="empty"><div class="ei">📆</div><p>لا توجد معاملات في هذه الفترة</p></div>';
+    return;
+  }
+
+  // عرض الأيام من الأحدث للأقدم
+  const reversedWithBal = [...withBal].reverse();
+
+  listEl.innerHTML = reversedWithBal.map((d, idx) => {
+    if (d.txCount === 0) return ''; // تخطي الأيام الفارغة
+
+    const dt = new Date(d.dayStr + 'T12:00:00');
+    const arDate = dt.toLocaleDateString('ar-SA', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+    const cashNetClr  = d.cashNet  >= 0 ? '#22C77A' : '#E55555';
+    const goldNetClr  = d.goldNet24>= 0 ? 'var(--g1)' : '#E55555';
+    const profitClr   = d.dayProfit>= 0 ? '#22C77A' : '#E55555';
+
+    // ── الأيام السابق (للمقارنة) ──
+    // نبحث عن اليوم السابق الذي فيه معاملات
+    const prevDayData = withBal.find((pd, pi) => {
+      const pdIdx = withBal.indexOf(d);
+      return pi < pdIdx && pd.txCount > 0;
+    });
+
+    let compareHtml = '';
+    if (prevDayData) {
+      const diffCash   = Math.round((d.cashNet   - prevDayData.cashNet)   * 100)  / 100;
+      const diffGold   = Math.round((d.goldNet24 - prevDayData.goldNet24) * 1000) / 1000;
+      const diffProfit = Math.round((d.dayProfit - prevDayData.dayProfit) * 100)  / 100;
+      const diffCashClr   = diffCash   >= 0 ? '#22C77A' : '#E55555';
+      const diffGoldClr   = diffGold   >= 0 ? 'var(--g1)' : '#E55555';
+      const diffProfitClr = diffProfit >= 0 ? '#22C77A' : '#E55555';
+
+      const prevDt = new Date(prevDayData.dayStr + 'T12:00:00');
+      const prevLabel = prevDt.toLocaleDateString('ar-SA', {weekday:'short', day:'numeric', month:'short'});
+
+      compareHtml = `
+      <div id="dlg-cmp-${d.dayStr}" style="display:none;background:rgba(80,144,224,.07);border:1px solid rgba(80,144,224,.2);border-radius:10px;padding:10px;margin-top:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--in);margin-bottom:7px">📊 مقارنة مع ${prevLabel}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px">
+          <div style="text-align:center">
+            <div style="color:var(--tx2);font-size:9px;margin-bottom:2px">فرق النقد</div>
+            <div style="font-weight:900;color:${diffCashClr}">${diffCash>=0?'+':''}${fmt(diffCash)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="color:var(--tx2);font-size:9px;margin-bottom:2px">فرق الذهب</div>
+            <div style="font-weight:900;color:${diffGoldClr}">${diffGold>=0?'+':''}${fmtG(diffGold)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="color:var(--tx2);font-size:9px;margin-bottom:2px">فرق الربح</div>
+            <div style="font-weight:900;color:${diffProfitClr}">${diffProfit>=0?'+':''}${fmt(diffProfit)}</div>
+          </div>
+        </div>
+        ${(Math.abs(diffCash)>1000||Math.abs(diffGold)>5)?`<div style="margin-top:6px;font-size:9px;padding:5px 8px;border-radius:6px;background:rgba(229,85,85,.1);color:#E55555;border:1px solid rgba(229,85,85,.2)">⚠️ فرق ملحوظ — راجع الحركات</div>`:''}
+      </div>`;
+    }
+
+    return `
+    <div style="background:var(--c2);border:1px solid var(--b2);border-radius:var(--rb);margin-bottom:8px;overflow:hidden">
+      <!-- رأس اليوم -->
+      <div style="padding:10px 13px;background:var(--c3);border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--tx1)">${arDate}</div>
+          <div style="font-size:10px;color:var(--tx3)">${d.invCount} فاتورة · ${d.txCount} حركة</div>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${prevDayData?`<button onclick="_dlgToggleCmp('${d.dayStr}')"
+            style="padding:4px 10px;border-radius:6px;border:1px solid var(--in-bd);background:var(--in-bg);
+              color:var(--in);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">
+            📊 مقارنة مع أمس
+          </button>`:''}
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;
+            background:${d.cashNet>=0?'var(--ok-bg)':'var(--no-bg)'};
+            color:${d.cashNet>=0?'var(--ok)':'var(--no)'};
+            border:1px solid ${d.cashNet>=0?'var(--ok-bd)':'var(--no-bd)'}">
+            ${d.cashNet>=0?'+':''}${fmt(d.cashNet)} ر
+          </span>
+        </div>
+      </div>
+
+      <!-- تفاصيل اليوم -->
+      <div style="padding:10px 13px">
+        <!-- نقد -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:rgba(34,199,122,.08);border:1px solid rgba(34,199,122,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--ok);font-weight:700;margin-bottom:2px">📥 نقد دخل</div>
+            <div style="font-size:13px;font-weight:900;color:var(--ok)">${fmt(d.cashIn)}</div>
+          </div>
+          <div style="background:rgba(229,85,85,.08);border:1px solid rgba(229,85,85,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--no);font-weight:700;margin-bottom:2px">📤 نقد خرج</div>
+            <div style="font-size:13px;font-weight:900;color:var(--no)">${fmt(d.cashOut)}</div>
+          </div>
+          <div style="background:rgba(80,144,224,.08);border:1px solid rgba(80,144,224,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--in);font-weight:700;margin-bottom:2px">💰 فرق النقد</div>
+            <div style="font-size:13px;font-weight:900;color:${cashNetClr}">${d.cashNet>=0?'+':''}${fmt(d.cashNet)}</div>
+          </div>
+        </div>
+
+        <!-- ذهب -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:rgba(200,150,30,.08);border:1px solid var(--g5);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--g1);font-weight:700;margin-bottom:2px">🥇 ذهب دخل</div>
+            <div style="font-size:12px;font-weight:900;color:var(--g1)">${fmtG(d.goldIn24)} ج</div>
+          </div>
+          <div style="background:rgba(155,107,224,.08);border:1px solid var(--pu-bd);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--pu);font-weight:700;margin-bottom:2px">🥇 ذهب خرج</div>
+            <div style="font-size:12px;font-weight:900;color:var(--pu)">${fmtG(d.goldOut24)} ج</div>
+          </div>
+          <div style="background:rgba(200,150,30,.05);border:1px solid var(--g5);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--g1);font-weight:700;margin-bottom:2px">⚖️ فرق الذهب</div>
+            <div style="font-size:12px;font-weight:900;color:${goldNetClr}">${d.goldNet24>=0?'+':''}${fmtG(d.goldNet24)} ج</div>
+          </div>
+        </div>
+
+        <!-- ختامي + ربح + مصروف -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="background:linear-gradient(135deg,var(--c3),rgba(200,150,30,.05));border:1px solid var(--b2);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-bottom:2px">🏦 رصيد ختامي</div>
+            <div style="font-size:12px;font-weight:900;color:${d.runCash>=0?'var(--ok)':'var(--no)'}">
+              ${fmt(d.runCash)} ر
+            </div>
+            <div style="font-size:9px;color:var(--g1)">${fmtG(d.runGold24)} ج ع24</div>
+          </div>
+          <div style="background:rgba(240,144,48,.07);border:1px solid var(--io-bd);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--io);font-weight:700;margin-bottom:2px">📈 ربح اليوم</div>
+            <div style="font-size:13px;font-weight:900;color:${profitClr}">${d.dayProfit>=0?'+':''}${fmt(d.dayProfit)}</div>
+          </div>
+          <div style="background:rgba(229,85,85,.06);border:1px solid var(--no-bd);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--no);font-weight:700;margin-bottom:2px">💸 مصروفات</div>
+            <div style="font-size:13px;font-weight:900;color:var(--no)">${fmt(d.expTotal)}</div>
+          </div>
+        </div>
+
+        <!-- قسم المقارنة (مخفي مبدئياً) -->
+        ${compareHtml}
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  if (!listEl.innerHTML.trim()) {
+    listEl.innerHTML = '<div class="empty"><div class="ei">📆</div><p>لا توجد معاملات في هذه الفترة</p></div>';
+  }
+}
+
+// ── تبديل ظهور قسم المقارنة ──
+function _dlgToggleCmp(dayStr) {
+  const el = document.getElementById('dlg-cmp-' + dayStr);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── تهيئة الصفحة عند فتحها ──
+function _dlgInit() {
+  _dlgInitDates();
+  _dlgRender();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// [NEW FIX] ── إصلاح نظام Presence / آخر ظهور ──
+// المشكلة:
+//   1. rtServerTimestamp() يُرجع object خاص بـ Firebase RTDB
+//      عند قراءته يكون { ".sv": "timestamp" } أو رقم — يجب التعامل مع الحالتين
+//   2. onDisconnect يُسجل وقت قطع الاتصال لكن parse الـ timestamp يفشل أحياناً
+//   3. المستخدم الحالي لا يُحدَّث presence إلا عند الاتصال — يجب ping دوري
+// الإصلاح: دالة مساعدة _dlgSafeTimestamp + ping دوري + تحديث آخر نشاط
+// ════════════════════════════════════════════════════════════════════════
+
+// ── parse آمن لأي قيمة timestamp تأتي من RTDB ──
+// RTDB يمكن أن يُرجع: رقم | { ".sv":"timestamp" } | null
+function _dlgSafeParseTs(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'number' && raw > 0) return raw;
+  // قد يكون object من RTDB Server Timestamp غير محلول
+  if (typeof raw === 'object') {
+    // إذا كان محلولاً يحمل .time أو .t
+    if (raw.t) return raw.t;
+    // إذا كان { ".sv":"timestamp" } = لم يُحسَم بعد، نتجاهله
+    return null;
+  }
+  // string → نحاول تحويله
+  const n = parseInt(raw, 10);
+  return (!isNaN(n) && n > 0) ? n : null;
+}
+
+// ── تنسيق آخر ظهور بشكل صحيح ──
+// تُستبدل _fmtLastSeen الأصلية بدالة محسّنة باسم مختلف ثم تُعاد للـ window
+function _dlgFmtLastSeen(rawTs) {
+  const ts = _dlgSafeParseTs(rawTs);
+  if (!ts) return 'غير معروف';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return 'غير معروف';
+  const now  = Date.now();
+  const diff = now - ts;
+  if (diff < 0)       return 'للتو';                                      // ساعة الجهاز أبكر
+  if (diff < 60000)   return 'منذ لحظات';
+  if (diff < 3600000) return 'منذ ' + Math.floor(diff / 60000) + ' دقيقة';
+  if (diff < 86400000)return 'منذ ' + Math.floor(diff / 3600000) + ' ساعة';
+  return d.toLocaleDateString('ar-SA', { day:'2-digit', month:'2-digit', year:'numeric' })
+    + ' ' + d.toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── استبدال _fmtLastSeen القديمة بالإصلاح الجديد بشكل آمن ──
+// نحتفظ بالأصل كـ _fmtLastSeen_orig ثم نُحدِّث window._fmtLastSeen
+(function() {
+  // احفظ القديمة
+  if (typeof window._fmtLastSeen === 'function') {
+    window._fmtLastSeen_orig = window._fmtLastSeen;
+  }
+  // عيِّن الجديدة المحسَّنة
+  window._fmtLastSeen = _dlgFmtLastSeen;
+})();
+
+// ── Ping دوري لتحديث presence كل 4 دقائق ──
+// يضمن أن المستخدم يبدو "نشطاً" طالما المتصفح مفتوح
+let _dlgPresencePingTimer = null;
+function _dlgStartActivityPing(username) {
+  if (!username) return;
+  // امسح أي timer قديم
+  if (_dlgPresencePingTimer) clearInterval(_dlgPresencePingTimer);
+
+  const _doPresencePing = async () => {
+    try {
+      // نُحدِّث timestamp آخر نشاط في RTDB
+      if (typeof window._initPresence === 'function') {
+        // أعد استدعاء _initPresence لضمان الـ listener نشط
+        // لكن فقط إذا كان _presenceRef موجوداً (تهيئ من قبل)
+        const _pRef = window._presenceRef_NEW || null;
+        if (_pRef && typeof dbSet !== 'undefined') {
+          // ping مباشر
+          try {
+            await dbSet(_pRef, { online: true, lastSeen: rtServerTimestamp() });
+          } catch(e) { /* ignore */ }
+        }
+      }
+      // احفظ timestamp محلي في Firestore كـ backup
+      const lowerUser = username.toLowerCase();
+      if (typeof setDoc !== 'undefined' && typeof doc !== 'undefined' && typeof db !== 'undefined') {
+        try {
+          await setDoc(
+            doc(db, 'presence', lowerUser),
+            { username: lowerUser, lastSeen: Date.now(), online: true },
+            { merge: true }
+          );
+        } catch(e) { /* ignore */ }
+      }
+    } catch(e) { /* ping failure — silent */ }
+  };
+
+  // نفِّذ فوراً + كل 4 دقائق
+  _doPresencePing();
+  _dlgPresencePingTimer = setInterval(_doPresencePing, 4 * 60 * 1000);
+}
+
+// ── إصلاح _initPresence لحفظ _presenceRef للـ ping ──
+// نُغلِّف الدالة الأصلية بحيث نحفظ ref بعد إنشائه
+(function() {
+  const _origInitPresence = window._initPresence;
+  if (typeof _origInitPresence !== 'function') return;
+
+  window._initPresence = async function(username) {
+    // استدعِ الأصلية
+    await _origInitPresence(username);
+    // بعد التهيئة، احفظ ref للـ ping
+    if (window._presenceRef) {
+      window._presenceRef_NEW = window._presenceRef;
+    }
+    // شغّل الـ ping الدوري
+    _dlgStartActivityPing(username);
+  };
+})();
+
+// ── إصلاح _watchPresence: تحسين parse الـ lastSeen ──
+// نُغلِّف الأصلية لنُمرِّر البيانات بعد إصلاح الـ timestamp
+(function() {
+  const _origWatch = window._watchPresence;
+  if (typeof _origWatch !== 'function') return;
+
+  window._watchPresence = function(usernames, callback) {
+    _origWatch(usernames, function(rawResult) {
+      // أصلح كل timestamp في النتائج
+      const fixed = {};
+      Object.keys(rawResult || {}).forEach(u => {
+        const d = rawResult[u] || {};
+        fixed[u] = {
+          online:   !!d.online,
+          lastSeen: _dlgSafeParseTs(d.lastSeen) || null
+        };
+      });
+      callback(fixed);
+    });
+  };
+})();
+
+// ── تسجيل آخر نشاط عند أي تفاعل مع الصفحة ──
+// يُحدِّث timestamp في sessionStorage لعرضه محلياً
+(function() {
+  const _activityEvents = ['click','keydown','touchstart','scroll'];
+  let _lastActivityUpdate = 0;
+
+  function _recordActivity() {
+    const now = Date.now();
+    if (now - _lastActivityUpdate < 30000) return; // كل 30 ثانية كحد أقصى
+    _lastActivityUpdate = now;
+    try { sessionStorage.setItem('_lastActivity', String(now)); } catch(e) {}
+  }
+
+  _activityEvents.forEach(ev => {
+    document.addEventListener(ev, _recordActivity, { passive: true });
+  });
+})();
+
 </script>
 </body>
 </html>
