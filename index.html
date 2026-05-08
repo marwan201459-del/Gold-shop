@@ -1263,6 +1263,7 @@ body{
           <option value="buy">شراء / توريد</option>
           <option value="scrap">قبض كسر</option>
           <option value="transfer">تحويل</option>
+          <option value="opening-balance">🏁 رصيد افتتاحي</option>
         </select></div>
       </div>
       <div id="hist-list"></div>
@@ -1685,6 +1686,116 @@ body{
       </div>
       <div id="ob-safes-form"></div>
       <button class="btn btn-gold" onclick="saveOpeningSafes()" style="margin-top:10px">💾 حفظ أرصدة الصناديق</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       قسم: إضافة رصيد افتتاحي لصندوق محدد (Advanced Form)
+       ══════════════════════════════════════════════════════ -->
+  <div class="card" id="ob-safe-advanced-card">
+    <div class="ch">➕ إضافة رصيد افتتاحي لصندوق</div>
+    <div class="cb">
+
+      <!-- إرشادات -->
+      <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border:1.5px solid var(--g5);border-radius:var(--rb);padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--tx2);line-height:1.8">
+        📌 يُسجَّل كرأس مال افتتاحي — <b style="color:var(--g1)">لا يؤثر على الأرباح أو التقارير التشغيلية</b> — يظهر في كشوفات الصندوق بعنوان "رصيد افتتاحي"
+      </div>
+
+      <!-- اختيار الصندوق -->
+      <div class="fr">
+        <label>🗄️ الصندوق</label>
+        <select id="obadv-safe-key" onchange="obAdvOnSafeChange()">
+          <option value="">— اختر الصندوق —</option>
+        </select>
+      </div>
+
+      <!-- نوع الرصيد -->
+      <div class="fr" id="obadv-bal-type-row" style="display:none">
+        <label>نوع الرصيد</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button type="button" id="obadv-type-cash" onclick="obAdvSetType('cash')"
+            style="padding:10px;border:2px solid var(--b2);border-radius:var(--rb);background:var(--c2);
+              font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--tx2);transition:var(--tr)">
+            💵 نقد
+          </button>
+          <button type="button" id="obadv-type-gold" onclick="obAdvSetType('gold')"
+            style="padding:10px;border:2px solid var(--b2);border-radius:var(--rb);background:var(--c2);
+              font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--tx2);transition:var(--tr)">
+            🥇 ذهب
+          </button>
+        </div>
+      </div>
+
+      <!-- حقول النقد -->
+      <div id="obadv-cash-fields" style="display:none">
+        <div class="fr">
+          <label>💵 المبلغ النقدي الافتتاحي (ريال)</label>
+          <input type="number" id="obadv-cash-amount" inputmode="decimal" placeholder="0.00"
+            style="font-size:16px;font-weight:700;color:var(--ok)">
+        </div>
+      </div>
+
+      <!-- حقول الذهب -->
+      <div id="obadv-gold-fields" style="display:none">
+        <div class="g2">
+          <div class="fr">
+            <label>⚖️ الوزن (جرام)</label>
+            <input type="number" id="obadv-gold-weight" inputmode="decimal" step="0.001" placeholder="0.000"
+              oninput="obAdvCalcGoldValue()"
+              style="font-size:15px;font-weight:700;color:var(--g1)">
+          </div>
+          <div class="fr">
+            <label>✨ العيار</label>
+            <select id="obadv-gold-karat" onchange="obAdvCalcGoldValue()">
+              <option value="24">عيار 24 (صافي)</option>
+              <option value="21" selected>عيار 21</option>
+              <option value="18">عيار 18</option>
+              <option value="14">عيار 14</option>
+            </select>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fr">
+            <label>💰 سعر الجرام (ريال) — اختياري</label>
+            <input type="number" id="obadv-gold-price" inputmode="decimal" placeholder="اختياري — للاحتساب فقط"
+              oninput="obAdvCalcGoldValue()">
+          </div>
+          <div class="fr">
+            <label>📊 القيمة الإجمالية (تحسب تلقائياً)</label>
+            <input type="number" id="obadv-gold-value" placeholder="0.00" readonly
+              style="background:var(--g4);border-color:var(--g5);color:var(--g1);font-weight:700;cursor:not-allowed">
+          </div>
+        </div>
+      </div>
+
+      <!-- التاريخ والملاحظات -->
+      <div id="obadv-common-fields" style="display:none">
+        <div class="g2">
+          <div class="fr">
+            <label>📅 تاريخ الرصيد الافتتاحي</label>
+            <input type="date" id="obadv-date">
+          </div>
+          <div class="fr">
+            <label>📝 ملاحظات (اختياري)</label>
+            <input type="text" id="obadv-notes" placeholder="وصف اختياري...">
+          </div>
+        </div>
+        <button class="btn btn-gold" onclick="saveObAdvanced()" style="margin-top:4px">
+          💾 حفظ الرصيد الافتتاحي
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- سجل الأرصدة الافتتاحية المضافة -->
+  <div class="card" id="ob-safe-entries-card">
+    <div class="ch" style="justify-content:space-between">
+      <span>📋 سجل الأرصدة الافتتاحية للصناديق</span>
+      <button class="btn-sm btn-outline" onclick="renderObSafeEntries()">🔄 تحديث</button>
+    </div>
+    <div class="cb" id="ob-safe-entries-list">
+      <div class="empty"><div class="ei">🏁</div><p>لا توجد إدخالات بعد</p></div>
     </div>
   </div>
 
@@ -2579,9 +2690,18 @@ function calcSafes(){
       if(safes[dest]!=null) safes[dest] += qty;
     }
 
-  });
+    // ═══════════════════════════════════════════════
+    // ── رصيد افتتاحي — النوع الجديد من الفورم المتقدم ──
+    // يُضاف مباشرةً للصندوق المحدد دون أي أثر محاسبي آخر
+    // ملاحظة: الأثر الفعلي يأتي من ob.safeEntries → ob.safes → base
+    // هذا الـ handler هنا للتوافق فقط وللعرض في كشف الصندوق
+    // ═══════════════════════════════════════════════
+    else if(t.type==='opening-balance'){
+      // لا حاجة لأي حساب هنا — الرصيد يُدمج من ob.safes في base أعلاه
+      // فقط نتركه مرئياً في سجل الحركات
+    }
 
-  // المعدن ولافا — الرقم المعروض هو الإجمالي بعيار 24 من calcMadanDetail
+  });
   ['madan','lava'].forEach(sk=>{
     const det = calcMadanDetail(sk);
     safes[sk] = det.balance24;
@@ -2741,6 +2861,7 @@ function P(id,btn){
   btn.classList.add('on');
   closeAllDrops(); renderAll();
   if(id==='expenses') refreshExpSafes();
+  if(id==='opening') initOpeningPage();
   // عند فتح صفحة الرواتب: عرض قائمة الموظفين فوراً
   if(id==='salary'){
     setTimeout(()=>{
@@ -4588,9 +4709,10 @@ function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')
 
 const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات','payment-transfer':'💳 سداد عبر تحويل','supplier-payment-transfer':'💳 سداد عبر تحويل',
   'salary-pay':'💸 صرف','salary-custody':'📥 تحصيل','salary-personal':'💰 دفع شخصي','salary-deduction':'✂️ خصم','salary-allowance':'🎁 بدل','sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','sal-collect':'💰 إيداع','sal-advance':'💸 سحب','sal-personal':'💰 إيداع','sal-payout':'💸 صرف',
-  'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون','charge':'💵 مبلغ إضافي'};
-const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy'};
-const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange',charge:'bg-orange'};
+  'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون','charge':'💵 مبلغ إضافي',
+  'opening-balance':'🏁 رصيد افتتاحي'};
+const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy','opening-balance':'transfer'};
+const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange',charge:'bg-orange','opening-balance':'bg-gold'};
 
 function txHtml(t){
   const dt=fmtDate(t.date);
@@ -4602,6 +4724,11 @@ function txHtml(t){
     const fromLbl = t.fromLabel || (t.fromSafe?(_SM[t.fromSafe]?.label||t.fromSafe):'—');
     const toLbl   = t.toLabel   || (t.toSafe  ?(_SM[t.toSafe]  ?.label||t.toSafe  ):'—');
     sub = `${fromLbl} ← ${toLbl}`;
+  } else if(t.type==='opening-balance'){
+    // عرض واضح للرصيد الافتتاحي: اسم الصندوق + المبلغ
+    const _obAmtStr = (t.amount>0) ? `${fmt(t.amount)} ريال` :
+                      (t.goldAmount>0) ? `${fmtG(t.goldAmount)} ج ع${t.goldKarat||'?'}` : '';
+    sub = `🏁 ${t.safeLabel||t.safeKey||'صندوق'}${_obAmtStr?' — '+_obAmtStr:''}`;
   } else if(t.settlePurpose==='transfer'){
     // سداد عبر تحويل — نوضح المسار
     const _SM=getSM();
@@ -9029,6 +9156,11 @@ function renderAll(){
   renderUsers();
   renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
   refreshExpSafes();
+  // تحديث ملخص الرصيد الافتتاحي إن كانت الصفحة مفتوحة
+  if(document.getElementById('pg-opening')?.classList.contains('on')){
+    renderObSummary();
+    renderObSafeEntries();
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -9894,6 +10026,8 @@ function renderStmt(){
         if(t.type==='expense')          return t.fromSafe===k;
         if(t.type==='salary-pay')       return t.fromSafe===k;
         if(t.type==='addsafe')          return t.toSafe===k;
+        // ── الرصيد الافتتاحي — يظهر لأي صندوق مطابق ──
+        if(t.type==='opening-balance')  return t.safeKey===k;
         return false;
       })
       .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
@@ -9906,6 +10040,8 @@ function renderStmt(){
         else if(t.type==='expense')          delta = -(t.amount||0);
         else if(t.type==='salary-pay')       delta = -(t.amount||0);
         else if(t.type==='addsafe')          delta = (t.amount||0);
+        // الرصيد الافتتاحي — يُحسب كحركة دخول دائماً
+        else if(t.type==='opening-balance')  delta = (t.amount||t.goldAmount||0);
         if(delta > 0) totalIn  += delta;
         if(delta < 0) totalOut += Math.abs(delta);
         movements.push({t: t, delta: delta});
@@ -10607,9 +10743,10 @@ function toast(msg){
 // S.openingBalance = { safes:{cash:0,...}, clients:{"اسم":{cash:0,gold24:0,type:""}} }
 // ══════════════════════════════════════════════════════════
 function getOB(){
-  if(!S.openingBalance) S.openingBalance={safes:{},clients:{}};
-  if(!S.openingBalance.safes) S.openingBalance.safes={};
-  if(!S.openingBalance.clients) S.openingBalance.clients={};
+  if(!S.openingBalance) S.openingBalance={safes:{},clients:{},safeEntries:[]};
+  if(!S.openingBalance.safes)       S.openingBalance.safes={};
+  if(!S.openingBalance.clients)     S.openingBalance.clients={};
+  if(!S.openingBalance.safeEntries) S.openingBalance.safeEntries=[];
   return S.openingBalance;
 }
 
@@ -10904,6 +11041,354 @@ function initOpeningPage(){
   renderObSafesForm();
   renderObClientsList();
   renderObSummary();
+  obAdvInitSafeDropdown();
+  renderObSafeEntries();
+  // تعيين تاريخ اليوم افتراضياً
+  const dateEl = document.getElementById('obadv-date');
+  if(dateEl && !dateEl.value){
+    const today = new Date();
+    dateEl.value = today.toISOString().split('T')[0];
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// نظام الرصيد الافتتاحي للصناديق — Advanced Form
+// ══════════════════════════════════════════════════════════════════
+
+// تهيئة قائمة الصناديق في الـ Dropdown
+function obAdvInitSafeDropdown(){
+  const sel = document.getElementById('obadv-safe-key');
+  if(!sel) return;
+  const SM2 = getSM();
+  // استبعاد صناديق المديونيات والخصم من القائمة
+  const excluded = ['debt21','debt18','debt24','discount'];
+  const opts = Object.entries(SM2)
+    .filter(([k])=> !excluded.includes(k))
+    .map(([k,v])=> `<option value="${k}">${v.label}</option>`)
+    .join('');
+  sel.innerHTML = '<option value="">— اختر الصندوق —</option>' + opts;
+}
+
+// عند تغيير الصندوق
+function obAdvOnSafeChange(){
+  const key = document.getElementById('obadv-safe-key')?.value;
+  const SM2 = getSM();
+  const typeRow  = document.getElementById('obadv-bal-type-row');
+  const cashF    = document.getElementById('obadv-cash-fields');
+  const goldF    = document.getElementById('obadv-gold-fields');
+  const commonF  = document.getElementById('obadv-common-fields');
+
+  if(!key){
+    if(typeRow)   typeRow.style.display  = 'none';
+    if(cashF)     cashF.style.display    = 'none';
+    if(goldF)     goldF.style.display    = 'none';
+    if(commonF)   commonF.style.display  = 'none';
+    return;
+  }
+
+  const safeType = SM2[key]?.type || 'cash';
+
+  if(typeRow) typeRow.style.display = 'block';
+  if(commonF) commonF.style.display = 'block';
+
+  // تعيين نوع تلقائي بناءً على نوع الصندوق
+  if(safeType === 'gold'){
+    obAdvSetType('gold');
+    // إخفاء زر النقد لصناديق الذهب
+    const cashBtn = document.getElementById('obadv-type-cash');
+    if(cashBtn) cashBtn.style.opacity = '0.4';
+    const goldBtn = document.getElementById('obadv-type-gold');
+    if(goldBtn) goldBtn.style.opacity = '1';
+  } else if(safeType === 'cash'){
+    obAdvSetType('cash');
+    const goldBtn = document.getElementById('obadv-type-gold');
+    if(goldBtn) goldBtn.style.opacity = '0.4';
+    const cashBtn = document.getElementById('obadv-type-cash');
+    if(cashBtn) cashBtn.style.opacity = '1';
+  } else {
+    // both — إظهار كلاهما
+    const cashBtn = document.getElementById('obadv-type-cash');
+    const goldBtn = document.getElementById('obadv-type-gold');
+    if(cashBtn) cashBtn.style.opacity = '1';
+    if(goldBtn) goldBtn.style.opacity = '1';
+    obAdvSetType('cash'); // افتراضي: نقد
+  }
+}
+
+// تبديل نوع الرصيد (نقد / ذهب)
+let _obAdvCurrentType = 'cash';
+function obAdvSetType(type){
+  _obAdvCurrentType = type;
+  const cashF  = document.getElementById('obadv-cash-fields');
+  const goldF  = document.getElementById('obadv-gold-fields');
+  const cashBtn= document.getElementById('obadv-type-cash');
+  const goldBtn= document.getElementById('obadv-type-gold');
+
+  if(cashF) cashF.style.display = type==='cash' ? 'block' : 'none';
+  if(goldF) goldF.style.display = type==='gold' ? 'block' : 'none';
+
+  // تنسيق الأزرار
+  if(cashBtn){
+    cashBtn.style.borderColor = type==='cash' ? 'var(--ok)' : 'var(--b2)';
+    cashBtn.style.background  = type==='cash' ? 'var(--ok-bg)' : 'var(--c2)';
+    cashBtn.style.color       = type==='cash' ? 'var(--ok)' : 'var(--tx2)';
+  }
+  if(goldBtn){
+    goldBtn.style.borderColor = type==='gold' ? 'var(--g1)' : 'var(--b2)';
+    goldBtn.style.background  = type==='gold' ? 'var(--g4)' : 'var(--c2)';
+    goldBtn.style.color       = type==='gold' ? 'var(--g1)' : 'var(--tx2)';
+  }
+}
+
+// حساب القيمة الإجمالية للذهب تلقائياً
+function obAdvCalcGoldValue(){
+  const w = parseFloat(document.getElementById('obadv-gold-weight')?.value) || 0;
+  const p = parseFloat(document.getElementById('obadv-gold-price')?.value)  || 0;
+  const valEl = document.getElementById('obadv-gold-value');
+  if(!valEl) return;
+  if(w > 0 && p > 0){
+    valEl.value = Math.round(w * p * 100) / 100;
+  } else {
+    valEl.value = '';
+  }
+}
+
+// حفظ الرصيد الافتتاحي المتقدم
+function saveObAdvanced(){
+  const safeKey  = document.getElementById('obadv-safe-key')?.value;
+  const dateVal  = document.getElementById('obadv-date')?.value;
+  const notes    = document.getElementById('obadv-notes')?.value || '';
+  const SM2      = getSM();
+
+  if(!safeKey){
+    toast('⚠️ اختر الصندوق أولاً');
+    return;
+  }
+
+  const safeLabel = SM2[safeKey]?.label || safeKey;
+  const now   = new Date().toISOString();
+  const dateISO = dateVal ? new Date(dateVal).toISOString() : now;
+  const today = dateVal || now.split('T')[0];
+
+  // تأكد من وجود مصفوفة safeEntries في openingBalance
+  const ob = getOB();
+  if(!ob.safeEntries) ob.safeEntries = [];
+  if(!ob.safes)       ob.safes = {};
+
+  let entryId = Date.now();
+  let entry   = null;
+
+  if(_obAdvCurrentType === 'cash'){
+    const amount = parseFloat(document.getElementById('obadv-cash-amount')?.value) || 0;
+    if(amount <= 0){ toast('⚠️ أدخل مبلغاً صحيحاً أكبر من صفر'); return; }
+
+    entry = {
+      id:       entryId,
+      safeKey,
+      safeLabel,
+      type:     'cash',
+      amount,
+      date:     dateISO,
+      dateStr:  today,
+      notes,
+      createdAt: now,
+      createdBy: sessionStorage.getItem('auth-user') || 'unknown',
+    };
+
+    // تحديث ob.safes لتعكس الرصيد المضاف
+    ob.safes[safeKey] = (ob.safes[safeKey] || 0) + amount;
+
+  } else { // gold
+    const weight = parseFloat(document.getElementById('obadv-gold-weight')?.value) || 0;
+    const karat  = document.getElementById('obadv-gold-karat')?.value || '21';
+    const price  = parseFloat(document.getElementById('obadv-gold-price')?.value)  || 0;
+    const value  = parseFloat(document.getElementById('obadv-gold-value')?.value)  || (weight * price);
+
+    if(weight <= 0){ toast('⚠️ أدخل وزناً صحيحاً أكبر من صفر'); return; }
+
+    const weight24 = Math.round(weight * parseFloat(karat) / 24 * 1000) / 1000;
+
+    entry = {
+      id:        entryId,
+      safeKey,
+      safeLabel,
+      type:      'gold',
+      weight,
+      karat,
+      weight24,
+      price,
+      value:     Math.round(value * 100) / 100,
+      date:      dateISO,
+      dateStr:   today,
+      notes,
+      createdAt: now,
+      createdBy: sessionStorage.getItem('auth-user') || 'unknown',
+    };
+
+    // تحديث ob.safes (مفتاح الذهب هو نفسه safeKey للصناديق الذهبية)
+    ob.safes[safeKey] = Math.round(((ob.safes[safeKey] || 0) + weight) * 1000) / 1000;
+  }
+
+  // إضافة القيد إلى سجل الإدخالات
+  ob.safeEntries.push(entry);
+  S.openingBalance = ob;
+
+  // تسجيل الحركة في سجل النشاط
+  const logDetail = _obAdvCurrentType === 'cash'
+    ? `رصيد افتتاحي نقدي: ${fmt(entry.amount)} ريال — ${safeLabel}`
+    : `رصيد افتتاحي ذهب: ${fmtG(entry.weight)} جرام ع${entry.karat} — ${safeLabel}`;
+  logActivity('opening-balance', logDetail);
+
+  // إضافة حركة افتتاحية في transactions كـ "opening-balance" لتظهر في كشف الصندوق
+  const obTx = {
+    id:        entryId,
+    type:      'opening-balance',
+    date:      dateISO,
+    notes:     `🏁 رصيد افتتاحي${notes ? ' — ' + notes : ''}`,
+    safeKey,
+    safeLabel,
+    // النقد
+    amount:    _obAdvCurrentType === 'cash'  ? entry.amount  : 0,
+    toSafe:    _obAdvCurrentType === 'cash'  ? safeKey       : undefined,
+    fromSafe:  undefined,
+    // الذهب
+    goldAmount:_obAdvCurrentType === 'gold'  ? entry.weight  : 0,
+    goldKarat: _obAdvCurrentType === 'gold'  ? entry.karat   : undefined,
+    goldSafe:  _obAdvCurrentType === 'gold'  ? safeKey       : undefined,
+    goldValue: _obAdvCurrentType === 'gold'  ? entry.value   : 0,
+    // محاسبي
+    isOpeningBalance: true,
+    total: _obAdvCurrentType === 'cash' ? entry.amount : (entry.value || 0),
+    cash:  _obAdvCurrentType === 'cash' ? entry.amount : 0,
+    items: [],
+  };
+  if(!S.transactions) S.transactions = [];
+  S.transactions.push(obTx);
+
+  sv();
+  renderAll();
+  renderObSafeEntries();
+  renderObSummary();
+
+  // مسح الحقول
+  document.getElementById('obadv-safe-key').value     = '';
+  const cashAmtEl = document.getElementById('obadv-cash-amount');
+  const goldWEl   = document.getElementById('obadv-gold-weight');
+  const goldPEl   = document.getElementById('obadv-gold-price');
+  const goldVEl   = document.getElementById('obadv-gold-value');
+  const notesEl   = document.getElementById('obadv-notes');
+  if(cashAmtEl) cashAmtEl.value = '';
+  if(goldWEl)   goldWEl.value   = '';
+  if(goldPEl)   goldPEl.value   = '';
+  if(goldVEl)   goldVEl.value   = '';
+  if(notesEl)   notesEl.value   = '';
+
+  // إعادة تعيين العناصر المرئية
+  const typeRow = document.getElementById('obadv-bal-type-row');
+  const cashF   = document.getElementById('obadv-cash-fields');
+  const goldF   = document.getElementById('obadv-gold-fields');
+  const commonF = document.getElementById('obadv-common-fields');
+  if(typeRow)  typeRow.style.display  = 'none';
+  if(cashF)    cashF.style.display    = 'none';
+  if(goldF)    goldF.style.display    = 'none';
+  if(commonF)  commonF.style.display  = 'none';
+
+  // إعادة تعيين تاريخ اليوم
+  const dateEl = document.getElementById('obadv-date');
+  if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+
+  const amtLabel = _obAdvCurrentType === 'cash'
+    ? `${fmt(entry.amount)} ريال`
+    : `${fmtG(entry.weight)} جرام ع${entry.karat}`;
+  toast(`✅ تم حفظ رصيد افتتاحي: ${amtLabel} — ${safeLabel}`);
+}
+
+// عرض سجل الإدخالات الافتتاحية للصناديق
+function renderObSafeEntries(){
+  const el = document.getElementById('ob-safe-entries-list');
+  if(!el) return;
+
+  const ob = getOB();
+  const entries = (ob.safeEntries || []).slice().reverse(); // الأحدث أولاً
+
+  if(!entries.length){
+    el.innerHTML = '<div class="empty" style="padding:14px"><div class="ei">🏁</div><p>لا توجد إدخالات بعد — استخدم الفورم أعلاه لإضافة رصيد افتتاحي</p></div>';
+    return;
+  }
+
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  entries.forEach(e=>{
+    const isCash = e.type === 'cash';
+    const bg   = isCash ? 'var(--ok-bg)'  : 'var(--g4)';
+    const bdr  = isCash ? 'var(--ok-bd)'  : 'var(--g5)';
+    const clr  = isCash ? 'var(--ok)'     : 'var(--g1)';
+    const icon = isCash ? '💵'            : '🥇';
+    const amt  = isCash
+      ? `${fmt(e.amount)} ريال`
+      : `${fmtG(e.weight)} ج ع${e.karat}${e.value>0?' ('+fmt(e.value)+' ر)':''}`;
+
+    // تنسيق التاريخ
+    let dStr = e.dateStr || '';
+    try{
+      const d = new Date(e.date);
+      if(!isNaN(d)) dStr = d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit',year:'numeric'});
+    }catch(er){}
+
+    html += `<div style="background:${bg};border:1.5px solid ${bdr};border-radius:var(--rb);padding:11px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="flex:1;min-width:160px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:15px">${icon}</span>
+          <span style="font-size:13px;font-weight:800;color:var(--tx1)">${e.safeLabel||e.safeKey}</span>
+          <span style="background:${clr};color:#fff;font-size:9px;font-weight:800;padding:1px 7px;border-radius:10px">${isCash?'نقد':'ذهب'}</span>
+        </div>
+        <div style="font-size:15px;font-weight:900;color:${clr}">${amt}</div>
+        ${e.notes?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">📝 ${e.notes}</div>`:''}
+      </div>
+      <div style="text-align:left;flex-shrink:0">
+        <div style="font-size:10px;color:var(--tx3)">📅 ${dStr}</div>
+        <div style="font-size:9px;color:var(--tx3);margin-top:2px">بواسطة: ${e.createdBy||'—'}</div>
+        <button onclick="deleteObSafeEntry(${e.id})"
+          style="margin-top:5px;padding:3px 9px;border:none;border-radius:6px;background:var(--no-bg);color:var(--no);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
+          🗑️ حذف
+        </button>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// حذف قيد افتتاحي للصندوق
+function deleteObSafeEntry(entryId){
+  appConfirm('حذف هذا الرصيد الافتتاحي؟ سيتأثر رصيد الصندوق.', ()=>{
+    const ob = getOB();
+    const entries = ob.safeEntries || [];
+    const idx = entries.findIndex(e => e.id === entryId);
+    if(idx === -1){ toast('⚠️ الإدخال غير موجود'); return; }
+
+    const entry = entries[idx];
+
+    // عكس الأثر على ob.safes
+    if(entry.type === 'cash'){
+      ob.safes[entry.safeKey] = Math.round(((ob.safes[entry.safeKey]||0) - entry.amount) * 100) / 100;
+    } else {
+      ob.safes[entry.safeKey] = Math.round(((ob.safes[entry.safeKey]||0) - entry.weight) * 1000) / 1000;
+    }
+
+    // حذف الحركة المرتبطة من transactions
+    S.transactions = (S.transactions||[]).filter(t => !(t.type==='opening-balance' && t.id===entryId));
+
+    // حذف القيد
+    ob.safeEntries = entries.filter(e => e.id !== entryId);
+    S.openingBalance = ob;
+
+    logActivity('opening-balance', `حذف رصيد افتتاحي: ${entry.safeLabel||entry.safeKey}`);
+    sv();
+    renderAll();
+    renderObSafeEntries();
+    renderObSummary();
+    toast('🗑️ تم حذف الرصيد الافتتاحي');
+  });
 }
 
 // ── Init ───────────────────────────────────────────────────────────
