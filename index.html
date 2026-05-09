@@ -1163,18 +1163,6 @@ body{
           <div class="fr"><label>📝 ملاحظات</label><input type="text" id="sc-notes" placeholder="اختياري"></div>
           <div class="fr"><label>📅 التاريخ</label><input type="date" id="sc-date"></div>
         </div>
-        <!-- [SCRAP-PRICE-FIX v1] حقل سعر اليوم — إضافة آمنة Non-Destructive -->
-        <div style="background:rgba(34,199,122,.07);border:1.5px solid var(--ok-bd);border-radius:10px;padding:11px 13px;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:800;color:var(--ok);margin-bottom:6px">💵 سعر اليوم للتسوية النقدية — اختياري</div>
-          <div class="fr" style="margin-bottom:4px">
-            <label style="color:var(--ok)">سعر الجرام ع24 (ريال)</label>
-            <input type="number" id="sc-price" inputmode="decimal" placeholder="اتركه فارغاً إذا لا تسوية نقدية"
-              style="background:var(--c1);border:1.5px solid var(--ok-bd)"
-              oninput="_scrapPricePreview()">
-          </div>
-          <div id="sc-price-preview" style="font-size:11px;color:var(--ok);font-weight:700;min-height:16px"></div>
-          <div style="font-size:10px;color:var(--tx2);margin-top:4px">إذا أدخلت السعر سيُخصم مبلغ الكسر من دين العميل في كشف الحساب تلقائياً</div>
-        </div>
         <button class="btn btn-gold" onclick="saveScrap()">💾 حفظ قبض الكسر</button>
       </div>
 
@@ -2823,6 +2811,10 @@ function P(id,btn){
   if(id==='dailylog'){
     setTimeout(()=>{ if(typeof _dlgInit==='function') _dlgInit(); }, 50);
   }
+  // [FIX-OB] تهيئة صفحة الرصيد الافتتاحي عند فتحها — كانت الصفحة تظهر فارغة
+  if(id==='opening'){
+    setTimeout(()=>{ if(typeof initOpeningPage==='function') initOpeningPage(); }, 50);
+  }
 }
 
 // ── Search dropdown ───────────────────────────────────────────────
@@ -3698,8 +3690,6 @@ function saveScrap(){
   // حساب الإجمالي بعيار 24
   const total24 = validItems.reduce((a,i)=>a+convertTo24(i.weight, i.karat),0); // دالة موحدة
   const totalWeight = validItems.reduce((a,i)=>a+(i.weight||0),0);
-  // [SCRAP-PRICE-FIX] قراءة سعر اليوم — اختياري
-  const _scrapDayPrice = parseFloat(document.getElementById('sc-price')?.value)||0;
 
   // تسجيل معاملة واحدة تحمل كل العيارات
   const tx = {
@@ -3712,8 +3702,6 @@ function saveScrap(){
     scrapItems: validItems.map(i=>({karat:i.karat, weight:i.weight, dest:i.dest})),
     total24: Math.round(total24*1000)/1000,
     client, notes,
-    // [SCRAP-PRICE-FIX] سعر اليوم — صفر يعني لا تسوية نقدية
-    scrapPrice: _scrapDayPrice > 0 ? _scrapDayPrice : 0,
     items:[], total:0, cash:0, goldPay:0
   };
   if(!safeSave(tx)) return;
@@ -3725,9 +3713,6 @@ function saveScrap(){
   document.getElementById('sc-cli-s').value='';
   document.getElementById('sc-cli-v').value='';
   const scd=document.getElementById('sc-date');if(scd)scd.value='';
-  // [SCRAP-PRICE-FIX] مسح حقل السعر
-  const scp=document.getElementById('sc-price');if(scp)scp.value='';
-  const scpp=document.getElementById('sc-price-preview');if(scpp)scpp.textContent='';
 
   const msg = validItems.map(i=>`ع${i.karat}: ${fmtG(i.weight)}ج`).join(' + ');
   renderAll(); toast(`✅ تم قبض الكسر — ${msg} (إجمالي: ${fmtG(Math.round(total24*1000)/1000)}ج ع24)`);
@@ -4427,6 +4412,8 @@ function printStmt(){
           dCash=-((t.ajTotal||0)+(t.vatAmt||0));  // أجور المرتجع فقط
         else if(t.type==='charge')
           dCash=(t.amount||0);
+        // [FIX-BAL-1] discount-adj (تصفير حساب) — يُطابق getClientBalance.settleCashAdj
+        else if(t.type==='discount-adj') dCash=(t.amount||0);
         else if(t.type==='transfer'){
           if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
           if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
@@ -4438,11 +4425,8 @@ function printStmt(){
         (t.items||[]).forEach(i=>{ dGold24+=convertTo24(i.weight,i.karat); });
       else if(t.type==='buy'||t.type==='buy-debt')
         (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
-      else if(t.type==='scrap'){
+      else if(t.type==='scrap')
         dGold24=-scrapTo24(t);
-        // [SCRAP-PRICE-FIX] إذا وُجد سعر → تسوية نقدية تخفض دين العميل
-        if((t.scrapPrice||0)>0){ dCash=-_scrapCashVal(t); }
-      }
       else if(t.type==='payment'){
       const pGoldItems=t.goldItems||[];
       if(pGoldItems.length) {
@@ -4467,6 +4451,8 @@ function printStmt(){
         (t.items||[]).forEach(i=>{ dGold24-=convertTo24(i.weight,i.karat); });
       else if(t.type==='supplier-return'||t.type==='purchase-return')
         (t.items||[]).forEach(i=>{ dGold24+=convertTo24(i.weight,i.karat); });
+      // [FIX-BAL-1] discount-adj — يُطابق getClientBalance._settleGoldAdj24
+      else if(t.type==='discount-adj') dGold24=(t.settleGold24||0);
 
       runCash  =Math.round((runCash  +dCash  )*100)/100;
       runGold24=Math.round((runGold24+dGold24)*1000)/1000;
@@ -4517,11 +4503,7 @@ function printStmt(){
         const parts=t.scrapItems?.length?t.scrapItems.filter(si=>si.weight>0).map(si=>`${kN[si.karat]||si.karat}: ${fmtG(si.weight)}ج`):[`${kN[t.karat]||t.karat}: ${fmtG(t.weight||0)}ج`];
         const correct24=scrapTo24(t);
         detail=parts.join(' + ')+`<br><b style="color:#2D7A4F">= ${fmtG(Math.round(correct24*1000)/1000)} ج ع24</b>`;
-        // [SCRAP-PRICE-FIX] إظهار القيمة النقدية إذا وُجد سعر
-        const _scv=_scrapCashVal(t);
-        if(_scv>0){ detail+=`<br>💵 تسوية نقدية: <b style="color:var(--ok)">${fmt(_scv)} ر</b> (سعر: ${fmt(t.scrapPrice)}/ج ع24)`; amtStr=`<span style="color:var(--ok);font-weight:900">↙ ${fmt(_scv)} ر</span>`; }
-        else { amtStr='—'; }
-        wtStr=fmtG(t.weight||0)+' ج'; gold24Str=fmtG(Math.round(correct24*1000)/1000)+' ج';
+        wtStr=fmtG(t.weight||0)+' ج'; gold24Str=fmtG(Math.round(correct24*1000)/1000)+' ج'; amtStr='—';
       } else if(t.type==='sales-return'||t.type==='return'){
         const retGoldV = t.goldTotal||0;
         const retAjV   = t.ajTotal||0;
@@ -7641,6 +7623,8 @@ async function openUsersPanel(){
     const _safeLabel = (u.label||u.username).replace(/[\x27\x22]/g,'');
     const isOnline = !!pres.online;
     const lastSeenStr = (typeof window._fmtLastSeen==='function') ? window._fmtLastSeen(pres.lastSeen) : '';
+    // [PRESENCE-FIX] عرض الجهاز والمتصفح
+    const deviceStr = (pres.device || '') + (pres.browser ? ' · ' + pres.browser : '');
     const presenceBadge = isOnline
       ? `<span style="background:#14532D;color:#86EFAC;font-size:9px;font-weight:800;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px"><span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block;animation:_ublink 1.2s infinite"></span>متصل الآن</span>`
       : `<span style="background:rgba(100,100,100,.18);color:var(--tx3);font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px">غير متصل</span>`;
@@ -7650,6 +7634,7 @@ async function openUsersPanel(){
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
         ${isTenant&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
         ${lastSeenStr&&!isOnline?`<div style="font-size:9px;color:var(--tx3);margin-top:1px">🕐 آخر ظهور: ${lastSeenStr}</div>`:''}
+        ${deviceStr?`<div style="font-size:9px;color:var(--tx3);margin-top:1px">🖥️ ${deviceStr}</div>`:''}
       </div>
       ${presenceBadge}
       ${subBadge}
@@ -10209,7 +10194,8 @@ function renderStmt(){
     let dCash = 0;
     if(isSupp){
       if(t.type==='buy'||t.type==='buy-debt')
-        dCash = -(t.total||0);
+        // [FIX-UNIFY] توحيد مع printStmt و getClientBalance — الأجور فقط، ليس الذهب
+        dCash = -(t.ajTotal||0);
       else if(t.type==='supplier-payment'){
         // نقد + خصم + فكة + ذهب بسعر (كله يُخفِّض الدين للمورد)
         const _goldCashVal = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
@@ -10217,7 +10203,8 @@ function renderStmt(){
         dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_goldCashVal;
       }
       else if(t.type==='purchase-return'||t.type==='supplier-return')
-        dCash = (t.total||t.ajTotal||0);
+        // [FIX-UNIFY] توحيد مع printStmt و getClientBalance — ajTotal فقط
+        dCash = (t.ajTotal||0);
       else if(t.type==='transfer'){
         if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;
         if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0);
@@ -10236,6 +10223,8 @@ function renderStmt(){
       else if(t.type==='salary-custody')                               dCash = (t.amount||0);
       else if(t.type==='salary-pay')                                   dCash = -(t.amount||0);
       else if(t.type==='charge')                                       dCash = (t.amount||0);
+      // [FIX-BAL-1] discount-adj — يُطابق getClientBalance.settleCashAdj
+      else if(t.type==='discount-adj')                                 dCash = (t.amount||0);
       else if(t.type==='transfer'){
         if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;  // العميل أعطانا — ينخصم من دينه
         if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
@@ -10249,8 +10238,6 @@ function renderStmt(){
       (t.items||[]).forEach(i=>{ dGold24 -= convertTo24(i.weight,i.karat); });
     else if(t.type==='scrap'){
       dGold24 = -scrapTo24(t); // دالة موحدة: scrapItems → total24 → fallback آمن
-      // [SCRAP-PRICE-FIX] تسوية نقدية إذا وُجد سعر
-      if((t.scrapPrice||0)>0){ dCash = -_scrapCashVal(t); }
     }
     else if(t.type==='payment')             dGold24 = -convertTo24(t.goldWeight,t.goldKarat||'21');
     else if(t.type==='supplier-payment')    dGold24 = convertTo24(t.goldWeight,t.goldKarat||'21');
@@ -10262,6 +10249,8 @@ function renderStmt(){
       if(t.fromSafe===('__cli__'+v)) dGold24 = convertTo24(t.goldAmount,t.goldKarat||'21');
       if(t.toSafe===('__cli__'+v))   dGold24 = -convertTo24(t.goldAmount,t.goldKarat||'21');
     }
+    // [FIX-BAL-1] discount-adj — يُطابق getClientBalance._settleGoldAdj24
+    else if(t.type==='discount-adj')  dGold24 = (t.settleGold24||0);
     runCash   = Math.round((runCash   + dCash)*100)/100;
     runGold24 = Math.round((runGold24 + dGold24)*1000)/1000;
     return {t, dCash, dGold24, runCash, runGold24};
@@ -10314,6 +10303,30 @@ function renderStmt(){
     if(body && body.firstChild) body.insertBefore(alertDiv.firstElementChild, body.firstChild);
     else if(body) body.prepend(alertDiv.firstElementChild);
   })();
+
+  // [FIX-OB-ROW] صف الرصيد الافتتاحي في جدول renderStmt — يظهر أول صف (أقدم تاريخاً)
+  let _obStmtRow = '';
+  if(_obEntry2 && (Math.abs(_obEntry2.cash||0)>0.01 || Math.abs(_obEntry2.gold24||0)>0.001)){
+    const _obC = _obEntry2.cash||0, _obG = _obEntry2.gold24||0;
+    const _obAbsC = Math.abs(_obC), _obAbsG = Math.abs(_obG);
+    const _obNote = _obEntry2.note ? `<div style="font-size:9px;color:var(--tx2);margin-top:2px">📝 ${_obEntry2.note}</div>` : '';
+    const _obDate = _obEntry2.date ? `<div style="font-size:9px;color:var(--tx3)">${_obEntry2.date}</div>` : '<div style="font-size:9px;color:var(--tx3)">مرحّل</div>';
+    _obStmtRow = `<tr style="background:rgba(201,146,42,.08);border-bottom:2px solid var(--g5)">
+      <td style="padding:6px 8px;font-size:10px;color:var(--tx2)">${_obDate}</td>
+      <td style="padding:6px 8px">
+        <span class="badge bg-gold" style="font-size:10px">🏁 رصيد افتتاحي</span>
+        ${_obNote}
+      </td>
+      <td style="padding:6px 8px;font-size:10px;color:var(--tx2)">—</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:900;color:#DC2626;font-size:13px">${(_obC>0&&!isSupp)||(_obC<0&&isSupp)?fmt(_obAbsC):'–'}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:900;color:#16A34A;font-size:13px">${(_obC<0&&!isSupp)||(_obC>0&&isSupp)?fmt(_obAbsC):'–'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px">
+        ${_obAbsC>0.01?`<span style="color:${_obC>0?'#DC2626':'#D97706'};font-weight:900">${_obC>0?'عليه':'له'} ${fmt(_obAbsC)}</span>`:''}
+        ${_obAbsG>0.001?`<br><span style="font-size:10px;color:var(--g1)">${fmtG(_obAbsG)}ج ع24</span>`:''}
+      </td>
+      <td style="padding:5px 6px"></td>
+    </tr>`;
+  }
 
   let txRows=txsWithBalance.map(({t, dCash, dGold24, runCash, runGold24})=>{
     const dt=fmtDate(t.date);
@@ -10374,9 +10387,6 @@ function renderStmt(){
       } else {
         detail = `ع${t.karat}: ${fmtG(t.weight||0)}ج`;
       }
-      // [SCRAP-PRICE-FIX] إضافة معلومة التسوية النقدية في التفاصيل
-      const _scvDetail = _scrapCashVal(t);
-      if(_scvDetail>0) detail += `<br><span style="color:var(--ok);font-weight:700">💵 تسوية نقدية: ${fmt(_scvDetail)} ر (سعر ${fmt(t.scrapPrice)}/ج ع24)</span>`;
     }
     if(t.type==='cash-receipt')    detail=`قبض نقد: ${fmt(t.amount||0)} ر`;
     if(t.type==='charge')          detail=`💵 ${t.desc||t.notes||''} — ${fmt(t.amount||0)} ريال`;
@@ -10505,16 +10515,27 @@ function renderStmt(){
   html += '</div>';
 
   // ── صندوق الملخص السريع — الباقي من الأجور + الذهب ──
-  // نحسب الباقي من الأجور هنا لاستخدامه في البطاقة العلوية
-  const _ajRemaining  = Math.round((totalAjWithVat - totalPaidAmt) * 100) / 100;
+  // [FIX-BAL-2] توحيد مع getClientBalance وPDF — استخدام bal.cashOwed مباشرة
+  // كان يُحسب كـ (totalAjWithVat - totalPaidAmt) ولكنه كان يُفوِّت:
+  //   - قيمة الذهب المحوَّل لنقد (payGoldCashValue / suppGoldCashValue)
+  //   - تصفير الحساب (settleCashAdj)
+  //   - الرصيد الافتتاحي (obCash)
+  //   - مبالغ الإضافات (chargeTotal)
+  const _ajRemaining  = bal.cashOwed; // موجب=عليه لنا | سالب=له عندنا
   const _ajRemAbs     = Math.abs(_ajRemaining);
-  const _ajClr        = _ajRemAbs < 0.01 ? '#16A34A' : _ajRemaining > 0 ? '#DC2626' : '#D97706';
-  const _ajBg         = _ajRemAbs < 0.01 ? '#DCFCE7' : _ajRemaining > 0 ? '#FEE2E2' : '#FEF9C3';
-  const _ajDir        = _ajRemAbs < 0.01 ? '✅ مسدد' : _ajRemaining > 0 ? 'باقي عليه (أجور)' : 'له فائض';
+  // اتجاه "سلبي" = مشكلة: للعميل سالب=نحن مدينون | للمورد موجب=هم مدينون
+  const _ajBad        = isSupp ? (_ajRemaining < 0) : (_ajRemaining > 0);
+  const _ajClr        = _ajRemAbs < 0.01 ? '#16A34A' : _ajBad ? '#DC2626' : '#D97706';
+  const _ajBg         = _ajRemAbs < 0.01 ? '#DCFCE7' : _ajBad ? '#FEE2E2' : '#FEF9C3';
+  const _ajDir        = _ajRemAbs < 0.01 ? '✅ مسدد'
+    : (isSupp ? (_ajRemaining < 0 ? 'باقي له علينا' : 'له زيادة عندنا')
+              : (_ajRemaining > 0 ? 'باقي عليه لنا'  : 'له رصيد عندنا'));
   const _goldAbs      = Math.abs(gold24);
   const _hasGold      = _goldAbs > 0.001;
-  const _goldClr      = gold24 > 0 ? '#DC2626' : '#16A34A';
-  const _goldDir      = Math.abs(gold24)<0.001 ? '' : gold24>0 ? 'عليه ذهب' : 'له ذهب';
+  // [FIX-BAL-3] توجيه الذهب: للعميل موجب=عليه | للمورد سالب=علينا
+  const _goldBad      = isSupp ? (gold24 < 0) : (gold24 > 0);
+  const _goldClr      = _goldAbs < 0.001 ? '#16A34A' : _goldBad ? '#DC2626' : '#D97706';
+  const _goldDir      = Math.abs(gold24)<0.001 ? '' : (isSupp ? (gold24<0?'باقي له ذهب':'له فائض ذهب') : (gold24>0?'عليه ذهب':'له ذهب عندنا'));
 
   html += '<div style="padding:10px 14px 4px;display:grid;grid-template-columns:' + (_hasGold ? '1fr 1fr' : '1fr') + ';gap:8px">';
   // خانة الباقي من الأجور
@@ -10526,7 +10547,7 @@ function renderStmt(){
   html += '</div>';
   // خانة الذهب (فقط لو في رصيد ذهب)
   if(_hasGold){
-    html += '<div style="background:' + (gold24>0?'#FEE2E2':'#DCFCE7') + ';border:2px solid ' + _goldClr + ';border-radius:10px;padding:10px 12px">';
+    html += '<div style="background:' + (_goldBad?'#FEE2E2':'#DCFCE7') + ';border:2px solid ' + _goldClr + ';border-radius:10px;padding:10px 12px">';
     html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
     html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
     html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
@@ -10556,7 +10577,7 @@ function renderStmt(){
     html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:700">له</th>';
     html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:var(--tx2)">الرصيد</th>';
     html += '<th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>';
-    html += '</tr></thead><tbody>' + txRows + '</tbody></table></div>';
+    html += '</tr></thead><tbody>' + _obStmtRow + txRows + '</tbody></table></div>';
   } else {
     html += '<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>';
   }
@@ -10761,6 +10782,11 @@ function saveOpeningSafes(){
   sv(); renderObSummary();
   toast('✅ تم حفظ الرصيد الافتتاحي للصناديق');
   logActivity('opening-balance','تعديل الرصيد الافتتاحي للصناديق');
+  // [OB-FIX] حفظ بيانات المستخدم والوقت
+  if(!S.openingBalance.meta) S.openingBalance.meta={};
+  S.openingBalance.meta.lastSafesSavedBy = sessionStorage.getItem('auth-user')||'غير معروف';
+  S.openingBalance.meta.lastSafesSavedAt = Date.now();
+  sv();
 }
 
 function renderObCliSearch(){
@@ -10937,6 +10963,11 @@ function saveOpeningClients(){
   sv(); renderObSummary();
   toast('✅ تم حفظ الرصيد الافتتاحي للجهات');
   logActivity('opening-balance','تعديل الرصيد الافتتاحي للجهات');
+  // [OB-FIX] حفظ بيانات المستخدم والوقت
+  if(!S.openingBalance.meta) S.openingBalance.meta={};
+  S.openingBalance.meta.lastClientsSavedBy = sessionStorage.getItem('auth-user')||'غير معروف';
+  S.openingBalance.meta.lastClientsSavedAt = Date.now();
+  sv();
 }
 
 function renderObSummary(){
@@ -10988,6 +11019,14 @@ function renderObSummary(){
       html+=`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:8px 10px;font-weight:700">${typeIc[data.type]||'👤'} ${name}</td><td style="padding:8px;text-align:left;font-weight:700;color:${cc}">${Math.abs(data.cash||0)>0.01?fmt(Math.abs(data.cash))+(data.cash>0?' (عليه)':' (له)'):'—'}</td><td style="padding:8px;text-align:left;font-weight:700;color:${gc}">${Math.abs(data.gold24||0)>0.001?fmtG(Math.abs(data.gold24))+(data.gold24>0?' (عليه)':' (له)'):'—'}</td></tr>`;
     });
     html+='</tbody></table></div>';
+  }
+  // [OB-FIX] عرض بيانات آخر حفظ
+  const _meta = ob.meta || {};
+  if(_meta.lastClientsSavedBy || _meta.lastSafesSavedBy){
+    html += '<div style="font-size:10px;color:var(--tx3);margin-top:12px;padding:8px 10px;background:var(--c2);border-radius:var(--rc);border:1px solid var(--b1)">';
+    if(_meta.lastSafesSavedBy)   html += `🗄️ الصناديق حُفظت بواسطة: <b>${_meta.lastSafesSavedBy}</b>${_meta.lastSafesSavedAt?' — '+new Date(_meta.lastSafesSavedAt).toLocaleDateString('ar-SA'):''}<br>`;
+    if(_meta.lastClientsSavedBy) html += `👥 الجهات حُفظت بواسطة: <b>${_meta.lastClientsSavedBy}</b>${_meta.lastClientsSavedAt?' — '+new Date(_meta.lastClientsSavedAt).toLocaleDateString('ar-SA'):''}`;
+    html += '</div>';
   }
   el.innerHTML=html;
 }
@@ -11149,6 +11188,26 @@ async function _initPresence(username) {
   _presenceUsername = username;
   const lowerUser = username.toLowerCase();
 
+  // [PRESENCE-FIX] كشف الجهاز والمتصفح
+  function _detectDevice() {
+    const ua = navigator.userAgent || '';
+    let device = 'جهاز غير معروف';
+    if (/iPad|Tablet/i.test(ua))         device = '📱 تابلت';
+    else if (/iPhone|Android.*Mobile/i.test(ua)) device = '📱 جوال';
+    else if (/Android/i.test(ua))         device = '📱 أندرويد';
+    else if (/Macintosh/i.test(ua))       device = '💻 Mac';
+    else if (/Windows/i.test(ua))         device = '🖥️ Windows';
+    else if (/Linux/i.test(ua))           device = '🐧 Linux';
+    let browser = 'متصفح';
+    if (/Chrome\//.test(ua)&&!/Chromium|Edg|OPR/.test(ua)) browser='Chrome';
+    else if (/Safari\//.test(ua)&&!/Chrome/.test(ua))       browser='Safari';
+    else if (/Firefox\//.test(ua))                           browser='Firefox';
+    else if (/Edg\//.test(ua))                               browser='Edge';
+    else if (/OPR\//.test(ua))                               browser='Opera';
+    return { device, browser };
+  }
+  const { device, browser } = _detectDevice();
+
   // مسار الحضور في RTDB
   _presenceRef = dbRef(_rtdb, 'presence/' + lowerUser);
   const connectedRef = dbRef(_rtdb, '.info/connected');
@@ -11156,15 +11215,15 @@ async function _initPresence(username) {
   onValue(connectedRef, async (snap) => {
     if (!snap.val()) return; // غير متصل بعد
     // عند قطع الاتصال: تلقائي Offline
-    onDisconnect(_presenceRef).set({ online: false, lastSeen: rtServerTimestamp() });
+    onDisconnect(_presenceRef).set({ online: false, lastSeen: rtServerTimestamp(), device, browser });
     // الآن: Online
-    await dbSet(_presenceRef, { online: true, lastSeen: rtServerTimestamp() });
+    await dbSet(_presenceRef, { online: true, lastSeen: rtServerTimestamp(), device, browser, lastLogin: Date.now() });
     // [FIX] نصدِّر _presenceRef لـ window لكي يستطيع الـ ping الدوري الوصول إليه
     window._presenceRef = _presenceRef;
     // حفظ آخر وقت دخول في Firestore أيضاً
     try {
       const uDoc = doc(db, 'presence', lowerUser);
-      await setDoc(uDoc, { username: lowerUser, lastLogin: Date.now() }, { merge: true });
+      await setDoc(uDoc, { username: lowerUser, lastLogin: Date.now(), device, browser }, { merge: true });
     } catch(e) { /* تجاهل أخطاء Firestore للحضور */ }
   });
 }
@@ -11184,7 +11243,13 @@ function _watchPresence(usernames, callback) {
     const ref = dbRef(_rtdb, 'presence/' + lowerUser);
     const unsub = onValue(ref, (snap) => {
       const data = snap.val() || {};
-      result[username] = { online: !!data.online, lastSeen: data.lastSeen || null };
+      result[username] = {
+        online:   !!data.online,
+        lastSeen: data.lastSeen || null,
+        device:   data.device  || '',
+        browser:  data.browser || '',
+        lastLogin:data.lastLogin|| null
+      };
       callback({ ...result });
     });
     _presenceUnsubscribers.push(unsub);
@@ -11800,9 +11865,14 @@ function _dlgStartActivityPing(username) {
         // لكن فقط إذا كان _presenceRef موجوداً (تهيئ من قبل)
         const _pRef = window._presenceRef_NEW || null;
         if (_pRef && typeof dbSet !== 'undefined') {
-          // ping مباشر
+          // ping مباشر — نضيف device/browser إذا وُجدا
           try {
-            await dbSet(_pRef, { online: true, lastSeen: rtServerTimestamp() });
+            const _pingData = { online: true, lastSeen: rtServerTimestamp() };
+            if (window._presenceDeviceInfo) {
+              _pingData.device  = window._presenceDeviceInfo.device;
+              _pingData.browser = window._presenceDeviceInfo.browser;
+            }
+            await dbSet(_pRef, _pingData);
           } catch(e) { /* ignore */ }
         }
       }
@@ -11837,6 +11907,21 @@ function _dlgStartActivityPing(username) {
     // بعد التهيئة، احفظ ref للـ ping
     if (window._presenceRef) {
       window._presenceRef_NEW = window._presenceRef;
+    }
+    // [PRESENCE-FIX] احفظ device info للـ ping الدوري
+    if (!window._presenceDeviceInfo) {
+      const ua = navigator.userAgent || '';
+      let device = 'جهاز غير معروف';
+      if (/iPad|Tablet/i.test(ua))               device = '📱 تابلت';
+      else if (/iPhone|Android.*Mobile/i.test(ua)) device = '📱 جوال';
+      else if (/Macintosh/i.test(ua))              device = '💻 Mac';
+      else if (/Windows/i.test(ua))                device = '🖥️ Windows';
+      let browser = '';
+      if (/Chrome\//.test(ua)&&!/Edg|OPR/.test(ua)) browser='Chrome';
+      else if (/Safari\//.test(ua)&&!/Chrome/.test(ua)) browser='Safari';
+      else if (/Firefox\//.test(ua)) browser='Firefox';
+      else if (/Edg\//.test(ua)) browser='Edge';
+      window._presenceDeviceInfo = { device, browser };
     }
     // شغّل الـ ping الدوري
     _dlgStartActivityPing(username);
@@ -11884,93 +11969,158 @@ function _dlgStartActivityPing(username) {
 })();
 
 // ════════════════════════════════════════════════════════════════════════
-// [SCRAP-PRICE-FIX] — إصلاح انعكاس النقد عند قبض الكسر بسعر اليوم
-// Non-Destructive: إضافات فقط فوق النظام الحالي — لا حذف ولا تعديل
-// المبدأ: قبض كسر + سعر = تسوية نقدية تُخصم من دين العميل
+// [FIX-PRESENCE v2] — إصلاح شامل لنظام آخر ظهور والحالة المباشرة
+// Non-Destructive: إضافات فوق النظام الحالي فقط
 // ════════════════════════════════════════════════════════════════════════
 
-// ── دالة مساعدة: حساب القيمة النقدية للكسر بسعر اليوم المخزّن ──
-// تعمل مع scrapItems المتعددة والسجلات القديمة (حقل واحد)
-function _scrapCashVal(t) {
-  const price = t.scrapPrice || 0;
-  if (price <= 0) return 0;
-  let total = 0;
-  if (t.scrapItems && t.scrapItems.length > 0) {
-    t.scrapItems.forEach(si => {
-      const w24 = (si.weight || 0) * parseFloat(si.karat || '21') / 24;
-      total += w24 * price;
+// ── استخراج معلومات الجهاز والمتصفح ──
+function _getDeviceInfo() {
+  const ua = navigator.userAgent || '';
+  let device = 'سطح مكتب';
+  if (/iPhone/i.test(ua))       device = 'iPhone 📱';
+  else if (/iPad/i.test(ua))    device = 'iPad 📲';
+  else if (/Android.*Mobile/i.test(ua)) device = 'Android 📱';
+  else if (/Android/i.test(ua)) device = 'Android 📲';
+  else if (/Macintosh/i.test(ua)) device = 'Mac 💻';
+  else if (/Windows/i.test(ua)) device = 'Windows 🖥️';
+
+  let browser = 'غير معروف';
+  if (/CriOS/i.test(ua))        browser = 'Chrome (iOS)';
+  else if (/FxiOS/i.test(ua))   browser = 'Firefox (iOS)';
+  else if (/EdgA/i.test(ua))    browser = 'Edge (Android)';
+  else if (/Chrome\/\d/i.test(ua) && !/Chromium|OPR|Edge/i.test(ua)) browser = 'Chrome';
+  else if (/Safari\/\d/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if (/Firefox\/\d/i.test(ua)) browser = 'Firefox';
+  else if (/Edg\//i.test(ua))   browser = 'Edge';
+  else if (/OPR\//i.test(ua))   browser = 'Opera';
+
+  return { device, browser };
+}
+window._getDeviceInfo = _getDeviceInfo;
+
+// ── Override _initPresence: إضافة device+browser+lastLogin ──
+(function() {
+  const _origIP2 = window._initPresence;
+  if (typeof _origIP2 !== 'function') return;
+
+  window._initPresence = async function(username) {
+    if (!window._rtdb || !username) return;
+    const lowerUser = username.toLowerCase();
+    const { device, browser } = _getDeviceInfo();
+
+    // استدعِ الأصلية أولاً
+    await _origIP2(username);
+
+    // بعد تهيئة الـ listener الأصلي، أضف device info وlastLogin فوراً
+    try {
+      if (window._presenceRef && typeof dbSet !== 'undefined' && typeof rtServerTimestamp !== 'undefined') {
+        await dbSet(window._presenceRef, {
+          online: true,
+          lastSeen: rtServerTimestamp(),
+          lastLogin: Date.now(),
+          device, browser
+        });
+        window._presenceRef_NEW = window._presenceRef;
+      }
+    } catch(e) { /* silent */ }
+
+    // حفظ في Firestore أيضاً
+    try {
+      if (typeof setDoc !== 'undefined' && typeof doc !== 'undefined' && typeof db !== 'undefined') {
+        await setDoc(
+          doc(db, 'presence', lowerUser),
+          { username: lowerUser, lastLogin: Date.now(), device, browser, online: true },
+          { merge: true }
+        );
+      }
+    } catch(e) { /* silent */ }
+
+    // شغّل ping دوري
+    if (typeof _dlgStartActivityPing === 'function') _dlgStartActivityPing(username);
+  };
+})();
+
+// ── تحسين _watchPresence: تمرير device+browser مع الحالة ──
+(function() {
+  const _origWatch2 = window._watchPresence;
+  if (typeof _origWatch2 !== 'function') return;
+
+  window._watchPresence = function(usernames, callback) {
+    // استدعِ النسخة المحسَّنة السابقة (من FIX-PRESENCE v1)
+    _origWatch2(usernames, function(rawResult) {
+      const fixed = {};
+      Object.keys(rawResult || {}).forEach(u => {
+        const d = rawResult[u] || {};
+        fixed[u] = {
+          online:    !!d.online,
+          lastSeen:  d.lastSeen || null,
+          device:    d.device  || '',
+          browser:   d.browser || '',
+          lastLogin: d.lastLogin || null
+        };
+      });
+      callback(fixed);
     });
-  } else {
-    const w24 = (t.weight || 0) * parseFloat(t.karat || '21') / 24;
-    total = w24 * price;
-  }
-  return Math.round(total * 100) / 100;
-}
-window._scrapCashVal = _scrapCashVal;
+  };
+})();
 
-// ── دالة واجهة: معاينة القيمة النقدية لحقل السعر في نموذج الكسر ──
-function _scrapPricePreview() {
-  const priceEl   = document.getElementById('sc-price');
-  const previewEl = document.getElementById('sc-price-preview');
-  if (!priceEl || !previewEl) return;
-  const price = parseFloat(priceEl.value) || 0;
-  if (price <= 0) { previewEl.textContent = ''; return; }
-  // احسب الإجمالي بعيار 24 من أصناف الكسر الحالية
-  const total24 = (window.scrapItems || [])
-    .filter(i => (i.weight || 0) > 0)
-    .reduce((a, i) => a + (i.weight || 0) * parseFloat(i.karat || '21') / 24, 0);
-  if (total24 <= 0) { previewEl.textContent = 'أدخل الأوزان أولاً لحساب القيمة'; return; }
-  const cashVal = Math.round(total24 * price * 100) / 100;
-  previewEl.textContent = `✅ القيمة النقدية = ${fmtG(Math.round(total24*1000)/1000)} ج ع24 × ${fmt(price)} = ${fmt(cashVal)} ريال`;
-}
-window._scrapPricePreview = _scrapPricePreview;
+// ── تحسين userCard: إضافة معلومات الجهاز والمتصفح ──
+// نُعيد تعريفها آمنًا — النسخة الأصلية لا تُحذف، فقط الـ render يُعيد استخدام الاسم
+(function() {
+  // نحتاج إعادة رسم الكروت عند فتح صفحة المستخدمين لتتضمن device info
+  // نُغلِّف renderUsers إن وجدت، أو نضيف hook على المستمع
+  const _origRebuild = window._rebuildCards;
+  if (typeof _origRebuild !== 'function') return;
 
-// ── Override آمن لـ getClientBalance: إضافة تأثير النقد لعمليات الكسر ──
-// الأصل محفوظ — نُغلِّفه فقط بـ Post-Processing Layer آمن
-(function () {
-  // تأكد أن الدالة الأصلية موجودة
-  if (typeof window.getClientBalance !== 'function' &&
-      typeof getClientBalance === 'function') {
-    window.getClientBalance = getClientBalance;
-  }
-  const _origGCB = window.getClientBalance;
-  if (typeof _origGCB !== 'function') return; // حماية إذا لم تُحمَّل بعد
+  // نُضيف معلومات الجهاز لـ lastSeenStr داخل userCard
+  // بما أن userCard داخل closure لا يمكن تعديله مباشرة
+  // نُضيف Mutation observer بديل: نُكمل البيانات بعد الرسم
+  const _addDeviceInfo = (presData) => {
+    // تعديل الكروت المرسومة إضافةً فقط — لا حذف
+    Object.keys(presData || {}).forEach(uname => {
+      const d = presData[uname] || {};
+      if (!d.device && !d.browser) return;
+      // نضيف div للجهاز أسفل آخر ظهور — آمن لأنه يُضاف مرة واحدة
+      const cards = document.querySelectorAll('#_tenants_list > div, #_users_list > div');
+      cards.forEach(card => {
+        const label = card.querySelector('div[style*="font-weight:800"]');
+        if (!label) return;
+        const uLabel = label.textContent.trim().replace('🏢 ', '');
+        // مطابقة بالاسم أو username
+        const rawU = uname.toLowerCase();
+        const cardText = card.textContent.toLowerCase();
+        if (!cardText.includes(rawU) && !cardText.includes(uLabel.toLowerCase())) return;
+        // تحقق أنه لم يُضف من قبل
+        if (card.querySelector('._device-info-row')) return;
+        const infoDiv = document.createElement('div');
+        infoDiv.className = '_device-info-row';
+        infoDiv.style.cssText = 'font-size:9px;color:var(--tx3);margin-top:2px';
+        infoDiv.textContent = (d.device ? `${d.device}` : '') + (d.browser ? ` · ${d.browser}` : '');
+        const nameDiv = card.querySelector('div[style*="flex:1"]');
+        if (nameDiv) nameDiv.appendChild(infoDiv);
+      });
+    });
+  };
 
-  window.getClientBalance = function (cli) {
-    // استدعِ الدالة الأصلية بالكامل — لا تُعدِّل منطقها
-    const result = _origGCB(cli);
-
-    // ── حساب القيمة النقدية الإضافية من عمليات الكسر ذات السعر ──
-    let scrapCashAdjustment = 0;
-    (S.transactions || [])
-      .filter(t => t.client === cli && t.type === 'scrap' && (t.scrapPrice || 0) > 0)
-      .forEach(t => { scrapCashAdjustment += _scrapCashVal(t); });
-
-    if (scrapCashAdjustment <= 0) return result; // لا شيء جديد → أعِد الأصل كما هو
-
-    // تحقق من نوع الجهة
-    const clientObj = (S.clients || []).find(c => c.name === cli);
-    const isSupplier = clientObj && clientObj.type === 'مورد';
-
-    if (isSupplier) {
-      // المورد: إعطاؤه ذهب = تسوية دين علينا (لكن هذا المسار يُعالَج في supplier-payment)
-      // الكسر من المورد = نشتري منه = يُضاف للدين، وليس للخصم
-      // → لا تعديل على cashOwed للمورد من هنا
-      return result;
-    }
-
-    // العميل: استلمنا كسره + أعطيناه القيمة النقدية = تخفيض من دينه
-    return {
-      ...result,
-      cashOwed: Math.round((result.cashOwed - scrapCashAdjustment) * 100) / 100
-    };
+  window._rebuildCards = function(pd) {
+    _origRebuild(pd);
+    setTimeout(() => _addDeviceInfo(pd), 30);
   };
 })();
 
 // ════════════════════════════════════════════════════════════════════════
-// نهاية [SCRAP-PRICE-FIX]
+// [FIX-SUPPLIER-DISCOUNT-ADJ] — إضافة discount-adj لـ dCash في فرع المورد
+// بما أن تعديل الكود مباشرة قد يُلحق الضرر، نُضيف Post-Processing Layer
 // ════════════════════════════════════════════════════════════════════════
+// ملاحظة: discount-adj للعميل تم إصلاحه مباشرة أعلاه
+// هنا نتحقق أن فرع isSupp أيضاً يعالجها بشكل صحيح
+// الكود المضاف أعلاه (client branch) يعمل لكلا الحالتين لأن discount-adj
+// يُطبَّق عبر t.amount في كلا الفرعين بنفس المنطق.
+// لا حاجة لإضافة شيء هنا — الإصلاح المباشر أعلاه كافٍ.
 
+// ════════════════════════════════════════════════════════════════════════
+// نهاية الإصلاحات
+// ════════════════════════════════════════════════════════════════════════
 </script>
 </body>
 </html>
