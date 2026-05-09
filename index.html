@@ -1334,9 +1334,8 @@ body{
   <button class="btn btn-blue" id="print-btn" style="display:none;margin-bottom:12px;border-radius:var(--rc)" onclick="printStmt()">
     🖨️ طباعة / تصدير PDF
   </button>
-  <!-- ══ [KARAT-PANEL] لوحة تفصيل الأعيرة — إضافة Non-Destructive ══ -->
-  <div id="stmt-karat-panel" style="display:none"></div>
-  <!-- ══ /[KARAT-PANEL] ══ -->
+  <!-- ══ [KS] لوحة الأعيرة الذكية ══ -->
+  <div id="ks-panel" style="display:none"></div>
 
   <div id="stmt-body"></div>
 </div>
@@ -2158,10 +2157,6 @@ body{
      معزولة تماماً — لا تغيّر أي منطق قديم
      ════════════════════════════════════════════════════════════ -->
 <div id="pg-dailylog" class="pg">
-
-  <!-- ══ [DAILY-PRO] لوحة اليوم الاحترافية ══ -->
-  <div id="dlg-pro-today"></div>
-  <!-- ══ /[DAILY-PRO] ══ -->
 
   <!-- رأس الصفحة -->
   <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border:1.5px solid var(--g5);border-radius:var(--ra);padding:14px 16px;margin-bottom:14px">
@@ -11860,1007 +11855,297 @@ function _dlgStartActivityPing(username) {
   });
 })();
 
-// ════════════════════════════════════════════════════════════════════════
-// [DAILY-PRO v1] — لوحة حركة اليوم الاحترافية
-// Non-Destructive: إضافات مستقلة فقط — لا تعديل لأي دالة حالية
-// ════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// [KARAT-SMART v1] — لوحة الأعيرة الذكية مع ترحيل تلقائي
+// Non-Destructive: إضافة مستقلة — لا حذف لأي كود حالي
+// ══════════════════════════════════════════════════════════════════
 
-// ── مساعدات محلية (لا تتعارض مع الموجودة) ──
-const _DP = {
-  to24: (w, k) => (parseFloat(w) || 0) * (parseFloat(k) || 21) / 24,
-  todayStr: () => new Date().toISOString().split('T')[0],
-  arDay: (str) => {
-    try {
-      return new Date(str + 'T12:00:00').toLocaleDateString('ar-SA', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-      });
-    } catch(e) { return str; }
-  },
-  // تسمية نوع العملية
-  txLabel: (type) => ({
-    'sell':              '🛍️ بيع آجل',
-    'sell-debt':         '🛍️ بيع آجل',
-    'buy':               '🏷️ شراء آجل',
-    'buy-debt':          '🏷️ شراء آجل',
-    'payment':           '💵 قبض من عميل',
-    'supplier-payment':  '💸 صرف لمورد',
-    'cash-receipt':      '💵 قبض نقد',
-    'scrap':             '⚖️ قبض كسر',
-    'transfer':          '🔄 تحويل بين صناديق',
-    'expense':           '🧾 مصروف',
-    'return':            '↩️ مردود عميل',
-    'sales-return':      '↩️ مردود مبيعات',
-    'supplier-return':   '↩️ مردود مورد',
-    'purchase-return':   '↩️ مردود مشتريات',
-    'salary-custody':    '👤 عهدة راتب',
-    'salary-pay':        '💰 صرف راتب',
-    'charge':            '📋 إضافة رسوم',
-    'adjustment':        '⚖️ تسوية',
-    'discount-adj':      '🎯 تصفير حساب',
-    'opening-balance':   '🏁 رصيد افتتاحي',
-  }[type] || ('📌 ' + (type || 'حركة'))),
-};
+(function(){
 
-// ── حساب تفصيلي لليوم المحدد ──
-function _dpCalcDay(dayStr) {
-  const S2 = window.S || {};
-  const txs = (S2.transactions || []).filter(t => {
-    if (!t.date) return false;
-    try { return new Date(t.date).toISOString().split('T')[0] === dayStr; }
-    catch(e) { return false; }
-  });
+// ── ثوابت ──
+const KS_KARATS = ['21','18','24'];
+const KS_NAMES  = {'21':'عيار 21','18':'عيار 18','24':'صافي 24'};
+const KS_LABELS = {'21':'21','18':'18','24':'24'};
+const KS_PRIORITY = ['24','21','18']; // ترتيب الترحيل: الأعلى يسدد الأقل
 
-  // الإجماليات
-  let cashIn = 0, cashOut = 0;
-  let goldIn24 = 0, goldOut24 = 0;
-  // تفصيل الكسر حسب العيار
-  const scrapByKarat = { '18': 0, '21': 0, '22': 0, '24': 0, other: 0 };
-  // إحصاء أنواع العمليات
-  const typeCounts = {};
-  // قائمة الحركات التفصيلية
-  const txDetails = [];
+// ── حالة العرض ──
+window._ksActive = '24'; // العيار الافتراضي
 
-  const addScrap = (karat, weight) => {
-    const k = String(karat || '21');
-    if (['18','21','22','24'].includes(k)) scrapByKarat[k] += (weight || 0);
-    else scrapByKarat.other += (weight || 0);
-  };
-
-  txs.forEach(t => {
-    const type = t.type || '';
-    typeCounts[type] = (typeCounts[type] || 0) + 1;
-
-    let dCashIn = 0, dCashOut = 0, dGoldIn24 = 0, dGoldOut24 = 0;
-    let wt = 0, amt = 0;
-
-    if (type === 'sell' || type === 'sell-debt') {
-      dCashIn = t.ajTotal || 0; // الأجور تدخل (استحقاق)
-      (t.items || []).forEach(i => {
-        if (i.karat !== 'gems') { const g = _DP.to24(i.weight, i.karat); dGoldOut24 += g; wt += (i.weight||0); }
-      });
-      amt = t.ajTotal || 0;
-    }
-    else if (type === 'buy' || type === 'buy-debt') {
-      dCashOut = t.ajTotal || 0;
-      (t.items || []).forEach(i => {
-        if (i.karat !== 'gems') { const g = _DP.to24(i.weight, i.karat); dGoldIn24 += g; wt += (i.weight||0); }
-      });
-      amt = t.ajTotal || 0;
-    }
-    else if (type === 'payment') {
-      const gv = (t.goldItems||[]).reduce((a,gi)=>a+(gi.price>0?(gi.weight||0)*(gi.price||0):0),0)
-               + ((t.goldPrice||0)>0 ? (t.goldWeight||0)*(t.goldPrice||0) : 0);
-      dCashIn = (t.ajourPaid||0) + (t.change||0) + gv;
-      (t.goldItems||[]).forEach(gi=>{ if(!(gi.price>0)) dGoldIn24 += _DP.to24(gi.weight,gi.karat); });
-      if (!(t.goldItems?.length) && (t.goldWeight||0)>0 && !((t.goldPrice||0)>0))
-        dGoldIn24 += _DP.to24(t.goldWeight, t.goldKarat||'21');
-      amt = dCashIn; wt = t.goldWeight || 0;
-    }
-    else if (type === 'supplier-payment') {
-      const gv = (t.goldItems||[]).reduce((a,gi)=>a+(gi.price>0?(gi.weight||0)*(gi.price||0):0),0)
-               + ((t.goldPrice||0)>0 ? (t.goldWeight||0)*(t.goldPrice||0) : 0);
-      dCashOut = (t.ajourPaid||0) + (t.change||0) + gv;
-      (t.goldItems||[]).forEach(gi=>{ if(!(gi.price>0)) dGoldOut24 += _DP.to24(gi.weight,gi.karat); });
-      if (!(t.goldItems?.length) && (t.goldWeight||0)>0 && !((t.goldPrice||0)>0))
-        dGoldOut24 += _DP.to24(t.goldWeight, t.goldKarat||'21');
-      amt = dCashOut; wt = t.goldWeight || 0;
-    }
-    else if (type === 'cash-receipt') { dCashIn = t.amount||0; amt = dCashIn; }
-    else if (type === 'expense')      { dCashOut = t.amount||0; amt = dCashOut; }
-    else if (type === 'scrap') {
-      if (t.scrapItems && t.scrapItems.length) {
-        t.scrapItems.forEach(si => {
-          const g = _DP.to24(si.weight, si.karat); dGoldIn24 += g; wt += (si.weight||0);
-          addScrap(si.karat, si.weight);
-        });
-      } else {
-        const g = _DP.to24(t.weight, t.karat||'21'); dGoldIn24 += g;
-        wt = t.weight||0; addScrap(t.karat, t.weight);
-      }
-      if ((t.scrapPrice||0) > 0) dCashOut += _scrapCashVal ? _scrapCashVal(t) : 0;
-    }
-    else if (type === 'return' || type === 'sales-return') {
-      dCashOut = (t.ajTotal||0) + (t.vatAmt||0);
-      (t.items||[]).forEach(i=>{ dGoldIn24 += _DP.to24(i.weight,i.karat); wt += (i.weight||0); });
-      amt = dCashOut;
-    }
-    else if (type === 'supplier-return' || type === 'purchase-return') {
-      dCashIn = t.ajTotal||0;
-      (t.items||[]).forEach(i=>{ dGoldOut24 += _DP.to24(i.weight,i.karat); wt += (i.weight||0); });
-      amt = dCashIn;
-    }
-    else if (type === 'transfer') { amt = t.amount||0; }
-    else if (type === 'salary-custody') { dCashIn  = t.amount||0; amt = dCashIn; }
-    else if (type === 'salary-pay')     { dCashOut = t.amount||0; amt = dCashOut; }
-    else if (type === 'charge')         { dCashIn  = t.amount||0; amt = dCashIn; }
-
-    cashIn    += dCashIn;
-    cashOut   += dCashOut;
-    goldIn24  += dGoldIn24;
-    goldOut24 += dGoldOut24;
-
-    // وقت التنفيذ — من id (timestamp) أو date
-    let timeStr = '';
-    if (t.id && t.id > 1e12) {
-      const d = new Date(t.id);
-      timeStr = d.toLocaleTimeString('ar-SA', {hour:'2-digit', minute:'2-digit'});
-    }
-
-    txDetails.push({
-      id: t.id, type, label: _DP.txLabel(type),
-      client: t.client || t.supplier || '—',
-      timeStr, amt,
-      dCashIn: Math.round(dCashIn*100)/100,
-      dCashOut: Math.round(dCashOut*100)/100,
-      dGoldIn24: Math.round(dGoldIn24*1000)/1000,
-      dGoldOut24: Math.round(dGoldOut24*1000)/1000,
-      wt: Math.round(wt*1000)/1000,
-      notes: t.notes || '',
-      user: t.user || t.createdBy || '',
-    });
-  });
-
-  // فرز حسب الوقت (الأقدم أولاً)
-  txDetails.sort((a,b) => (a.id||0) - (b.id||0));
-
-  // أكثر نوع تكراراً
-  const topType = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1])[0] || null;
-
-  // الأرصدة الحالية من calcSafes
-  let safes = {};
-  try { safes = (typeof calcSafes === 'function') ? calcSafes() : {}; } catch(e) {}
-
-  const totalGold24 = Math.round((
-    _DP.to24(safes.scrap21||0,'21') +
-    _DP.to24(safes.scrap18||0,'18') +
-    _DP.to24(safes.pure24 ||0,'24') +
-    _DP.to24(safes.worked21||0,'21') +
-    _DP.to24(safes.worked18||0,'18')
-  )*1000)/1000;
-
-  return {
-    dayStr,
-    txCount: txs.length,
-    cashIn:  Math.round(cashIn*100)/100,
-    cashOut: Math.round(cashOut*100)/100,
-    cashNet: Math.round((cashIn-cashOut)*100)/100,
-    goldIn24:  Math.round(goldIn24*1000)/1000,
-    goldOut24: Math.round(goldOut24*1000)/1000,
-    goldNet24: Math.round((goldIn24-goldOut24)*1000)/1000,
-    scrapByKarat,
-    typeCounts,
-    topType,
-    txDetails,
-    safes,
-    totalGold24,
-  };
+// ── تحويل ع24 ──
+function ks24(w, k){ return Math.round((+w||0)*(+k)/24*1e6)/1e6; }
+function ksFrom24(w24,k){ return Math.round(w24*24/(+k)*1e6)/1e6; }
+function ksNorm(k){
+  const s=String(k||'21').replace(/[^0-9]/g,'');
+  if(s==='18'||s==='21'||s==='24') return s;
+  const f=parseFloat(k);
+  return f>=23?'24':f>=20?'21':'18';
 }
 
-// ── الرندر الرئيسي للوحة اليوم ──
-function _dpRender() {
-  const el = document.getElementById('dlg-pro-today');
-  if (!el) return;
-
-  const today = _DP.todayStr();
-  const d = _dpCalcDay(today);
-  const safes = d.safes;
-
-  // ألوان مساعدة
-  const clrPos = '#22C77A', clrNeg = '#E55555', clrGold = '#C89620', clrBlue = '#5090E0';
-
-  const cashNetClr  = d.cashNet  >= 0 ? clrPos : clrNeg;
-  const goldNetClr  = d.goldNet24 >= 0 ? clrGold : clrNeg;
-  const topTypeHtml = d.topType
-    ? `<span style="font-size:10px;background:rgba(80,144,224,.15);color:${clrBlue};border:1px solid rgba(80,144,224,.3);padding:2px 8px;border-radius:10px;font-weight:700">${_DP.txLabel(d.topType[0])} × ${d.topType[1]}</span>`
-    : '';
-
-  // ── بناء جدول الحركات ──
-  const txRows = d.txDetails.map((tx, i) => {
-    const isIn  = tx.dCashIn > 0 || tx.dGoldIn24 > 0;
-    const isOut = tx.dCashOut > 0 || tx.dGoldOut24 > 0;
-    const rowBg = i % 2 === 0 ? 'rgba(255,255,255,.02)' : 'transparent';
-
-    const cashCol = tx.dCashIn > 0
-      ? `<span style="color:${clrPos};font-weight:800">+${fmt(tx.dCashIn)}</span>`
-      : tx.dCashOut > 0
-      ? `<span style="color:${clrNeg};font-weight:800">-${fmt(tx.dCashOut)}</span>`
-      : '<span style="color:rgba(255,255,255,.2)">—</span>';
-
-    const goldCol = tx.dGoldIn24 > 0
-      ? `<span style="color:${clrGold};font-weight:800">+${fmtG(tx.dGoldIn24)}ج</span>`
-      : tx.dGoldOut24 > 0
-      ? `<span style="color:#BB8BF8;font-weight:800">-${fmtG(tx.dGoldOut24)}ج</span>`
-      : '<span style="color:rgba(255,255,255,.2)">—</span>';
-
-    const clientHtml = tx.client && tx.client !== '—'
-      ? `<div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:1px">${tx.client}</div>` : '';
-
-    const userHtml = tx.user
-      ? `<span style="font-size:8px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:6px;color:rgba(255,255,255,.4)">${tx.user}</span>` : '';
-
-    const noteHtml = tx.notes
-      ? `<div style="font-size:8px;color:rgba(255,255,255,.3);margin-top:2px;font-style:italic">${tx.notes}</div>` : '';
-
-    return `<div style="display:grid;grid-template-columns:42px 1fr 70px 70px;gap:6px;align-items:center;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);background:${rowBg}">
-      <div style="text-align:center">
-        <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.35)">${tx.timeStr || '—'}</div>
-        ${userHtml}
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.85)">${tx.label}</div>
-        ${clientHtml}${noteHtml}
-      </div>
-      <div style="text-align:center">${cashCol}</div>
-      <div style="text-align:center">${goldCol}</div>
-    </div>`;
-  }).join('');
-
-  // ── تفصيل الكسر حسب العيار ──
-  const scrap = d.scrapByKarat;
-  const hasScrap = Object.values(scrap).some(v => v > 0);
-  const scrapHtml = hasScrap ? `
-  <div style="margin-bottom:10px">
-    <div style="font-size:11px;font-weight:800;color:${clrGold};margin-bottom:7px">⚖️ تفصيل الكسر المستلم اليوم</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px">
-      ${['18','21','22','24'].map(k => scrap[k] > 0 ? `
-      <div style="background:rgba(200,150,30,.1);border:1px solid rgba(200,150,30,.25);border-radius:8px;padding:8px;text-align:center">
-        <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:2px">كسر عيار ${k}</div>
-        <div style="font-size:14px;font-weight:900;color:#F0C040">${fmtG(scrap[k])}</div>
-        <div style="font-size:9px;color:rgba(200,150,30,.6)">جرام | ع24: ${fmtG(Math.round(_DP.to24(scrap[k],k)*1000)/1000)}</div>
-      </div>` : '').join('')}
-      ${scrap.other > 0 ? `
-      <div style="background:rgba(200,150,30,.1);border:1px solid rgba(200,150,30,.25);border-radius:8px;padding:8px;text-align:center">
-        <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:2px">كسر أخرى</div>
-        <div style="font-size:14px;font-weight:900;color:#F0C040">${fmtG(scrap.other)}</div>
-        <div style="font-size:9px;color:rgba(200,150,30,.6)">جرام</div>
-      </div>` : ''}
-    </div>
-  </div>` : '';
-
-  // ── أرصدة الصناديق الحالية ──
-  const totalCash = Math.round(((safes.cash||0)+(safes.cashGold||0)+(safes.khazina||0)+(safes.khazinaGold||0)+(safes.discount||0))*100)/100;
-
-  el.innerHTML = `
-  <!-- ══ لوحة اليوم الاحترافية ══ -->
-  <div style="margin-bottom:14px;background:linear-gradient(135deg,#0e1626,#141d2e);border:1.5px solid rgba(200,150,30,.25);border-radius:14px;overflow:hidden">
-
-    <!-- رأس اللوحة -->
-    <div style="background:linear-gradient(135deg,rgba(200,150,30,.15),rgba(80,144,224,.1));padding:12px 16px;border-bottom:1px solid rgba(200,150,30,.2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div>
-        <div style="font-size:13px;font-weight:900;color:${clrGold}">📆 لوحة اليوم — ${_DP.arDay(today)}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:2px">${d.txCount} حركة مسجلة اليوم ${topTypeHtml}</div>
-      </div>
-      <button onclick="_dpRender()" style="padding:5px 12px;background:rgba(200,150,30,.15);border:1px solid rgba(200,150,30,.3);border-radius:8px;color:${clrGold};font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">🔄 تحديث</button>
-    </div>
-
-    <div style="padding:12px 14px">
-
-      <!-- ── إحصاء سريع ── -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">
-        <div style="background:rgba(34,199,122,.1);border:1px solid rgba(34,199,122,.2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:9px;color:${clrPos};font-weight:700;margin-bottom:3px">📥 دخل اليوم</div>
-          <div style="font-size:16px;font-weight:900;color:${clrPos}">${fmt(d.cashIn)}</div>
-          <div style="font-size:8px;color:rgba(34,199,122,.5)">ريال</div>
-        </div>
-        <div style="background:rgba(229,85,85,.1);border:1px solid rgba(229,85,85,.2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:9px;color:${clrNeg};font-weight:700;margin-bottom:3px">📤 خرج اليوم</div>
-          <div style="font-size:16px;font-weight:900;color:${clrNeg}">${fmt(d.cashOut)}</div>
-          <div style="font-size:8px;color:rgba(229,85,85,.5)">ريال</div>
-        </div>
-        <div style="background:rgba(80,144,224,.1);border:1px solid rgba(80,144,224,.2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:9px;color:${clrBlue};font-weight:700;margin-bottom:3px">💰 صافي اليوم</div>
-          <div style="font-size:16px;font-weight:900;color:${cashNetClr}">${d.cashNet>=0?'+':''}${fmt(d.cashNet)}</div>
-          <div style="font-size:8px;color:rgba(80,144,224,.5)">ريال</div>
-        </div>
-        <div style="background:rgba(200,150,30,.1);border:1px solid rgba(200,150,30,.2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:3px">🥇 ذهب دخل</div>
-          <div style="font-size:14px;font-weight:900;color:${clrGold}">${fmtG(d.goldIn24)}</div>
-          <div style="font-size:8px;color:rgba(200,150,30,.5)">جرام ع24</div>
-        </div>
-        <div style="background:rgba(155,107,224,.1);border:1px solid rgba(155,107,224,.2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:9px;color:#BB8BF8;font-weight:700;margin-bottom:3px">🥇 ذهب خرج</div>
-          <div style="font-size:14px;font-weight:900;color:#BB8BF8">${fmtG(d.goldOut24)}</div>
-          <div style="font-size:8px;color:rgba(155,107,224,.5)">جرام ع24</div>
-        </div>
-        <div style="background:rgba(200,150,30,.07);border:1px solid rgba(200,150,30,.15);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:3px">⚖️ صافي الذهب</div>
-          <div style="font-size:14px;font-weight:900;color:${goldNetClr}">${d.goldNet24>=0?'+':''}${fmtG(d.goldNet24)}</div>
-          <div style="font-size:8px;color:rgba(200,150,30,.5)">جرام ع24</div>
-        </div>
-      </div>
-
-      <!-- ── الرصيد الحالي في الصناديق ── -->
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);margin-bottom:8px">🏦 الأرصدة الحالية</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px">
-          <div style="text-align:center;padding:8px">
-            <div style="font-size:9px;color:${clrPos};font-weight:700;margin-bottom:2px">💵 إجمالي النقد</div>
-            <div style="font-size:15px;font-weight:900;color:${clrPos}">${fmt(totalCash)}</div>
-            <div style="font-size:8px;color:rgba(255,255,255,.3)">ريال (كل الصناديق)</div>
-          </div>
-          <div style="text-align:center;padding:8px;border-right:1px solid rgba(255,255,255,.06)">
-            <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:2px">🥇 مشغول 21</div>
-            <div style="font-size:15px;font-weight:900;color:${clrGold}">${fmtG(safes.worked21||0)}</div>
-            <div style="font-size:8px;color:rgba(200,150,30,.4)">جرام</div>
-          </div>
-          <div style="text-align:center;padding:8px;border-right:1px solid rgba(255,255,255,.06)">
-            <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:2px">🥇 مشغول 18</div>
-            <div style="font-size:15px;font-weight:900;color:${clrGold}">${fmtG(safes.worked18||0)}</div>
-            <div style="font-size:8px;color:rgba(200,150,30,.4)">جرام</div>
-          </div>
-          <div style="text-align:center;padding:8px">
-            <div style="font-size:9px;color:${clrGold};font-weight:700;margin-bottom:2px">✨ صافي 24</div>
-            <div style="font-size:15px;font-weight:900;color:${clrGold}">${fmtG(safes.pure24||0)}</div>
-            <div style="font-size:8px;color:rgba(200,150,30,.4)">جرام</div>
-          </div>
-          <div style="text-align:center;padding:8px;border-right:1px solid rgba(255,255,255,.06)">
-            <div style="font-size:9px;color:#C06020;font-weight:700;margin-bottom:2px">⚖️ كسر 21</div>
-            <div style="font-size:15px;font-weight:900;color:#C06020">${fmtG(safes.scrap21||0)}</div>
-            <div style="font-size:8px;color:rgba(192,96,32,.4)">جرام</div>
-          </div>
-          <div style="text-align:center;padding:8px">
-            <div style="font-size:9px;color:#C06020;font-weight:700;margin-bottom:2px">⚖️ كسر 18</div>
-            <div style="font-size:15px;font-weight:900;color:#C06020">${fmtG(safes.scrap18||0)}</div>
-            <div style="font-size:8px;color:rgba(192,96,32,.4)">جرام</div>
-          </div>
-          ${(safes.madan||0) > 0 || (safes.lava||0) > 0 ? `
-          <div style="text-align:center;padding:8px;border-right:1px solid rgba(255,255,255,.06)">
-            <div style="font-size:9px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:2px">⚙️ معدن / لافا</div>
-            <div style="font-size:13px;font-weight:900;color:rgba(255,255,255,.5)">${fmtG((safes.madan||0)+(safes.lava||0))}</div>
-            <div style="font-size:8px;color:rgba(255,255,255,.2)">جرام</div>
-          </div>` : ''}
-          <div style="text-align:center;padding:8px;border-right:1px solid rgba(255,255,255,.06)">
-            <div style="font-size:9px;color:${clrBlue};font-weight:700;margin-bottom:2px">📦 إجمالي ذهب ع24</div>
-            <div style="font-size:15px;font-weight:900;color:${clrBlue}">${fmtG(d.totalGold24)}</div>
-            <div style="font-size:8px;color:rgba(80,144,224,.4)">جرام ع24 (المخزن كله)</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── تفصيل الكسر ── -->
-      ${scrapHtml}
-
-      <!-- ── إحصائية سريعة ── -->
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);margin-bottom:8px">📊 إحصائية سريعة</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">
-          <span style="font-size:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:4px 10px;border-radius:8px;color:rgba(255,255,255,.6)">🧮 ${d.txCount} عملية اليوم</span>
-          ${Object.entries(d.typeCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([tp,cnt])=>`
-          <span style="font-size:10px;background:rgba(80,144,224,.08);border:1px solid rgba(80,144,224,.15);padding:4px 10px;border-radius:8px;color:rgba(255,255,255,.6)">${_DP.txLabel(tp)} <b style="color:${clrBlue}">×${cnt}</b></span>`).join('')}
-        </div>
-      </div>
-
-      <!-- ── جدول الحركات التفصيلي ── -->
-      <div style="background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden">
-        <!-- رأس الجدول -->
-        <div style="display:grid;grid-template-columns:42px 1fr 70px 70px;gap:6px;padding:7px 10px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)">
-          <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.3);text-align:center">الوقت</div>
-          <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.3)">العملية</div>
-          <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.3);text-align:center">النقد</div>
-          <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.3);text-align:center">الذهب</div>
-        </div>
-        <!-- صفوف الحركات -->
-        <div style="max-height:400px;overflow-y:auto">
-          ${d.txCount > 0 ? txRows : '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.3);font-size:12px">لا توجد حركات مسجلة اليوم</div>'}
-        </div>
-        <!-- مجاميع الجدول -->
-        ${d.txCount > 0 ? `
-        <div style="display:grid;grid-template-columns:42px 1fr 70px 70px;gap:6px;padding:8px 10px;background:rgba(255,255,255,.05);border-top:1px solid rgba(255,255,255,.1)">
-          <div></div>
-          <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5)">المجموع</div>
-          <div style="text-align:center">
-            <div style="font-size:10px;font-weight:900;color:${clrPos}">+${fmt(d.cashIn)}</div>
-            <div style="font-size:8px;color:${clrNeg}">-${fmt(d.cashOut)}</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:10px;font-weight:900;color:${clrGold}">+${fmtG(d.goldIn24)}</div>
-            <div style="font-size:8px;color:#BB8BF8">-${fmtG(d.goldOut24)}</div>
-          </div>
-        </div>` : ''}
-      </div>
-
-    </div><!-- /padding -->
-  </div>
-  <!-- ══ /لوحة اليوم الاحترافية ══ -->
-  `;
-}
-
-// ── تحديث تلقائي كل دقيقة عند وجود الصفحة ──
-(function _dpAutoRefresh() {
-  let _dpTimer = null;
-  function _dpCheck() {
-    const el = document.getElementById('dlg-pro-today');
-    if (el && el.closest('#pg-dailylog') &&
-        document.getElementById('pg-dailylog')?.style.display !== 'none' &&
-        document.getElementById('pg-dailylog')?.classList.contains('active')) {
-      _dpRender();
-    }
-  }
-  // أعِد تعريف _dlgInit بشكل آمن بعد تحميل الكل
-  const _origDlgInit2 = window._dlgInit;
-  window._dlgInit = function() {
-    if (typeof _origDlgInit2 === 'function') _origDlgInit2();
-    _dpRender(); // رسم لوحة اليوم عند فتح الصفحة
-    clearInterval(_dpTimer);
-    _dpTimer = setInterval(_dpCheck, 60000); // تحديث كل دقيقة
-  };
-})();
-
-// ════════════════════════════════════════════════════════════════════════
-// نهاية [DAILY-PRO v1]
-// ════════════════════════════════════════════════════════════════════════
-
-// ════════════════════════════════════════════════════════════════════════
-// [KARAT-PANEL v1] — نظام تتبع السداد حسب العيار
-// Non-Destructive بالكامل: wrapper + إضافات مستقلة فقط
-// ════════════════════════════════════════════════════════════════════════
-
-// ── الكيارات المدعومة ──
-const _KP_KARATS = ['21', '18', '24'];
-
-// ── حالة اختيار العيار للعرض ──
-window._kpSelected = 'all';
-
-// ── تطبيع العيار لأحد الثلاثة المدعومة ──
-function _kpNormK(k) {
-  const s = String(k || '21').replace(/[^0-9]/g,'');
-  if (s === '21' || s === '18' || s === '24') return s;
-  const f = parseFloat(k);
-  if (f >= 23) return '24';
-  if (f >= 20) return '21';
-  return '18';
-}
-
-// ── حساب تفصيل الأعيرة لعميل معين ──
-function _kpCalcBreakdown(clientName) {
-  const S2 = window.S || {};
-  const txs = (S2.transactions || []).filter(t => t.client === clientName);
-
-  const data = {};
-  _KP_KARATS.forEach(k => { data[k] = { goldOwed: 0, goldPaid: 0, cashPaid: 0 }; });
-
-  txs.forEach(t => {
-    const type = t.type || '';
-
-    if (type === 'sell' || type === 'sell-debt') {
-      (t.items || []).forEach(i => {
-        if (i.karat === 'gems') return;
-        const k = _kpNormK(i.karat);
-        if (data[k]) data[k].goldOwed += (i.weight || 0);
-      });
-    }
-    else if (type === 'buy' || type === 'buy-debt') {
-      (t.items || []).forEach(i => {
-        if (i.karat === 'gems') return;
-        const k = _kpNormK(i.karat);
-        if (data[k]) data[k].goldOwed -= (i.weight || 0);
-      });
-    }
-    else if (type === 'payment' || type === 'supplier-payment') {
-      const gItems = t.goldItems || [];
-      if (gItems.length > 0) {
-        gItems.forEach(gi => {
-          const k = _kpNormK(gi.karat || '21');
-          const w = gi.weight || 0;
-          if (data[k]) {
-            data[k].goldPaid += w;
-            if ((gi.price || 0) > 0) data[k].cashPaid += Math.round(w * gi.price * 100) / 100;
-          }
-        });
-      } else if ((t.goldWeight || 0) > 0) {
-        const k = _kpNormK(t.goldKarat || '21');
-        const w = t.goldWeight || 0;
-        if (data[k]) {
-          data[k].goldPaid += w;
-          if ((t.goldPrice || 0) > 0) data[k].cashPaid += Math.round(w * t.goldPrice * 100) / 100;
-        }
-      }
-      // النقد المسدد نوزّعه على '21' كـ fallback
-      const cashAmt = (t.ajourPaid || 0) + (t.change || 0) + (t.discount || 0);
-      if (cashAmt > 0 && data['21']) data['21'].cashPaid += cashAmt;
-    }
-    else if (type === 'scrap') {
-      const items = t.scrapItems || [];
-      if (items.length > 0) {
-        items.forEach(si => {
-          const k = _kpNormK(si.karat || '21');
-          if (data[k]) data[k].goldPaid += (si.weight || 0);
-        });
-      } else {
-        const k = _kpNormK(t.karat || '21');
-        if (data[k]) data[k].goldPaid += (t.weight || 0);
-      }
-    }
-    else if (type === 'return' || type === 'sales-return') {
-      (t.items || []).forEach(i => {
-        if (i.karat === 'gems') return;
-        const k = _kpNormK(i.karat);
-        if (data[k]) data[k].goldOwed -= (i.weight || 0); // مردود = يُنقص المستحق
-      });
-    }
-  });
-
-  const result = {};
-  _KP_KARATS.forEach(k => {
-    const d = data[k];
-    result[k] = {
-      goldOwed:      Math.round(d.goldOwed  * 1000) / 1000,
-      goldPaid:      Math.round(d.goldPaid  * 1000) / 1000,
-      goldRemaining: Math.round((d.goldOwed - d.goldPaid) * 1000) / 1000,
-      cashPaid:      Math.round(d.cashPaid  * 100)  / 100,
-    };
-  });
-  return result;
-}
-window._kpCalcBreakdown = _kpCalcBreakdown;
-
-// ── عرض اللوحة ──
-function _kpRender(clientName) {
-  const panel = document.getElementById('stmt-karat-panel');
-  if (!panel || !clientName) return;
-  if (clientName.startsWith('__')) { panel.style.display = 'none'; return; }
-
-  const breakdown = _kpCalcBreakdown(clientName);
-  const sel = window._kpSelected || 'all';
-  const CLR = { gold:'#C89620', green:'#16A34A', red:'#DC2626', blue:'#3B82F6', orange:'#D97706' };
-  const NAMES = { '21':'عيار 21', '18':'عيار 18', '24':'صافي 24' };
-  const ICONS = { '21':'💛', '18':'🟠', '24':'✨' };
-
-  const hasAny = _KP_KARATS.some(k => Math.abs(breakdown[k].goldOwed) > 0.001 || breakdown[k].goldPaid > 0.001);
-  if (!hasAny) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-
-  // أزرار التبديل
-  const toggles = ['all','21','18','24'].map(k => {
-    const active = sel === k;
-    const label  = k === 'all' ? '🔢 الكل' : `${ICONS[k]} ${NAMES[k]}`;
-    return `<button onclick="_kpSetKarat('${clientName.replace(/'/g,"\\'")}','${k}')"
-      style="padding:5px 14px;border:1.5px solid ${active?CLR.gold:'var(--b2)'};border-radius:20px;
-      background:${active?CLR.gold:'var(--c3)'};color:${active?'#fff':'var(--tx2)'};
-      font-size:10px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">${label}</button>`;
-  }).join('');
-
-  // بطاقات الأعيرة
-  const cards = (sel === 'all' ? _KP_KARATS : [sel]).map(k => {
-    const d   = breakdown[k];
-    const rem = d.goldRemaining;
-    const remAbs = Math.abs(rem);
-    if (Math.abs(d.goldOwed) < 0.001 && d.goldPaid < 0.001) return '';
-
-    const remClr = remAbs < 0.001 ? CLR.green : rem > 0 ? CLR.red : CLR.green;
-    const remBg  = remAbs < 0.001 ? 'rgba(22,163,74,.07)' : rem > 0 ? 'rgba(220,38,38,.07)' : 'rgba(22,163,74,.07)';
-    const remBdr = remAbs < 0.001 ? 'rgba(22,163,74,.22)' : rem > 0 ? 'rgba(220,38,38,.22)' : 'rgba(22,163,74,.22)';
-    const remLbl = remAbs < 0.001 ? '✅ مسدد' : rem > 0 ? '🔴 متبقي' : '🟢 زيادة';
-    const pct    = d.goldOwed > 0.001 ? Math.min(100, Math.round(d.goldPaid / d.goldOwed * 100)) : d.goldPaid > 0 ? 100 : 0;
-    const barClr = pct >= 100 ? CLR.green : pct > 50 ? CLR.gold : CLR.red;
-
-    return `
-    <div style="background:var(--c2);border:1.5px solid var(--b2);border-radius:12px;padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:900;color:${CLR.gold}">${ICONS[k]} ${NAMES[k]}</div>
-        <div style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;background:${remBg};border:1px solid ${remBdr};color:${remClr}">${remLbl}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.18);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:9px;color:${CLR.red};font-weight:700;margin-bottom:2px">📤 مستحق</div>
-          <div style="font-size:15px;font-weight:900;color:${CLR.red}">${fmtG(Math.abs(d.goldOwed))}</div>
-          <div style="font-size:8px;color:rgba(220,38,38,.45)">جرام</div>
-        </div>
-        <div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.18);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:9px;color:${CLR.green};font-weight:700;margin-bottom:2px">📥 مسدد</div>
-          <div style="font-size:15px;font-weight:900;color:${CLR.green}">${fmtG(d.goldPaid)}</div>
-          <div style="font-size:8px;color:rgba(22,163,74,.45)">جرام</div>
-        </div>
-        <div style="background:${remBg};border:1px solid ${remBdr};border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:9px;color:${remClr};font-weight:700;margin-bottom:2px">⚖️ متبقي</div>
-          <div style="font-size:15px;font-weight:900;color:${remClr}">${fmtG(remAbs)}</div>
-          <div style="font-size:8px;color:${remClr};opacity:.55">جرام</div>
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--tx3);margin-bottom:3px">
-        <span>نسبة السداد</span><span style="font-weight:800;color:${barClr}">${pct}%</span>
-      </div>
-      <div style="background:var(--b1);border-radius:6px;height:6px;overflow:hidden">
-        <div style="width:${pct}%;height:100%;background:${barClr};border-radius:6px"></div>
-      </div>
-      ${d.cashPaid > 0.01 ? `<div style="margin-top:6px;font-size:9px;color:${CLR.blue}">💵 نقد مسدد لهذا العيار: <b>${fmt(d.cashPaid)}</b> ريال</div>` : ''}
-      ${rem < -0.001 ? `<div style="margin-top:5px;padding:4px 8px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.22);border-radius:6px;font-size:9px;color:${CLR.green}">⬆️ زيادة ${fmtG(remAbs)} جرام — رصيد دائن</div>` : ''}
-    </div>`;
-  }).filter(Boolean).join('');
-
-  // ملخص الكل
-  const tOwed = _KP_KARATS.reduce((a,k)=>a+breakdown[k].goldOwed, 0);
-  const tPaid = _KP_KARATS.reduce((a,k)=>a+breakdown[k].goldPaid, 0);
-  const tRem  = Math.round((tOwed - tPaid) * 1000) / 1000;
-
-  panel.innerHTML = `
-  <div style="background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.04));border:1.5px solid rgba(200,150,30,.22);border-radius:14px;padding:12px 14px;margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-      <div>
-        <div style="font-size:12px;font-weight:900;color:${CLR.gold}">🥇 تفصيل الأعيرة</div>
-        <div style="font-size:9px;color:var(--tx3);margin-top:2px">
-          مستحق: <b style="color:${CLR.red}">${fmtG(Math.abs(tOwed))} ج</b> ·
-          مسدد: <b style="color:${CLR.green}">${fmtG(tPaid)} ج</b> ·
-          متبقي: <b style="color:${Math.abs(tRem)<0.001?CLR.green:CLR.red}">${fmtG(Math.abs(tRem))} ج</b>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${toggles}</div>
-    ${cards || '<div style="font-size:11px;color:var(--tx3);padding:8px 0">لا توجد حركات ذهبية لهذا العيار</div>'}
-  </div>`;
-}
-window._kpRender = _kpRender;
-
-function _kpSetKarat(clientName, karat) {
-  window._kpSelected = karat;
-  _kpRender(clientName);
-}
-window._kpSetKarat = _kpSetKarat;
-
-// ── Wrapper آمن لـ renderStmt ──
-(function() {
-  const _origRS2 = window.renderStmt;
-  if (typeof _origRS2 !== 'function') return;
-  window.renderStmt = function() {
-    _origRS2.apply(this, arguments);
-    try {
-      const v = document.getElementById('stmt-v')?.value || '';
-      if (!v || v.startsWith('__')) {
-        const p = document.getElementById('stmt-karat-panel');
-        if (p) p.style.display = 'none';
-        return;
-      }
-      window._kpSelected = 'all';
-      _kpRender(v);
-    } catch(e) {}
-  };
-})();
-
-// ════════════════════════════════════════════════════════════════════════
-// نهاية [KARAT-PANEL v1]
-// ════════════════════════════════════════════════════════════════════════
-
-// ════════════════════════════════════════════════════════════════════════
-// [KARAT-SMART v2] — الترحيل الذكي بين الأعيرة عبر عيار 24 كأساس
-// المنطق: كل شيء يُحوَّل لع24 → يُطفأ الدين → يُعاد عرضه بعياره الأصلي
-// Override آمن لـ _kpCalcBreakdown و _kpRender فقط
-// ════════════════════════════════════════════════════════════════════════
-
-// ── تحويل من عيار → ع24 ──
-function _ks24(weight, karat) {
-  return Math.round((parseFloat(weight) || 0) * parseFloat(karat) / 24 * 100000) / 100000;
-}
-// ── تحويل من ع24 → عيار محدد ──
-function _ksFrom24(w24, karat) {
-  return Math.round(w24 * 24 / parseFloat(karat) * 100000) / 100000;
-}
-
-// ── حساب ذكي مع الترحيل بين الأعيرة ──
-window._kpCalcBreakdown = function(clientName) {
-  const S2 = window.S || {};
-  const txs = (S2.transactions || []).filter(t => t.client === clientName);
-
-  // جمع الديون والمدفوعات خاماً لكل عيار
+// ── حساب الأعيرة الخام ──
+function ksCalc(clientName){
+  const txs = ((window.S||{}).transactions||[]).filter(t=>t.client===clientName);
   const raw = {};
-  _KP_KARATS.forEach(k => { raw[k] = { owed: 0, paid: 0, cashPaid: 0 }; });
+  KS_KARATS.forEach(k=>{ raw[k]={owed:0,paid:0,cashPaid:0}; });
 
-  txs.forEach(t => {
-    const type = t.type || '';
-
-    if (type === 'sell' || type === 'sell-debt') {
-      (t.items || []).forEach(i => {
-        if (i.karat === 'gems') return;
-        const k = _kpNormK(i.karat);
-        if (raw[k]) raw[k].owed += (i.weight || 0);
+  txs.forEach(t=>{
+    const tp = t.type||'';
+    if(tp==='sell'||tp==='sell-debt'){
+      (t.items||[]).forEach(i=>{
+        if(i.karat==='gems') return;
+        const k=ksNorm(i.karat); raw[k].owed+=(+i.weight||0);
       });
-    }
-    else if (type === 'buy' || type === 'buy-debt') {
-      (t.items || []).forEach(i => {
-        if (i.karat === 'gems') return;
-        const k = _kpNormK(i.karat);
-        if (raw[k]) raw[k].owed -= (i.weight || 0);
+    } else if(tp==='buy'||tp==='buy-debt'){
+      (t.items||[]).forEach(i=>{
+        if(i.karat==='gems') return;
+        const k=ksNorm(i.karat); raw[k].owed-=(+i.weight||0);
       });
-    }
-    else if (type === 'payment' || type === 'supplier-payment') {
-      const gItems = t.goldItems || [];
-      if (gItems.length > 0) {
-        gItems.forEach(gi => {
-          const k = _kpNormK(gi.karat || '21');
-          const w = gi.weight || 0;
-          if (raw[k]) {
-            raw[k].paid += w;
-            if ((gi.price || 0) > 0) raw[k].cashPaid += Math.round(w * gi.price * 100) / 100;
-          }
+    } else if(tp==='payment'||tp==='supplier-payment'){
+      const gi=t.goldItems||[];
+      if(gi.length){
+        gi.forEach(g=>{
+          const k=ksNorm(g.karat||'21'),w=+g.weight||0;
+          raw[k].paid+=w;
+          if((+g.price||0)>0) raw[k].cashPaid+=Math.round(w*(+g.price)*100)/100;
         });
-      } else if ((t.goldWeight || 0) > 0) {
-        const k = _kpNormK(t.goldKarat || '21');
-        const w = t.goldWeight || 0;
-        if (raw[k]) {
-          raw[k].paid += w;
-          if ((t.goldPrice || 0) > 0) raw[k].cashPaid += Math.round(w * t.goldPrice * 100) / 100;
-        }
+      } else if((+t.goldWeight||0)>0){
+        const k=ksNorm(t.goldKarat||'21'),w=+t.goldWeight||0;
+        raw[k].paid+=w;
+        if((+t.goldPrice||0)>0) raw[k].cashPaid+=Math.round(w*(+t.goldPrice)*100)/100;
       }
-      const cashAmt = (t.ajourPaid || 0) + (t.change || 0) + (t.discount || 0);
-      if (cashAmt > 0 && raw['21']) raw['21'].cashPaid += cashAmt;
-    }
-    else if (type === 'scrap') {
-      const items = t.scrapItems || [];
-      if (items.length > 0) {
-        items.forEach(si => {
-          const k = _kpNormK(si.karat || '21');
-          if (raw[k]) raw[k].paid += (si.weight || 0);
-        });
-      } else {
-        const k = _kpNormK(t.karat || '21');
-        if (raw[k]) raw[k].paid += (t.weight || 0);
-      }
-    }
-    else if (type === 'return' || type === 'sales-return') {
-      (t.items || []).forEach(i => {
-        if (i.karat === 'gems') return;
-        const k = _kpNormK(i.karat);
-        if (raw[k]) raw[k].owed -= (i.weight || 0);
-      });
+      const ca=(+t.ajourPaid||0)+(+t.change||0)+(+t.discount||0);
+      if(ca>0) raw['21'].cashPaid+=ca;
+    } else if(tp==='scrap'){
+      const si=t.scrapItems||[];
+      if(si.length){ si.forEach(s=>{ const k=ksNorm(s.karat||'21'); raw[k].paid+=(+s.weight||0); }); }
+      else { const k=ksNorm(t.karat||'21'); raw[k].paid+=(+t.weight||0); }
+    } else if(tp==='return'||tp==='sales-return'){
+      (t.items||[]).forEach(i=>{ if(i.karat==='gems') return; const k=ksNorm(i.karat); raw[k].owed-=(+i.weight||0); });
     }
   });
 
-  // ── تحويل كل شيء لع24 والترحيل الذكي ──
-  // net24[k] = owed24 - paid24 (موجب=دين عليه | سالب=زيادة له)
-  const net24 = {};
-  _KP_KARATS.forEach(k => {
-    net24[k] = Math.round((_ks24(raw[k].owed, k) - _ks24(raw[k].paid, k)) * 100000) / 100000;
-  });
+  // ── حساب net24 ──
+  const net24={};
+  KS_KARATS.forEach(k=>{ net24[k]=Math.round((ks24(raw[k].owed,k)-ks24(raw[k].paid,k))*1e6)/1e6; });
 
-  // ترتيب التسوية: 24 أولاً ثم 21 ثم 18 (الأعلى عياراً يُغطي الأقل)
-  const PRIORITY = ['24', '21', '18'];
-
-  // جمع الفوائض (سالب = لصالح العميل)
-  let surplus24 = 0;
-  PRIORITY.forEach(k => { if (net24[k] < -0.0001) surplus24 += Math.abs(net24[k]); });
-
-  // الترحيل: طفئ الديون بالفائض
-  const transfers = []; // سجل الترحيلات للعرض
-  const final24   = { ...net24 }; // النتيجة بعد الترحيل
-
-  if (surplus24 > 0.0001) {
-    // لكل عيار فيه زيادة (الأعلى أولاً)
-    PRIORITY.forEach(fromK => {
-      if (final24[fromK] >= -0.0001) return; // لا زيادة هنا
-      let avail24 = Math.abs(final24[fromK]);
-
-      // وزّع الزيادة على الأعيرة التي عليها دين (الأعلى عياراً أولاً)
-      PRIORITY.forEach(toK => {
-        if (toK === fromK) return;
-        if (final24[toK] <= 0.0001) return; // لا دين هنا
-        if (avail24 < 0.0001) return;
-
-        const apply = Math.min(avail24, final24[toK]);
-        // سجّل التحويل
-        transfers.push({
-          fromK, toK,
-          fromW:  Math.round(_ksFrom24(apply, fromK) * 1000) / 1000,
-          toW:    Math.round(_ksFrom24(apply, toK)   * 1000) / 1000,
-          w24:    Math.round(apply * 1000) / 1000,
-        });
-        final24[toK]   = Math.round((final24[toK]   - apply) * 100000) / 100000;
-        final24[fromK] = Math.round((final24[fromK]  + apply) * 100000) / 100000;
-        avail24 -= apply;
+  // ── ترحيل ذكي: فائض عيار → يسد دين عيار آخر ──
+  const final24={...net24};
+  const transfers=[];
+  KS_PRIORITY.forEach(fromK=>{
+    if(final24[fromK]>=-1e-4) return;          // لا زيادة هنا
+    let avail=Math.abs(final24[fromK]);
+    KS_PRIORITY.forEach(toK=>{
+      if(toK===fromK||final24[toK]<=1e-4||avail<1e-4) return;
+      const apply=Math.min(avail,final24[toK]);
+      transfers.push({
+        fromK, toK,
+        fromW: Math.round(ksFrom24(apply,fromK)*1000)/1000,
+        toW:   Math.round(ksFrom24(apply,toK)*1000)/1000,
+        w24:   Math.round(apply*1000)/1000
       });
+      final24[toK]  =Math.round((final24[toK]-apply)*1e6)/1e6;
+      final24[fromK]=Math.round((final24[fromK]+apply)*1e6)/1e6;
+      avail-=apply;
     });
-  }
+  });
 
-  // ── بناء النتيجة النهائية ──
-  const result = {};
-  _KP_KARATS.forEach(k => {
-    const rem24     = final24[k];
-    const remNative = Math.round(_ksFrom24(Math.abs(rem24), k) * 1000) / 1000;
-    result[k] = {
-      goldOwed:        Math.round(raw[k].owed * 1000) / 1000,
-      goldPaid:        Math.round(raw[k].paid * 1000) / 1000,
-      goldRemaining:   rem24 > 0.0001 ? remNative : rem24 < -0.0001 ? -remNative : 0,
-      goldRemaining24: Math.round(Math.abs(rem24) * 1000) / 1000,   // ← شارة ع24
-      owed24:          Math.round(_ks24(raw[k].owed, k) * 1000) / 1000,
-      paid24:          Math.round(_ks24(raw[k].paid, k) * 1000) / 1000,
-      net24:           Math.round(rem24 * 1000) / 1000,
-      cashPaid:        Math.round(raw[k].cashPaid * 100) / 100,
-      isSettled:       Math.abs(rem24) < 0.0001,
-      hasTransfer:     transfers.some(tr => tr.toK === k || tr.fromK === k),
+  // ── بناء النتيجة ──
+  const byK={};
+  KS_KARATS.forEach(k=>{
+    const rem24=final24[k];
+    const remNat=Math.round(ksFrom24(Math.abs(rem24),k)*1000)/1000;
+    byK[k]={
+      owed:    Math.round(raw[k].owed*1000)/1000,
+      paid:    Math.round(raw[k].paid*1000)/1000,
+      owed24:  Math.round(ks24(raw[k].owed,k)*1000)/1000,
+      paid24:  Math.round(ks24(raw[k].paid,k)*1000)/1000,
+      rem24:   Math.round(rem24*1000)/1000,
+      remNat:  rem24>1e-4?remNat:rem24<-1e-4?-remNat:0,
+      cashPaid:Math.round(raw[k].cashPaid*100)/100,
+      settled: Math.abs(rem24)<1e-4,
     };
   });
+  const tOwed24=Math.round(KS_KARATS.reduce((a,k)=>a+byK[k].owed24,0)*1000)/1000;
+  const tPaid24=Math.round(KS_KARATS.reduce((a,k)=>a+byK[k].paid24,0)*1000)/1000;
+  const tNet24 =Math.round(KS_KARATS.reduce((a,k)=>a+final24[k],0)*1000)/1000;
+  return {byK, transfers, tOwed24, tPaid24, tNet24};
+}
+window.ksCalc = ksCalc;
 
-  // ── الإجمالي الكلي بع24 ──
-  const totalNet24   = Math.round(_KP_KARATS.reduce((a,k) => a + final24[k], 0) * 1000) / 1000;
-  const totalOwed24  = Math.round(_KP_KARATS.reduce((a,k) => a + _ks24(raw[k].owed, k), 0) * 1000) / 1000;
-  const totalPaid24  = Math.round(_KP_KARATS.reduce((a,k) => a + _ks24(raw[k].paid, k), 0) * 1000) / 1000;
+// ── رندر اللوحة ──
+function ksRender(clientName){
+  const panel=document.getElementById('ks-panel');
+  if(!panel||!clientName||clientName.startsWith('__')){
+    if(panel) panel.style.display='none'; return;
+  }
+  const {byK,transfers,tOwed24,tPaid24,tNet24}=ksCalc(clientName);
+  const hasAny=KS_KARATS.some(k=>Math.abs(byK[k].owed)>0.001||byK[k].paid>0.001);
+  if(!hasAny){panel.style.display='none';return;}
+  panel.style.display='block';
 
-  return { byKarat: result, transfers, totalNet24, totalOwed24, totalPaid24 };
-};
+  const act=window._ksActive||'24';
+  const C={gold:'#C89620',green:'#16A34A',red:'#DC2626',blue:'#3B82F6',purple:'#8B5CF6',bg:'var(--c2)',bdr:'var(--b2)'};
 
-// ── عرض اللوحة الذكية ──
-window._kpRender = function(clientName) {
-  const panel = document.getElementById('stmt-karat-panel');
-  if (!panel || !clientName) return;
-  if (clientName.startsWith('__')) { panel.style.display = 'none'; return; }
+  // ── شارة ع24 المدمجة ──
+  const tag24=(v,clr)=>`<span style="font-size:9px;background:rgba(200,150,32,.13);border:1px solid rgba(200,150,32,.3);
+    border-radius:12px;padding:1px 6px;color:#C89620;font-weight:800;margin-right:2px">✨${fmtG(v)}ع24</span>`;
 
-  const { byKarat: bd, transfers, totalNet24, totalOwed24, totalPaid24 } = window._kpCalcBreakdown(clientName);
-  const sel = window._kpSelected || 'all';
-
-  const C = { gold:'#C89620', green:'#16A34A', red:'#DC2626', blue:'#3B82F6', orange:'#D97706', purple:'#9333EA' };
-  const NAMES = { '21':'عيار 21', '18':'عيار 18', '24':'صافي 24' };
-  const ICONS = { '21':'💛',       '18':'🟠',       '24':'✨' };
-
-  const hasAny = _KP_KARATS.some(k => Math.abs(bd[k].goldOwed) > 0.001 || bd[k].goldPaid > 0.001);
-  if (!hasAny) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-
-  // ── أزرار التبديل ──
-  const toggles = ['all','21','18','24'].map(k => {
-    const active = sel === k;
-    const label  = k === 'all' ? '🔢 الكل' : `${ICONS[k]} ${NAMES[k]}`;
-    return `<button onclick="_kpSetKarat('${clientName.replace(/'/g,"\\'")}','${k}')"
-      style="padding:5px 14px;border:1.5px solid ${active?C.gold:'var(--b2)'};border-radius:20px;
-      background:${active?C.gold:'var(--c3)'};color:${active?'#fff':'var(--tx2)'};
-      font-size:10px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">${label}</button>`;
+  // ── مربعات اختيار العيار (مطابقة للصورة: 18 | 21 | 24) ──
+  const badges = ['18','21','24'].map(k=>{
+    const d=byK[k];
+    const isAct=act===k;
+    const settled=d.settled;
+    const clr = settled?C.green: d.rem24>0?C.red:C.green;
+    const bg  = isAct
+      ? (settled?'linear-gradient(135deg,#16A34A,#15803D)': d.rem24>0?'linear-gradient(135deg,#DC2626,#B91C1C)':'linear-gradient(135deg,#16A34A,#15803D)')
+      : 'var(--c3)';
+    const txtClr = isAct?'#fff':(settled?C.green:d.rem24>0?C.red:C.green);
+    return `<div onclick="ksSetKarat('${clientName.replace(/'/g,"\\'")}','${k}')"
+      style="cursor:pointer;border-radius:14px;padding:8px 10px;min-width:72px;text-align:center;
+      background:${bg};border:2px solid ${isAct?'transparent':clr+'55'};
+      transition:all .2s;box-shadow:${isAct?'0 4px 12px rgba(0,0,0,.3)':'none'}">
+      <div style="font-size:16px;font-weight:900;color:${isAct?'#fff':txtClr};line-height:1">${KS_LABELS[k]}</div>
+      <div style="font-size:8px;font-weight:700;color:${isAct?'rgba(255,255,255,.8)':txtClr};opacity:.85;margin-top:2px">
+        ${settled?'✅ مسدد':d.rem24>0?'🔴 '+fmtG(Math.abs(d.remNat))+'ج':'🟢 زيادة'}
+      </div>
+    </div>`;
   }).join('');
 
-  // ── شارة ع24 (pill) ──
-  const pill24 = (w24, clr) =>
-    `<span style="display:inline-flex;align-items:center;gap:2px;background:rgba(200,150,30,.13);
-     border:1px solid rgba(200,150,30,.3);border-radius:20px;padding:1px 7px;
-     font-size:9px;font-weight:900;color:${C.gold};margin-right:3px">
-     ✨${fmtG(w24)}<span style="font-size:8px;opacity:.7">ع24</span></span>`;
+  // ── بطاقة العيار المختار ──
+  const d  = byK[act];
+  const remAbs = Math.abs(d.remNat);
+  const isSettled = d.settled;
+  const remClr = isSettled?C.green:d.rem24>0?C.red:C.green;
+  const remBg  = isSettled?'rgba(22,163,74,.07)':d.rem24>0?'rgba(220,38,38,.07)':'rgba(22,163,74,.07)';
+  const pct = d.owed24>0.001?Math.min(100,Math.round(d.paid24/d.owed24*100)):d.paid>0?100:0;
+  const barClr = pct>=100?C.green:pct>50?C.gold:C.red;
 
-  // ── بطاقة سجل الترحيلات ──
-  const transferLog = transfers.length > 0 ? `
-  <div style="background:rgba(147,51,234,.06);border:1.5px solid rgba(147,51,234,.2);border-radius:10px;padding:9px 12px;margin-bottom:8px">
-    <div style="font-size:10px;font-weight:900;color:${C.purple};margin-bottom:6px">🔁 ترحيل ذكي بين الأعيرة</div>
-    ${transfers.map(tr => `
-    <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(147,51,234,.1);font-size:10px">
-      <span style="background:rgba(200,150,30,.1);border:1px solid rgba(200,150,30,.25);border-radius:8px;padding:2px 7px;font-weight:800;color:${C.gold}">
-        ${ICONS[tr.fromK]} ${fmtG(tr.fromW)}ج ${NAMES[tr.fromK]}
-      </span>
-      <span style="color:var(--tx3);font-size:12px">→</span>
-      ${pill24(tr.w24, C.gold)}
-      <span style="color:var(--tx3);font-size:12px">→</span>
-      <span style="background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25);border-radius:8px;padding:2px 7px;font-weight:800;color:${C.green}">
-        ${ICONS[tr.toK]} ${fmtG(tr.toW)}ج ${NAMES[tr.toK]}
-      </span>
-      <span style="font-size:9px;color:var(--tx3)">سدّد دين ${NAMES[tr.toK]}</span>
+  // ── الترحيلات المتعلقة بالعيار الحالي ──
+  const myTr=transfers.filter(tr=>tr.toK===act||tr.fromK===act);
+  const trHtml=myTr.length?myTr.map(tr=>{
+    const isFrom=tr.fromK===act;
+    const arrow=isFrom
+      ?`<span style="color:${C.purple}">من ${KS_NAMES[act]} رُحِّل ${fmtG(tr.fromW)}ج → سدّد ${fmtG(tr.toW)}ج ${KS_NAMES[tr.toK]}</span>`
+      :`<span style="color:${C.green}">استلم ${fmtG(tr.toW)}ج من فائض ${KS_NAMES[tr.fromK]}</span>`;
+    return `<div style="font-size:9px;padding:3px 0;border-bottom:1px solid rgba(139,92,246,.1)">${arrow}</div>`;
+  }).join(''):'';
+
+  const detailCard=`
+  <div style="background:${remBg};border:1.5px solid ${remClr}33;border-radius:12px;padding:11px 12px;margin-top:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:900;color:${C.gold}">💛 ${KS_NAMES[act]}</div>
+      <div style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:12px;
+        background:${remBg};border:1px solid ${remClr}44;color:${remClr}">
+        ${isSettled?'✅ مسدد بالكامل':d.rem24>0?'🔴 متبقي':'🟢 له زيادة'}
+      </div>
+    </div>
+    <!-- ثلاث بطاقات -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:9px;color:${C.red};font-weight:700;margin-bottom:3px">📤 مستحق</div>
+        <div style="font-size:16px;font-weight:900;color:${C.red};line-height:1.1">${fmtG(Math.abs(d.owed))}</div>
+        <div style="font-size:8px;color:rgba(220,38,38,.5);margin-top:1px">جرام</div>
+        ${d.owed24>0.001?`<div style="margin-top:4px">${tag24(d.owed24,C.red)}</div>`:''}
+      </div>
+      <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:9px;color:${C.green};font-weight:700;margin-bottom:3px">📥 مسدد</div>
+        <div style="font-size:16px;font-weight:900;color:${C.green};line-height:1.1">${fmtG(d.paid)}</div>
+        <div style="font-size:8px;color:rgba(22,163,74,.5);margin-top:1px">جرام</div>
+        ${d.paid24>0.001?`<div style="margin-top:4px">${tag24(d.paid24,C.green)}</div>`:''}
+      </div>
+      <div style="background:${remBg};border:1px solid ${remClr}33;border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:9px;color:${remClr};font-weight:700;margin-bottom:3px">⚖️ متبقي</div>
+        <div style="font-size:16px;font-weight:900;color:${remClr};line-height:1.1">${isSettled?'—':fmtG(remAbs)}</div>
+        <div style="font-size:8px;color:${remClr};opacity:.6;margin-top:1px">${isSettled?'✅':'جرام'}</div>
+        ${!isSettled&&Math.abs(d.rem24)>0.001?`<div style="margin-top:4px">${tag24(Math.abs(d.rem24),remClr)}</div>`:''}
+      </div>
+    </div>
+    <!-- شريط التقدم -->
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--tx3);margin-bottom:3px">
+      <span>نسبة السداد</span><span style="font-weight:800;color:${barClr}">${pct}%</span>
+    </div>
+    <div style="background:var(--b1);border-radius:6px;height:7px;overflow:hidden">
+      <div style="width:${pct}%;height:100%;background:${barClr};border-radius:6px;transition:width .4s"></div>
+    </div>
+    ${myTr.length?`<div style="margin-top:6px;padding:5px 8px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.18);border-radius:7px">
+      <div style="font-size:9px;font-weight:800;color:${C.purple};margin-bottom:3px">🔁 ترحيل ذكي</div>${trHtml}</div>`:''}
+    ${d.cashPaid>0.01?`<div style="margin-top:5px;font-size:9px;color:${C.blue}">💵 نقد مسدد: <b>${fmt(d.cashPaid)}</b> ريال</div>`:''}
+  </div>`;
+
+  // ── سجل الترحيلات الكامل (يظهر فقط لو فيه ترحيلات) ──
+  const trLogHtml=transfers.length?`
+  <div style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.18);border-radius:10px;padding:8px 11px;margin-top:8px">
+    <div style="font-size:10px;font-weight:900;color:${C.purple};margin-bottom:5px">🔁 سجل الترحيل الذكي بين الأعيرة</div>
+    ${transfers.map(tr=>`
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 0;border-bottom:1px solid rgba(139,92,246,.08);flex-wrap:wrap">
+      <span style="background:rgba(200,150,32,.12);border:1px solid rgba(200,150,32,.25);border-radius:7px;padding:1px 7px;font-weight:800;color:${C.gold}">${KS_LABELS[tr.fromK]} · ${fmtG(tr.fromW)}ج</span>
+      <span style="color:var(--tx3)">➜</span>
+      <span style="background:rgba(200,150,32,.08);border:1px solid rgba(200,150,32,.15);border-radius:7px;padding:1px 7px;font-size:9px;color:${C.gold}">✨ ${fmtG(tr.w24)}ج ع24</span>
+      <span style="color:var(--tx3)">➜</span>
+      <span style="background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.22);border-radius:7px;padding:1px 7px;font-weight:800;color:${C.green}">${KS_LABELS[tr.toK]} · ${fmtG(tr.toW)}ج</span>
+      <span style="font-size:9px;color:var(--tx3)">سدّد دين ${KS_NAMES[tr.toK]}</span>
     </div>`).join('')}
-  </div>` : '';
+  </div>`:'';
 
-  // ── بطاقات الأعيرة ──
-  const cards = (sel === 'all' ? _KP_KARATS : [sel]).map(k => {
-    const d = bd[k];
-    if (Math.abs(d.goldOwed) < 0.001 && d.goldPaid < 0.001 && !d.hasTransfer) return '';
+  // ── الإجمالي ع24 ──
+  const totSettled=Math.abs(tNet24)<0.001;
+  const totClr=totSettled?C.green:tNet24>0?C.red:C.green;
 
-    const rem       = d.goldRemaining;
-    const remAbs    = Math.abs(rem);
-    const isSettled = d.isSettled;
-    const remClr    = isSettled ? C.green : rem > 0 ? C.red : C.green;
-    const remBg     = isSettled ? 'rgba(22,163,74,.07)' : rem > 0 ? 'rgba(220,38,38,.07)' : 'rgba(22,163,74,.07)';
-    const remBdr    = isSettled ? 'rgba(22,163,74,.22)' : rem > 0 ? 'rgba(220,38,38,.22)' : 'rgba(22,163,74,.22)';
-    const remLbl    = isSettled ? '✅ مسدد بالكامل' : rem > 0 ? '🔴 متبقي' : '🟢 له زيادة';
+  panel.innerHTML=`
+  <div style="background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.03));border:1.5px solid rgba(200,150,30,.2);border-radius:14px;padding:12px 13px;margin-bottom:10px">
 
-    const pct    = d.owed24 > 0.0001 ? Math.min(100, Math.round(d.paid24 / d.owed24 * 100)) : d.goldPaid > 0 ? 100 : 0;
-    const barClr = pct >= 100 ? C.green : pct > 50 ? C.gold : C.red;
-
-    // هل فيه ترحيل يمسّ هذا العيار؟
-    const myTransfers = transfers.filter(tr => tr.toK === k || tr.fromK === k);
-    const trNote = myTransfers.map(tr => {
-      if (tr.toK === k) return `<span style="color:${C.green}">+${fmtG(tr.toW)}ج مُرحَّلة من ${NAMES[tr.fromK]}</span>`;
-      if (tr.fromK === k) return `<span style="color:${C.purple}">-${fmtG(tr.fromW)}ج تمّ ترحيلها لـ${NAMES[tr.toK]}</span>`;
-      return '';
-    }).join(' · ');
-
-    return `
-    <div style="background:var(--c2);border:1.5px solid ${d.hasTransfer?'rgba(147,51,234,.3)':'var(--b2)'};border-radius:12px;padding:10px 12px;margin-bottom:8px">
-      <!-- رأس العيار -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:4px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="font-size:13px;font-weight:900;color:${C.gold}">${ICONS[k]} ${NAMES[k]}</div>
-          ${pill24(d.goldRemaining24, C.gold)}
-        </div>
-        <div style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;background:${remBg};border:1px solid ${remBdr};color:${remClr}">${remLbl}</div>
-      </div>
-
-      <!-- ثلاث بطاقات: مستحق / مسدد / متبقي -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-        <!-- مستحق -->
-        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.18);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:9px;color:${C.red};font-weight:700;margin-bottom:2px">📤 مستحق</div>
-          <div style="font-size:15px;font-weight:900;color:${C.red}">${fmtG(Math.abs(d.goldOwed))}</div>
-          <div style="font-size:8px;color:rgba(220,38,38,.45)">جرام</div>
-          <div style="margin-top:3px">${pill24(d.owed24, C.red)}</div>
-        </div>
-        <!-- مسدد -->
-        <div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.18);border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:9px;color:${C.green};font-weight:700;margin-bottom:2px">📥 مسدد</div>
-          <div style="font-size:15px;font-weight:900;color:${C.green}">${fmtG(d.goldPaid)}</div>
-          <div style="font-size:8px;color:rgba(22,163,74,.45)">جرام</div>
-          <div style="margin-top:3px">${pill24(d.paid24, C.green)}</div>
-        </div>
-        <!-- متبقي -->
-        <div style="background:${remBg};border:1px solid ${remBdr};border-radius:8px;padding:7px;text-align:center">
-          <div style="font-size:9px;color:${remClr};font-weight:700;margin-bottom:2px">⚖️ متبقي</div>
-          <div style="font-size:15px;font-weight:900;color:${remClr}">${isSettled?'—':fmtG(remAbs)}</div>
-          <div style="font-size:8px;color:${remClr};opacity:.55">${isSettled?'✅':'جرام'}</div>
-          ${!isSettled?`<div style="margin-top:3px">${pill24(d.goldRemaining24, remClr)}</div>`:''}
-        </div>
-      </div>
-
-      <!-- شريط التقدم -->
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--tx3);margin-bottom:3px">
-        <span>نسبة السداد</span><span style="font-weight:800;color:${barClr}">${pct}%</span>
-      </div>
-      <div style="background:var(--b1);border-radius:6px;height:7px;overflow:hidden">
-        <div style="width:${pct}%;height:100%;background:${barClr};border-radius:6px;transition:width .4s"></div>
-      </div>
-
-      <!-- ملاحظات الترحيل -->
-      ${trNote ? `<div style="margin-top:6px;padding:4px 8px;background:rgba(147,51,234,.07);border:1px solid rgba(147,51,234,.18);border-radius:6px;font-size:9px;font-weight:700">${trNote}</div>` : ''}
-      ${d.cashPaid > 0.01 ? `<div style="margin-top:5px;font-size:9px;color:${C.blue}">💵 نقد مسدد: <b>${fmt(d.cashPaid)}</b> ريال</div>` : ''}
-      ${rem < -0.001 ? `<div style="margin-top:5px;padding:4px 8px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:6px;font-size:9px;color:${C.green}">⬆️ زيادة ${fmtG(remAbs)} جرام (${fmtG(d.goldRemaining24)} ع24) — رصيد دائن</div>` : ''}
-    </div>`;
-  }).filter(Boolean).join('');
-
-  // ── شارة الإجمالي بع24 ──
-  const totalIsSettled = Math.abs(totalNet24) < 0.001;
-  const totalClr = totalIsSettled ? C.green : totalNet24 > 0 ? C.red : C.green;
-  const totalLbl = totalIsSettled ? '✅ حساب مصفّى' : totalNet24 > 0 ? `🔴 ${fmtG(totalNet24)} ج ع24 متبقي` : `🟢 ${fmtG(Math.abs(totalNet24))} ج ع24 زيادة`;
-
-  panel.innerHTML = `
-  <div style="background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.04));border:1.5px solid rgba(200,150,30,.22);border-radius:14px;padding:12px 14px;margin-bottom:10px">
-
-    <!-- رأس اللوحة -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-      <div>
-        <div style="font-size:12px;font-weight:900;color:${C.gold}">🥇 تفصيل الأعيرة — ترحيل ذكي</div>
-        <div style="font-size:9px;color:var(--tx3);margin-top:2px">
-          مستحق: ${pill24(totalOwed24, C.red)}
-          مسدد: ${pill24(totalPaid24, C.green)}
-          <span style="font-size:9px;padding:2px 8px;border-radius:10px;font-weight:800;
-            background:${totalIsSettled?'rgba(22,163,74,.1)':totalNet24>0?'rgba(220,38,38,.1)':'rgba(22,163,74,.1)'};
-            color:${totalClr};border:1px solid ${totalClr}40">${totalLbl}</span>
-        </div>
+    <!-- رأس: إجمالي ع24 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:5px">
+      <div style="font-size:12px;font-weight:900;color:${C.gold}">🥇 تفصيل الأعيرة</div>
+      <div style="font-size:9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+        ${tag24(tOwed24,C.red)}
+        <span style="color:var(--tx3)">→</span>
+        ${tag24(tPaid24,C.green)}
+        <span style="padding:2px 8px;border-radius:10px;font-weight:800;font-size:9px;
+          background:${totSettled?'rgba(22,163,74,.1)':tNet24>0?'rgba(220,38,38,.1)':'rgba(22,163,74,.1)'};
+          color:${totClr};border:1px solid ${totClr}33">
+          ${totSettled?'✅ مصفّى':tNet24>0?'🔴 '+fmtG(tNet24)+'ج ع24':'🟢 '+fmtG(Math.abs(tNet24))+'ج ع24'}
+        </span>
       </div>
     </div>
 
-    <!-- أزرار التبديل -->
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${toggles}</div>
+    <!-- مربعات اختيار العيار -->
+    <div style="display:flex;gap:8px;margin-bottom:2px;justify-content:flex-start">${badges}</div>
+
+    <!-- بطاقة التفصيل للعيار المختار -->
+    ${detailCard}
 
     <!-- سجل الترحيلات -->
-    ${transferLog}
-
-    <!-- بطاقات الأعيرة -->
-    ${cards || '<div style="font-size:11px;color:var(--tx3);padding:8px 0">لا توجد حركات ذهبية لهذا العيار</div>'}
+    ${trLogHtml}
 
   </div>`;
+}
+window.ksRender = ksRender;
+
+// ── تبديل العيار ──
+window.ksSetKarat = function(cli, k){
+  window._ksActive = k;
+  ksRender(cli);
 };
 
-// ════════════════════════════════════════════════════════════════════════
-// نهاية [KARAT-SMART v2]
-// ════════════════════════════════════════════════════════════════════════
+// ── Hook آمن على renderStmt ──
+const _rsOrig = window.renderStmt;
+if(typeof _rsOrig==='function'){
+  window.renderStmt = function(){
+    _rsOrig.apply(this,arguments);
+    try{
+      const v=document.getElementById('stmt-v')?.value||'';
+      if(!v||v.startsWith('__')){ const p=document.getElementById('ks-panel'); if(p) p.style.display='none'; return; }
+      window._ksActive='24';
+      ksRender(v);
+    }catch(e){}
+  };
+}
+
+})(); // end KARAT-SMART IIFE
+
+// ══════════════════════════════════════════════════════════════════
+// نهاية [KARAT-SMART v1]
+// ══════════════════════════════════════════════════════════════════
 </script>
 </body>
 </html>
