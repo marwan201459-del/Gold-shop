@@ -1681,6 +1681,92 @@ body{
     </div>
   </div>
 
+  <!-- ══ [NEW-PRO] نظام الرصيد الافتتاحي الاحترافي ══ -->
+  <div class="card" style="margin-bottom:12px;border:2px solid var(--g5)">
+    <div class="ch" style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.08))">
+      <span>🏁 إضافة رصيد افتتاحي جديد</span>
+      <button class="btn-sm btn-outline" onclick="_obpro_renderList()" style="font-size:11px">🔄 تحديث السجل</button>
+    </div>
+    <div class="cb">
+      <!-- نوع الرصيد -->
+      <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px">نوع الرصيد الافتتاحي</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <button type="button" id="obpro-type-cash"
+          onclick="_obpro_setType('cash')"
+          style="padding:12px 8px;border-radius:12px;border:2px solid var(--ok-bd);background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s">
+          💵 رصيد نقدي (ريال)
+        </button>
+        <button type="button" id="obpro-type-gold"
+          onclick="_obpro_setType('gold')"
+          style="padding:12px 8px;border-radius:12px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s">
+          🥇 رصيد ذهب (جرام)
+        </button>
+      </div>
+
+      <!-- حقل العيار (يظهر عند اختيار ذهب) -->
+      <div id="obpro-karat-row" style="display:none;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:6px">العيار</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+          <button type="button" id="obpro-k18" onclick="_obpro_setKarat('18')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 18</button>
+          <button type="button" id="obpro-k21" onclick="_obpro_setKarat('21')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 21</button>
+          <button type="button" id="obpro-k22" onclick="_obpro_setKarat('22')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 22</button>
+          <button type="button" id="obpro-k24" onclick="_obpro_setKarat('24')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 24</button>
+        </div>
+      </div>
+
+      <!-- المبلغ / الوزن -->
+      <div class="fr">
+        <label id="obpro-amount-lbl">💵 المبلغ (ريال)</label>
+        <input type="number" id="obpro-amount" placeholder="0" inputmode="decimal" step="0.01"
+          style="border:2px solid var(--ok-bd);font-size:18px;font-weight:900;color:var(--ok)">
+      </div>
+
+      <!-- الصندوق -->
+      <div class="fr">
+        <label>🗄️ الصندوق</label>
+        <select id="obpro-safe"></select>
+      </div>
+
+      <!-- الوصف / الملاحظة -->
+      <div class="fr">
+        <label>📝 ملاحظة / وصف</label>
+        <input type="text" id="obpro-note" placeholder="مثال: رصيد أول المشروع، جرد بداية السنة...">
+      </div>
+
+      <!-- التاريخ والمستخدم -->
+      <div class="g2">
+        <div class="fr">
+          <label>📅 التاريخ</label>
+          <input type="date" id="obpro-date">
+        </div>
+        <div class="fr">
+          <label>👤 المستخدم</label>
+          <input type="text" id="obpro-user" placeholder="اسم المستخدم" readonly
+            style="background:var(--c2);color:var(--tx2)">
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="_obpro_save()" style="margin-top:4px">
+        🏁 إضافة الرصيد الافتتاحي
+      </button>
+    </div>
+  </div>
+
+  <!-- سجل الأرصدة الافتتاحية المضافة -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ch" style="justify-content:space-between">
+      <span>📋 سجل الأرصدة الافتتاحية</span>
+      <span id="obpro-count-badge" style="font-size:10px;background:var(--g4);color:var(--g1);padding:2px 10px;border-radius:20px;border:1px solid var(--g5)">0 إدخال</span>
+    </div>
+    <div class="cb" id="obpro-list">
+      <div class="empty"><div class="ei">🏁</div><p>لا توجد أرصدة افتتاحية مضافة بعد</p></div>
+    </div>
+  </div>
+
   <!-- الصناديق -->
   <div class="card">
     <div class="ch">🗄️ أرصدة الصناديق الافتتاحية</div>
@@ -2153,22 +2239,50 @@ body{
 <div class="toast" id="toast"></div>
 
 <!-- ════════════════════════════════════════════════════════════
-     [NEW] صفحة: سجل حركة الصندوق اليومي
+     [NEW-PRO] صفحة: حركة اليوم — نسخة احترافية محاسبية كاملة
      معزولة تماماً — لا تغيّر أي منطق قديم
      ════════════════════════════════════════════════════════════ -->
 <div id="pg-dailylog" class="pg">
 
-  <!-- رأس الصفحة -->
-  <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.03));border:1.5px solid var(--g5);border-radius:var(--ra);padding:14px 16px;margin-bottom:14px">
-    <div style="display:flex;align-items:flex-start;gap:10px">
-      <div style="font-size:26px;flex-shrink:0">📆</div>
-      <div>
-        <div style="font-size:14px;font-weight:900;color:var(--g1);margin-bottom:4px">سجل حركة الصندوق اليومي</div>
-        <div style="font-size:11px;color:var(--tx2);line-height:1.7">عرض تلقائي لإجمالي الدخل والخروج النقدي والذهبي لكل يوم — يعتمد على البيانات الموجودة فقط</div>
+  <!-- ── رأس الصفحة اليومية المحترفة ── -->
+  <div style="background:linear-gradient(135deg,var(--hd),rgba(200,150,30,.08));border-radius:var(--ra);padding:14px 16px;margin-bottom:14px;border:1.5px solid var(--g5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:26px">📆</div>
+        <div>
+          <div style="font-size:15px;font-weight:900;color:var(--g2)">حركة اليوم — لوحة متكاملة</div>
+          <div id="dlpro-today-label" style="font-size:11px;color:var(--tx3);margin-top:2px"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <select id="dlpro-date-sel" onchange="_dlpro_render()"
+          style="padding:7px 10px;border-radius:var(--rc);border:1px solid var(--g5);background:var(--c1);font-family:inherit;font-size:12px;font-weight:700;color:var(--tx1)"></select>
+        <button onclick="_dlpro_render()"
+          style="background:var(--g1);color:#060300;border:none;border-radius:var(--rc);padding:7px 12px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">🔄 تحديث</button>
+        <div id="dlpro-auto-badge"
+          style="font-size:10px;padding:4px 10px;border-radius:20px;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd);font-weight:700">⚡ تلقائي</div>
       </div>
     </div>
   </div>
 
+  <!-- ── [1] الملخص اليومي الكامل ── -->
+  <div id="dlpro-summary-section" style="margin-bottom:14px"></div>
+
+  <!-- ── [2] قسم الكسر التفصيلي ── -->
+  <div id="dlpro-scrap-section" style="margin-bottom:14px"></div>
+
+  <!-- ── [3] قسم السبائك / Units ── -->
+  <div id="dlpro-units-section" style="margin-bottom:14px"></div>
+
+  <!-- ── [4] إحصائية سريعة ── -->
+  <div id="dlpro-stats-section" style="margin-bottom:14px"></div>
+
+  <!-- ── [5] الحركة اليومية التفصيلية ── -->
+  <div id="dlpro-txlist-section" style="margin-bottom:14px"></div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- الفلاتر الأصلية (محفوظة — للعرض القديم)    -->
+  <!-- ─────────────────────────────────────────── -->
   <!-- فلاتر الفترة -->
   <div class="card">
     <div class="ch">🔍 اختر الفترة</div>
@@ -12146,6 +12260,688 @@ if(typeof _rsOrig==='function'){
 // ══════════════════════════════════════════════════════════════════
 // نهاية [KARAT-SMART v1]
 // ══════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════
+// [OB-PRO] نظام الرصيد الافتتاحي الاحترافي — إضافة مستقلة آمنة
+// ════════════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  let _curType  = 'cash';
+  let _curKarat = '21';
+
+  function _safeLabel(k){
+    const SM = window.getSM ? window.getSM() : {};
+    return SM[k] ? SM[k].label : k;
+  }
+
+  window._obpro_setType = function(t){
+    _curType = t;
+    const cash = document.getElementById('obpro-type-cash');
+    const gold = document.getElementById('obpro-type-gold');
+    const kar  = document.getElementById('obpro-karat-row');
+    const lbl  = document.getElementById('obpro-amount-lbl');
+    const inp  = document.getElementById('obpro-amount');
+    if(!cash||!gold) return;
+    if(t==='cash'){
+      cash.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--ok-bd);background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      gold.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      if(kar) kar.style.display='none';
+      if(lbl) lbl.textContent='💵 المبلغ (ريال)';
+      if(inp){ inp.step='0.01'; inp.style.borderColor='var(--ok-bd)'; inp.style.color='var(--ok)'; inp.placeholder='0.00'; }
+    } else {
+      gold.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--g5);background:var(--g4);color:var(--g1);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      cash.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      if(kar) kar.style.display='block';
+      if(lbl) lbl.textContent='🥇 الوزن (جرام)';
+      if(inp){ inp.step='0.001'; inp.style.borderColor='var(--g5)'; inp.style.color='var(--g1)'; inp.placeholder='0.000'; }
+    }
+    _obpro_fillSafes();
+  };
+
+  window._obpro_setKarat = function(k){
+    _curKarat = k;
+    ['18','21','22','24'].forEach(x=>{
+      const btn = document.getElementById('obpro-k'+x);
+      if(!btn) return;
+      btn.style.cssText = x===k
+        ? 'padding:10px;border-radius:10px;border:2px solid var(--g1);background:var(--g4);color:var(--g1);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer'
+        : 'padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer';
+    });
+    _obpro_fillSafes();
+  };
+
+  function _obpro_fillSafes(){
+    const sel = document.getElementById('obpro-safe');
+    if(!sel) return;
+    const SM = window.getSM ? window.getSM() : {};
+    const prev = sel.value;
+    sel.innerHTML = '';
+    Object.entries(SM).forEach(([k,v])=>{
+      if(k==='discount'||k.startsWith('debt')) return;
+      const t = v.type||'cash';
+      if(_curType==='cash' && t==='gold') return;
+      if(_curType==='gold' && t==='cash') return;
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = v.label;
+      sel.appendChild(opt);
+    });
+    if(prev && sel.querySelector(`option[value="${prev}"]`)) sel.value=prev;
+  }
+
+  window._obpro_save = function(){
+    const amt  = parseFloat(document.getElementById('obpro-amount')?.value)||0;
+    const safe = document.getElementById('obpro-safe')?.value||'cash';
+    const note = document.getElementById('obpro-note')?.value||'';
+    const dv   = document.getElementById('obpro-date')?.value;
+    const user = document.getElementById('obpro-user')?.value||sessionStorage.getItem('auth-user')||'—';
+
+    if(!amt||amt<=0){ if(window.toast) toast('⚠️ أدخل مبلغاً أو وزناً صحيحاً'); return; }
+    if(!safe){ if(window.toast) toast('⚠️ اختر الصندوق'); return; }
+
+    const txDate    = dv ? new Date(dv).toISOString() : new Date().toISOString();
+    const safeLabel = _safeLabel(safe);
+    const karatLbl  = _curType==='gold' ? (' عيار '+_curKarat) : '';
+
+    const tx = {
+      id: Date.now(),
+      date: txDate,
+      type: 'opening-balance',
+      subType: _curType==='cash' ? 'opening-balance-cash' : 'opening-balance-gold',
+      balanceType: _curType,
+      safeKey: safe,
+      safeLabel,
+      amount:     _curType==='cash' ? amt : 0,
+      goldWeight: _curType==='gold' ? amt : 0,
+      goldKarat: _curKarat,
+      karat: _curKarat,
+      notes: note || ('🏁 رصيد افتتاحي'+karatLbl+' — '+safeLabel),
+      user, staff: user,
+      client:'', items:[], total: _curType==='cash' ? amt : 0,
+      isOpeningBalance: true,
+    };
+
+    if(!window.S.openingBalance)        window.S.openingBalance = {safes:{},clients:{}};
+    if(!window.S.openingBalance.safes)  window.S.openingBalance.safes = {};
+    const obSafes = window.S.openingBalance.safes;
+    if(_curType==='cash'){
+      obSafes[safe] = (obSafes[safe]||0) + amt;
+    } else {
+      obSafes[safe] = (obSafes[safe]||0) + amt;
+    }
+
+    if(!window.S.transactions) window.S.transactions = [];
+    window.S.transactions.unshift(tx);
+    if(window.sv) window.sv();
+    if(window.renderAll) window.renderAll();
+    _obpro_renderList();
+
+    const amtEl = document.getElementById('obpro-amount');
+    const noteEl= document.getElementById('obpro-note');
+    if(amtEl) amtEl.value='';
+    if(noteEl) noteEl.value='';
+
+    const valStr = _curType==='cash'
+      ? (window.fmt?fmt(amt):amt)+' ريال'
+      : (window.fmtG?fmtG(amt):amt)+' جرام ع'+_curKarat;
+    if(window.toast) toast('✅ تم إضافة رصيد افتتاحي — '+safeLabel+': '+valStr);
+    if(window.logActivity) logActivity('opening-balance','إضافة رصيد افتتاحي '+(_curType==='cash'?'نقدي':'ذهبي')+' — '+safeLabel);
+  };
+
+  window._obpro_delete = function(txId){
+    const tx = (window.S?.transactions||[]).find(t=>t.id===txId);
+    if(!tx||!tx.isOpeningBalance) return;
+    if(!confirm('⚠️ حذف هذا الرصيد الافتتاحي؟\nسيُعاد حساب الأرصدة تلقائياً.')) return;
+    const obSafes = window.S?.openingBalance?.safes||{};
+    if(tx.balanceType==='cash'){
+      obSafes[tx.safeKey] = (obSafes[tx.safeKey]||0) - (tx.amount||0);
+    } else {
+      obSafes[tx.safeKey] = (obSafes[tx.safeKey]||0) - (tx.goldWeight||0);
+    }
+    window.S.transactions = (window.S.transactions||[]).filter(t=>t.id!==txId);
+    if(window.sv) window.sv();
+    if(window.renderAll) window.renderAll();
+    _obpro_renderList();
+    if(window.toast) toast('🗑️ تم حذف الرصيد الافتتاحي');
+  };
+
+  window._obpro_renderList = function(){
+    const el    = document.getElementById('obpro-list');
+    const badge = document.getElementById('obpro-count-badge');
+    if(!el) return;
+    const txs = (window.S?.transactions||[]).filter(t=>t.isOpeningBalance||t.type==='opening-balance');
+    if(badge) badge.textContent = txs.length+' إدخال';
+    if(!txs.length){
+      el.innerHTML='<div class="empty"><div class="ei">🏁</div><p>لا توجد أرصدة افتتاحية بعد</p></div>';
+      return;
+    }
+    const _f = n => window.fmt?fmt(n||0):(n||0).toLocaleString('ar-SA');
+    const _g = n => window.fmtG?fmtG(n||0):(n||0).toFixed(3);
+    const rows = txs.map(tx=>{
+      const dt     = window.fmtDate?fmtDate(tx.date):{ar:tx.date?.substring(0,10)||''};
+      const isCash = tx.balanceType==='cash'||tx.subType==='opening-balance-cash';
+      const val    = isCash ? _f(tx.amount||0)+' ريال' : _g(tx.goldWeight||tx.amount||0)+' جرام ع'+(tx.goldKarat||tx.karat||'21');
+      const bg     = isCash ? 'var(--ok-bg)' : 'var(--g4)';
+      const bdr    = isCash ? 'var(--ok-bd)' : 'var(--g5)';
+      const clr    = isCash ? 'var(--ok)'    : 'var(--g1)';
+      const icon   = isCash ? '💵'           : '🥇';
+      const noPK   = (tx.notes||'').replace('🏁 رصيد افتتاحي','').trim();
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;background:${bg};border:1px solid ${bdr};margin-bottom:7px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <div style="font-size:20px;flex-shrink:0">${icon}</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:900;color:${clr}">${val}</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">🗄️ ${tx.safeLabel||tx.safeKey||'—'} · 📅 ${dt.ar} · 👤 ${tx.user||tx.staff||'—'}</div>
+            ${noPK?`<div style="font-size:10px;color:var(--tx3);font-style:italic;margin-top:2px">📝 ${noPK}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <span style="background:var(--g4);color:var(--g1);font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;border:1px solid var(--g5)">🏁 افتتاحي</span>
+          <button onclick="_obpro_delete(${tx.id})"
+            style="background:var(--no-bg);color:var(--no);border:1px solid var(--no-bd);border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:700">🗑️ حذف</button>
+        </div>
+      </div>`;
+    }).join('');
+    el.innerHTML = '<div>'+rows+'</div>';
+  };
+
+  function _obpro_init(){
+    const dateEl = document.getElementById('obpro-date');
+    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+    const userEl = document.getElementById('obpro-user');
+    if(userEl) userEl.value = sessionStorage.getItem('auth-user')||'—';
+    _obpro_fillSafes();
+    _obpro_renderList();
+    _obpro_setType('cash');
+    _obpro_setKarat('21');
+  }
+
+  // Hook آمن على P — يدعم السلاسل السابقة
+  const _P_obpro = window.P;
+  window.P = function(page, el){
+    if(typeof _P_obpro==='function') _P_obpro.apply(this, arguments);
+    if(page==='opening') setTimeout(_obpro_init, 100);
+  };
+
+  // تسجيل الأنواع في TLBL
+  function _regTLBL(){
+    if(window.TLBL){
+      window.TLBL['opening-balance']      = '🏁 رصيد افتتاحي';
+      window.TLBL['opening-balance-cash'] = '🏁 افتتاحي نقدي';
+      window.TLBL['opening-balance-gold'] = '🏁 افتتاحي ذهبي';
+    }
+  }
+  _regTLBL();
+  setTimeout(_regTLBL, 2000);
+
+})(); // end OB-PRO
+
+
+// ════════════════════════════════════════════════════════════════════════
+// [DLPRO] حركة اليوم الاحترافية — إضافة مستقلة آمنة
+// ════════════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  const TL = {
+    'sell':'🟢 بيع','sell-debt':'🟢 بيع آجل','buy':'🔴 شراء','buy-debt':'🔴 شراء آجل',
+    'payment':'💵 تسوية عميل','supplier-payment':'💳 تسوية مورد',
+    'cash-receipt':'📥 قبض نقد','expense':'💸 مصروف','transfer':'🔄 تحويل',
+    'scrap':'🗃️ قبض كسر','scrap-return':'↩️ مردود كسر',
+    'sales-return':'↩️ مردود مبيعات','return':'↩️ مردود',
+    'purchase-return':'↩️ مردود مشتريات','supplier-return':'↩️ مردود مورد',
+    'discount-adj':'⚖️ تصفير حساب',
+    'opening-balance':'🏁 رصيد افتتاحي','opening-balance-cash':'🏁 افتتاحي نقدي','opening-balance-gold':'🏁 افتتاحي ذهبي',
+    'sal-deposit':'💰 إيداع راتب','sal-withdraw':'💸 سحب راتب',
+    'sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم',
+    'salary-pay':'💸 صرف راتب','salary-custody':'💰 عهدة',
+  };
+
+  const BC = {
+    'sell':'var(--ok)','sell-debt':'var(--ok)','buy':'var(--no)','buy-debt':'var(--no)',
+    'payment':'var(--in)','supplier-payment':'var(--io)','cash-receipt':'var(--ok)',
+    'expense':'var(--no)','scrap':'var(--g1)','transfer':'var(--in)',
+    'opening-balance':'var(--g1)','opening-balance-cash':'var(--ok)','opening-balance-gold':'var(--g1)',
+    'sales-return':'var(--pu)','return':'var(--pu)','supplier-return':'var(--pu)',
+    'discount-adj':'var(--teal)',
+  };
+
+  function _fmt(n)  { return window.fmt  ? fmt(Math.round((n||0)*100)/100)  : (+(n||0)).toLocaleString('ar-SA'); }
+  function _fmtG(n) { return window.fmtG ? fmtG(Math.round((n||0)*1000)/1000) : (+(n||0)).toFixed(3); }
+  function _fmtTime(iso){
+    try{ return new Date(iso).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'}); }
+    catch(e){ return ''; }
+  }
+  function _to24(w,k){ return (parseFloat(w)||0)*(parseFloat(k)||21)/24; }
+  function _scrapTo24(t){
+    if(t.scrapItems&&t.scrapItems.length) return t.scrapItems.reduce((a,si)=>a+_to24(si.weight,si.karat),0);
+    if(t.total24&&t.total24>0) return t.total24;
+    return _to24(t.weight,t.karat||'21');
+  }
+
+  function _buildDaysSel(){
+    const sel = document.getElementById('dlpro-date-sel');
+    if(!sel) return;
+    const today = new Date();
+    const opts  = [];
+    for(let i=0;i<90;i++){
+      const d  = new Date(today); d.setDate(d.getDate()-i);
+      const ds = d.toISOString().split('T')[0];
+      const lb = i===0?'📅 اليوم — '+ds : i===1?'📅 أمس — '+ds : '📅 '+ds;
+      opts.push(`<option value="${ds}">${lb}</option>`);
+    }
+    sel.innerHTML = opts.join('');
+  }
+
+  window._dlpro_render = function(){
+    const sel    = document.getElementById('dlpro-date-sel');
+    const dayStr = sel?.value || new Date().toISOString().split('T')[0];
+    const txs    = window.S?.transactions||[];
+
+    // فلتر اليوم
+    const dayTxs = txs.filter(t=>{
+      if(!t.date) return false;
+      try{ return new Date(t.date).toISOString().split('T')[0]===dayStr; }
+      catch(e){ return false; }
+    }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+    // تسمية اليوم
+    const dateObj  = new Date(dayStr+'T12:00:00');
+    const dayLabel = dateObj.toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const todLbl   = document.getElementById('dlpro-today-label');
+    if(todLbl) todLbl.textContent = dayLabel;
+
+    // أرصدة حالية
+    const safes = window.calcSafes ? calcSafes() : (window.S?.safes||{});
+
+    // ── حسابات اليوم ──
+    let cashIn=0,cashOut=0,goldIn24=0,goldOut24=0;
+    let sellAjr=0,buyAjr=0,expTotal=0,retVal=0;
+    let scrap18=0,scrap21=0,scrap22=0,scrap24=0;
+    let unitsIn=0,unitsOut=0,opCount=0;
+    const typeCount={};
+
+    dayTxs.forEach(t=>{
+      const tp=t.type||'';
+      opCount++;
+      typeCount[tp]=(typeCount[tp]||0)+1;
+      if(tp==='sell'||tp==='sell-debt'){
+        sellAjr+=(t.ajTotal||0);
+        (t.items||[]).forEach(i=>{ if(i.karat!=='gems') goldOut24+=_to24(i.weight,i.karat); });
+      } else if(tp==='buy'||tp==='buy-debt'){
+        buyAjr+=(t.ajTotal||0);
+        (t.items||[]).forEach(i=>{ if(i.karat!=='gems') goldIn24+=_to24(i.weight,i.karat); });
+      } else if(tp==='payment'){
+        cashIn+=(t.ajourPaid||0)+(t.change||0);
+        (t.goldItems||[]).forEach(gi=>goldIn24+=_to24(gi.weight,gi.karat));
+        if(!(t.goldItems?.length)&&(t.goldWeight||0)>0) goldIn24+=_to24(t.goldWeight,t.goldKarat||'21');
+      } else if(tp==='supplier-payment'){
+        cashOut+=(t.ajourPaid||0)+(t.change||0);
+        (t.goldItems||[]).forEach(gi=>goldOut24+=_to24(gi.weight,gi.karat));
+        if(!(t.goldItems?.length)&&(t.goldWeight||0)>0) goldOut24+=_to24(t.goldWeight,t.goldKarat||'21');
+      } else if(tp==='cash-receipt'){
+        cashIn+=(t.amount||0);
+      } else if(tp==='expense'){
+        cashOut+=(t.amount||0); expTotal+=(t.amount||0);
+      } else if(tp==='scrap'){
+        const si=t.scrapItems||[];
+        if(si.length){ si.forEach(s=>{ const w=s.weight||0,k=s.karat||'21'; if(k==='18')scrap18+=w; else if(k==='21')scrap21+=w; else if(k==='22')scrap22+=w; else if(k==='24')scrap24+=w; goldIn24+=_to24(w,k); }); }
+        else { const w=t.weight||0,k=t.karat||'21'; if(k==='18')scrap18+=w; else if(k==='21')scrap21+=w; else if(k==='22')scrap22+=w; else if(k==='24')scrap24+=w; goldIn24+=_to24(w,k); }
+      } else if(tp==='sales-return'||tp==='return'){
+        retVal+=(t.ajTotal||0)+(t.vatAmt||0);
+        (t.items||[]).forEach(i=>goldIn24+=_to24(i.weight,i.karat));
+      } else if(tp==='supplier-return'||tp==='purchase-return'){
+        (t.items||[]).forEach(i=>goldOut24+=_to24(i.weight,i.karat));
+      } else if(tp==='transfer'){
+        if((t.goldAmount||0)>0){
+          if(t.fromSafe&&!t.fromSafe.startsWith('__cli__')) goldOut24+=_to24(t.goldAmount,t.goldKarat||'21');
+          if(t.toSafe  &&!t.toSafe.startsWith('__cli__'))   goldIn24 +=_to24(t.goldAmount,t.goldKarat||'21');
+        }
+        if(t.fromSafe==='madan'||t.fromSafe==='lava') unitsOut+=(t.goldAmount||0);
+        if(t.toSafe==='madan'  ||t.toSafe==='lava')   unitsIn +=(t.goldAmount||0);
+      } else if(tp==='opening-balance'||t.isOpeningBalance){
+        if(t.balanceType==='cash') cashIn+=(t.amount||0);
+        else goldIn24+=_to24(t.goldWeight||t.amount||0,t.karat||'21');
+      } else if(tp==='sal-deposit'||tp==='salary-custody'){
+        cashIn+=(t.amount||0);
+      } else if(tp==='sal-withdraw'||tp==='salary-pay'||tp==='sal-payout'){
+        cashOut+=(t.amount||0);
+      }
+    });
+
+    const netAjr   = sellAjr - buyAjr - retVal;
+    const netCash  = cashIn  - cashOut;
+    const netGold  = goldIn24 - goldOut24;
+    const totalScrapSafes = (safes.scrap21||0)+(safes.scrap18||0)+(safes.pure24||0);
+    const totalGoldAll24  = totalScrapSafes*(21/24) + (safes.worked21||0)*(21/24) + (safes.worked18||0)*(18/24) + (safes.cashGold||0);
+
+    // ─── [1] الملخص الكامل ───
+    const sumEl = document.getElementById('dlpro-summary-section');
+    if(sumEl) sumEl.innerHTML = `
+    <div style="background:var(--c1);border:1.5px solid var(--g5);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+      <div style="background:linear-gradient(135deg,var(--hd),rgba(200,150,30,.18));padding:12px 16px;display:flex;align-items:center;gap:8px">
+        <div style="width:3px;height:18px;background:linear-gradient(to bottom,var(--g2),var(--g1));border-radius:2px"></div>
+        <span style="font-size:13px;font-weight:900;color:var(--g2)">📊 الملخص اليومي — ${dayLabel}</span>
+      </div>
+      <div style="padding:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:12px;padding:11px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:var(--ok);margin-bottom:3px">📥 إجمالي الدخل</div>
+            <div style="font-size:19px;font-weight:900;color:var(--ok)">${_fmt(cashIn)}</div>
+            <div style="font-size:9px;color:var(--tx3)">ريال</div>
+          </div>
+          <div style="background:var(--no-bg);border:1.5px solid var(--no-bd);border-radius:12px;padding:11px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:var(--no);margin-bottom:3px">📤 إجمالي الخرج</div>
+            <div style="font-size:19px;font-weight:900;color:var(--no)">${_fmt(cashOut)}</div>
+            <div style="font-size:9px;color:var(--tx3)">ريال</div>
+          </div>
+          <div style="background:${netCash>=0?'var(--ok-bg)':'var(--no-bg)'};border:1.5px solid ${netCash>=0?'var(--ok-bd)':'var(--no-bd)'};border-radius:12px;padding:11px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:800;color:${netCash>=0?'var(--ok)':'var(--no)'};margin-bottom:3px">⚖️ صافي النقد</div>
+            <div style="font-size:19px;font-weight:900;color:${netCash>=0?'var(--ok)':'var(--no)'}">
+              ${netCash<0?'−':'+'}${_fmt(Math.abs(netCash))}
+            </div>
+            <div style="font-size:9px;color:var(--tx3)">ريال</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:var(--g1);margin-bottom:3px">🧾 أجور البيع</div>
+            <div style="font-size:16px;font-weight:900;color:var(--g1)">${_fmt(sellAjr)}</div>
+            <div style="font-size:8px;color:var(--tx3)">ريال</div>
+          </div>
+          <div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:var(--no);margin-bottom:3px">💸 مصروفات</div>
+            <div style="font-size:16px;font-weight:900;color:var(--no)">${_fmt(expTotal)}</div>
+            <div style="font-size:8px;color:var(--tx3)">ريال</div>
+          </div>
+          <div style="background:${netAjr>=0?'var(--ok-bg)':'var(--no-bg)'};border:1px solid ${netAjr>=0?'var(--ok-bd)':'var(--no-bd)'};border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:${netAjr>=0?'var(--ok)':'var(--no)'};margin-bottom:3px">📈 صافي الأجور</div>
+            <div style="font-size:16px;font-weight:900;color:${netAjr>=0?'var(--ok)':'var(--no)'}">
+              ${netAjr<0?'−':'+'}${_fmt(Math.abs(netAjr))}
+            </div>
+            <div style="font-size:8px;color:var(--tx3)">ريال</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:var(--g1);margin-bottom:3px">📥 ذهب داخل ع24</div>
+            <div style="font-size:16px;font-weight:900;color:var(--g1)">${_fmtG(goldIn24)}</div>
+            <div style="font-size:8px;color:var(--tx3)">جرام</div>
+          </div>
+          <div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:var(--io);margin-bottom:3px">📤 ذهب خارج ع24</div>
+            <div style="font-size:16px;font-weight:900;color:var(--io)">${_fmtG(goldOut24)}</div>
+            <div style="font-size:8px;color:var(--tx3)">جرام</div>
+          </div>
+          <div style="background:${netGold>=0?'var(--g4)':'var(--io-bg)'};border:1px solid ${netGold>=0?'var(--g5)':'var(--io-bd)'};border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:${netGold>=0?'var(--g1)':'var(--io)'};margin-bottom:3px">⚖️ فرق الذهب</div>
+            <div style="font-size:16px;font-weight:900;color:${netGold>=0?'var(--g1)':'var(--io)'}">
+              ${netGold<0?'−':'+'}${_fmtG(Math.abs(netGold))}
+            </div>
+            <div style="font-size:8px;color:var(--tx3)">جرام ع24</div>
+          </div>
+        </div>
+        <div style="background:var(--c2);border-radius:10px;padding:10px;border:1px solid var(--b1)">
+          <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:8px">💼 الأرصدة الحالية</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div style="background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:8px;text-align:center">
+              <div style="font-size:9px;color:var(--tx2)">💵 نقد</div>
+              <div style="font-size:14px;font-weight:900;color:var(--ok)">${_fmt(safes.cash||0)}</div>
+              <div style="font-size:8px;color:var(--tx3)">ريال</div>
+            </div>
+            <div style="background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:8px;text-align:center">
+              <div style="font-size:9px;color:var(--tx2)">🏦 الخزينة</div>
+              <div style="font-size:14px;font-weight:900;color:var(--in)">${_fmt(safes.khazina||0)}</div>
+              <div style="font-size:8px;color:var(--tx3)">ريال</div>
+            </div>
+            <div style="background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:8px;text-align:center">
+              <div style="font-size:9px;color:var(--tx2)">🥇 ذهب كلي ع24</div>
+              <div style="font-size:14px;font-weight:900;color:var(--g1)">${_fmtG(totalGoldAll24)}</div>
+              <div style="font-size:8px;color:var(--tx3)">جرام</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // ─── [2] الكسر التفصيلي ───
+    const scrapEl = document.getElementById('dlpro-scrap-section');
+    if(scrapEl){
+      const tsToday = scrap18+scrap21+scrap22+scrap24;
+      scrapEl.innerHTML = `
+      <div style="background:var(--c1);border:1.5px solid var(--g5);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+        <div style="background:var(--g4);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g5)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:3px;height:16px;background:var(--g1);border-radius:2px"></div>
+            <span style="font-size:13px;font-weight:900;color:var(--tx1)">🗃️ تفصيل الكسر</span>
+          </div>
+          <span style="font-size:11px;font-weight:800;color:var(--g1);background:rgba(200,150,30,.15);padding:3px 10px;border-radius:20px">اليوم: ${_fmtG(tsToday)} ج</span>
+        </div>
+        <div style="padding:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:6px">📥 كسر واردٌ اليوم</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+            ${[['18','كسر 18','🥈',scrap18],['21','كسر 21','💛',scrap21],['22','كسر 22','✨',scrap22],['24','صافي 24','⭐',scrap24]].map(([k,l,ic,v])=>
+              `<div style="background:${v>0?'var(--g4)':'var(--c2)'};border:1px solid ${v>0?'var(--g5)':'var(--b1)'};border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:16px">${ic}</div>
+                <div style="font-size:9px;color:var(--tx2);font-weight:700;margin:3px 0">${l}</div>
+                <div style="font-size:15px;font-weight:900;color:${v>0?'var(--g1)':'var(--tx3)'}">${_fmtG(v)}</div>
+                <div style="font-size:8px;color:var(--tx3)">جرام</div>
+              </div>`
+            ).join('')}
+          </div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:6px">💼 رصيد الكسر الحالي</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            ${[['🗃️ كسر 21',safes.scrap21||0],['🗃️ كسر 18',safes.scrap18||0],['✨ صافي 24',safes.pure24||0]].map(([l,v])=>
+              `<div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:9px;color:var(--tx2)">${l}</div>
+                <div style="font-size:16px;font-weight:900;color:var(--g1)">${_fmtG(v)}</div>
+                <div style="font-size:8px;color:var(--tx3)">جرام</div>
+              </div>`
+            ).join('')}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // ─── [3] السبائك / Units ───
+    const unitsEl = document.getElementById('dlpro-units-section');
+    if(unitsEl){
+      const sfMG=(safes.madanGold||0), sfLG=(safes.lavaGold||0);
+      if(!sfMG&&!sfLG&&!unitsIn&&!unitsOut){
+        unitsEl.innerHTML='';
+      } else {
+        unitsEl.innerHTML = `
+        <div style="background:var(--c1);border:1.5px solid var(--pu-bd);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+          <div style="background:var(--pu-bg);padding:12px 16px;border-bottom:1px solid var(--pu-bd);display:flex;align-items:center;gap:8px">
+            <div style="width:3px;height:16px;background:var(--pu);border-radius:2px"></div>
+            <span style="font-size:13px;font-weight:900;color:var(--pu)">🏭 السبائك / Units</span>
+          </div>
+          <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+            ${[['📥 دخل اليوم','var(--pu-bg)','var(--pu-bd)','var(--pu)',_fmtG(unitsIn),'جرام'],
+               ['📤 خرج اليوم','var(--io-bg)','var(--io-bd)','var(--io)',_fmtG(unitsOut),'جرام'],
+               ['⚙️ المعدن','var(--g4)','var(--g5)','var(--g1)',_fmtG(sfMG),'جرام'],
+               ['🔥 لافا','rgba(239,68,68,.08)','rgba(239,68,68,.2)','#EF4444',_fmtG(sfLG),'جرام'],
+              ].map(([l,bg,bdr,clr,v,u])=>
+              `<div style="background:${bg};border:1px solid ${bdr};border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:9px;font-weight:700;color:${clr};margin-bottom:3px">${l}</div>
+                <div style="font-size:16px;font-weight:900;color:${clr}">${v}</div>
+                <div style="font-size:8px;color:var(--tx3)">${u}</div>
+              </div>`
+            ).join('')}
+          </div>
+        </div>`;
+      }
+    }
+
+    // ─── [4] إحصائية سريعة ───
+    const statsEl = document.getElementById('dlpro-stats-section');
+    if(statsEl){
+      const sorted = Object.entries(typeCount).sort((a,b)=>b[1]-a[1]);
+      const top    = sorted[0];
+      statsEl.innerHTML = `
+      <div style="background:var(--c1);border:1.5px solid var(--in-bd);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+        <div style="background:var(--in-bg);padding:12px 16px;border-bottom:1px solid var(--in-bd);display:flex;align-items:center;gap:8px">
+          <div style="width:3px;height:16px;background:var(--in);border-radius:2px"></div>
+          <span style="font-size:13px;font-weight:900;color:var(--in)">⚡ إحصائية سريعة</span>
+        </div>
+        <div style="padding:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div style="background:var(--in-bg);border:1px solid var(--in-bd);border-radius:10px;padding:12px;text-align:center">
+              <div style="font-size:9px;font-weight:700;color:var(--in);margin-bottom:4px">🔢 عدد العمليات</div>
+              <div style="font-size:26px;font-weight:900;color:var(--in)">${opCount}</div>
+              <div style="font-size:8px;color:var(--tx3)">عملية</div>
+            </div>
+            <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:12px;text-align:center">
+              <div style="font-size:9px;font-weight:700;color:var(--g1);margin-bottom:4px">🏆 الأكثر تكراراً</div>
+              <div style="font-size:12px;font-weight:900;color:var(--g1);line-height:1.3">${top?(TL[top[0]]||top[0]):'—'}</div>
+              <div style="font-size:9px;color:var(--tx3)">${top?top[1]+' مرة':''}</div>
+            </div>
+          </div>
+          ${sorted.length>1?`
+          <div style="background:var(--c2);border-radius:8px;padding:10px;border:1px solid var(--b1)">
+            <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:6px">📋 توزيع العمليات</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              ${sorted.slice(0,7).map(([tp,cnt])=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+                <span style="color:var(--tx1)">${TL[tp]||tp}</span>
+                <span style="font-weight:800;background:var(--g4);color:var(--g1);padding:1px 8px;border-radius:20px;font-size:10px;border:1px solid var(--g5)">${cnt}</span>
+              </div>`).join('')}
+            </div>
+          </div>`:''}
+        </div>
+      </div>`;
+    }
+
+    // ─── [5] الحركة التفصيلية ───
+    const txlistEl = document.getElementById('dlpro-txlist-section');
+    if(txlistEl){
+      if(!dayTxs.length){
+        txlistEl.innerHTML = `
+        <div style="background:var(--c1);border:1.5px solid var(--b2);border-radius:var(--ra);overflow:hidden">
+          <div style="background:var(--c2);padding:12px 16px;border-bottom:1px solid var(--b2);display:flex;align-items:center;gap:8px">
+            <div style="width:3px;height:16px;background:var(--g1);border-radius:2px"></div>
+            <span style="font-size:13px;font-weight:900">📋 الحركة التفصيلية</span>
+          </div>
+          <div class="empty" style="padding:28px"><div class="ei">📭</div><p>لا توجد حركات في هذا اليوم</p></div>
+        </div>`;
+      } else {
+        let runCash=0;
+        const rows = dayTxs.map((t,idx)=>{
+          const tp  = t.type||'';
+          const lbl = TL[tp]||tp;
+          const dt  = _fmtTime(t.date);
+          const cli = t.client||t.employee||'';
+          const usr = t.staff||t.user||'';
+          const nt  = t.notes||'';
+          const isOB= t.isOpeningBalance||tp==='opening-balance';
+          const bc  = BC[tp]||'var(--b2)';
+
+          // حركة نقدية لهذه العملية
+          let dCash=0;
+          if(tp==='payment')         dCash=+(t.ajourPaid||0)+(t.change||0);
+          else if(tp==='supplier-payment') dCash=-((t.ajourPaid||0)+(t.change||0));
+          else if(tp==='cash-receipt')     dCash=+(t.amount||0);
+          else if(tp==='expense')          dCash=-(t.amount||0);
+          else if(tp==='sal-deposit'||tp==='salary-custody') dCash=+(t.amount||0);
+          else if(tp==='sal-withdraw'||tp==='salary-pay')    dCash=-(t.amount||0);
+          else if(isOB&&t.balanceType==='cash') dCash=+(t.amount||0);
+          runCash=Math.round((runCash+dCash)*100)/100;
+
+          // حركة ذهبية
+          let dGold=0;
+          if(tp==='sell'||tp==='sell-debt') (t.items||[]).forEach(i=>{ if(i.karat!=='gems') dGold-=_to24(i.weight,i.karat); });
+          else if(tp==='buy'||tp==='buy-debt') (t.items||[]).forEach(i=>{ if(i.karat!=='gems') dGold+=_to24(i.weight,i.karat); });
+          else if(tp==='scrap') dGold=+_scrapTo24(t);
+          else if(tp==='payment') (t.goldItems||[]).forEach(gi=>dGold+=_to24(gi.weight,gi.karat));
+          else if(tp==='supplier-payment') (t.goldItems||[]).forEach(gi=>dGold-=_to24(gi.weight,gi.karat));
+          else if(tp==='sales-return'||tp==='return') (t.items||[]).forEach(i=>dGold+=_to24(i.weight,i.karat));
+          else if(isOB&&t.balanceType==='gold') dGold=+_to24(t.goldWeight||t.amount||0,t.karat||'21');
+
+          const hasCash = Math.abs(dCash)>0.001;
+          const hasGold = Math.abs(dGold)>0.001;
+
+          return `<div style="display:flex;align-items:stretch;border-right:3px solid ${bc};background:${isOB?'rgba(200,150,30,.04)':'var(--c1)'};border-radius:10px;margin-bottom:6px;border:1px solid var(--b1);border-right:3px solid ${bc};overflow:hidden">
+            <div style="min-width:26px;background:var(--c2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--tx3);border-left:1px solid var(--b1)">${idx+1}</div>
+            <div style="padding:8px 10px;flex:1;min-width:0">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                  <span style="font-size:12px;font-weight:900;color:${bc}">${lbl}</span>
+                  ${isOB?'<span style="font-size:9px;background:var(--g4);color:var(--g1);padding:1px 7px;border-radius:20px;border:1px solid var(--g5);font-weight:700">🏁 افتتاحي</span>':''}
+                  ${cli?`<span style="font-size:10px;color:var(--tx2)">· ${cli}</span>`:''}
+                </div>
+                <div style="text-align:left;flex-shrink:0">
+                  ${hasCash?`<div style="font-size:13px;font-weight:900;color:${dCash>0?'var(--ok)':'var(--no)'}">
+                    ${dCash>0?'+':'−'}${_fmt(Math.abs(dCash))} ر
+                  </div>`:''}
+                  ${hasGold?`<div style="font-size:11px;font-weight:700;color:var(--g1)">
+                    ${dGold>0?'▲':'▼'}${_fmtG(Math.abs(dGold))} ج ع24
+                  </div>`:''}
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap">
+                ${dt?`<span style="font-size:9px;color:var(--tx3)">⏰ ${dt}</span>`:''}
+                ${usr?`<span style="font-size:9px;color:var(--tx3)">👤 ${usr}</span>`:''}
+                ${nt?`<span style="font-size:9px;color:var(--tx3);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">📝 ${nt}</span>`:''}
+              </div>
+            </div>
+            ${hasCash?`<div style="min-width:58px;background:${runCash>=0?'var(--ok-bg)':'var(--no-bg)'};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 6px;border-right:1px solid var(--b1);text-align:center;flex-shrink:0">
+              <div style="font-size:8px;font-weight:700;color:${runCash>=0?'var(--ok)':'var(--no)'}">رصيد</div>
+              <div style="font-size:10px;font-weight:900;color:${runCash>=0?'var(--ok)':'var(--no)'}">
+                ${runCash<0?'−':''}${_fmt(Math.abs(runCash))}
+              </div>
+            </div>`:''}
+          </div>`;
+        });
+
+        txlistEl.innerHTML = `
+        <div style="background:var(--c1);border:1.5px solid var(--b2);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+          <div style="background:var(--c2);padding:12px 16px;border-bottom:1px solid var(--b2);display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:3px;height:16px;background:var(--g1);border-radius:2px"></div>
+              <span style="font-size:13px;font-weight:900">📋 الحركة التفصيلية</span>
+            </div>
+            <span style="font-size:10px;background:var(--g4);color:var(--g1);padding:2px 10px;border-radius:20px;border:1px solid var(--g5)">${dayTxs.length} عملية</span>
+          </div>
+          <div style="padding:12px">${rows.join('')}</div>
+        </div>`;
+      }
+    }
+  };
+
+  // ── تحديث تلقائي كل 30 ثانية إن كانت الصفحة مفتوحة ──
+  let _timer = null;
+  function _startAuto(){
+    if(_timer) clearInterval(_timer);
+    _timer = setInterval(()=>{
+      const pg = document.getElementById('pg-dailylog');
+      if(pg && pg.classList.contains('on')) _dlpro_render();
+    }, 30000);
+  }
+
+  // ── Hook آمن متسلسل على P ──
+  const _P_dlpro = window.P;
+  window.P = function(page, el){
+    if(typeof _P_dlpro==='function') _P_dlpro.apply(this, arguments);
+    if(page==='dailylog'){
+      setTimeout(()=>{
+        _buildDaysSel();
+        const s=document.getElementById('dlpro-date-sel');
+        if(s&&!s.value) s.value=new Date().toISOString().split('T')[0];
+        _dlpro_render();
+        _startAuto();
+      }, 80);
+    }
+  };
+
+  // ── تهيئة أولية عند تحميل الصفحة ──
+  setTimeout(()=>{
+    _buildDaysSel();
+    // إذا كانت الصفحة مفتوحة
+    const pg = document.getElementById('pg-dailylog');
+    if(pg && pg.classList.contains('on')) _dlpro_render();
+  }, 1200);
+
+})(); // end DLPRO
 </script>
 </body>
 </html>
