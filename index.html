@@ -9259,6 +9259,11 @@ function renderAll(){
   renderUsers();
   renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
   refreshExpSafes();
+  // إصلاح: تحديث صفحة الحركة اليومية تلقائياً عند تحديث البيانات
+  if(typeof window._dlpro_render==='function'){
+    const _dlpg=document.getElementById('pg-dailylog');
+    if(_dlpg&&_dlpg.classList.contains('on')) window._dlpro_render();
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -10351,7 +10356,8 @@ function renderStmt(){
     let dCash = 0;
     if(isSupp){
       if(t.type==='buy'||t.type==='buy-debt')
-        dCash = -(t.total||0);
+        // إصلاح: الأجور فقط هي الدين النقدي — الذهب يُعالَج في dGold24 (مطابقة printStmt)
+        dCash = -(t.ajTotal||0);
       else if(t.type==='supplier-payment'){
         // نقد + خصم + فكة + ذهب بسعر (كله يُخفِّض الدين للمورد)
         const _goldCashVal = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
@@ -10359,7 +10365,8 @@ function renderStmt(){
         dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_goldCashVal;
       }
       else if(t.type==='purchase-return'||t.type==='supplier-return')
-        dCash = (t.total||t.ajTotal||0);
+        // إصلاح: أجور المرتجع فقط (مطابقة printStmt)
+        dCash = (t.ajTotal||0);
       else if(t.type==='transfer'){
         if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;
         if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0);
@@ -10586,7 +10593,8 @@ function renderStmt(){
   const entityPhone=clientObj?.phone||'';
   const netAbs=Math.abs(cash);
   const totalInvoiced = isSupp
-    ? txs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.total||0),0)
+    // إصلاح: استخدام ajTotal للمورد لأن الدين النقدي هو الأجور فقط
+    ? txs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.ajTotal||0),0)
     : txs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.total||0),0);
   const cashTransferInAmt = txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+v))
                                .reduce((a,t)=>a+(t.amount||0),0);
@@ -12631,7 +12639,9 @@ if(typeof _rsOrig==='function'){
   window._dlpro_render = function(){
     const sel    = document.getElementById('dlpro-date-sel');
     const dayStr = sel?.value || new Date().toISOString().split('T')[0];
-    const txs    = window.S?.transactions||[];
+    // إصلاح: استخدام S مباشرة بدلاً من window.S (let S ليست window.S)
+    const _Sref  = (typeof S!=='undefined' ? S : window.S) || {};
+    const txs    = _Sref.transactions||[];
 
     // فلتر اليوم
     const dayTxs = txs.filter(t=>{
@@ -12646,8 +12656,8 @@ if(typeof _rsOrig==='function'){
     const todLbl   = document.getElementById('dlpro-today-label');
     if(todLbl) todLbl.textContent = dayLabel;
 
-    // أرصدة حالية
-    const safes = window.calcSafes ? calcSafes() : (window.S?.safes||{});
+    // أرصدة حالية — إصلاح: استخدام calcSafes أو _Sref.safes
+    const safes = (typeof calcSafes==='function') ? calcSafes() : (_Sref.safes||{});
 
     // ── حسابات اليوم ──
     let cashIn=0,cashOut=0,goldIn24=0,goldOut24=0;
