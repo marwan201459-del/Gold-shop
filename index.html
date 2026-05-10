@@ -2238,6 +2238,57 @@ body{
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- ══ [KARAT-SETTLE] modal: تسوية متقاطعة بين العيارات ══ -->
+<div class="mo" id="m-karat-settle" onclick="OMO(event,'m-karat-settle')">
+  <div class="mp">
+    <div class="mh">
+      <h3>🔄 تسوية وتحويل بين العيارات</h3>
+      <button class="mc" onclick="closeM('m-karat-settle')">✕</button>
+    </div>
+    <!-- معلومات العميل + رصيده بالعيارات -->
+    <div id="ks-client-info" style="background:var(--g4);border:1.5px solid var(--g5);border-radius:12px;padding:12px;margin-bottom:14px"></div>
+    <!-- اختيار العيار المدفوع -->
+    <div class="fr">
+      <label style="font-size:12px">🥇 اختر عيار الذهب المدفوع</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        <button type="button" id="ks-k18" onclick="ksSetKarat('18')"
+          style="padding:11px 5px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:900;cursor:pointer;transition:all .15s">عيار ١٨</button>
+        <button type="button" id="ks-k21" onclick="ksSetKarat('21')"
+          style="padding:11px 5px;border-radius:10px;border:2px solid var(--g5);background:var(--g4);color:var(--g1);font-family:inherit;font-size:13px;font-weight:900;cursor:pointer;transition:all .15s">عيار ٢١</button>
+        <button type="button" id="ks-k24" onclick="ksSetKarat('24')"
+          style="padding:11px 5px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:900;cursor:pointer;transition:all .15s">عيار ٢٤</button>
+      </div>
+    </div>
+    <input type="hidden" id="ks-cli">
+    <input type="hidden" id="ks-karat" value="21">
+    <!-- الوزن -->
+    <div class="fr">
+      <label style="font-size:12px">⚖️ الوزن المدفوع (جرام)</label>
+      <input type="number" id="ks-weight" inputmode="decimal" placeholder="0.000" step="0.001"
+        oninput="ksPreview()"
+        style="font-size:22px;font-weight:900;color:var(--g1);border-color:var(--g5)">
+    </div>
+    <!-- معاينة التوزيع -->
+    <div id="ks-preview" style="display:none;background:var(--c2);border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid var(--b2)"></div>
+    <!-- تاريخ وملاحظة -->
+    <div class="g2" style="margin-bottom:12px">
+      <div class="fr">
+        <label style="font-size:11px">📅 التاريخ</label>
+        <input type="date" id="ks-date">
+      </div>
+      <div class="fr">
+        <label style="font-size:11px">📝 ملاحظة</label>
+        <input type="text" id="ks-note" placeholder="تسوية متقاطعة">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btn-gold" onclick="doKaratSettle()">✅ تأكيد التسوية</button>
+      <button class="btn btn-outline" style="width:auto" onclick="closeM('m-karat-settle')">إلغاء</button>
+    </div>
+  </div>
+</div>
+<!-- /m-karat-settle -->
+
 <!-- ════════════════════════════════════════════════════════════
      [NEW-PRO] صفحة: حركة اليوم — نسخة احترافية محاسبية كاملة
      معزولة تماماً — لا تغيّر أي منطق قديم
@@ -10621,6 +10672,50 @@ function renderStmt(){
   }
   html += '</div>';
 
+  // ── [KARAT-BOXES] مربعات رصيد الذهب بالعيارات ──
+  if(!isSupp){
+    var _gOwed = bal.goldOwed || {};
+    var _g18 = _gOwed['18'] || 0;
+    var _g21 = _gOwed['21'] || 0;
+    var _g24 = _gOwed['24'] || 0;
+    var _hasKD = Math.abs(_g18)>0.001 || Math.abs(_g21)>0.001 || Math.abs(_g24)>0.001;
+    if(_hasKD){
+      var _sv = v.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html += '<div style="padding:0 14px 10px">';
+      html += '<div style="font-size:10px;font-weight:900;color:var(--tx2);margin-bottom:7px;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between">';
+      html += '<span>🥇 رصيد الذهب بالعيارات</span>';
+      html += '<span style="font-size:9px;color:var(--tx3)">اضغط على العيار لتسويته</span>';
+      html += '</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:9px">';
+      [['18',_g18,'١٨'],['21',_g21,'٢١'],['24',_g24,'٢٤']].forEach(function(kp){
+        var kk=kp[0], gw=kp[1], kAr=kp[2];
+        var gAbs=Math.abs(gw);
+        var clr = gAbs<0.001 ? '#16A34A' : gw>0 ? '#DC2626' : '#D97706';
+        var bg  = gAbs<0.001 ? 'rgba(22,163,74,.10)' : gw>0 ? 'rgba(220,38,38,.10)' : 'rgba(217,119,6,.10)';
+        var bd  = gAbs<0.001 ? 'rgba(22,163,74,.30)' : gw>0 ? 'rgba(220,38,38,.30)' : 'rgba(217,119,6,.30)';
+        var dir = gAbs<0.001 ? '' : gw>0 ? 'عليه' : 'له';
+        html += '<div onclick="openKaratSettle(\''+_sv+'\',\''+kk+'\')" '
+             + 'style="cursor:pointer;background:'+bg+';border:2px solid '+bd+';border-radius:13px;'
+             + 'padding:11px 5px 8px;text-align:center;position:relative;overflow:hidden;transition:all .15s" '
+             + 'ontouchstart="this.style.transform=\'scale(.95)\'" ontouchend="this.style.transform=\'\'">';
+        html += '<div style="font-size:9px;font-weight:900;color:'+clr+';margin-bottom:6px;letter-spacing:.4px">عيار '+kAr+'</div>';
+        html += '<div style="font-size:'+(gAbs>99?'14':gAbs>9?'17':'20')+'px;font-weight:900;color:'+clr+';line-height:1">'
+             + (gAbs<0.001?'✅':fmtG(gAbs)) + '</div>';
+        if(gAbs>0.001) html += '<div style="font-size:9px;color:'+clr+';margin-top:3px;opacity:.85">'+dir+' جرام</div>';
+        html += '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:'+clr+';border-radius:0 0 2px 2px"></div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      // زر التسوية المتقاطعة
+      html += '<button onclick="openKaratSettle(\''+_sv+'\',\'\')" '
+           + 'style="width:100%;padding:10px;border:1.5px solid rgba(40,200,216,.40);border-radius:10px;'
+           + 'background:rgba(40,200,216,.10);color:#28C8D8;font-family:inherit;font-size:12px;font-weight:800;'
+           + 'cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
+           + '🔄 تسوية وتحويل بين العيارات</button>';
+      html += '</div>';
+    }
+  }
+
   // شريط التسديد
   html += '<div style="padding:8px 14px 12px">';
   html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px"><span>نسبة التسديد</span><span style="font-weight:700;color:' + sColor + '">' + paidPct + '%</span></div>';
@@ -12942,6 +13037,250 @@ if(typeof _rsOrig==='function'){
   }, 1200);
 
 })(); // end DLPRO
+</script>
+
+<!-- ════════════════════════════════════════════════════════════
+     [KARAT-SETTLE] نظام التسوية المتقاطعة بين العيارات
+     إضافة جديدة — لا تعدّل أي كود سابق
+     ════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+
+// ─── فتح modal التسوية ───────────────────────────────────────
+function openKaratSettle(clientName, defaultKarat){
+  if(!clientName){ toast('⚠️ اختر عميلاً أولاً'); return; }
+
+  var bal = getClientBalance(clientName);
+  var gOwed = bal.goldOwed || {};
+  var g18 = gOwed['18'] || 0;
+  var g21 = gOwed['21'] || 0;
+  var g24 = gOwed['24'] || 0;
+
+  // معلومات العميل + رصيده
+  var infoEl = document.getElementById('ks-client-info');
+  if(infoEl){
+    var rows = [['18',g18,'١٨'],['21',g21,'٢١'],['24',g24,'٢٤']].map(function(kp){
+      var kk=kp[0], gw=kp[1], kAr=kp[2];
+      var gAbs=Math.abs(gw);
+      var clr = gAbs<0.001?'#16A34A':gw>0?'#DC2626':'#D97706';
+      var bg  = gAbs<0.001?'rgba(22,163,74,.12)':gw>0?'rgba(220,38,38,.12)':'rgba(217,119,6,.12)';
+      return '<div style="flex:1;background:'+bg+';border-radius:10px;padding:9px 6px;text-align:center">'
+           + '<div style="font-size:9px;font-weight:900;color:'+clr+';margin-bottom:4px">عيار '+kAr+'</div>'
+           + '<div style="font-size:'+(gAbs>99?'13':'17')+'px;font-weight:900;color:'+clr+';line-height:1">'+(gAbs<0.001?'✅':fmtG(gAbs))+'</div>'
+           + (gAbs>0.001?'<div style="font-size:8px;color:'+clr+';margin-top:2px;opacity:.8">'+(gw>0?'عليه':'له')+' ج</div>':'')
+           + '</div>';
+    }).join('');
+    infoEl.innerHTML = '<div style="font-size:12px;font-weight:900;color:var(--g1);margin-bottom:8px">👤 '+clientName+'</div>'
+      + '<div style="display:flex;gap:7px">'+rows+'</div>';
+  }
+
+  // تعيين قيم الحقول
+  document.getElementById('ks-cli').value = clientName;
+  document.getElementById('ks-weight').value = '';
+  document.getElementById('ks-note').value = 'تسوية متقاطعة بين العيارات';
+  document.getElementById('ks-preview').style.display = 'none';
+  var d = document.getElementById('ks-date');
+  if(d) d.value = new Date().toISOString().split('T')[0];
+
+  // العيار الافتراضي: المختار أو الأكبر دين
+  var defK = defaultKarat;
+  if(!defK || !['18','21','24'].includes(defK)){
+    var mx = 0;
+    [['18',g18],['21',g21],['24',g24]].forEach(function(kp){
+      if(Math.abs(kp[1])>mx){ mx=Math.abs(kp[1]); defK=kp[0]; }
+    });
+    defK = defK || '21';
+  }
+  ksSetKarat(defK);
+  openM('m-karat-settle');
+}
+window.openKaratSettle = openKaratSettle;
+
+// ─── اختيار العيار ────────────────────────────────────────────
+function ksSetKarat(k){
+  document.getElementById('ks-karat').value = k;
+  ['18','21','24'].forEach(function(ki){
+    var btn = document.getElementById('ks-k'+ki);
+    if(!btn) return;
+    if(ki===k){
+      btn.style.borderColor = 'var(--g5)';
+      btn.style.background  = 'var(--g4)';
+      btn.style.color       = 'var(--g1)';
+      btn.style.transform   = 'scale(1.04)';
+    } else {
+      btn.style.borderColor = 'var(--b2)';
+      btn.style.background  = 'var(--c2)';
+      btn.style.color       = 'var(--tx2)';
+      btn.style.transform   = '';
+    }
+  });
+  ksPreview();
+}
+window.ksSetKarat = ksSetKarat;
+
+// ─── حساب التوزيع المتقاطع ───────────────────────────────────
+// منطق التوزيع:
+// 1) يُسدَّد رصيد العيار المدفوع أولاً
+// 2) الفائض يُحوَّل لعيار 24 صافي، ثم يُوزَّع على باقي العيارات حسب نسبتها
+function _calcDistribution(clientName, payKarat, payWeight){
+  var bal     = getClientBalance(clientName);
+  var gOwed   = bal.goldOwed || {};
+  var debt    = { '18': Math.max(0, gOwed['18']||0),
+                  '21': Math.max(0, gOwed['21']||0),
+                  '24': Math.max(0, gOwed['24']||0) };
+
+  var remaining = payWeight;  // ما تبقى من الوزن المدفوع (بعيار payKarat)
+  var goldItems = [];   // [{karat, weight}] لاستخدامها في transaction
+  var log       = [];   // رسائل توضيحية
+
+  // الخطوة 1: سداد العيار المدفوع مباشرة
+  var matchDebt = debt[payKarat] || 0;
+  var matchPay  = Math.min(matchDebt, remaining);
+  if(matchPay > 0.0001){
+    goldItems.push({ karat: payKarat, weight: Math.round(matchPay*1000)/1000 });
+    remaining = Math.round((remaining - matchPay)*1000)/1000;
+    if(matchPay >= matchDebt - 0.0001)
+      log.push('✅ تصفير رصيد عيار '+payKarat+': '+fmtG(matchPay)+' ج');
+    else
+      log.push('🔽 سداد جزئي عيار '+payKarat+': '+fmtG(matchPay)+' ج');
+  }
+
+  // الخطوة 2: الفائض يُحوَّل لعيار 24 ويُوزَّع
+  if(remaining > 0.0001){
+    var excess24 = Math.round(convertTo24(remaining, payKarat)*1000)/1000;
+    var rem24 = excess24;
+
+    // ترتيب باقي العيارات (الأكبر ديناً أولاً)
+    var others = ['18','21','24'].filter(function(k){ return k!==payKarat; });
+    others.sort(function(a,b){ return (debt[b]||0) - (debt[a]||0); });
+
+    others.forEach(function(k){
+      if(rem24 < 0.0001) return;
+      var dbt = debt[k] || 0;
+      if(dbt < 0.0001) return;
+      var dbt24   = convertTo24(dbt, k);
+      var use24   = Math.min(dbt24, rem24);
+      var useK    = Math.round(use24 * 24 / parseFloat(k) * 1000)/1000;
+      goldItems.push({ karat: k, weight: useK });
+      rem24 = Math.round((rem24 - use24)*1000)/1000;
+      log.push('🔄 '+fmtG(remaining)+'ج عيار '+payKarat+' → '+fmtG(useK)+'ج عيار '+k
+             + (use24>=dbt24-0.0001?' (تصفير)':' (جزئي)'));
+    });
+
+    // فائض غير مستخدم
+    if(rem24 > 0.0001){
+      var leftK = Math.round(rem24*24/parseFloat(payKarat)*1000)/1000;
+      log.push('⚠️ فائض غير موزَّع: '+fmtG(leftK)+'ج عيار '+payKarat+' (لا يوجد دين لتغطيته)');
+    }
+  }
+
+  return { goldItems: goldItems, log: log };
+}
+
+// ─── معاينة التوزيع ───────────────────────────────────────────
+function ksPreview(){
+  var cli      = document.getElementById('ks-cli').value;
+  var payKarat = document.getElementById('ks-karat').value || '21';
+  var payWt    = parseFloat(document.getElementById('ks-weight').value) || 0;
+  var prevEl   = document.getElementById('ks-preview');
+
+  if(!cli || payWt < 0.0001){
+    if(prevEl) prevEl.style.display='none';
+    return;
+  }
+
+  var dist = _calcDistribution(cli, payKarat, payWt);
+  if(!prevEl) return;
+
+  // بناء عرض المعاينة
+  var h = '<div style="font-size:11px;font-weight:900;color:var(--tx1);margin-bottom:8px">📊 معاينة التوزيع</div>';
+
+  // إجمالي عيار 24 المدفوع
+  var total24 = Math.round(convertTo24(payWt, payKarat)*1000)/1000;
+  h += '<div style="background:var(--g4);border:1px solid var(--g5);border-radius:8px;padding:8px;margin-bottom:8px;text-align:center">';
+  h += '<div style="font-size:10px;color:var(--g1);font-weight:700">إجمالي ما تم دفعه بعيار 24</div>';
+  h += '<div style="font-size:18px;font-weight:900;color:var(--g1)">'+fmtG(total24)+' ج</div>';
+  h += '</div>';
+
+  if(dist.log.length){
+    h += '<div style="display:flex;flex-direction:column;gap:5px">';
+    dist.log.forEach(function(line){
+      var icon = line.charAt(0);
+      var bg   = icon==='✅'?'rgba(22,163,74,.10)':icon==='🔄'?'rgba(40,200,216,.10)':'rgba(217,119,6,.10)';
+      var bd   = icon==='✅'?'rgba(22,163,74,.30)':icon==='🔄'?'rgba(40,200,216,.30)':'rgba(217,119,6,.30)';
+      h += '<div style="background:'+bg+';border:1px solid '+bd+';border-radius:7px;padding:7px 10px;font-size:11px;font-weight:700;color:var(--tx1)">'+line+'</div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:11px;color:var(--tx2);text-align:center">لا يوجد رصيد ذهب لتغطيته</div>';
+  }
+
+  prevEl.innerHTML = h;
+  prevEl.style.display = 'block';
+}
+window.ksPreview = ksPreview;
+
+// ─── تنفيذ التسوية ───────────────────────────────────────────
+function doKaratSettle(){
+  var cli      = document.getElementById('ks-cli').value;
+  var payKarat = document.getElementById('ks-karat').value || '21';
+  var payWt    = parseFloat(document.getElementById('ks-weight').value) || 0;
+  var note     = document.getElementById('ks-note').value || 'تسوية متقاطعة بين العيارات';
+  var dateEl   = document.getElementById('ks-date');
+  var txDate   = (dateEl && dateEl.value) ? (new Date(dateEl.value).toISOString()) : (new Date().toISOString());
+
+  if(!cli)   { toast('⚠️ لم يُحدَّد عميل'); return; }
+  if(payWt<0.0001){ toast('⚠️ أدخل الوزن'); return; }
+
+  var dist = _calcDistribution(cli, payKarat, payWt);
+  if(!dist.goldItems.length){ toast('⚠️ لا يوجد دين ذهبي لتغطيته'); return; }
+
+  // إنشاء معاملة payment بالأصناف الموزَّعة
+  var tx = {
+    id:         Date.now(),
+    date:       txDate,
+    type:       'payment',
+    client:     cli,
+    notes:      note + ' | ' + fmtG(payWt) + 'ج عيار ' + payKarat,
+    staff:      (typeof currentUser !== 'undefined' ? currentUser : ''),
+    goldItems:  dist.goldItems.map(function(gi){
+      return { karat: gi.karat, weight: gi.weight, price: 0 };
+    }),
+    ajourPaid:  0,
+    amount:     0,
+    discount:   0,
+    change:     0,
+    total:      0,
+    cash:       0,
+    isKaratSettle: true,
+    fromSafe:   'scrap' + payKarat,
+    _karatSettleInfo: {
+      payKarat:    payKarat,
+      payWeight:   payWt,
+      distribution: dist.goldItems,
+      log:         dist.log
+    }
+  };
+
+  // إضافة الحقول المتوافقة مع goldWeight/goldKarat للكود القديم
+  if(dist.goldItems.length === 1){
+    tx.goldWeight = dist.goldItems[0].weight;
+    tx.goldKarat  = dist.goldItems[0].karat;
+  } else {
+    // أخذ أول صنف كقيم رئيسية
+    tx.goldWeight = dist.goldItems[0] ? dist.goldItems[0].weight : 0;
+    tx.goldKarat  = dist.goldItems[0] ? dist.goldItems[0].karat  : payKarat;
+  }
+
+  S.transactions.unshift(tx);
+  sv();
+  renderAll();
+  closeM('m-karat-settle');
+  toast('✅ تمت التسوية المتقاطعة — ' + dist.log.length + ' عملية');
+}
+window.doKaratSettle = doKaratSettle;
+
+})(); // end KARAT-SETTLE
 </script>
 </body>
 </html>
