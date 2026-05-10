@@ -10672,13 +10672,24 @@ function renderStmt(){
   // خانة الذهب (فقط لو في رصيد ذهب)
   if(_hasGold){
     html += '<div style="background:' + (gold24>0?'#FEE2E2':'#DCFCE7') + ';border:2px solid ' + _goldClr + ';border-radius:10px;padding:10px 12px">';
-    html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:4px">🥇 ' + _goldDir + '</div>';
+    html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:6px">🥇 ' + _goldDir + '</div>';
+    // ── مربعات التحويل السريع بين العيارات ──
+    var _svQ2 = v.replace(/'/g,"__APOS__");
+    html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px">';
+    html += '<span style="font-size:8px;font-weight:700;white-space:nowrap;opacity:.85;color:' + _goldClr + '">⚡ تحويل:</span>';
+    ['18','21','24'].forEach(function(_tk){
+      var _btnStyle = 'flex:1;padding:4px 1px;border:1.5px solid ' + _goldClr + '70;border-radius:7px;background:rgba(255,255,255,.22);color:' + _goldClr + ';font-family:inherit;font-size:10px;font-weight:900;cursor:pointer;transition:all .15s';
+      var _btnClick = '_btnKaratSettle(this)';
+      html += '<button data-v="' + _svQ2 + '" data-k="' + _tk + '" onclick="' + _btnClick + '" style="' + _btnStyle + '">ع' + _tk + '</button>';
+    });
+    html += '</div>';
     html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
     html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
-    html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'gold\')" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير ذهب</button>';
+    html += '<button onclick="_btnSettleAccount(this,&quot;gold&quot;)" data-v="' + _svQ2 + '" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير ذهب</button>';
     html += '</div>';
   }
   html += '</div>';
+
 
   // ── [KARAT-BOXES] مربعات رصيد الذهب بالعيارات ──
   if(!isSupp){
@@ -10689,6 +10700,33 @@ function renderStmt(){
     var _hasKD = Math.abs(_g18)>0.001 || Math.abs(_g21)>0.001 || Math.abs(_g24)>0.001;
     if(_hasKD){
       var _sv = v.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+      // ── حساب التفصيل الدقيق لكل عيار (عليه / دفع / متبقي) ──
+      var _kDetail = {};
+      ['18','21','24'].forEach(function(k){
+        var _kSold = txs.filter(function(t){return t.type==='sell'||t.type==='sell-debt';})
+          .reduce(function(a,t){return (t.items||[]).filter(function(i){return i.karat===k;}).reduce(function(s,i){return s+(i.weight||0);},a);},0);
+        var _kSret = txs.filter(function(t){return t.type==='sales-return'||t.type==='return';})
+          .reduce(function(a,t){return (t.items||[]).filter(function(i){return i.karat===k;}).reduce(function(s,i){return s+(i.weight||0);},a);},0);
+        var _kPayG = txs.filter(function(t){return t.type==='payment';}).reduce(function(a,t){
+          var w=0;
+          if(t.goldItems&&t.goldItems.length){
+            t.goldItems.forEach(function(gi){if((gi.karat||'21')===k&&(!gi.price||gi.price<=0))w+=(gi.weight||0);});
+          } else {
+            if((t.goldKarat||'21')===k&&(!t.goldPrice||t.goldPrice<=0))w+=(t.goldWeight||0);
+          }
+          return a+w;
+        },0);
+        var _kScr = txs.filter(function(t){return t.type==='scrap';}).reduce(function(a,t){
+          if(t.scrapItems&&t.scrapItems.length>0)return a+t.scrapItems.filter(function(si){return (si.karat||'21')===k;}).reduce(function(s,si){return s+(si.weight||0);},0);
+          if(t.karat===k&&t.karat!=='mixed')return a+(t.weight||0);
+          return a;
+        },0);
+        var _kCharged = Math.max(0, Math.round((_kSold - _kSret)*1000)/1000);
+        var _kPaid    = Math.round((_kPayG + _kScr)*1000)/1000;
+        _kDetail[k] = { charged: _kCharged, paid: _kPaid };
+      });
+
       html += '<div style="padding:0 14px 10px">';
       html += '<div style="font-size:10px;font-weight:900;color:var(--tx2);margin-bottom:7px;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between">';
       html += '<span>🥇 رصيد الذهب بالعيارات</span>';
@@ -10702,20 +10740,44 @@ function renderStmt(){
         var bg  = gAbs<0.001 ? 'rgba(22,163,74,.10)' : gw>0 ? 'rgba(220,38,38,.10)' : 'rgba(217,119,6,.10)';
         var bd  = gAbs<0.001 ? 'rgba(22,163,74,.30)' : gw>0 ? 'rgba(220,38,38,.30)' : 'rgba(217,119,6,.30)';
         var dir = gAbs<0.001 ? '' : gw>0 ? 'عليه' : 'له';
-        html += '<div onclick="openKaratSettle(\''+_sv+'\',\''+kk+'\')" '
+        var kd  = _kDetail[kk] || {charged:0, paid:0};
+        html += '<div onclick="openKaratSettle(\'' + _sv + '\',\'' + kk + '\')" '
              + 'style="cursor:pointer;background:'+bg+';border:2px solid '+bd+';border-radius:13px;'
-             + 'padding:11px 5px 8px;text-align:center;position:relative;overflow:hidden;transition:all .15s" '
-             + 'ontouchstart="this.style.transform=\'scale(.95)\'" ontouchend="this.style.transform=\'\'">';
-        html += '<div style="font-size:9px;font-weight:900;color:'+clr+';margin-bottom:6px;letter-spacing:.4px">عيار '+kAr+'</div>';
-        html += '<div style="font-size:'+(gAbs>99?'14':gAbs>9?'17':'20')+'px;font-weight:900;color:'+clr+';line-height:1">'
+             + 'padding:9px 5px 7px;text-align:center;position:relative;overflow:hidden;transition:all .15s" '
+             + 'ontouchstart="this.style.transform=\'scale(.95)\'" ontouchend="this.style.transform=\'\'>';
+        html += '<div style="font-size:9px;font-weight:900;color:'+clr+';margin-bottom:5px;letter-spacing:.4px">عيار '+kAr+'</div>';
+        html += '<div style="font-size:'+(gAbs>99?'13':gAbs>9?'16':'19')+'px;font-weight:900;color:'+clr+';line-height:1">'
              + (gAbs<0.001?'✅':fmtG(gAbs)) + '</div>';
-        if(gAbs>0.001) html += '<div style="font-size:9px;color:'+clr+';margin-top:3px;opacity:.85">'+dir+' جرام</div>';
+        if(gAbs>0.001) html += '<div style="font-size:9px;color:'+clr+';margin-top:2px;opacity:.85">'+dir+' جرام</div>';
+        // ── تفصيل: عليه / دفع / متبقي ──
+        if(kd.charged>0.001 || kd.paid>0.001){
+          html += '<div style="margin-top:5px;padding-top:5px;border-top:1px solid '+bd+';display:flex;flex-direction:column;gap:2px;text-align:right;padding-right:4px;padding-left:4px">';
+          if(kd.charged>0.001){
+            html += '<div style="display:flex;justify-content:space-between;align-items:center">'
+                 + '<span style="font-size:8px;color:var(--tx3);opacity:.9">عليه</span>'
+                 + '<span style="font-size:8px;font-weight:900;color:#DC2626">'+fmtG(kd.charged)+'</span>'
+                 + '</div>';
+          }
+          if(kd.paid>0.001){
+            html += '<div style="display:flex;justify-content:space-between;align-items:center">'
+                 + '<span style="font-size:8px;color:var(--tx3);opacity:.9">أخذ</span>'
+                 + '<span style="font-size:8px;font-weight:900;color:#16A34A">'+fmtG(kd.paid)+'</span>'
+                 + '</div>';
+          }
+          if(kd.charged>0.001){
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed '+bd+';margin-top:2px;padding-top:2px">'
+                 + '<span style="font-size:8px;color:var(--tx3);opacity:.9">متبقي</span>'
+                 + '<span style="font-size:8px;font-weight:900;color:'+clr+'">'+fmtG(gAbs)+'</span>'
+                 + '</div>';
+          }
+          html += '</div>';
+        }
         html += '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:'+clr+';border-radius:0 0 2px 2px"></div>';
         html += '</div>';
       });
       html += '</div>';
       // زر التسوية المتقاطعة
-      html += '<button onclick="openKaratSettle(\''+_sv+'\',\'\')" '
+      html += '<button onclick="openKaratSettle(\'' + _sv + '\',\'\')" '
            + 'style="width:100%;padding:10px;border:1.5px solid rgba(40,200,216,.40);border-radius:10px;'
            + 'background:rgba(40,200,216,.10);color:#28C8D8;font-family:inherit;font-size:12px;font-weight:800;'
            + 'cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
@@ -10821,6 +10883,18 @@ function delCli(id){
     sv();renderAll();toast('🗑️ تم الحذف');
   });
 }
+
+// ── Wrappers للأزرار التي تستخدم data-v بدل inline escaping ──
+function _btnKaratSettle(el){
+  var nm = (el.dataset.v||'').replace(/__APOS__/g,"'");
+  var k  = el.dataset.k||'';
+  openKaratSettle(nm, k);
+}
+function _btnSettleAccount(el, type){
+  var nm = (el.dataset.v||'').replace(/__APOS__/g,"'");
+  settleClientAccount(nm, type);
+}
+
 function openCliDetail(id){
   const cl=S.clients.find(x=>x.id===id);if(!cl)return;
   const txs=S.transactions.filter(t=>t.client===cl.name);
