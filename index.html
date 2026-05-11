@@ -2957,6 +2957,13 @@ function P(id,btn){
     toast('⛔ هذه الصفحة للمالك الرئيسي فقط');
     return;
   }
+  // حماية: صفحات محجوبة عن الموزع
+  const _role = currentRole();
+  const _distHidden = ['opening','salary','trialbal'];
+  if(_role==='distributor' && _distHidden.includes(id)){
+    toast('⛔ هذه الصفحة غير متاحة لحسابك');
+    return;
+  }
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   document.getElementById('pg-'+id).classList.add('on');
@@ -7694,7 +7701,7 @@ async function doLogin(){
       errEl.style.display = 'block';
       return;
     }
-    if(found.role === 'tenant' && found.subEnd){
+    if((found.role === 'tenant' || found.role === 'distributor') && found.subEnd){
       if(new Date(found.subEnd) < new Date()){
         errEl.textContent = '⏰ انتهى اشتراكك — تواصل مع المالك للتجديد';
         errEl.style.display = 'block';
@@ -7709,7 +7716,7 @@ async function doLogin(){
       localStorage.setItem(k, v);
     });
 
-    const ownerVal = found.role === 'owner'
+    const ownerVal = (found.role === 'owner' || found.role === 'tenant' || found.role === 'distributor')
       ? found.username.toLowerCase()
       : (found.ownerId || found.tenantId || found.username.toLowerCase());
     sessionStorage.setItem('auth-owner', ownerVal);
@@ -7721,7 +7728,7 @@ async function doLogin(){
     if(aw) aw.style.display = 'block';
 
     // ── ربط Firebase ──
-    const dataUid = found.role === 'owner'
+    const dataUid = (found.role === 'owner' || found.role === 'tenant' || found.role === 'distributor')
       ? found.username.toLowerCase()
       : (found.ownerId || found.tenantId || found.username.toLowerCase());
 
@@ -7769,7 +7776,7 @@ function logout(){
 //  لوحة إدارة المستخدمين — للمالك فقط
 // ══════════════════════════════════════════════════════
 
-const _ROLE_LBL = { owner:'👑 مالك', tenant:'🏢 مالك مستقل', admin:'🔑 مدير', accountant:'📊 محاسب', user:'👤 موظف' };
+const _ROLE_LBL = { owner:'👑 مالك', tenant:'🏢 مالك مستقل', distributor:'🚚 موزع مستقل', admin:'🔑 مدير', accountant:'📊 محاسب', user:'👤 موظف' };
 
 async function openUsersPanel(){
   const myRole = sessionStorage.getItem('auth-role')||'user';
@@ -7789,11 +7796,13 @@ async function openUsersPanel(){
     const active = u.status!=='disabled';
 
     const isTenant = u.role==='tenant';
-    const cardBg = isTenant ? 'var(--g4)' : 'var(--c2)';
-    const cardBorder = isTenant ? 'border:1.5px solid var(--g5)' : '';
+    const isDist   = u.role==='distributor';
+    const isIsolated = isTenant || isDist;
+    const cardBg = isTenant ? 'var(--g4)' : isDist ? 'rgba(80,144,224,.08)' : 'var(--c2)';
+    const cardBorder = isTenant ? 'border:1.5px solid var(--g5)' : isDist ? 'border:1.5px solid var(--in-bd)' : '';
     // حساب حالة الاشتراك
     let subBadge = '';
-    if(isTenant){
+    if(isIsolated){
       if(u.subEnd){
         const daysLeft = Math.ceil((new Date(u.subEnd)-Date.now())/(1000*60*60*24));
         if(daysLeft<=0){
@@ -7817,9 +7826,9 @@ async function openUsersPanel(){
       : `<span style="background:rgba(100,100,100,.18);color:var(--tx3);font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px">غير متصل</span>`;
     return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:${cardBg};${cardBorder};border-radius:10px;margin-bottom:7px;flex-wrap:wrap">
       <div style="flex:1;min-width:130px">
-        <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':'var(--tx1)'}">${isTenant?'🏢 ':''}${u.label||u.username}</div>
+        <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':isDist?'var(--in)':'var(--tx1)'}">${isTenant?'🏢 ':isDist?'🚚 ':''}${u.label||u.username}</div>
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
-        ${isTenant&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
+        ${isIsolated&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
         ${lastSeenStr&&!isOnline?`<div style="font-size:9px;color:var(--tx3);margin-top:1px">🕐 آخر ظهور: ${lastSeenStr}</div>`:''}
       </div>
       ${presenceBadge}
@@ -7830,23 +7839,26 @@ async function openUsersPanel(){
       <button onclick="_toggleUser('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:${active?'#DC2626':'#16A34A'};color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
         ${active?'إيقاف':'تفعيل'}
       </button>
-      ${isTenant?`<button onclick="_extendSub('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📅 اشتراك</button>`:''}
-      ${isTenant?`<button onclick="_openTenantOB('${u.username}','${_safeLabel}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--g1);color:#060300;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏁 رصيد</button>`:''}
+      ${isIsolated?`<button onclick="_extendSub('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📅 اشتراك</button>`:''}
+      ${isIsolated?`<button onclick="_openTenantOB('${u.username}','${_safeLabel}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--g1);color:#060300;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🏁 رصيد</button>`:''}
       <button onclick="_resetPass('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:var(--in);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔑</button>
       <button onclick="_deleteUser('${u.username}')" style="padding:5px 11px;border-radius:7px;border:none;background:#aaa;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🗑</button>
     </div>`;
   }
 
-  const tenants = users.filter(u=>u.role==='tenant');
-  const staff   = users.filter(u=>u.role!=='tenant');
+  const tenants      = users.filter(u=>u.role==='tenant');
+  const distributors = users.filter(u=>u.role==='distributor');
+  const staff        = users.filter(u=>u.role!=='tenant'&&u.role!=='distributor');
 
   // دالة لإعادة رسم الكروت عند تحديث الحضور
   let _presenceData = {};
   function _rebuildCards(pd) {
     _presenceData = pd||{};
     const tEl = document.getElementById('_tenants_list');
+    const dEl = document.getElementById('_dists_list');
     const uEl = document.getElementById('_users_list');
     if(tEl) tEl.innerHTML = tenants.map(u=>userCard(u, _presenceData)).join('');
+    if(dEl) dEl.innerHTML = distributors.map(u=>userCard(u, _presenceData)).join('');
     if(uEl) uEl.innerHTML = staff.length ? staff.map(u=>userCard(u, _presenceData)).join('') : (users.length===0?'<div style="text-align:center;color:var(--tx2);padding:20px;font-size:13px">لا يوجد مستخدمون بعد</div>':'');
   }
 
@@ -7855,14 +7867,18 @@ async function openUsersPanel(){
     <div style="font-size:15px;font-weight:900;margin-bottom:14px;color:var(--g1)">👥 إدارة المستخدمين</div>
 
     <!-- تبويبات الإضافة -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-      <button onclick="document.getElementById('_add_staff_form').style.display='block';document.getElementById('_add_tenant_form').style.display='none';this.style.background='var(--g1)';this.style.color='#fff';document.getElementById('_tab_tenant').style.background='var(--c2)';document.getElementById('_tab_tenant').style.color='var(--tx1)'" id="_tab_staff"
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+      <button onclick="document.getElementById('_add_staff_form').style.display='block';document.getElementById('_add_tenant_form').style.display='none';document.getElementById('_add_dist_form').style.display='none';this.style.background='var(--g1)';this.style.color='#fff';document.getElementById('_tab_tenant').style.background='var(--c2)';document.getElementById('_tab_tenant').style.color='var(--tx1)';document.getElementById('_tab_dist').style.background='var(--c2)';document.getElementById('_tab_dist').style.color='var(--tx1)'" id="_tab_staff"
         style="padding:8px;border-radius:9px;border:none;background:var(--g1);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-        👤 إضافة موظف/مدير
+        👤 موظف/مدير
       </button>
-      <button onclick="document.getElementById('_add_tenant_form').style.display='block';document.getElementById('_add_staff_form').style.display='none';this.style.background='var(--g1)';this.style.color='#fff';document.getElementById('_tab_staff').style.background='var(--c2)';document.getElementById('_tab_staff').style.color='var(--tx1)'" id="_tab_tenant"
+      <button onclick="document.getElementById('_add_tenant_form').style.display='block';document.getElementById('_add_staff_form').style.display='none';document.getElementById('_add_dist_form').style.display='none';this.style.background='var(--g1)';this.style.color='#fff';document.getElementById('_tab_staff').style.background='var(--c2)';document.getElementById('_tab_staff').style.color='var(--tx1)';document.getElementById('_tab_dist').style.background='var(--c2)';document.getElementById('_tab_dist').style.color='var(--tx1)'" id="_tab_tenant"
         style="padding:8px;border-radius:9px;border:none;background:var(--c2);color:var(--tx1);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-        🏢 إضافة مالك مستقل
+        🏢 مالك مستقل
+      </button>
+      <button onclick="document.getElementById('_add_dist_form').style.display='block';document.getElementById('_add_staff_form').style.display='none';document.getElementById('_add_tenant_form').style.display='none';this.style.background='var(--in)';this.style.color='#fff';document.getElementById('_tab_staff').style.background='var(--c2)';document.getElementById('_tab_staff').style.color='var(--tx1)';document.getElementById('_tab_tenant').style.background='var(--c2)';document.getElementById('_tab_tenant').style.color='var(--tx1)'" id="_tab_dist"
+        style="padding:8px;border-radius:9px;border:none;background:var(--c2);color:var(--tx1);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+        🚚 موزع مستقل
       </button>
     </div>
 
@@ -7907,6 +7923,29 @@ async function openUsersPanel(){
       <button onclick="_addUser('tenant')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--g1);color:#060300;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">🏢 إضافة مالك مستقل</button>
     </div>
 
+    <!-- فورم إضافة موزع مستقل -->
+    <div id="_add_dist_form" style="display:none;background:linear-gradient(135deg,#051a2e,#0a2540);border:1.5px solid var(--in-bd);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:800;color:var(--in);margin-bottom:8px">🚚 موزع مستقل — بيانات منعزلة + واجهة مبسطة</div>
+      <div style="background:rgba(80,144,224,.12);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--tx2);margin-bottom:10px;border:1px solid rgba(80,144,224,.2)">
+        ⚡ بيانات مستقلة 100% · بدون: الافتتاحي، الرواتب، ميزان المراجعة
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+        <input id="_nd_lbl" placeholder="الاسم الكامل" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--in-bd);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+        <input id="_nd_usr" placeholder="اليوزر (انجليزي)" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--in-bd);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+        <input id="_nd_pwd" placeholder="كلمة المرور" type="password" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--in-bd);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
+        <select id="_nd_sub" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--in-bd);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+          <option value="0">∞ بدون انتهاء</option>
+          <option value="30">📅 شهر (30 يوم)</option>
+          <option value="90">📅 3 أشهر</option>
+          <option value="180">📅 6 أشهر</option>
+          <option value="365">📅 سنة</option>
+        </select>
+      </div>
+      <button onclick="_addUser('distributor')" style="width:100%;padding:10px;border-radius:9px;border:none;background:var(--in);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">🚚 إضافة موزع مستقل</button>
+    </div>
+
     <!-- الحساب الرئيسي -->
     <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px">المستخدمون</div>
     <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--g4);border:1.5px solid var(--g5);border-radius:10px;margin-bottom:7px">
@@ -7918,6 +7957,10 @@ async function openUsersPanel(){
     ${tenants.length?`
     <div style="font-size:11px;font-weight:700;color:var(--g1);margin-bottom:6px;margin-top:10px;border-bottom:1px solid var(--g5);padding-bottom:4px">🏢 الملاك المستقلون (${tenants.length})</div>
     <div id="_tenants_list">${tenants.map(u=>userCard(u,{})).join('')}</div>`:''}
+
+    ${distributors.length?`
+    <div style="font-size:11px;font-weight:700;color:var(--in);margin-bottom:6px;margin-top:10px;border-bottom:1px solid var(--in-bd);padding-bottom:4px">🚚 الموزعون المستقلون (${distributors.length})</div>
+    <div id="_dists_list">${distributors.map(u=>userCard(u,{})).join('')}</div>`:''}
 
     ${staff.length?`
     <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;margin-top:10px">👤 الموظفون والمديرون (${staff.length})</div>
@@ -7945,12 +7988,14 @@ async function openUsersPanel(){
 
 async function _addUser(type){
   type = type || 'staff';
-  const isTenant = type === 'tenant';
-  const prefix = isTenant ? '_nt' : '_nu';
+  const isTenant      = type === 'tenant';
+  const isDistributor = type === 'distributor';
+  const isIsolated    = isTenant || isDistributor;  // كلاهما له بيانات مستقلة
+  const prefix = isTenant ? '_nt' : isDistributor ? '_nd' : '_nu';
   const label    = (document.getElementById(prefix+'_lbl').value||'').trim();
   const username = (document.getElementById(prefix+'_usr').value||'').trim().replace(/[^a-zA-Z0-9_]/g,'');
   const password = document.getElementById(prefix+'_pwd').value||'';
-  const role     = isTenant ? 'tenant' : (document.getElementById('_nu_rol').value||'user');
+  const role     = isIsolated ? type : (document.getElementById('_nu_rol').value||'user');
   if(!label||!username||!password){ toast('⚠️ أدخل جميع البيانات'); return; }
   if(password.length<4){ toast('⚠️ كلمة المرور 4 أحرف على الأقل'); return; }
   if(username.toLowerCase()==='marwan'){ toast('⚠️ هذا اليوزر محجوز'); return; }
@@ -7959,10 +8004,10 @@ async function _addUser(type){
   if(typeof window._loadUsers==='function') try{users=await window._loadUsers();}catch(e){}
   if(users.find(u=>u.username.toLowerCase()===username.toLowerCase())){ toast('⚠️ اليوزر موجود مسبقاً'); return; }
 
-  // حساب تاريخ انتهاء الاشتراك للتينانت
+  // حساب تاريخ انتهاء الاشتراك
   let subEnd = null;
-  if(isTenant){
-    const subDays = parseInt(document.getElementById('_nt_sub').value)||0;
+  if(isIsolated){
+    const subDays = parseInt(document.getElementById(prefix+'_sub').value)||0;
     if(subDays>0){
       const d = new Date(); d.setDate(d.getDate()+subDays);
       subEnd = d.toISOString();
@@ -7970,16 +8015,15 @@ async function _addUser(type){
   }
 
   const newUser = {username, password, role, label, status:'active', createdAt:Date.now()};
-  if(isTenant && subEnd) newUser.subEnd = subEnd;
+  if(isIsolated && subEnd) newUser.subEnd = subEnd;
 
   // ── ownerId للعزل الكامل ──
-  // مالك مستقل → ownerId = username تبعه (هو مالك نفسه)
-  // موظف/مدير → ownerId = ownerId تبع من أضافه
-  newUser.ownerId = isTenant ? username.toLowerCase() : currentOwner();
+  newUser.ownerId = isIsolated ? username.toLowerCase() : currentOwner();
 
   users.push(newUser);
   if(typeof window._saveUsers==='function') await window._saveUsers(users);
-  toast('✅ تم إضافة '+label+(isTenant?' كمالك مستقل':''));
+  const roleLabel = isDistributor ? 'كموزع مستقل' : isTenant ? 'كمالك مستقل' : '';
+  toast('✅ تم إضافة '+label+' '+roleLabel);
   document.getElementById('_users_modal')?.remove();
   openUsersPanel();
 }
@@ -8164,6 +8208,7 @@ async function changeMyPassword(){
 const ROLES = {
   owner:      { label:'👑 مالك',         level:5 },
   tenant:     { label:'🏢 مالك مستقل',   level:4 },
+  distributor:{ label:'🚚 موزع مستقل',   level:4 },
   admin:      { label:'🔑 مدير',          level:3 },
   accountant: { label:'📊 محاسب',         level:2 },
   user:       { label:'👤 موظف',          level:1 },
@@ -8182,6 +8227,11 @@ const PERMISSIONS = {
   tenant: {
     add:true, edit:true, delete:true, approve:true,
     reports:true, settings:true, users:false, actlog:false,
+  },
+  distributor: {
+    add:true, edit:true, delete:true, approve:true,
+    reports:true, settings:true, users:false, actlog:false,
+    hideOpening:true, hideSalary:true, hideTrialbal:true,
   },
   accountant: {
     add:true, edit:true, delete:false, approve:false,
@@ -8237,6 +8287,10 @@ function applyPermissions(){
     const oc = btn.getAttribute('onclick')||'';
     if(oc.includes("'users'"))   btn.style.display = perm.users  ? '' : 'none';
     if(oc.includes("'actlog'"))  btn.style.display = perm.actlog ? '' : 'none';
+    // ── إخفاء التبويبات غير الضرورية للموزع ──
+    if(perm.hideOpening   && oc.includes("'opening'"))   btn.style.display = 'none';
+    if(perm.hideSalary    && oc.includes("'salary'"))    btn.style.display = 'none';
+    if(perm.hideTrialbal  && oc.includes("'trialbal'"))  btn.style.display = 'none';
   });
 
   // ── زر "المستخدمون" في الهيدر — owner فقط ──
@@ -9499,10 +9553,13 @@ function renderDashboard(){
   const sellToday = todayTxs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
   const sellMonth = monthTxs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
   const expenses  = monthTxs.filter(t=>t.type==='expense').reduce((a,t)=>a+(t.amount||0),0);
-  const retMonth  = monthTxs.filter(t=>t.type==='sales-return'||t.type==='return').reduce((a,t)=>a+(t.ajTotal||0),0);
-  // تكلفة الشراء لهذا الشهر (الأجور فقط — سعر الذهب ليس ربحاً)
-  const buyCostMonth = monthTxs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.ajTotal||0),0);
-  const netProfit = sellMonth - retMonth - buyCostMonth - expenses;
+  // مرتجعات المبيعات (تُطرح من الإيرادات)
+  const retMonth  = monthTxs.filter(t=>t.type==='sales-return'||t.type==='return').reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
+  // تكلفة الشراء (الأجور فقط) مطروحاً منها مرتجعات المشتريات
+  const buyCostMonth  = monthTxs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.ajTotal||0),0);
+  const retPurchMonth = monthTxs.filter(t=>t.type==='purchase-return'||t.type==='supplier-return').reduce((a,t)=>a+(t.ajTotal||0),0);
+  const netBuyCost = Math.max(0, buyCostMonth - retPurchMonth);
+  const netProfit = sellMonth - retMonth - netBuyCost - expenses;
 
   const setEl=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=fmt(Math.round(v)); };
   setEl('dash-sell-today', sellToday);
@@ -11248,7 +11305,7 @@ function renderObSummary(){
 
   // ── قسم رصيد المالك المستقل الافتتاحي ──
   const _tob = S.tenantOpeningBalance || null;
-  const _isTenantRole = (sessionStorage.getItem('auth-role')||'')==='tenant';
+  const _isTenantRole = ['tenant','distributor'].includes(sessionStorage.getItem('auth-role')||'');
 
   if(!safeRows.length&&!cliRows.length&&!(_isTenantRole&&_tob&&(_tob.cash||_tob.gold18||_tob.gold21||_tob.gold24))){
     el.innerHTML='<div class="empty" style="padding:16px"><div class="ei">🏁</div><p>لم يتم تسجيل أي رصيد افتتاحي بعد</p></div>';
