@@ -2322,6 +2322,9 @@ body{
   <!-- ── [2] قسم الكسر التفصيلي ── -->
   <div id="dlpro-scrap-section" style="margin-bottom:14px"></div>
 
+  <!-- ── [2b] كسر العملاء التفصيلي بالعيارات ── -->
+  <div id="dlpro-scrap-clients-section" style="margin-bottom:14px"></div>
+
   <!-- ── [3] قسم السبائك / Units ── -->
   <div id="dlpro-units-section" style="margin-bottom:14px"></div>
 
@@ -12920,6 +12923,81 @@ if(typeof _rsOrig==='function'){
           </div>
         </div>
       </div>`;
+    }
+
+    // ─── [2b] كسر العملاء التفصيلي بالعيارات ───
+    const scrapCliEl = document.getElementById('dlpro-scrap-clients-section');
+    if(scrapCliEl){
+      // جمع بيانات الكسر مع أسماء العملاء مجمّعة حسب العيار
+      const byKarat = {'18':[], '21':[], '24':[]};
+
+      dayTxs.forEach(t=>{
+        if(t.type!=='scrap') return;
+        const cli = t.client || '—';
+        const si  = t.scrapItems||[];
+        if(si.length){
+          si.forEach(s=>{
+            const k=String(s.karat||'21'), w=s.weight||0;
+            if(byKarat[k]) byKarat[k].push({client:cli, weight:w});
+          });
+        } else {
+          const k=String(t.karat||'21'), w=t.weight||0;
+          if(byKarat[k]) byKarat[k].push({client:cli, weight:w});
+        }
+      });
+
+      const tot18 = byKarat['18'].reduce((s,r)=>s+r.weight, 0);
+      const tot21 = byKarat['21'].reduce((s,r)=>s+r.weight, 0);
+      const tot24 = byKarat['24'].reduce((s,r)=>s+r.weight, 0);
+      const grandTotal24 = _to24(tot18,'18') + _to24(tot21,'21') + tot24;
+      const hasAny = tot18>0 || tot21>0 || tot24>0;
+
+      if(!hasAny){
+        scrapCliEl.innerHTML = '';
+      } else {
+        const karatCols = [
+          {k:'18', label:'🥈 كسر عيار 18', color:'var(--in)',  bg:'var(--in-bg)',  bd:'var(--in-bd)',  total:tot18, rows:byKarat['18']},
+          {k:'21', label:'💛 كسر عيار 21', color:'var(--g1)',  bg:'var(--g4)',     bd:'var(--g5)',     total:tot21, rows:byKarat['21']},
+          {k:'24', label:'⭐ صافي عيار 24', color:'var(--ok)', bg:'var(--ok-bg)', bd:'var(--ok-bd)', total:tot24, rows:byKarat['24']},
+        ];
+
+        scrapCliEl.innerHTML = `
+        <div style="background:var(--c1);border:1.5px solid var(--g5);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+          <div style="background:var(--g4);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g5)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:3px;height:16px;background:var(--g1);border-radius:2px"></div>
+              <span style="font-size:13px;font-weight:900;color:var(--tx1)">📋 تفصيل الكسر بالعملاء</span>
+            </div>
+            <span style="font-size:11px;font-weight:800;color:var(--g1);background:rgba(200,150,30,.15);padding:3px 10px;border-radius:20px">إجمالي 24: ${_fmtG(grandTotal24)} ج</span>
+          </div>
+          <div style="padding:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              ${karatCols.map(col=>`
+                <div style="background:${col.bg};border:1.5px solid ${col.bd};border-radius:12px;overflow:hidden">
+                  <div style="padding:8px 10px;text-align:center;border-bottom:1px solid ${col.bd}">
+                    <div style="font-size:11px;font-weight:900;color:${col.color}">${col.label}</div>
+                  </div>
+                  <div style="padding:8px;min-height:50px">
+                    ${col.rows.length===0
+                      ? `<div style="text-align:center;color:var(--tx3);font-size:11px;padding:12px 0">—</div>`
+                      : col.rows.map(r=>`
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 7px;margin-bottom:4px;background:var(--c1);border-radius:7px;border:1px solid ${col.bd}">
+                          <span style="font-size:11px;font-weight:700;color:var(--tx1)">${r.client}</span>
+                          <span style="font-size:11px;font-weight:900;color:${col.color}">${_fmtG(r.weight)} ج</span>
+                        </div>`).join('')
+                    }
+                  </div>
+                  ${col.total>0?`
+                  <div style="padding:7px 10px;text-align:center;border-top:1px solid ${col.bd};background:${col.bg}">
+                    <span style="font-size:10px;font-weight:700;color:var(--tx2)">الإجمالي: </span>
+                    <span style="font-size:14px;font-weight:900;color:${col.color}">${_fmtG(col.total)} ج</span>
+                  </div>`:''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>`;
+      }
     }
 
     // ─── [3] السبائك / Units ───
