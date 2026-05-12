@@ -742,37 +742,6 @@ body{
         </div>
         <div id="inv-items-list"></div>
         <!-- ملخص -->
-        <!-- قسم الأحجار الكريمة -->
-        <div style="margin:10px 0;background:var(--c2);border-radius:12px;padding:12px;border:1px solid var(--b1)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:12px;font-weight:800;color:var(--tx1)">💎 الأحجار الكريمة</span>
-            <button type="button" onclick="addGem()"
-              style="font-size:11px;background:var(--g1);color:#1C1208;border:none;border-radius:8px;
-                     padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:700">
-              + إضافة حجر
-            </button>
-          </div>
-          <div id="gems-list"></div>
-          <div id="gems-total-row" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--b1);font-size:12px;font-weight:700;color:var(--g1)">
-            <div style="display:flex;justify-content:space-between">
-              <span>💎 إجمالي الأحجار</span>
-              <span id="gems-total-val">0 ريال</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- صنف أحجار كريمة مستقل -->
-        <div style="margin:10px 0;background:var(--c2);border-radius:12px;padding:12px;border:1px solid var(--pu-bd)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:12px;font-weight:800;color:var(--pu)">💍 صنف الأحجار (أحال كريمة)</span>
-            <button type="button" onclick="addStoneItem()" style="font-size:11px;background:var(--pu);color:#fff;border:none;border-radius:8px;padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:700">+ إضافة حجر</button>
-          </div>
-          <div style="font-size:10px;color:var(--tx2);margin-bottom:6px">⚡ الوزن لا يُحتسب في وزن الذهب — فقط قيمة الأحجار تُضاف للإجمالي</div>
-          <div id="stone-items-list"></div>
-          <div id="stone-total-row" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--b1);font-size:12px;font-weight:700;color:var(--pu)">
-            <div style="display:flex;justify-content:space-between"><span>💍 إجمالي الأحجار</span><span id="stone-total-val">0 ريال</span></div>
-          </div>
-        </div>
 
         <!-- مبلغ إضافي مع وصف -->
         <div style="margin:10px 0;background:var(--c2);border-radius:12px;padding:12px;border:1px solid var(--io-bd)">
@@ -3341,21 +3310,20 @@ function renderInvSummary(){
   const discAmt = parseFloat(document.getElementById('f-discount')?.value)||0;
   const totalFinal = totalWithShipping - discAmt;
 
-  const gemTot = (typeof getGemTotal === 'function' ? getGemTotal() : 0) + gemsItemsAmt;
-  const stoneTot = typeof getStoneTotal === 'function' ? getStoneTotal() : 0;
+  // الأحجار الكريمة = من الأصناف فقط (وزن × أجور) — بدون أداة الأحجار المنفصلة
+  const gemTot = gemsItemsAmt;
   const extraAmt = parseFloat(document.getElementById('f-extra-amount')?.value)||0;
   const extraDesc = document.getElementById('f-extra-desc')?.value||'مبلغ إضافي';
-  const totalWithGems = totalFinal + gemTot + stoneTot + extraAmt;
+  const totalWithGems = totalFinal + gemTot + extraAmt;
 
   const sumGemsRow = document.getElementById('sum-gems-row');
   const sumGemsEl  = document.getElementById('sum-gems');
   if(sumGemsRow) sumGemsRow.style.display = gemTot>0?'flex':'none';
   if(sumGemsEl && gemTot>0) sumGemsEl.textContent = fmt(gemTot)+' ريال';
 
+  // sum-stones-row مخفي دائماً (تمت إزالة أداة صنف الأحجار)
   const stonesRow = document.getElementById('sum-stones-row');
-  const stonesEl  = document.getElementById('sum-stones');
-  if(stonesRow) stonesRow.style.display = stoneTot>0?'flex':'none';
-  if(stonesEl && stoneTot>0) stonesEl.textContent = fmt(stoneTot)+' ريال';
+  if(stonesRow) stonesRow.style.display = 'none';
 
   const extraRow = document.getElementById('sum-extra-row');
   const extraEl  = document.getElementById('sum-extra');
@@ -3365,7 +3333,7 @@ function renderInvSummary(){
   if(extraLbl && extraDesc) extraLbl.textContent = '💵 '+extraDesc;
 
   const elT = document.getElementById('sum-total');
-  if(elT) elT.textContent = fmt(totalWithGems)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
+  if(elT) elT.innerHTML = fmt(totalWithGems)+' ريال' + (vatOn?' <span style="font-size:10px;color:var(--tx2)">(شامل الضريبة)</span>':'');
 }
 
 function renderDraftItems(){
@@ -3676,8 +3644,7 @@ function saveInvoice(){
   const ajTotal    = goldItems.reduce((a,i)=>a+i.weight*i.ajour,0);
   // قيمة الأحجار الكريمة من الأصناف (وزن × أجور)
   const gemsInItems= gemItems2.reduce((a,i)=>a+(i.weight||0)*(i.ajour||0),0);
-  const gemTotal   = getGemTotal() + gemsInItems;  // gems widget + items gems
-  const stoneTotal = getStoneTotal();
+  const gemTotal   = gemsInItems;  // أحجار من الأصناف فقط (وزن × أجور)
   const extraAmount= parseFloat(document.getElementById("f-extra-amount")?.value)||0;
   const extraDesc  = document.getElementById("f-extra-desc")?.value||'';
   const discount   = parseFloat(document.getElementById("f-discount")?.value)||0;
@@ -3685,7 +3652,7 @@ function saveInvoice(){
   const vatCheck   = document.getElementById('vat-check');
   const vatOn      = vatCheck && vatCheck.checked;
   const vatAmt     = vatOn ? Math.round(ajTotal*0.15*100)/100 : 0;
-  const invTotal   = goldTotal+ajTotal+vatAmt+shipping+gemTotal+stoneTotal+extraAmount-discount;
+  const invTotal   = goldTotal+ajTotal+vatAmt+shipping+gemTotal+extraAmount-discount;
   // الوزن = ذهب فقط (بدون الأحجار)
   const totalWeight= goldItems.reduce((a,i)=>a+i.weight,0);
   const total24    = Math.round(goldItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0)*1000)/1000;
@@ -3708,8 +3675,8 @@ function saveInvoice(){
     type: isDebt?'sell-debt': isBuyDebt?'buy-debt': selType,
     items:[...draftItems],
     goldTotal, ajTotal, discount, shipping, vatAmt, hasVat:vatOn, total:invTotal, weight:totalWeight, total24,
-    gemTotal, gems:[...gemItems],
-    stoneTotal, stoneItems:[...stoneItems],
+    gemTotal, gems:[],
+    stoneTotal:0, stoneItems:[],
     extraAmount, extraDesc,
     cash, goldPay, prepaid, due: isDebt?due:'', buyDue: isBuyDebt?buyDue:'',
     isDebt, isBuyDebt,
@@ -3723,8 +3690,6 @@ function saveInvoice(){
 }
 
 function clearInvForm(){
-  gemItems=[]; gemCounter=0; renderGems();
-  stoneItems=[]; stoneCounter=0; renderStoneItems();
   draftItems=[]; itemCounter=0;
   renderDraftItems();
   ['f-cash','f-goldpay','f-prepaid','f-due','f-buy-due','f-notes','f-discount','f-shipping','f-date','f-extra-amount','f-extra-desc'].forEach(i=>{
