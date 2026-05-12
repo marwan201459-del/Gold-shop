@@ -4504,6 +4504,13 @@ function printStmt(){
         const neg=bal.goldOwedAs24>0;
         balRows+=`<div class="bal-row"><span>رصيد ذهب</span>
           <span class="bal-val ${neg?'neg':'pos'}">${neg?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`;
+        // تفصيل بالعيارات للطباعة
+        const _gO=bal.goldOwed||{};
+        const _g21p=Math.abs(_gO['21']||0), _g18p=Math.abs(_gO['18']||0);
+        if(_g21p>0.001||_g18p>0.001){
+          if(_g21p>0.001) balRows+=`<div class="bal-row" style="padding-right:16px"><span style="font-size:11px;color:#888">↳ عيار 21</span><span class="bal-val neg" style="font-size:13px">${fmtG(_g21p)} جرام</span></div>`;
+          if(_g18p>0.001) balRows+=`<div class="bal-row" style="padding-right:16px"><span style="font-size:11px;color:#888">↳ عيار 18</span><span class="bal-val neg" style="font-size:13px">${fmtG(_g18p)} جرام</span></div>`;
+        }
       }
     }
     const to24rb=(w,k)=>(w||0)*parseFloat(k||'21')/24;
@@ -4719,8 +4726,14 @@ function printStmt(){
       <div class="fs-title">الملخص النهائي</div>
       <div class="fs-row"><span>الرصيد النقدي</span>
         <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
-      ${Math.abs(bal.goldOwedAs24||0)>0.001?`<div class="fs-row"><span>الرصيد الذهبي</span>
-        <span class="fs-val ${bal.goldOwedAs24>0?'neg':'pos'}">${bal.goldOwedAs24>0?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`:''}
+      ${Math.abs(bal.goldOwedAs24||0)>0.001?(()=>{
+        const _gO2=bal.goldOwed||{};
+        const _g21f=Math.abs(_gO2['21']||0),_g18f=Math.abs(_gO2['18']||0);
+        return `<div class="fs-row"><span>الرصيد الذهبي</span>
+          <span class="fs-val ${bal.goldOwedAs24>0?'neg':'pos'}">${bal.goldOwedAs24>0?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`
+          +(_g21f>0.001?`<div class="fs-row" style="padding-right:12px;opacity:.85"><span style="font-size:11px">↳ باقي سداد عيار 21</span><span class="fs-val neg" style="font-size:14px">${fmtG(_g21f)} جرام</span></div>`:'')
+          +(_g18f>0.001?`<div class="fs-row" style="padding-right:12px;opacity:.85"><span style="font-size:11px">↳ باقي سداد عيار 18</span><span class="fs-val neg" style="font-size:14px">${fmtG(_g18f)} جرام</span></div>`:'');
+      })():''}
     </div>`;
   }
 
@@ -9881,6 +9894,11 @@ function settleClientAccount(clientName, settleType){
       : '\u2705 \u062A\u0645 \u062A\u0635\u0641\u064A\u0631 \u0627\u0644\u062D\u0633\u0627\u0628 \u0643\u0627\u0645\u0644';
     toast(doneMsg);
     renderStmt();
+    // تحديث لوحة الأعيرة بعد التصفير مباشرة
+    try{
+      const _sv2=document.getElementById('stmt-v')?.value||'';
+      if(_sv2&&!_sv2.startsWith('__')&&typeof window.ksRender==='function') window.ksRender(_sv2);
+    }catch(e){}
   });
 }
 
@@ -10731,120 +10749,35 @@ function renderStmt(){
   if(_hasGold){
     html += '<div style="background:' + (gold24>0?'#FEE2E2':'#DCFCE7') + ';border:2px solid ' + _goldClr + ';border-radius:10px;padding:10px 12px">';
     html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:6px">🥇 ' + _goldDir + '</div>';
-    // ── مربعات التحويل السريع بين العيارات ──
+    // ── تحويل العيارات + الرصيد ──
     var _svQ2 = v.replace(/'/g,"__APOS__");
-    html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px">';
-    html += '<span style="font-size:8px;font-weight:700;white-space:nowrap;opacity:.85;color:' + _goldClr + '">⚡ تحويل:</span>';
-    ['18','21','24'].forEach(function(_tk){
-      var _btnStyle = 'flex:1;padding:4px 1px;border:1.5px solid ' + _goldClr + '70;border-radius:7px;background:rgba(255,255,255,.22);color:' + _goldClr + ';font-family:inherit;font-size:10px;font-weight:900;cursor:pointer;transition:all .15s';
-      var _btnClick = '_btnKaratSettle(this)';
-      html += '<button data-v="' + _svQ2 + '" data-k="' + _tk + '" onclick="' + _btnClick + '" style="' + _btnStyle + '">ع' + _tk + '</button>';
-    });
-    html += '</div>';
-    html += '<div style="font-size:20px;font-weight:900;color:' + _goldClr + ';line-height:1.1">' + fmtG(_goldAbs) + '</div>';
-    html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-top:2px">جرام ع24</div>';
-    html += '<button onclick="_btnSettleAccount(this,&quot;gold&quot;)" data-v="' + _svQ2 + '" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير ذهب</button>';
+    // الرصيد الكبير بعيار 24
+    html += '<div style="font-size:28px;font-weight:900;color:' + _goldClr + ';line-height:1;margin-bottom:2px">' + fmtG(_goldAbs) + '</div>';
+    html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-bottom:8px">جرام ع٢٤</div>';
+    // محول العيارات — يعادل
+    var _eq21 = Math.round(_goldAbs * 24/21 * 1000)/1000;
+    var _eq18 = Math.round(_goldAbs * 24/18 * 1000)/1000;
+    html += '<div style="background:rgba(0,0,0,.15);border-radius:8px;padding:7px 8px;margin-bottom:8px">';
+    html += '<div style="font-size:8px;color:' + _goldClr + ';font-weight:800;opacity:.85;margin-bottom:5px">🔄 يعادل بالعيارات:</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">';
+    html += '<div style="text-align:center;background:rgba(255,255,255,.12);border-radius:7px;padding:5px 3px">';
+    html += '<div style="font-size:8px;color:#FCD34D;font-weight:900;margin-bottom:2px">عيار ٢١</div>';
+    html += '<div style="font-size:15px;font-weight:900;color:#FCD34D">' + fmtG(_eq21) + '</div>';
+    html += '<div style="font-size:8px;color:#FCD34D;opacity:.65">جرام</div></div>';
+    html += '<div style="text-align:center;background:rgba(255,255,255,.12);border-radius:7px;padding:5px 3px">';
+    html += '<div style="font-size:8px;color:#93C5FD;font-weight:900;margin-bottom:2px">عيار ١٨</div>';
+    html += '<div style="font-size:15px;font-weight:900;color:#93C5FD">' + fmtG(_eq18) + '</div>';
+    html += '<div style="font-size:8px;color:#93C5FD;opacity:.65">جرام</div></div>';
+    html += '</div></div>';
+    html += '<button onclick="_btnSettleAccount(this,&quot;gold&quot;)" data-v="' + _svQ2 + '" style="margin-top:4px;padding:5px 10px;font-size:10px;font-weight:800;border:none;border-radius:8px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit;width:100%">⚖️ تصفير ذهب</button>';
     html += '</div>';
   }
   html += '</div>';
 
 
-  // ── [KARAT-BOXES] مربعات رصيد الذهب بالعيارات ──
-  if(!isSupp){
-    var _gOwed = bal.goldOwed || {};
-    var _g18 = _gOwed['18'] || 0;
-    var _g21 = _gOwed['21'] || 0;
-    var _g24 = _gOwed['24'] || 0;
-    var _hasKD = Math.abs(_g18)>0.001 || Math.abs(_g21)>0.001 || Math.abs(_g24)>0.001;
-    if(_hasKD){
-      var _sv = v.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  // [ks-panel أعلاه يغني عن هذا القسم]
 
-      // ── حساب التفصيل الدقيق لكل عيار (عليه / دفع / متبقي) ──
-      var _kDetail = {};
-      ['18','21','24'].forEach(function(k){
-        var _kSold = txs.filter(function(t){return t.type==='sell'||t.type==='sell-debt';})
-          .reduce(function(a,t){return (t.items||[]).filter(function(i){return i.karat===k;}).reduce(function(s,i){return s+(i.weight||0);},a);},0);
-        var _kSret = txs.filter(function(t){return t.type==='sales-return'||t.type==='return';})
-          .reduce(function(a,t){return (t.items||[]).filter(function(i){return i.karat===k;}).reduce(function(s,i){return s+(i.weight||0);},a);},0);
-        var _kPayG = txs.filter(function(t){return t.type==='payment';}).reduce(function(a,t){
-          var w=0;
-          if(t.goldItems&&t.goldItems.length){
-            t.goldItems.forEach(function(gi){if((gi.karat||'21')===k&&(!gi.price||gi.price<=0))w+=(gi.weight||0);});
-          } else {
-            if((t.goldKarat||'21')===k&&(!t.goldPrice||t.goldPrice<=0))w+=(t.goldWeight||0);
-          }
-          return a+w;
-        },0);
-        var _kScr = txs.filter(function(t){return t.type==='scrap';}).reduce(function(a,t){
-          if(t.scrapItems&&t.scrapItems.length>0)return a+t.scrapItems.filter(function(si){return (si.karat||'21')===k;}).reduce(function(s,si){return s+(si.weight||0);},0);
-          if(t.karat===k&&t.karat!=='mixed')return a+(t.weight||0);
-          return a;
-        },0);
-        var _kCharged = Math.max(0, Math.round((_kSold - _kSret)*1000)/1000);
-        var _kPaid    = Math.round((_kPayG + _kScr)*1000)/1000;
-        _kDetail[k] = { charged: _kCharged, paid: _kPaid };
-      });
-
-      html += '<div style="padding:0 14px 10px">';
-      html += '<div style="font-size:10px;font-weight:900;color:var(--tx2);margin-bottom:7px;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between">';
-      html += '<span>🥇 رصيد الذهب بالعيارات</span>';
-      html += '<span style="font-size:9px;color:var(--tx3)">اضغط على العيار لتسويته</span>';
-      html += '</div>';
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:9px">';
-      [['18',_g18,'١٨'],['21',_g21,'٢١'],['24',_g24,'٢٤']].forEach(function(kp){
-        var kk=kp[0], gw=kp[1], kAr=kp[2];
-        var gAbs=Math.abs(gw);
-        var clr = gAbs<0.001 ? '#16A34A' : gw>0 ? '#DC2626' : '#D97706';
-        var bg  = gAbs<0.001 ? 'rgba(22,163,74,.10)' : gw>0 ? 'rgba(220,38,38,.10)' : 'rgba(217,119,6,.10)';
-        var bd  = gAbs<0.001 ? 'rgba(22,163,74,.30)' : gw>0 ? 'rgba(220,38,38,.30)' : 'rgba(217,119,6,.30)';
-        var dir = gAbs<0.001 ? '' : gw>0 ? 'عليه' : 'له';
-        var kd  = _kDetail[kk] || {charged:0, paid:0};
-        html += '<div onclick="openKaratSettle(\'' + _sv + '\',\'' + kk + '\')" '
-             + 'style="cursor:pointer;background:'+bg+';border:2px solid '+bd+';border-radius:13px;'
-             + 'padding:9px 5px 7px;text-align:center;position:relative;overflow:hidden;transition:all .15s" '
-             + 'ontouchstart="this.style.transform=\'scale(.95)\'" ontouchend="this.style.transform=\'\'>';
-        html += '<div style="font-size:9px;font-weight:900;color:'+clr+';margin-bottom:5px;letter-spacing:.4px">عيار '+kAr+'</div>';
-        html += '<div style="font-size:'+(gAbs>99?'13':gAbs>9?'16':'19')+'px;font-weight:900;color:'+clr+';line-height:1">'
-             + (gAbs<0.001?'✅':fmtG(gAbs)) + '</div>';
-        if(gAbs>0.001) html += '<div style="font-size:9px;color:'+clr+';margin-top:2px;opacity:.85">'+dir+' جرام</div>';
-        // ── تفصيل: عليه / دفع / متبقي ──
-        if(kd.charged>0.001 || kd.paid>0.001){
-          html += '<div style="margin-top:5px;padding-top:5px;border-top:1px solid '+bd+';display:flex;flex-direction:column;gap:2px;text-align:right;padding-right:4px;padding-left:4px">';
-          if(kd.charged>0.001){
-            html += '<div style="display:flex;justify-content:space-between;align-items:center">'
-                 + '<span style="font-size:8px;color:var(--tx3);opacity:.9">عليه</span>'
-                 + '<span style="font-size:8px;font-weight:900;color:#DC2626">'+fmtG(kd.charged)+'</span>'
-                 + '</div>';
-          }
-          if(kd.paid>0.001){
-            html += '<div style="display:flex;justify-content:space-between;align-items:center">'
-                 + '<span style="font-size:8px;color:var(--tx3);opacity:.9">أخذ</span>'
-                 + '<span style="font-size:8px;font-weight:900;color:#16A34A">'+fmtG(kd.paid)+'</span>'
-                 + '</div>';
-          }
-          if(kd.charged>0.001){
-            html += '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed '+bd+';margin-top:2px;padding-top:2px">'
-                 + '<span style="font-size:8px;color:var(--tx3);opacity:.9">متبقي</span>'
-                 + '<span style="font-size:8px;font-weight:900;color:'+clr+'">'+fmtG(gAbs)+'</span>'
-                 + '</div>';
-          }
-          html += '</div>';
-        }
-        html += '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:'+clr+';border-radius:0 0 2px 2px"></div>';
-        html += '</div>';
-      });
-      html += '</div>';
-      // زر التسوية المتقاطعة
-      html += '<button onclick="openKaratSettle(\'' + _sv + '\',\'\')" '
-           + 'style="width:100%;padding:10px;border:1.5px solid rgba(40,200,216,.40);border-radius:10px;'
-           + 'background:rgba(40,200,216,.10);color:#28C8D8;font-family:inherit;font-size:12px;font-weight:800;'
-           + 'cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
-           + '🔄 تسوية وتحويل بين العيارات</button>';
-      html += '</div>';
-    }
-  }
-
-  // شريط التسديد
+    // شريط التسديد
   html += '<div style="padding:8px 14px 12px">';
   html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px"><span>نسبة التسديد</span><span style="font-weight:700;color:' + sColor + '">' + paidPct + '%</span></div>';
   html += '<div style="background:var(--b1);border-radius:8px;height:10px;overflow:hidden"><div style="width:' + paidPct + '%;height:100%;background:' + sColor + ';border-radius:8px"></div></div>';
@@ -12334,153 +12267,73 @@ function ksCalc(clientName){
 }
 window.ksCalc = ksCalc;
 
-// ── رندر اللوحة ──
+// ── رندر اللوحة — نسخة مبسّطة ──
 function ksRender(clientName){
   const panel=document.getElementById('ks-panel');
-  if(!panel||!clientName||clientName.startsWith('__')){
-    if(panel) panel.style.display='none'; return;
-  }
-  const {byK,transfers,tOwed24,tPaid24,tNet24}=ksCalc(clientName);
-  const hasAny=KS_KARATS.some(k=>Math.abs(byK[k].owed)>0.001||byK[k].paid>0.001);
-  if(!hasAny){panel.style.display='none';return;}
+  if(!panel||!clientName||clientName.startsWith('__')){if(panel)panel.style.display='none';return;}
+
+  // تحقق من التصفير الكلي عبر getClientBalance (يشمل discount-adj)
+  const _balKS=window.getClientBalance?window.getClientBalance(clientName):null;
+  const _totGold24=_balKS?Math.abs(_balKS.goldOwedAs24||0):999;
+  const _allSettled=_totGold24<0.001;
+
+  const {byK,transfers}=ksCalc(clientName);
+  const has21=Math.abs(byK['21'].owed)>0.001||byK['21'].paid>0.001;
+  const has18=Math.abs(byK['18'].owed)>0.001||byK['18'].paid>0.001;
+  if(!has21&&!has18){panel.style.display='none';return;}
   panel.style.display='block';
 
-  const act=window._ksActive||'24';
-  const C={gold:'#C89620',green:'#16A34A',red:'#DC2626',blue:'#3B82F6',purple:'#8B5CF6',bg:'var(--c2)',bdr:'var(--b2)'};
+  const sv3=clientName.replace(/'/g,"__APOS__");
 
-  // ── شارة ع24 المدمجة ──
-  const tag24=(v,clr)=>`<span style="font-size:9px;background:rgba(200,150,32,.13);border:1px solid rgba(200,150,32,.3);
-    border-radius:12px;padding:1px 6px;color:#C89620;font-weight:800;margin-right:2px">✨${fmtG(v)}ع24</span>`;
-
-  // ── مربعات اختيار العيار (مطابقة للصورة: 18 | 21 | 24) ──
-  const badges = ['18','21','24'].map(k=>{
+  function buildCard(k,labelAr){
     const d=byK[k];
-    const isAct=act===k;
-    const settled=d.settled;
-    const clr = settled?C.green: d.rem24>0?C.red:C.green;
-    const bg  = isAct
-      ? (settled?'linear-gradient(135deg,#16A34A,#15803D)': d.rem24>0?'linear-gradient(135deg,#DC2626,#B91C1C)':'linear-gradient(135deg,#16A34A,#15803D)')
-      : 'var(--c3)';
-    const txtClr = isAct?'#fff':(settled?C.green:d.rem24>0?C.red:C.green);
-    return `<div onclick="ksSetKarat('${clientName.replace(/'/g,"\\'")}','${k}')"
-      style="cursor:pointer;border-radius:14px;padding:8px 10px;min-width:72px;text-align:center;
-      background:${bg};border:2px solid ${isAct?'transparent':clr+'55'};
-      transition:all .2s;box-shadow:${isAct?'0 4px 12px rgba(0,0,0,.3)':'none'}">
-      <div style="font-size:16px;font-weight:900;color:${isAct?'#fff':txtClr};line-height:1">${KS_LABELS[k]}</div>
-      <div style="font-size:8px;font-weight:700;color:${isAct?'rgba(255,255,255,.8)':txtClr};opacity:.85;margin-top:2px">
-        ${settled?'✅ مسدد':d.rem24>0?'🔴 '+fmtG(Math.abs(d.remNat))+'ج':'🟢 زيادة'}
-      </div>
-    </div>`;
-  }).join('');
+    if(Math.abs(d.owed)<0.001&&d.paid<0.001) return '';
+    const isSet=_allSettled||d.settled;
+    const remAbs=isSet?0:Math.abs(d.remNat);
+    const clr=isSet?'#16A34A':d.rem24>0?'#DC2626':'#16A34A';
+    const bg=isSet?'rgba(22,163,74,.09)':d.rem24>0?'rgba(220,38,38,.09)':'rgba(22,163,74,.09)';
+    const bdr=isSet?'#86EFAC':d.rem24>0?'#FCA5A5':'#86EFAC';
+    const relTr=transfers.filter(function(tr){return tr.fromK===k||tr.toK===k;});
+    var trNote=relTr.map(function(tr){
+      if(tr.fromK===k) return '<div style="font-size:9px;color:#8B5CF6;margin-top:4px;padding:3px 6px;background:rgba(139,92,246,.08);border-radius:6px">↪ فائض '+fmtG(tr.fromW)+'ج رُحِّل ← سدّد '+fmtG(tr.toW)+'ج ع'+tr.toK+'</div>';
+      if(tr.toK===k) return '<div style="font-size:9px;color:#16A34A;margin-top:4px;padding:3px 6px;background:rgba(22,163,74,.08);border-radius:6px">✅ تحويل '+fmtG(tr.toW)+'ج من فائض ع'+tr.fromK+'</div>';
+      return '';
+    }).join('');
+    return '<div style="flex:1;background:'+bg+';border:2px solid '+bdr+';border-radius:14px;padding:13px 10px">'
+      +'<div style="font-size:10px;font-weight:900;color:'+clr+';margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">'
+      +'<span>💰 باقي سداد عيار '+labelAr+'</span>'
+      +(isSet?'<span style="font-size:9px;background:#DCFCE7;color:#16A34A;padding:2px 7px;border-radius:20px;border:1px solid #86EFAC">✅</span>':'')
+      +'</div>'
+      +'<div style="font-size:'+(isSet?'20':'36')+'px;font-weight:900;color:'+clr+';line-height:1;text-align:center;padding:4px 0 6px">'
+      +(isSet?'✅ صفر':fmtG(remAbs))+'</div>'
+      +(!isSet?'<div style="font-size:9px;color:'+clr+';opacity:.75;text-align:center;margin-bottom:8px">جرام</div>':'')
+      +'<div style="display:flex;gap:5px;border-top:1px solid '+bdr+';padding-top:8px">'
+      +'<div style="flex:1;text-align:center;background:rgba(220,38,38,.07);border-radius:8px;padding:6px 4px">'
+      +'<div style="font-size:8px;color:#DC2626;font-weight:800;margin-bottom:3px">📤 عليه</div>'
+      +'<div style="font-size:14px;font-weight:900;color:#DC2626">'+fmtG(Math.max(0,d.owed))+'</div>'
+      +'<div style="font-size:8px;color:#DC2626;opacity:.6">جرام</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;background:rgba(22,163,74,.07);border-radius:8px;padding:6px 4px">'
+      +'<div style="font-size:8px;color:#16A34A;font-weight:800;margin-bottom:3px">📥 دفع</div>'
+      +'<div style="font-size:14px;font-weight:900;color:#16A34A">'+fmtG(d.paid)+'</div>'
+      +'<div style="font-size:8px;color:#16A34A;opacity:.6">جرام</div>'
+      +'</div></div>'
+      +trNote
+      +'</div>';
+  }
 
-  // ── بطاقة العيار المختار ──
-  const d  = byK[act];
-  const remAbs = Math.abs(d.remNat);
-  const isSettled = d.settled;
-  const remClr = isSettled?C.green:d.rem24>0?C.red:C.green;
-  const remBg  = isSettled?'rgba(22,163,74,.07)':d.rem24>0?'rgba(220,38,38,.07)':'rgba(22,163,74,.07)';
-  const pct = d.owed24>0.001?Math.min(100,Math.round(d.paid24/d.owed24*100)):d.paid>0?100:0;
-  const barClr = pct>=100?C.green:pct>50?C.gold:C.red;
+  var c21=has21?buildCard('21','٢١'):'';
+  var c18=has18?buildCard('18','١٨'):'';
 
-  // ── الترحيلات المتعلقة بالعيار الحالي ──
-  const myTr=transfers.filter(tr=>tr.toK===act||tr.fromK===act);
-  const trHtml=myTr.length?myTr.map(tr=>{
-    const isFrom=tr.fromK===act;
-    const arrow=isFrom
-      ?`<span style="color:${C.purple}">من ${KS_NAMES[act]} رُحِّل ${fmtG(tr.fromW)}ج → سدّد ${fmtG(tr.toW)}ج ${KS_NAMES[tr.toK]}</span>`
-      :`<span style="color:${C.green}">استلم ${fmtG(tr.toW)}ج من فائض ${KS_NAMES[tr.fromK]}</span>`;
-    return `<div style="font-size:9px;padding:3px 0;border-bottom:1px solid rgba(139,92,246,.1)">${arrow}</div>`;
-  }).join(''):'';
-
-  const detailCard=`
-  <div style="background:${remBg};border:1.5px solid ${remClr}33;border-radius:12px;padding:11px 12px;margin-top:8px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:12px;font-weight:900;color:${C.gold}">💛 ${KS_NAMES[act]}</div>
-      <div style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:12px;
-        background:${remBg};border:1px solid ${remClr}44;color:${remClr}">
-        ${isSettled?'✅ مسدد بالكامل':d.rem24>0?'🔴 متبقي':'🟢 له زيادة'}
-      </div>
-    </div>
-    <!-- ثلاث بطاقات -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-      <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:8px;text-align:center">
-        <div style="font-size:9px;color:${C.red};font-weight:700;margin-bottom:3px">📤 مستحق</div>
-        <div style="font-size:16px;font-weight:900;color:${C.red};line-height:1.1">${fmtG(Math.abs(d.owed))}</div>
-        <div style="font-size:8px;color:rgba(220,38,38,.5);margin-top:1px">جرام</div>
-        ${d.owed24>0.001?`<div style="margin-top:4px">${tag24(d.owed24,C.red)}</div>`:''}
-      </div>
-      <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:8px;text-align:center">
-        <div style="font-size:9px;color:${C.green};font-weight:700;margin-bottom:3px">📥 مسدد</div>
-        <div style="font-size:16px;font-weight:900;color:${C.green};line-height:1.1">${fmtG(d.paid)}</div>
-        <div style="font-size:8px;color:rgba(22,163,74,.5);margin-top:1px">جرام</div>
-        ${d.paid24>0.001?`<div style="margin-top:4px">${tag24(d.paid24,C.green)}</div>`:''}
-      </div>
-      <div style="background:${remBg};border:1px solid ${remClr}33;border-radius:8px;padding:8px;text-align:center">
-        <div style="font-size:9px;color:${remClr};font-weight:700;margin-bottom:3px">⚖️ متبقي</div>
-        <div style="font-size:16px;font-weight:900;color:${remClr};line-height:1.1">${isSettled?'—':fmtG(remAbs)}</div>
-        <div style="font-size:8px;color:${remClr};opacity:.6;margin-top:1px">${isSettled?'✅':'جرام'}</div>
-        ${!isSettled&&Math.abs(d.rem24)>0.001?`<div style="margin-top:4px">${tag24(Math.abs(d.rem24),remClr)}</div>`:''}
-      </div>
-    </div>
-    <!-- شريط التقدم -->
-    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--tx3);margin-bottom:3px">
-      <span>نسبة السداد</span><span style="font-weight:800;color:${barClr}">${pct}%</span>
-    </div>
-    <div style="background:var(--b1);border-radius:6px;height:7px;overflow:hidden">
-      <div style="width:${pct}%;height:100%;background:${barClr};border-radius:6px;transition:width .4s"></div>
-    </div>
-    ${myTr.length?`<div style="margin-top:6px;padding:5px 8px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.18);border-radius:7px">
-      <div style="font-size:9px;font-weight:800;color:${C.purple};margin-bottom:3px">🔁 ترحيل ذكي</div>${trHtml}</div>`:''}
-    ${d.cashPaid>0.01?`<div style="margin-top:5px;font-size:9px;color:${C.blue}">💵 نقد مسدد: <b>${fmt(d.cashPaid)}</b> ريال</div>`:''}
-  </div>`;
-
-  // ── سجل الترحيلات الكامل (يظهر فقط لو فيه ترحيلات) ──
-  const trLogHtml=transfers.length?`
-  <div style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.18);border-radius:10px;padding:8px 11px;margin-top:8px">
-    <div style="font-size:10px;font-weight:900;color:${C.purple};margin-bottom:5px">🔁 سجل الترحيل الذكي بين الأعيرة</div>
-    ${transfers.map(tr=>`
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 0;border-bottom:1px solid rgba(139,92,246,.08);flex-wrap:wrap">
-      <span style="background:rgba(200,150,32,.12);border:1px solid rgba(200,150,32,.25);border-radius:7px;padding:1px 7px;font-weight:800;color:${C.gold}">${KS_LABELS[tr.fromK]} · ${fmtG(tr.fromW)}ج</span>
-      <span style="color:var(--tx3)">➜</span>
-      <span style="background:rgba(200,150,32,.08);border:1px solid rgba(200,150,32,.15);border-radius:7px;padding:1px 7px;font-size:9px;color:${C.gold}">✨ ${fmtG(tr.w24)}ج ع24</span>
-      <span style="color:var(--tx3)">➜</span>
-      <span style="background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.22);border-radius:7px;padding:1px 7px;font-weight:800;color:${C.green}">${KS_LABELS[tr.toK]} · ${fmtG(tr.toW)}ج</span>
-      <span style="font-size:9px;color:var(--tx3)">سدّد دين ${KS_NAMES[tr.toK]}</span>
-    </div>`).join('')}
-  </div>`:'';
-
-  // ── الإجمالي ع24 ──
-  const totSettled=Math.abs(tNet24)<0.001;
-  const totClr=totSettled?C.green:tNet24>0?C.red:C.green;
-
-  panel.innerHTML=`
-  <div style="background:linear-gradient(135deg,var(--c2),rgba(200,150,30,.03));border:1.5px solid rgba(200,150,30,.2);border-radius:14px;padding:12px 13px;margin-bottom:10px">
-
-    <!-- رأس: إجمالي ع24 -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:5px">
-      <div style="font-size:12px;font-weight:900;color:${C.gold}">🥇 تفصيل الأعيرة</div>
-      <div style="font-size:9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-        ${tag24(tOwed24,C.red)}
-        <span style="color:var(--tx3)">→</span>
-        ${tag24(tPaid24,C.green)}
-        <span style="padding:2px 8px;border-radius:10px;font-weight:800;font-size:9px;
-          background:${totSettled?'rgba(22,163,74,.1)':tNet24>0?'rgba(220,38,38,.1)':'rgba(22,163,74,.1)'};
-          color:${totClr};border:1px solid ${totClr}33">
-          ${totSettled?'✅ مصفّى':tNet24>0?'🔴 '+fmtG(tNet24)+'ج ع24':'🟢 '+fmtG(Math.abs(tNet24))+'ج ع24'}
-        </span>
-      </div>
-    </div>
-
-    <!-- مربعات اختيار العيار -->
-    <div style="display:flex;gap:8px;margin-bottom:2px;justify-content:flex-start">${badges}</div>
-
-    <!-- بطاقة التفصيل للعيار المختار -->
-    ${detailCard}
-
-    <!-- سجل الترحيلات -->
-    ${trLogHtml}
-
-  </div>`;
+  panel.innerHTML='<div style="background:var(--c2);border:1.5px solid rgba(200,150,30,.25);border-radius:14px;padding:13px;margin-bottom:10px">'
+    +'<div style="font-size:12px;font-weight:900;color:#C89620;margin-bottom:10px">💰 متبقي للسداد بالعيارات</div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:10px">'+c21+c18+'</div>'
+    +'<button onclick="openKaratSettle(''+sv3.replace(/'/g,"\'")+'')" '
+    +'style="width:100%;padding:11px;border:1.5px solid rgba(200,150,30,.4);border-radius:10px;'
+    +'background:rgba(200,150,30,.10);color:#C89620;font-family:inherit;font-size:13px;font-weight:900;'
+    +'cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">'
+    +'💸 تسجيل دفعة جديدة'
+    +'</button></div>';
 }
 window.ksRender = ksRender;
 
@@ -12498,7 +12351,6 @@ if(typeof _rsOrig==='function'){
     try{
       const v=document.getElementById('stmt-v')?.value||'';
       if(!v||v.startsWith('__')){ const p=document.getElementById('ks-panel'); if(p) p.style.display='none'; return; }
-      window._ksActive='24';
       ksRender(v);
     }catch(e){}
   };
