@@ -578,7 +578,7 @@ body{
   <div id="overdue-alerts"></div>
 
   <!-- 4 بطاقات رئيسية -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="home-dashboard-cards">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px" id="home-dashboard-cards">
     <div style="background:linear-gradient(135deg,#065F46,#047857);border-radius:14px;padding:14px;color:#fff">
       <div style="font-size:10px;opacity:.8;margin-bottom:4px">💰 مبيعات اليوم</div>
       <div style="font-size:22px;font-weight:900" id="dash-sell-today">0</div>
@@ -598,6 +598,19 @@ body{
       <div style="font-size:10px;opacity:.8;margin-bottom:4px">📈 صافي الربح</div>
       <div style="font-size:22px;font-weight:900" id="dash-net-profit">0</div>
       <div style="font-size:9px;opacity:.7;margin-top:2px">ريال</div>
+    </div>
+  </div>
+  <!-- بطاقة المرتجعات — سطر كامل -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <div style="background:linear-gradient(135deg,#4C1D95,#6D28D9);border-radius:14px;padding:14px;color:#fff">
+      <div style="font-size:10px;opacity:.8;margin-bottom:4px">↩️ مرتجعات الشهر (ريال)</div>
+      <div style="font-size:22px;font-weight:900" id="dash-ret-month-val">0</div>
+      <div style="font-size:9px;opacity:.7;margin-top:2px">ريال</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#064E3B,#065F46);border-radius:14px;padding:14px;color:#fff">
+      <div style="font-size:10px;opacity:.8;margin-bottom:4px">⚖️ وزن المرتجعات (جرام)</div>
+      <div style="font-size:22px;font-weight:900" id="dash-ret-month-wt">0</div>
+      <div style="font-size:9px;opacity:.7;margin-top:2px">جرام ذهب</div>
     </div>
   </div>
 
@@ -1333,6 +1346,9 @@ body{
       <option value="all">الكل</option>
       <option value="gold">ذهب فقط</option>
       <option value="cash">نقد فقط</option>
+      <option value="k18">🥇 عيار 18</option>
+      <option value="k21">🥇 عيار 21</option>
+      <option value="k24">🥇 عيار 24</option>
     </select>
   </div>
   <div class="sw" style="margin-bottom:8px"><span class="si">🔍</span><input type="text" id="debts-search" placeholder="بحث باسم العميل أو المورد..." oninput="renderDebts()" style="font-size:13px"></div>
@@ -6421,6 +6437,9 @@ function renderDebts(){
   const filter = document.getElementById('debts-filter')?.value||'all';
   const searchQ = (document.getElementById('debts-search')?.value||'').trim().toLowerCase();
 
+  // هل الفلتر هو عيار محدد؟
+  const karatFilter = filter==='k18'?'18' : filter==='k21'?'21' : filter==='k24'?'24' : null;
+
   // حساب المتأخرين
   const today = new Date(); today.setHours(0,0,0,0);
   const overdueClients = new Set(
@@ -6433,19 +6452,36 @@ function renderDebts(){
   let balances = clients.map(c=>{
     try {
       const bal = getClientBalance(c.name);
+      // رصيد كل عيار منفرداً
+      const gold18 = bal.goldOwed?.['18'] || 0;
+      const gold21 = bal.goldOwed?.['21'] || 0;
+      const gold24 = bal.goldOwed?.['24'] || 0;
       return {
         name: c.name,
         type: c.type,
         goldAs24: bal.goldOwedAs24||0,
         cashOwed: bal.cashOwed||0,
-        total24: bal.goldOwedAs24||0
+        total24: bal.goldOwedAs24||0,
+        gold18, gold21, gold24
       };
-    } catch(e){ return {name:c.name,type:c.type,goldAs24:0,cashOwed:0,total24:0}; }
+    } catch(e){ return {name:c.name,type:c.type,goldAs24:0,cashOwed:0,total24:0,gold18:0,gold21:0,gold24:0}; }
   }).filter(b=>{
+    if(karatFilter) {
+      // فلتر عيار محدد: يظهر العميل فقط إذا عنده رصيد ذهب لهذا العيار
+      const kv = karatFilter==='18'?b.gold18 : karatFilter==='21'?b.gold21 : b.gold24;
+      return Math.abs(kv) > 0.001;
+    }
     if(filter==='gold') return Math.abs(b.goldAs24)>0.001;
     if(filter==='cash') return Math.abs(b.cashOwed)>0.01;
     return Math.abs(b.goldAs24)>0.001 || Math.abs(b.cashOwed)>0.01;
-  }).sort((a,b)=> Math.abs(b.goldAs24)-Math.abs(a.goldAs24));
+  }).sort((a,b)=> {
+    if(karatFilter) {
+      const kA = karatFilter==='18'?a.gold18 : karatFilter==='21'?a.gold21 : a.gold24;
+      const kB = karatFilter==='18'?b.gold18 : karatFilter==='21'?b.gold21 : b.gold24;
+      return Math.abs(kB)-Math.abs(kA);
+    }
+    return Math.abs(b.goldAs24)-Math.abs(a.goldAs24);
+  });
   if(searchQ) balances = balances.filter(b=>b.name.toLowerCase().includes(searchQ));
 
   // عملاء مدينون لنا (موجب)
@@ -6482,6 +6518,18 @@ function renderDebts(){
     const cashSign = isSupp
       ? (b.cashOwed<0 ? 'له' : 'له عندنا')
       : (b.cashOwed>0 ? 'عليه' : 'له');
+
+    // عند فلتر عيار محدد: نعرض العيار بالجرام مباشرة
+    let karatDetailHtml = '';
+    if(karatFilter) {
+      const kv = karatFilter==='18'?b.gold18 : karatFilter==='21'?b.gold21 : b.gold24;
+      const kAbs = Math.abs(kv);
+      const kClr = (isSupp ? kv<0 : kv>0) ? 'var(--no)' : 'var(--ok)';
+      const kLbl = (isSupp ? kv<0 : kv>0) ? `ذهب عيار ${karatFilter} عليه` : `ذهب عيار ${karatFilter} له`;
+      karatDetailHtml = `<div style="font-size:13px;font-weight:900;color:${kClr}">${fmtG(kAbs)} ج ع${karatFilter}</div>
+        <div style="font-size:9px;color:${kClr};margin-top:1px">${kLbl}</div>`;
+    }
+
     return `<div style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:8px;border:1.5px solid var(--b1);display:flex;justify-content:space-between;align-items:center"
          onclick="selStmt('${b.name.replace(/'/g,"\'")}','${b.name.replace(/'/g,"\'")}');P('stmt',document.querySelector('.tab:nth-child(6)'))">
       <div>
@@ -6489,8 +6537,15 @@ function renderDebts(){
         <div style="font-size:10px;color:var(--tx2)">${b.type}</div>
       </div>
       <div style="text-align:left">
-        ${Math.abs(b.goldAs24)>0.001?`<div style="font-size:13px;font-weight:900;color:${goldClr}">${fmtG(Math.abs(b.goldAs24))} ج ع24</div><div style="font-size:9px;color:${goldClr};margin-top:1px">${goldLbl}</div>`:''}
-        ${Math.abs(b.cashOwed)>0.01?`<div style="font-size:12px;font-weight:700;color:${cashClr}">${fmt(Math.abs(b.cashOwed))} ريال</div><div style="font-size:9px;color:${cashClr};margin-top:1px">${cashLbl}</div>`:''}
+        ${karatFilter ? karatDetailHtml : (
+          Math.abs(b.goldAs24)>0.001?`<div style="font-size:13px;font-weight:900;color:${goldClr}">${fmtG(Math.abs(b.goldAs24))} ج ع24</div><div style="font-size:9px;color:${goldClr};margin-top:1px">${goldLbl}</div>
+          <!-- تفصيل العيارات -->
+          ${Math.abs(b.gold21)>0.001?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">عيار 21: ${fmtG(Math.abs(b.gold21))} ج</div>`:''}
+          ${Math.abs(b.gold18)>0.001?`<div style="font-size:10px;color:var(--tx2)">عيار 18: ${fmtG(Math.abs(b.gold18))} ج</div>`:''}
+          ${Math.abs(b.gold24)>0.001?`<div style="font-size:10px;color:var(--tx2)">عيار 24: ${fmtG(Math.abs(b.gold24))} ج</div>`:''}
+          `:'')
+        }
+        ${!karatFilter && Math.abs(b.cashOwed)>0.01?`<div style="font-size:12px;font-weight:700;color:${cashClr}">${fmt(Math.abs(b.cashOwed))} ريال</div><div style="font-size:9px;color:${cashClr};margin-top:1px">${cashLbl}</div>`:''}
       </div>
     </div>`;
   }
@@ -6513,20 +6568,35 @@ function renderDebts(){
 
   let html = '';
 
+  // إذا كان فلتر عيار — عرض ملخص مخصص
+  if(karatFilter) {
+    const totKarat = balances.filter(b=>b.type==='عميل').reduce((a,b)=>{
+      const kv = karatFilter==='18'?b.gold18 : karatFilter==='21'?b.gold21 : b.gold24;
+      return a + (kv>0?kv:0);
+    },0);
+    html += `<div style="background:linear-gradient(135deg,#6B3FBF,#8B5FDF);border-radius:12px;padding:12px 14px;margin-bottom:10px;color:white;text-align:center">
+      <div style="font-size:11px;opacity:.8;margin-bottom:4px">🥇 إجمالي ذهب عيار ${karatFilter} على العملاء</div>
+      <div style="font-size:24px;font-weight:900">${fmtG(Math.round(totKarat*1000)/1000)} جرام</div>
+      <div style="font-size:10px;opacity:.7;margin-top:2px">عيار ${karatFilter}</div>
+    </div>`;
+  }
+
   // قسم العملاء
   if(clientBals.length){
-    html += `<div style="background:linear-gradient(135deg,#6B3FBF,#8B5FDF);border-radius:12px;padding:12px 14px;margin-bottom:10px;color:white;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div style="text-align:center">
-        <div style="font-size:10px;opacity:.8">ذهب على العملاء</div>
-        <div style="font-size:20px;font-weight:900">${fmtG(Math.round(totClientGold*1000)/1000)}</div>
-        <div style="font-size:10px;opacity:.8">جرام عيار 24</div>
-      </div>
-      <div style="text-align:center;border-right:1px solid rgba(255,255,255,.2)">
-        <div style="font-size:10px;opacity:.8">نقد على العملاء</div>
-        <div style="font-size:20px;font-weight:900">${fmt(Math.round(totClientCash))}</div>
-        <div style="font-size:10px;opacity:.8">ريال</div>
-      </div>
-    </div>`;
+    if(!karatFilter) {
+      html += `<div style="background:linear-gradient(135deg,#6B3FBF,#8B5FDF);border-radius:12px;padding:12px 14px;margin-bottom:10px;color:white;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="text-align:center">
+          <div style="font-size:10px;opacity:.8">ذهب على العملاء</div>
+          <div style="font-size:20px;font-weight:900">${fmtG(Math.round(totClientGold*1000)/1000)}</div>
+          <div style="font-size:10px;opacity:.8">جرام عيار 24</div>
+        </div>
+        <div style="text-align:center;border-right:1px solid rgba(255,255,255,.2)">
+          <div style="font-size:10px;opacity:.8">نقد على العملاء</div>
+          <div style="font-size:20px;font-weight:900">${fmt(Math.round(totClientCash))}</div>
+          <div style="font-size:10px;opacity:.8">ريال</div>
+        </div>
+      </div>`;
+    }
     clientBals.forEach((b,i)=>{ html+=balCard(b,i); });
   }
 
@@ -7474,14 +7544,58 @@ function renderAnalytics(){
         <span>${fmtG(v.wt)} ج — <b>${fmt(v.val)} ر</b></span>
       </div>`).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد مبيعات</div>';
 
-  // ── 3. أفضل العملاء ──
+  // ── 3. أفضل العملاء — تفصيلي (جميع أنواع الحسابات) ──
+  // يشمل: العملاء العاديين + الموزعين + حسابات المالك + الملاك المستقلين
   const cliMap = {};
-  sells.forEach(t=>{ if(t.client){ cliMap[t.client]=(cliMap[t.client]||{n:0,v:0}); cliMap[t.client].n++; cliMap[t.client].v+=t.total||0; }});
-  const topCli = Object.entries(cliMap).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
-  const cliRows = topCli.map(([n,v],i)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b1)">
-      <span>${['🥇','🥈','🥉','4️⃣','5️⃣'][i]} ${n}</span>
-      <span>${v.n} فاتورة — <b>${fmt(v.v)} ر</b></span>
-    </div>`).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد بيانات</div>';
+  const allSells = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
+  allSells.forEach(t=>{
+    if(!t.client) return;
+    if(!cliMap[t.client]) cliMap[t.client]={n:0, v:0, wt:0};
+    cliMap[t.client].n++;
+    cliMap[t.client].v += t.total||0;
+    cliMap[t.client].wt += (t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+  });
+  // إضافة بيانات المرتجعات لكل عميل
+  const retMap = {};
+  const allReturns = txs.filter(t=>t.type==='sales-return'||t.type==='return');
+  allReturns.forEach(t=>{
+    if(!t.client) return;
+    if(!retMap[t.client]) retMap[t.client]={n:0, v:0, wt:0};
+    retMap[t.client].n++;
+    retMap[t.client].v += (t.ajTotal||0)+(t.vatAmt||0);
+    retMap[t.client].wt += (t.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+  });
+
+  const topCli = Object.entries(cliMap).sort((a,b)=>b[1].v-a[1].v).slice(0,10);
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+  const cliRows = topCli.map(([n,v],i)=>{
+    const ret = retMap[n]||{n:0,v:0,wt:0};
+    const retBadge = ret.n>0
+      ? `<span style="background:rgba(229,85,85,.10);border:1px solid rgba(229,85,85,.25);border-radius:6px;padding:2px 6px;font-size:10px;color:var(--no);margin-top:3px;display:inline-block">↩️ ${fmtG(ret.wt)} ج مرتجع</span>`
+      : '';
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--b1)">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx1)">${medals[i]||'🔸'} ${n}</div>
+        ${retBadge}
+      </div>
+      <div style="text-align:left">
+        <div style="font-size:13px;font-weight:900;color:var(--ok)">${fmt(v.v)} ر</div>
+        <div style="font-size:10px;color:var(--tx2)">${fmtG(v.wt)} ج · ${v.n} فاتورة</div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد بيانات</div>';
+
+  // ── أكثر العملاء إرجاعاً ──
+  const topRetCli = Object.entries(retMap).sort((a,b)=>b[1].wt-a[1].wt).slice(0,5);
+  const retCliRows = topRetCli.map(([n,v],i)=>{
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--b1)">
+      <div style="font-size:12px;font-weight:700;color:var(--tx1)">${medals[i]||'🔸'} ${n}</div>
+      <div style="text-align:left">
+        <div style="font-size:13px;font-weight:900;color:var(--no)">${fmtG(v.wt)} ج</div>
+        <div style="font-size:10px;color:var(--tx2)">${fmt(v.v)} ر · ${v.n} مرتجع</div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="color:var(--tx2);font-size:12px">لا توجد مرتجعات في الفترة</div>';
 
   // ── 4. الموردين ──
   const suppMap = {};
@@ -7603,10 +7717,31 @@ function renderAnalytics(){
       ${dayRows}
     </div>
 
-    <!-- أفضل العملاء -->
+    <!-- أفضل العملاء — تفصيلي -->
     <div style="background:var(--c1);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--b1)">
-      <div style="font-weight:700;font-size:13px;margin-bottom:8px">🏆 أفضل العملاء</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:800;font-size:13px;color:var(--tx1)">🏆 أفضل العملاء بالمبيعات</div>
+        <div style="font-size:10px;color:var(--tx2);background:var(--c2);padding:3px 8px;border-radius:20px">جميع الحسابات</div>
+      </div>
+      <!-- رأس الجدول -->
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);padding:4px 0;border-bottom:2px solid var(--b2);font-weight:700;text-transform:uppercase">
+        <span>العميل</span>
+        <span>المبيعات / الوزن / المرتجعات</span>
+      </div>
       ${cliRows}
+    </div>
+
+    <!-- أكثر العملاء مرتجعات -->
+    <div style="background:var(--c1);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid rgba(229,85,85,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:800;font-size:13px;color:var(--no)">↩️ أكثر العملاء مرتجعات</div>
+        <div style="font-size:10px;color:var(--tx2);background:var(--no-bg);padding:3px 8px;border-radius:20px;border:1px solid var(--no-bd)">حسب الوزن</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);padding:4px 0;border-bottom:2px solid var(--b2);font-weight:700;text-transform:uppercase">
+        <span>العميل</span>
+        <span>الوزن / القيمة / عدد المرتجعات</span>
+      </div>
+      ${retCliRows}
     </div>
 
     <!-- أفضل الموردين -->
@@ -9539,11 +9674,20 @@ function renderDashboard(){
   const netBuyCost = Math.max(0, buyCostMonth - retPurchMonth);
   const netProfit = sellMonth - retMonth - netBuyCost - expenses;
 
+  // مرتجعات الشهر — قيمة + وزن
+  const retMonthVal = monthTxs.filter(t=>t.type==='sales-return'||t.type==='return').reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
+  const retMonthWt  = monthTxs.filter(t=>t.type==='sales-return'||t.type==='return').reduce((a,t)=>{
+    return a + (t.items||[]).reduce((s,i)=>s+(i.weight||0),0);
+  },0);
+
   const setEl=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=fmt(Math.round(v)); };
   setEl('dash-sell-today', sellToday);
   setEl('dash-sell-month', sellMonth);
   setEl('dash-expenses',   expenses);
   setEl('dash-net-profit', netProfit);
+  setEl('dash-ret-month-val', retMonthVal);
+  const retWtEl = document.getElementById('dash-ret-month-wt');
+  if(retWtEl) retWtEl.textContent = fmtG(retMonthWt);
 
   // ── رسم بياني 7 أيام ──
   const days7 = [];
@@ -12328,7 +12472,7 @@ function ksRender(clientName){
   panel.innerHTML='<div style="background:var(--c2);border:1.5px solid rgba(200,150,30,.25);border-radius:14px;padding:13px;margin-bottom:10px">'
     +'<div style="font-size:12px;font-weight:900;color:#C89620;margin-bottom:10px">💰 متبقي للسداد بالعيارات</div>'
     +'<div style="display:flex;gap:10px;margin-bottom:10px">'+c21+c18+'</div>'
-    +'<button onclick="openKaratSettle(''+sv3.replace(/'/g,"\'")+'')" '
+    +'<button onclick="openKaratSettle(\''+sv3.replace(/'/g,"\\'")+'\')" '
     +'style="width:100%;padding:11px;border:1.5px solid rgba(200,150,30,.4);border-radius:10px;'
     +'background:rgba(200,150,30,.10);color:#C89620;font-family:inherit;font-size:13px;font-weight:900;'
     +'cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">'
