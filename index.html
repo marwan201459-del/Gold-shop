@@ -572,6 +572,43 @@ body{
   </div>
 </div>
 
+<!-- ══ شريط أخبار الذهب الذكي ══ -->
+<div id="gold-ticker-bar" style="
+  background:linear-gradient(90deg,#0D0F1A 0%,#16182A 30%,#16182A 70%,#0D0F1A 100%);
+  border-bottom:1px solid rgba(200,150,30,.20);
+  display:none;align-items:center;overflow:hidden;
+  height:34px;position:relative;z-index:90;">
+  <!-- عنوان ثابت -->
+  <div style="flex-shrink:0;padding:0 12px;display:flex;align-items:center;gap:5px;
+    background:linear-gradient(135deg,#6B4F0C,#C8961E);height:100%;min-width:fit-content">
+    <span style="font-size:13px">📡</span>
+    <span style="font-size:10px;font-weight:900;color:#0A0500;white-space:nowrap;letter-spacing:.5px">تحليل الذهب</span>
+  </div>
+  <!-- منطقة التمرير -->
+  <div style="flex:1;overflow:hidden;height:100%;display:flex;align-items:center;position:relative">
+    <div id="ticker-track" style="
+      display:flex;align-items:center;gap:0;
+      white-space:nowrap;
+      animation:tickerScroll 60s linear infinite;
+      will-change:transform;">
+      <span id="ticker-text" style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600;padding:0 40px">
+        ⟳ جارٍ تحميل تحليل الذهب...
+      </span>
+    </div>
+  </div>
+  <!-- زر تحديث -->
+  <button id="ticker-refresh-btn" onclick="refreshGoldTicker()" title="تحديث" style="
+    flex-shrink:0;background:none;border:none;color:rgba(200,150,30,.60);
+    font-size:14px;cursor:pointer;padding:0 10px;height:100%;
+    transition:color .2s" onmouseover="this.style.color='#E8B840'" onmouseout="this.style.color='rgba(200,150,30,.60)'">⟳</button>
+</div>
+<style>
+@keyframes tickerScroll{
+  0%  { transform: translateX(0); }
+  100%{ transform: translateX(-50%); }
+}
+</style>
+
 <!-- HOME -->
 <div id="pg-home" class="pg on">
   <!-- تنبيهات -->
@@ -2354,6 +2391,121 @@ body{
 </div><!-- /pg-dailylog -->
 
 </div><!-- /app-wrap -->
+
+<!-- ══ زر المساعد الذكي العائم ══ -->
+<button id="ai-fab" onclick="toggleAIChat()" title="مساعد الذهب الذكي" style="
+  position:fixed;bottom:24px;left:20px;z-index:500;
+  width:54px;height:54px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,#6B4F0C,#C8961E 50%,#E8B840);
+  color:#0A0500;font-size:22px;cursor:pointer;
+  box-shadow:0 6px 24px rgba(200,150,30,.45),0 2px 8px rgba(0,0,0,.40);
+  transition:all .22s;display:none;
+  align-items:center;justify-content:center">
+  🤖
+</button>
+
+<!-- ══ لوحة المساعد الذكي ══ -->
+<div id="ai-chat-panel" style="
+  position:fixed;bottom:90px;left:12px;z-index:501;
+  width:calc(100vw - 24px);max-width:400px;
+  background:#16182A;border-radius:18px;border:1px solid rgba(200,150,30,.25);
+  box-shadow:0 20px 60px rgba(0,0,0,.60);
+  display:none;overflow:hidden;
+  animation:shUp .28s cubic-bezier(.32,1.18,.56,1)">
+  <!-- رأس اللوحة -->
+  <div style="padding:14px 16px;background:linear-gradient(135deg,#6B4F0C,#C8961E);
+    display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">🤖</span>
+      <div>
+        <div style="font-size:13px;font-weight:900;color:#0A0500">مساعد الذهب الذكي</div>
+        <div style="font-size:9px;color:rgba(0,0,0,.55);font-weight:600">اسألني عن أسعار وتحليلات الذهب</div>
+      </div>
+    </div>
+    <button onclick="toggleAIChat()" style="background:rgba(0,0,0,.20);border:none;
+      color:#0A0500;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;
+      display:flex;align-items:center;justify-content:center">✕</button>
+  </div>
+  <!-- منطقة الرسائل -->
+  <div id="ai-messages" style="
+    height:280px;overflow-y:auto;padding:12px;
+    display:flex;flex-direction:column;gap:8px;
+    scrollbar-width:thin">
+    <div style="text-align:center;padding:20px 10px">
+      <div style="font-size:32px;margin-bottom:8px">🥇</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.50);font-weight:600">
+        مرحباً! اسألني عن سوق الذهب، التحليلات، توقعات الأسعار، أو أي شيء يخص الذهب والمجوهرات.
+      </div>
+    </div>
+  </div>
+  <!-- اقتراحات سريعة -->
+  <div style="padding:6px 12px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;border-top:1px solid rgba(255,255,255,.06)">
+    <button onclick="aiQuickAsk('ما توقعات سعر الذهب هذا الأسبوع؟')" style="flex-shrink:0;background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.25);border-radius:20px;color:#E8B840;font-size:10px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">📈 توقعات الأسبوع</button>
+    <button onclick="aiQuickAsk('كيف يؤثر الفيدرالي الأمريكي على الذهب؟')" style="flex-shrink:0;background:rgba(80,144,224,.10);border:1px solid rgba(80,144,224,.25);border-radius:20px;color:#88B8FF;font-size:10px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">🏦 تأثير الفيدرالي</button>
+    <button onclick="aiQuickAsk('هل الذهب الآن في وضع شراء أم بيع؟')" style="flex-shrink:0;background:rgba(34,199,122,.10);border:1px solid rgba(34,199,122,.25);border-radius:20px;color:#22C77A;font-size:10px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">🤔 شراء أم بيع؟</button>
+    <button onclick="aiQuickAsk('ما أسباب ارتفاع الذهب مؤخراً؟')" style="flex-shrink:0;background:rgba(155,107,224,.10);border:1px solid rgba(155,107,224,.25);border-radius:20px;color:#B89BE8;font-size:10px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">🔍 أسباب الارتفاع</button>
+  </div>
+  <!-- حقل الإدخال -->
+  <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px">
+    <input id="ai-input" type="text" placeholder="اسأل عن الذهب..."
+      onkeydown="if(event.key==='Enter')sendAIMessage()"
+      style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+        border-radius:10px;padding:9px 12px;color:#EDF0FF;font-family:inherit;font-size:13px;
+        outline:none">
+    <button onclick="sendAIMessage()" id="ai-send-btn" style="
+      background:linear-gradient(135deg,#C8961E,#E8B840);
+      border:none;border-radius:10px;padding:0 14px;
+      color:#0A0500;font-size:16px;cursor:pointer">➤</button>
+  </div>
+</div>
+
+<!-- ══ شاشة القفل التلقائي ══ -->
+<div id="auto-lock-screen" style="
+  display:none;position:fixed;inset:0;z-index:9990;
+  background:linear-gradient(160deg,#060709,#0D0F1A 50%,#080A12);
+  align-items:center;justify-content:center;font-family:'Tajawal',sans-serif">
+  <!-- تأثير ضوئي -->
+  <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;border-radius:50%;
+    background:radial-gradient(circle,rgba(200,150,30,.08),transparent 65%);pointer-events:none"></div>
+  <div style="text-align:center;position:relative;z-index:1;padding:20px">
+    <div style="width:70px;height:70px;margin:0 auto 20px;border-radius:20px;
+      background:linear-gradient(145deg,#3D2800,#8A6010,#C8961E);
+      display:flex;align-items:center;justify-content:center;font-size:32px;
+      box-shadow:0 0 0 1px rgba(200,150,30,.20),0 12px 40px rgba(200,150,30,.30)">🔒</div>
+    <div style="font-size:22px;font-weight:900;background:linear-gradient(135deg,#B8860E,#E8B840,#C8961E);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px">
+      منظوم
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:28px">
+      تم قفل الشاشة بسبب عدم النشاط
+    </div>
+    <!-- حقول تسجيل الدخول مجدداً -->
+    <div style="width:300px;max-width:90vw;margin:0 auto">
+      <input id="lock-pass" type="password" placeholder="••• أدخل كلمة المرور للمتابعة •••"
+        onkeydown="if(event.key==='Enter')unlockScreen()"
+        style="width:100%;padding:13px 16px;border-radius:12px;
+          border:1.5px solid rgba(200,150,30,.20);
+          background:rgba(255,255,255,.05);color:#EDF0FF;
+          font-family:'Tajawal',sans-serif;font-size:14px;
+          outline:none;text-align:center;margin-bottom:10px;box-sizing:border-box">
+      <div id="lock-err" style="display:none;color:#FF7070;font-size:12px;margin-bottom:10px;font-weight:600"></div>
+      <button onclick="unlockScreen()" style="
+        width:100%;padding:13px;border:none;border-radius:12px;
+        background:linear-gradient(135deg,#6B4F0C,#C8961E 50%,#E8B840);
+        color:#0A0500;font-family:'Tajawal',sans-serif;font-size:15px;font-weight:900;cursor:pointer">
+        🔓 فتح الشاشة
+      </button>
+      <button onclick="lockLogout()" style="
+        width:100%;padding:10px;border:none;border-radius:12px;
+        background:rgba(229,85,85,.15);border:1px solid rgba(229,85,85,.25);
+        color:#FF8080;font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;
+        cursor:pointer;margin-top:8px">
+        🚪 تسجيل خروج كامل
+      </button>
+    </div>
+    <div id="lock-countdown" style="font-size:10px;color:rgba(255,255,255,.20);margin-top:20px"></div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -13617,6 +13769,327 @@ function doKaratSettle(){
 window.doKaratSettle = doKaratSettle;
 
 })(); // end KARAT-SETTLE
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     ميزات جديدة: شريط الأخبار + المساعد الذكي + القفل التلقائي
+     ══════════════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════════════════════
+//  1) شريط أخبار الذهب الذكي — يستخدم Claude API
+// ══════════════════════════════════════════════════════
+(function(){
+  const TICKER_MESSAGES = [
+    '🟡 الذهب: أداة تحوط كلاسيكية ضد التضخم وعدم الاستقرار الجيوسياسي',
+    '📊 متابعة قرارات الفيدرالي الأمريكي مهمة لتوقع اتجاه الذهب',
+    '🌍 الطلب الآسيوي على الذهب يؤثر بشكل كبير على الأسعار العالمية',
+    '💡 الذهب يرتفع عادةً عند ضعف الدولار الأمريكي',
+    '📈 المحللون ينصحون بمراقبة بيانات التضخم الأمريكية لتوقع حركة الذهب',
+    '🔑 البنوك المركزية تزيد احتياطاتها من الذهب — مؤشر صعودي قوي',
+    '⚡ توترات جيوسياسية = زيادة الطلب على الذهب كملاذ آمن',
+    '💰 عيار 21: الأكثر تداولاً في السوق السعودية',
+    '📉 ارتفاع أسعار الفائدة قد يضغط على أسعار الذهب على المدى القصير',
+  ];
+
+  let aiMessages = [];
+  let allMessages = [...TICKER_MESSAGES];
+  let tickerLoaded = false;
+
+  async function loadAITickerMessages(){
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:600,
+          system: 'أنت محلل مالي. ردك يجب أن يكون مصفوفة JSON فقط بدون أي نص إضافي. مثال: ["جملة1","جملة2"]',
+          messages:[{role:'user',content:'أعطني مصفوفة JSON من 6 جمل قصيرة بالعربية (أقل من 12 كلمة لكل جملة) عن تحليل سوق الذهب الحالي: تأثير الفيدرالي، التوقعات، أسباب التحركات. أجب بمصفوفة JSON فقط بدون أي نص آخر.'}]
+        })
+      });
+      const data = await resp.json();
+      const textBlock = (data.content||[]).find(b => b.type === 'text');
+      if(!textBlock || !textBlock.text) return;
+      // استخرج أول مصفوفة JSON من النص بغض النظر عن أي نص قبلها أو بعدها
+      const raw = textBlock.text;
+      const match = raw.match(/\[[\s\S]*?\]/);
+      if(!match) return;
+      const parsed = JSON.parse(match[0]);
+      if(Array.isArray(parsed) && parsed.length){
+        aiMessages = parsed
+          .filter(m => typeof m === 'string' && m.trim())
+          .map(m => '🤖 ' + m.trim());
+        rebuildTicker();
+      }
+    } catch(e){
+      console.log('ticker AI error:', e);
+    }
+  }
+
+  function rebuildTicker(){
+    allMessages = [...TICKER_MESSAGES, ...aiMessages];
+    const text = allMessages.join('   ·   ');
+    const el = document.getElementById('ticker-text');
+    if(!el) return;
+    // نكرر النص مرتين للتمرير السلس
+    el.textContent = text + '   ·   ' + text;
+    // ضبط سرعة التمرير حسب طول النص
+    const track = document.getElementById('ticker-track');
+    if(track){
+      const duration = Math.max(40, allMessages.length * 10) + 's';
+      track.style.animationDuration = duration;
+    }
+  }
+
+  window.refreshGoldTicker = async function(){
+    const btn = document.getElementById('ticker-refresh-btn');
+    if(btn){ btn.style.color='#E8B840'; btn.style.transform='rotate(360deg)'; btn.style.transition='transform .6s'; }
+    const el = document.getElementById('ticker-text');
+    if(el) el.textContent = '⟳ جارٍ تحديث التحليل من الذكاء الاصطناعي...';
+    await loadAITickerMessages();
+    setTimeout(()=>{ if(btn){ btn.style.transform=''; } }, 700);
+  };
+
+  // تشغيل أولي
+  rebuildTicker();
+  // تحميل من AI بعد 3 ثوانٍ من تحميل الصفحة
+  setTimeout(loadAITickerMessages, 3000);
+  // تحديث كل 10 دقائق
+  setInterval(loadAITickerMessages, 600000);
+})();
+
+// ══════════════════════════════════════════════════════
+//  2) المساعد الذكي للذهب — Claude API
+// ══════════════════════════════════════════════════════
+(function(){
+  let chatHistory = [];
+  let isTyping = false;
+
+  window.toggleAIChat = function(){
+    const panel = document.getElementById('ai-chat-panel');
+    if(!panel) return;
+    const isOpen = panel.style.display === 'flex';
+    panel.style.display = isOpen ? 'none' : 'flex';
+    panel.style.flexDirection = 'column';
+    if(!isOpen){
+      const inp = document.getElementById('ai-input');
+      if(inp) setTimeout(()=>inp.focus(), 200);
+    }
+  };
+
+  window.aiQuickAsk = function(q){
+    const inp = document.getElementById('ai-input');
+    if(inp){ inp.value = q; sendAIMessage(); }
+  };
+
+  function addMessage(role, text, isLoading){
+    const box = document.getElementById('ai-messages');
+    if(!box) return null;
+    const div = document.createElement('div');
+    div.style.cssText = role==='user'
+      ? 'align-self:flex-end;background:linear-gradient(135deg,#6B4F0C,#C8961E);color:#0A0500;border-radius:14px 14px 4px 14px;padding:9px 13px;max-width:80%;font-size:12px;font-weight:700;line-height:1.5'
+      : 'align-self:flex-start;background:rgba(255,255,255,.07);border:1px solid rgba(200,150,30,.15);color:rgba(255,255,255,.85);border-radius:14px 14px 14px 4px;padding:9px 13px;max-width:85%;font-size:12px;font-weight:600;line-height:1.6';
+    if(isLoading){
+      div.id = 'ai-typing';
+      div.textContent = '⏳ جارٍ التفكير...';
+      div.style.color = 'rgba(255,255,255,.40)';
+      div.style.fontStyle = 'italic';
+    } else {
+      div.textContent = text;
+    }
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  window.sendAIMessage = async function(){
+    if(isTyping) return;
+    const inp = document.getElementById('ai-input');
+    const sendBtn = document.getElementById('ai-send-btn');
+    const q = (inp ? inp.value : '').trim();
+    if(!q) return;
+
+    if(inp) inp.value = '';
+    addMessage('user', q);
+    chatHistory.push({ role:'user', content: q });
+
+    isTyping = true;
+    if(sendBtn) sendBtn.disabled = true;
+    const typingEl = addMessage('assistant', '', true);
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          tools:[{ type:'web_search_20250305', name:'web_search' }],
+          system: 'أنت محلل مالي متخصص في سوق الذهب والمجوهرات. أجب بالعربية، بشكل موجز وواضح (3-4 جمل كحد أقصى). ركز على معلومات عملية ومفيدة لتجار الذهب. استخدم بحث الويب للحصول على بيانات حديثة عند الحاجة.',
+          messages: chatHistory.slice(-10)
+        })
+      });
+      const data = await resp.json();
+      const textBlock = (data.content||[]).find(b=>b.type==='text');
+      const answer = textBlock ? textBlock.text.trim() : 'عذراً، لم أتمكن من الإجابة حالياً.';
+
+      if(typingEl) typingEl.remove();
+      addMessage('assistant', answer);
+      chatHistory.push({ role:'assistant', content: answer });
+
+    } catch(e){
+      if(typingEl) typingEl.remove();
+      addMessage('assistant', '⚠️ حدث خطأ في الاتصال. تحقق من الإنترنت وحاول مجدداً.');
+    } finally {
+      isTyping = false;
+      if(sendBtn) sendBtn.disabled = false;
+    }
+  };
+})();
+
+// ══════════════════════════════════════════════════════
+//  3) القفل التلقائي بعد 15 دقيقة من عدم النشاط
+// ══════════════════════════════════════════════════════
+(function(){
+  const LOCK_TIMEOUT  = 15 * 60 * 1000; // 15 دقيقة
+  const WARN_BEFORE   = 60 * 1000;       // تحذير قبل دقيقة
+  let lockTimer   = null;
+  let warnTimer   = null;
+  let warnToast   = null;
+  let isLocked    = false;
+  let warnShown   = false;
+
+  // إعادة ضبط المؤقت عند أي نشاط
+  const EVENTS = ['mousemove','mousedown','keydown','touchstart','scroll','click'];
+  EVENTS.forEach(ev => document.addEventListener(ev, resetTimer, {passive:true}));
+
+  function resetTimer(){
+    if(isLocked) return;
+    clearTimeout(lockTimer);
+    clearTimeout(warnTimer);
+    if(warnShown) hideWarnToast();
+    warnShown = false;
+    // تحذير قبل دقيقة
+    warnTimer = setTimeout(showWarnToast, LOCK_TIMEOUT - WARN_BEFORE);
+    // قفل فعلي
+    lockTimer = setTimeout(lockScreen, LOCK_TIMEOUT);
+  }
+
+  function showWarnToast(){
+    if(isLocked) return;
+    warnShown = true;
+    // استخدم toast الموجود
+    if(typeof toast === 'function') toast('⚠️ سيتم قفل الشاشة خلال دقيقة واحدة');
+  }
+
+  function hideWarnToast(){ /* toast تختفي تلقائياً */ }
+
+  function lockScreen(){
+    if(isLocked) return;
+    const aw = document.getElementById('app-wrap');
+    const lock = document.getElementById('auto-lock-screen');
+    if(!lock) return;
+    // لا نخفي app-wrap — فقط نضع overlay فوقه
+    lock.style.display = 'flex';
+    isLocked = true;
+    const passEl = document.getElementById('lock-pass');
+    if(passEl){ passEl.value = ''; setTimeout(()=>passEl.focus(), 300); }
+    const errEl = document.getElementById('lock-err');
+    if(errEl) errEl.style.display = 'none';
+    // توقيت القفل
+    const lockTime = new Date().toLocaleTimeString('ar-SA');
+    const cd = document.getElementById('lock-countdown');
+    if(cd) cd.textContent = 'تم القفل في ' + lockTime;
+  }
+
+  window.unlockScreen = async function(){
+    const passEl = document.getElementById('lock-pass');
+    const errEl  = document.getElementById('lock-err');
+    const p = passEl ? passEl.value.trim() : '';
+    if(!p){
+      if(errEl){ errEl.textContent='أدخل كلمة المرور'; errEl.style.display='block'; }
+      return;
+    }
+    // تحقق من كلمة المرور
+    const u = sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user') || '';
+    let valid = false;
+    try {
+      let users = typeof window._OWNER !== 'undefined' ? [window._OWNER] : [];
+      if(typeof window._loadUsersInternal === 'function'){
+        const list = await window._loadUsersInternal();
+        if(list && list.length) users = [...users, ...list];
+      }
+      const found = users.find(x => x.username.toLowerCase() === u.toLowerCase() && String(x.password).trim() === p);
+      valid = !!found;
+    } catch(e){ valid = false; }
+
+    if(!valid){
+      if(errEl){ errEl.textContent='❌ كلمة المرور غير صحيحة'; errEl.style.display='block'; }
+      if(passEl) passEl.value = '';
+      return;
+    }
+    // فتح ناجح
+    const lock = document.getElementById('auto-lock-screen');
+    if(lock) lock.style.display = 'none';
+    isLocked = false;
+    if(errEl) errEl.style.display = 'none';
+    resetTimer();
+    if(typeof toast === 'function') toast('✅ تم فتح الشاشة');
+  };
+
+  window.lockLogout = function(){
+    const lock = document.getElementById('auto-lock-screen');
+    if(lock) lock.style.display = 'none';
+    isLocked = false;
+    if(typeof logout === 'function') logout();
+  };
+
+  // بدء المؤقت عند تحميل الصفحة
+  resetTimer();
+
+  // أعِد تشغيل المؤقت بعد كل تسجيل دخول
+  const origDoLogin = window.doLogin;
+  // نراقب ظهور app-wrap
+  const obs = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n.id === 'app-wrap' || (document.getElementById('app-wrap') && document.getElementById('app-wrap').style.display === 'block')){
+          resetTimer();
+        }
+      });
+    });
+  });
+  obs.observe(document.body, { childList:true, subtree:false });
+
+  // مراقبة login screen — عندما يختفي ابدأ المؤقت
+  const loginEl = document.getElementById('login-screen');
+  if(loginEl){
+    const loginObs = new MutationObserver(function(){
+      if(loginEl.style.display === 'none') resetTimer();
+    });
+    loginObs.observe(loginEl, { attributes:true, attributeFilter:['style'] });
+  }
+
+  // إظهار زر المساعد عند تسجيل الدخول وإخفاؤه عند الخروج
+  const appWrapEl = document.getElementById('app-wrap');
+  if(appWrapEl){
+    const appObs = new MutationObserver(function(){
+      const fab = document.getElementById('ai-fab');
+      const ticker = document.getElementById('gold-ticker-bar');
+      if(!fab) return;
+      if(appWrapEl.style.display === 'block'){
+        fab.style.display = 'flex';
+        if(ticker) ticker.style.display = 'flex';
+      } else {
+        fab.style.display = 'none';
+        const panel = document.getElementById('ai-chat-panel');
+        if(panel) panel.style.display = 'none';
+        if(ticker) ticker.style.display = 'none';
+      }
+    });
+    appObs.observe(appWrapEl, { attributes:true, attributeFilter:['style'] });
+  }
+})();
 </script>
 </body>
 </html>
