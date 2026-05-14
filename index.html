@@ -87,6 +87,44 @@
 /* login-screen */
 #login-screen{display:flex;align-items:center;justify-content:center}
 
+/* ── GOLD TICKER BAR (TOP) ── */
+#gold-top-ticker{
+  background:linear-gradient(90deg,#0D0D14,#16120A,#0D0D14);
+  border-bottom:1px solid rgba(200,150,30,.35);
+  padding:7px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 10px rgba(0,0,0,.4);
+  gap:6px;flex-wrap:wrap;
+}
+#gold-top-ticker .gtk-items{
+  display:flex;align-items:center;gap:0;overflow-x:auto;
+  scrollbar-width:none;flex:1;
+}
+#gold-top-ticker .gtk-items::-webkit-scrollbar{display:none}
+.gtk-item{
+  display:flex;flex-direction:column;align-items:center;
+  padding:3px 12px;border-left:1px solid rgba(200,150,30,.20);
+  white-space:nowrap;min-width:72px;
+}
+.gtk-item:first-child{border-left:none}
+.gtk-item .gtk-label{font-size:9px;color:rgba(200,150,30,.7);font-weight:700;letter-spacing:.4px;margin-bottom:1px}
+.gtk-item .gtk-val{font-size:13px;font-weight:900;color:#F0C040;line-height:1}
+.gtk-item .gtk-unit{font-size:8px;color:rgba(255,255,255,.4);margin-top:1px}
+.gtk-usd .gtk-val{color:#60A5FA}
+.gtk-usd .gtk-label{color:rgba(96,165,250,.7)}
+#gtk-status{font-size:9px;color:rgba(255,255,255,.35);white-space:nowrap;flex-shrink:0}
+#gtk-status.live{color:#22C77A}
+#gtk-refresh-btn{
+  background:rgba(200,150,30,.15);border:1px solid rgba(200,150,30,.3);
+  color:#D97706;font-size:9px;font-weight:700;cursor:pointer;
+  border-radius:6px;padding:3px 8px;font-family:inherit;flex-shrink:0;
+  transition:all .15s ease;
+}
+#gtk-refresh-btn:hover{background:rgba(200,150,30,.3)}
+@keyframes gtkPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.gtk-loading{animation:gtkPulse 1.2s infinite;color:rgba(200,150,30,.5);font-size:11px}
+
 body{
   font-family:'Tajawal',sans-serif;
   background:var(--bg);color:var(--tx1);
@@ -523,6 +561,39 @@ body{
   </div>
   <style>@keyframes ldbar{0%{width:0%}50%{width:80%}100%{width:100%}}</style>
 </div>
+<!-- ══ شريط أسعار الذهب اللحظية ══ -->
+<div id="gold-top-ticker">
+  <div class="gtk-items">
+    <div class="gtk-item gtk-usd">
+      <div class="gtk-label">🌐 الذهب العالمي</div>
+      <div class="gtk-val" id="gtk-global"><span class="gtk-loading">⋯</span></div>
+      <div class="gtk-unit">دولار / أوقية</div>
+    </div>
+    <div class="gtk-item">
+      <div class="gtk-label">✨ عيار 24</div>
+      <div class="gtk-val" id="gtk-24"><span class="gtk-loading">⋯</span></div>
+      <div class="gtk-unit">ريال / جرام</div>
+    </div>
+    <div class="gtk-item">
+      <div class="gtk-label">🥇 عيار 21</div>
+      <div class="gtk-val" id="gtk-21"><span class="gtk-loading">⋯</span></div>
+      <div class="gtk-unit">ريال / جرام</div>
+    </div>
+    <div class="gtk-item">
+      <div class="gtk-label">💛 عيار 18</div>
+      <div class="gtk-val" id="gtk-18"><span class="gtk-loading">⋯</span></div>
+      <div class="gtk-unit">ريال / جرام</div>
+    </div>
+    <div class="gtk-item">
+      <div class="gtk-label">⬜ عيار 14</div>
+      <div class="gtk-val" id="gtk-14"><span class="gtk-loading">⋯</span></div>
+      <div class="gtk-unit">ريال / جرام</div>
+    </div>
+  </div>
+  <span id="gtk-status">⟳ جاري التحميل...</span>
+  <button id="gtk-refresh-btn" onclick="gtkFetch(true)">🔄 تحديث</button>
+</div>
+
 <div class="hdr">
   <div class="hdr-top">
     <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💍</span><div><div style="font-size:16px;font-weight:900;color:#EDF0FF">منظوم</div><div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:500">نظام إدارة الذهب والمجوهرات</div></div></div>
@@ -14324,5 +14395,131 @@ function gpAppendMsg(role, html){
 
 })(); // end GOLD-AI v2
 </script>
+<!-- ══ سكريبت شريط أسعار الذهب اللحظية ══ -->
+<script>
+(function(){
+  var GTK = {
+    SAR_USD: 3.75,
+    G_OZ:    31.1034758,
+    _busy:   false,
+    _timer:  null,
+    _lastOk: 0,
+  };
+
+  function gtkSet(id, val){
+    var el = document.getElementById(id);
+    if(el) el.textContent = val;
+  }
+
+  function gtkStatus(msg, ok){
+    var s = document.getElementById('gtk-status');
+    if(!s) return;
+    s.textContent = msg;
+    s.className = ok ? 'live' : '';
+  }
+
+  async function gtkFetchPrice(){
+    if(GTK._busy) return;
+    GTK._busy = true;
+    gtkStatus('⟳ جاري التحديث...', false);
+
+    var priceUSD = null;
+
+    // ── محاولة 1: goldprice.org ──
+    try {
+      var r1 = await fetch('https://data-asg.goldprice.org/dbXRates/USD',
+        { signal: AbortSignal.timeout(6000) });
+      if(r1.ok){
+        var d1 = await r1.json();
+        if(d1 && d1.items && d1.items[0] && d1.items[0].xauPrice > 0){
+          priceUSD = d1.items[0].xauPrice;
+          // محاولة جلب سعر SAR/USD من نفس المصدر
+          if(d1.items[0].xagPrice) { /* silver - skip */ }
+        }
+      }
+    } catch(e1){}
+
+    // ── محاولة 2: metals.live ──
+    if(!priceUSD){
+      try {
+        var r2 = await fetch('https://api.metals.live/v1/spot/gold',
+          { signal: AbortSignal.timeout(6000) });
+        if(r2.ok){
+          var d2 = await r2.json();
+          if(Array.isArray(d2) && d2[0]) priceUSD = d2[0].gold || d2[0].price;
+          else if(d2 && d2.gold) priceUSD = d2.gold;
+          else if(d2 && d2.price) priceUSD = d2.price;
+        }
+      } catch(e2){}
+    }
+
+    // ── محاولة 3: gold-api.com ──
+    if(!priceUSD){
+      try {
+        var r3 = await fetch('https://api.gold-api.com/price/XAU',
+          { signal: AbortSignal.timeout(6000) });
+        if(r3.ok){
+          var d3 = await r3.json();
+          if(d3 && d3.price > 0) priceUSD = d3.price;
+        }
+      } catch(e3){}
+    }
+
+    GTK._busy = false;
+
+    if(priceUSD && priceUSD > 500){
+      GTK._lastOk = Date.now();
+      var sarGram = priceUSD * GTK.SAR_USD / GTK.G_OZ;
+      var g24 = sarGram;
+      var g21 = sarGram * 21/24;
+      var g18 = sarGram * 18/24;
+      var g14 = sarGram * 14/24;
+
+      var fmt = function(n){ return Math.round(n).toLocaleString('en'); };
+
+      gtkSet('gtk-global', '$' + fmt(priceUSD));
+      gtkSet('gtk-24', fmt(g24));
+      gtkSet('gtk-21', fmt(g21));
+      gtkSet('gtk-18', fmt(g18));
+      gtkSet('gtk-14', fmt(g14));
+
+      var now = new Date().toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'});
+      gtkStatus('🟢 آخر تحديث ' + now, true);
+
+      // مزامنة مع البانل الداخلي
+      var mini = document.getElementById('gold-ticker-mini');
+      if(mini) mini.textContent = 'عيار 21: ' + fmt(g21) + ' ر · عيار 18: ' + fmt(g18) + ' ر/جرام';
+      var sub = document.getElementById('gp-header-sub');
+      if(sub) sub.textContent = 'عيار 21: ' + fmt(g21) + ' ريال/جرام';
+
+      // تحديث المتغير العام إذا وُجد
+      if(typeof _gpPrice !== 'undefined' || window._gpPrice !== undefined){
+        window._gpPrice = {
+          usd_oz:  Math.round(priceUSD * 100)/100,
+          g24_sar: Math.round(g24 * 100)/100,
+          g21_sar: Math.round(g21 * 100)/100,
+          g18_sar: Math.round(g18 * 100)/100,
+          approx:  false,
+          ts: Date.now()
+        };
+      }
+    } else {
+      gtkStatus('⚠️ تعذّر جلب السعر', false);
+    }
+  }
+
+  // تصدير للزر
+  window.gtkFetch = function(manual){
+    if(manual){ GTK._busy = false; }
+    gtkFetchPrice();
+  };
+
+  // جلب عند التحميل
+  document.addEventListener('DOMContentLoaded', function(){
+    gtkFetchPrice();
+    // تحديث تلقائي كل 5 دقائق
+    GTK._timer = setInterval(gtkFetchPrice, 5 * 60 * 1000);
+  });
+})();
+</script>
 </body>
-</html>
