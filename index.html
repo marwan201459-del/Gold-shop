@@ -10876,6 +10876,182 @@ function renderStmt(){
 
   let html = '';
 
+  // ══════════════════════════════════════════════════════════════
+  // ── بيان سريع العيارات (إضافة جديدة) ──
+  // ══════════════════════════════════════════════════════════════
+  (function(){
+    // نوع الفواتير حسب الجهة
+    var _tkTypes  = isSupp ? ['buy','buy-debt']                    : ['sell','sell-debt'];
+    var _retTypes = isSupp ? ['purchase-return','supplier-return'] : ['return','sales-return'];
+    var _pyTypes  = isSupp ? ['supplier-payment']                  : ['payment'];
+
+    // ── ما أخذ (أخذ منا / أخذنا منه) ──
+    var _tk21=0, _tk18=0, _tk24=0;
+    txs.filter(function(t){ return _tkTypes.indexOf(t.type)>-1; }).forEach(function(t){
+      (t.items||[]).forEach(function(i){
+        var w=i.weight||0; if(!w) return;
+        if(i.karat==='21')                    _tk21+=w;
+        else if(i.karat==='18'||i.karat==='18k') _tk18+=w;
+        else if(i.karat==='24')               _tk24+=w;
+      });
+    });
+    // طرح المرتجعات
+    txs.filter(function(t){ return _retTypes.indexOf(t.type)>-1; }).forEach(function(t){
+      (t.items||[]).forEach(function(i){
+        var w=i.weight||0; if(!w) return;
+        if(i.karat==='21')                    _tk21-=w;
+        else if(i.karat==='18'||i.karat==='18k') _tk18-=w;
+        else if(i.karat==='24')               _tk24-=w;
+      });
+    });
+    _tk21=Math.round(_tk21*1000)/1000;
+    _tk18=Math.round(_tk18*1000)/1000;
+    _tk24=Math.round(_tk24*1000)/1000;
+
+    // ── ما دفع / حوّل ذهباً ──
+    var _py21=0, _py18=0, _py24=0;
+    txs.filter(function(t){ return _pyTypes.indexOf(t.type)>-1; }).forEach(function(t){
+      // حقل goldWeight/goldKarat الموحد
+      if((t.goldWeight||0)>0){
+        var k=t.goldKarat||'21';
+        if(k==='21')                    _py21+=(t.goldWeight||0);
+        else if(k==='18'||k==='18k')    _py18+=(t.goldWeight||0);
+        else if(k==='24')               _py24+=(t.goldWeight||0);
+      }
+      // حقول goldItems المتعددة
+      (t.goldItems||[]).forEach(function(gi){
+        var w=gi.weight||0; if(!w) return;
+        var k=gi.karat||'21';
+        if(k==='21')                    _py21+=w;
+        else if(k==='18'||k==='18k')    _py18+=w;
+        else if(k==='24')               _py24+=w;
+      });
+    });
+    _py21=Math.round(_py21*1000)/1000;
+    _py18=Math.round(_py18*1000)/1000;
+    _py24=Math.round(_py24*1000)/1000;
+
+    // هل يوجد بيانات تستحق العرض؟
+    var hasData = _tk21>0||_tk18>0||_tk24>0||_py21>0||_py18>0||_py24>0;
+    if(!hasData) return;
+
+    var takeLabel = isSupp ? '📥 أخذنا منه' : '📤 أخذ منا';
+    var payLabel  = isSupp ? '💳 دفعنا له ذهباً' : '💳 دفع لنا ذهباً';
+
+    // دالة مساعدة لخلية العيار
+    function _ksCell(karat, weight, clr, bg){
+      if(weight<=0) return '';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;'
+            +'padding:5px 8px;background:'+bg+';border-radius:7px;margin-bottom:4px">'
+            +'<span style="font-size:10px;font-weight:800;color:'+clr+'">عيار '+karat+'</span>'
+            +'<span style="font-size:13px;font-weight:900;color:'+clr+'">'
+            +fmtG(weight)
+            +'<span style="font-size:9px;opacity:.75"> ج</span>'
+            +'</span>'
+            +'</div>';
+    }
+
+    var hasTake = _tk21>0||_tk18>0||_tk24>0;
+    var hasPay  = _py21>0||_py18>0||_py24>0;
+
+    html += '<div style="background:var(--c1);border:1.5px solid rgba(200,150,30,.35);'
+           +'border-radius:14px;margin-bottom:12px;overflow:hidden;'
+           +'box-shadow:0 2px 10px rgba(200,150,30,.10)">';
+
+    // عنوان البيان السريع
+    html += '<div style="padding:9px 14px;background:linear-gradient(135deg,rgba(200,150,30,.15),rgba(200,150,30,.05));'
+           +'border-bottom:1px solid rgba(200,150,30,.20);'
+           +'display:flex;align-items:center;gap:6px">';
+    html += '<span style="font-size:15px">⚖️</span>';
+    html += '<span style="font-size:12px;font-weight:900;color:var(--tx1)">بيان سريع — حركة الذهب بالعيارات</span>';
+    html += '</div>';
+
+    html += '<div style="padding:10px 12px;display:grid;grid-template-columns:'+(hasTake&&hasPay?'1fr 1fr':'1fr')+';gap:10px">';
+
+    // عمود الأخذ
+    if(hasTake){
+      html += '<div>';
+      html += '<div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:6px;'
+             +'padding-bottom:4px;border-bottom:1.5px solid rgba(220,38,38,.25)">'+takeLabel+'</div>';
+      html += _ksCell('٢١', _tk21, '#DC2626', 'rgba(220,38,38,.07)');
+      html += _ksCell('١٨', _tk18, '#7C3AED', 'rgba(124,58,237,.07)');
+      html += _ksCell('٢٤', _tk24, '#D97706', 'rgba(217,119,6,.07)');
+      // المجموع بعيار 24
+      var _totTk24 = Math.round((_tk21*21/24 + _tk18*18/24 + _tk24)*1000)/1000;
+      if((_tk21>0||_tk18>0)&&_tk24>=0){
+        html += '<div style="margin-top:4px;padding:4px 8px;background:rgba(200,150,30,.10);'
+               +'border-radius:6px;border:1px solid rgba(200,150,30,.25);text-align:center">';
+        html += '<span style="font-size:9px;color:var(--tx2)">إجمالي ع٢٤: </span>';
+        html += '<span style="font-size:12px;font-weight:900;color:var(--g1)">'+fmtG(_totTk24)+' ج</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // عمود الدفع / التحويل
+    if(hasPay){
+      html += '<div>';
+      html += '<div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:6px;'
+             +'padding-bottom:4px;border-bottom:1.5px solid rgba(22,163,74,.25)">'+payLabel+'</div>';
+      html += _ksCell('٢١', _py21, '#16A34A', 'rgba(22,163,74,.07)');
+      html += _ksCell('١٨', _py18, '#0891B2', 'rgba(8,145,178,.07)');
+      html += _ksCell('٢٤', _py24, '#D97706', 'rgba(217,119,6,.07)');
+      var _totPy24 = Math.round((_py21*21/24 + _py18*18/24 + _py24)*1000)/1000;
+      if((_py21>0||_py18>0)&&_py24>=0){
+        html += '<div style="margin-top:4px;padding:4px 8px;background:rgba(200,150,30,.10);'
+               +'border-radius:6px;border:1px solid rgba(200,150,30,.25);text-align:center">';
+        html += '<span style="font-size:9px;color:var(--tx2)">إجمالي ع٢٤: </span>';
+        html += '<span style="font-size:12px;font-weight:900;color:var(--g1)">'+fmtG(_totPy24)+' ج</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+
+    // ── فرق الذهب (ما أخذ ناقص ما دفع) ──
+    if(hasTake&&hasPay){
+      var _diff21 = Math.round((_tk21-_py21)*1000)/1000;
+      var _diff18 = Math.round((_tk18-_py18)*1000)/1000;
+      var _diff24 = Math.round((_tk24-_py24)*1000)/1000;
+      var hasDiff = Math.abs(_diff21)>0.001||Math.abs(_diff18)>0.001||Math.abs(_diff24)>0.001;
+      if(hasDiff){
+        html += '<div style="margin:0 12px 10px;padding:8px 10px;'
+               +'background:rgba(0,0,0,.04);border-radius:8px;border:1px solid var(--b1)">';
+        html += '<div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:5px">📊 الصافي المتبقي (أخذ − دفع)</div>';
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        if(Math.abs(_diff21)>0.001){
+          var _d21Clr=_diff21>0?'#DC2626':'#16A34A';
+          html += '<div style="flex:1;min-width:60px;text-align:center;background:rgba(0,0,0,.05);border-radius:7px;padding:5px">';
+          html += '<div style="font-size:9px;color:var(--tx2)">عيار ٢١</div>';
+          html += '<div style="font-size:14px;font-weight:900;color:'+_d21Clr+'">'+fmtG(Math.abs(_diff21))+'</div>';
+          html += '<div style="font-size:8px;color:'+_d21Clr+'">'+(_diff21>0?'باقي عليه':'له فائض')+'</div>';
+          html += '</div>';
+        }
+        if(Math.abs(_diff18)>0.001){
+          var _d18Clr=_diff18>0?'#7C3AED':'#0891B2';
+          html += '<div style="flex:1;min-width:60px;text-align:center;background:rgba(0,0,0,.05);border-radius:7px;padding:5px">';
+          html += '<div style="font-size:9px;color:var(--tx2)">عيار ١٨</div>';
+          html += '<div style="font-size:14px;font-weight:900;color:'+_d18Clr+'">'+fmtG(Math.abs(_diff18))+'</div>';
+          html += '<div style="font-size:8px;color:'+_d18Clr+'">'+(_diff18>0?'باقي عليه':'له فائض')+'</div>';
+          html += '</div>';
+        }
+        if(Math.abs(_diff24)>0.001){
+          var _d24Clr=_diff24>0?'#D97706':'#16A34A';
+          html += '<div style="flex:1;min-width:60px;text-align:center;background:rgba(0,0,0,.05);border-radius:7px;padding:5px">';
+          html += '<div style="font-size:9px;color:var(--tx2)">عيار ٢٤</div>';
+          html += '<div style="font-size:14px;font-weight:900;color:'+_d24Clr+'">'+fmtG(Math.abs(_diff24))+'</div>';
+          html += '<div style="font-size:8px;color:'+_d24Clr+'">'+(_diff24>0?'باقي عليه':'له فائض')+'</div>';
+          html += '</div>';
+        }
+        html += '</div></div>';
+      }
+    }
+
+    html += '</div>';
+    // ══════════════════════════════════════════════════════════════
+  })();
+
   // ── بطاقة الجهة ──
   const _cashAbs2  = Math.abs(cash);
   const _cashClr2  = (!isSupp && cash>0)||(isSupp && cash<0) ? '#DC2626' : cash===0 ? '#16A34A' : '#D97706';
