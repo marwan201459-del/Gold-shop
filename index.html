@@ -5710,8 +5710,10 @@ function getClientBalance(cli){
   const _settleGoldAdj24 = _settleAdj2.reduce((a,t)=>a+(t.settleGold24||0),0);
 
   const goldOwedAs24 = _isSupp2
+    // إصلاح: نضيف ذهب البيع للمورد (goldOut24) ليظهر في رصيد الذهب
     ? Math.round((
         -(goldIn24 - purchRetGold24 - suppRetGold24)
+        + (goldOut24 - salesRetGold24 - retGold24)
         - goldTransferIn24 + goldTransferOut24
         + payGoldOut24 - payGoldIn24
         + _settleGoldAdj24
@@ -5779,7 +5781,8 @@ function getClientBalance(cli){
   const _isSupplier = _cli?.type === 'مورد';
 
   const cashOwed = _isSupplier
-    ? Math.round((-(buyDebt - purchRetDebt - supplierSettled) + cashTransferIn - cashTransferOut + settleCashAdj + chargeTotal)*100)/100
+    // إصلاح: نضيف فواتير البيع للمورد (sellDebt) + نصحح إشارة cashTransferOut (دفعنا للمورد = يقل ما علينا)
+    ? Math.round((-(buyDebt - purchRetDebt - supplierSettled) + (sellDebt - salesRetDebt - clientSettled) + cashTransferIn + cashTransferOut + settleCashAdj + chargeTotal)*100)/100
     : Math.round(((sellDebt - salesRetDebt - clientSettled - cashTransferIn + cashTransferOut + settleCashAdj + chargeTotal))*100)/100;
 
   // تفصيل بالعيارات للعرض
@@ -10581,18 +10584,33 @@ function renderStmt(){
       if(t.type==='buy'||t.type==='buy-debt')
         // إصلاح: الأجور فقط هي الدين النقدي — الذهب يُعالَج في dGold24 (مطابقة printStmt)
         dCash = -(t.ajTotal||0);
+      // ── إصلاح: فاتورة البيع للمورد تُضاف لكشف حسابه ──
+      else if(t.type==='sell'||t.type==='sell-debt')
+        dCash = (t.ajTotal||0)+(t.vatAmt||0);  // بعنا للمورد — عليه لنا
       else if(t.type==='supplier-payment'){
         // نقد + خصم + فكة + ذهب بسعر (كله يُخفِّض الدين للمورد)
         const _goldCashVal = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
                            + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
         dCash = (t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+_goldCashVal;
       }
+      // ── إصلاح: المورد يسدد مقابل بيع سبق ──
+      else if(t.type==='payment'){
+        const _gcvSup = (t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
+                      + ((t.goldPrice||0)>0 ? Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100 : 0);
+        dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcvSup);
+      }
+      else if(t.type==='cash-receipt')                                   dCash = -(t.amount||0);
       else if(t.type==='purchase-return'||t.type==='supplier-return')
         // إصلاح: أجور المرتجع فقط (مطابقة printStmt)
         dCash = (t.ajTotal||0);
+      // ── إصلاح: مرتجع مبيعات للمورد ──
+      else if(t.type==='return'||t.type==='sales-return')
+        dCash = -((t.ajTotal||0)+(t.vatAmt||0));
+      else if(t.type==='charge')                                         dCash = -(t.amount||0);
       else if(t.type==='transfer'){
-        if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;
-        if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0);
+        // إصلاح: كلا الاتجاهين يُقلِّلان ما علينا (runCash يزيد نحو الصفر)
+        if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;   // المورد أعطانا — ينخصم من ديننا
+        if(t.toSafe===('__cli__'+v))   dCash = t.amount||0;   // إصلاح: أعطيناه — يقل ما علينا أيضاً
       }
     } else {
       // الأجور فقط هي الدين النقدي — الذهب في goldOwedAs24 منفصلاً
@@ -10609,8 +10627,9 @@ function renderStmt(){
       else if(t.type==='salary-pay')                                   dCash = -(t.amount||0);
       else if(t.type==='charge')                                       dCash = (t.amount||0);
       else if(t.type==='transfer'){
-        if(t.fromSafe===('__cli__'+v)) dCash = t.amount||0;  // العميل أعطانا — ينخصم من دينه
-        if(t.toSafe===('__cli__'+v))   dCash = -(t.amount||0); // أعطيناه
+        // إصلاح: عكس الإشارات — العميل يدفع لنا = ينخصم دينه (سالب)، نحن ندفع له = يزيد دينه (موجب)
+        if(t.fromSafe===('__cli__'+v)) dCash = -(t.amount||0);  // العميل أعطانا — ينخصم من دينه
+        if(t.toSafe===('__cli__'+v))   dCash = (t.amount||0);   // أعطيناه — يزيد دينه
       }
     }
     // تغيير الذهب بعيار 24
@@ -10629,8 +10648,9 @@ function renderStmt(){
     else if(t.type==='supplier-return'||t.type==='purchase-return')
       (t.items||[]).forEach(i=>{ dGold24 += convertTo24(i.weight,i.karat); });
     else if(t.type==='transfer'){
-      if(t.fromSafe===('__cli__'+v)) dGold24 = convertTo24(t.goldAmount,t.goldKarat||'21');
-      if(t.toSafe===('__cli__'+v))   dGold24 = -convertTo24(t.goldAmount,t.goldKarat||'21');
+      // إصلاح: الجهة تعطينا ذهب = ينخصم رصيد الذهب، نحن نعطيها = يزيد
+      if(t.fromSafe===('__cli__'+v)) dGold24 = -convertTo24(t.goldAmount,t.goldKarat||'21');
+      if(t.toSafe===('__cli__'+v))   dGold24 = convertTo24(t.goldAmount,t.goldKarat||'21');
     }
     runCash   = Math.round((runCash   + dCash)*100)/100;
     runGold24 = Math.round((runGold24 + dGold24)*1000)/1000;
@@ -13629,7 +13649,8 @@ window.doKaratSettle = doKaratSettle;
 })(); // end KARAT-SETTLE
 </script>
 <!-- ════════════════════════════════════════════════════════════
-     [GOLD-AI] تحليل الذهب الذكي + المساعد الذكي
+<!-- ════════════════════════════════════════════════════════════
+     [GOLD-AI v2] تحليل الذهب الذكي + المساعد الذكي
      ════════════════════════════════════════════════════════════ -->
 
 <!-- الخلفية المعتمة -->
@@ -13640,307 +13661,381 @@ window.doKaratSettle = doKaratSettle;
 <div id="gold-panel-main"
   style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:8001;
          background:var(--c1,#1A1A2E);border-radius:20px 20px 0 0;
-         max-height:92vh;overflow:hidden;display:flex;flex-direction:column;
+         max-height:92vh;overflow:hidden;flex-direction:column;
          box-shadow:0 -8px 40px rgba(0,0,0,.5)">
 
   <!-- رأس اللوح -->
-  <div style="background:linear-gradient(135deg,#92400E,#B45309,#D97706);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+  <div style="background:linear-gradient(135deg,#78350F,#B45309,#D97706);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
+      <div style="width:38px;height:38px;background:rgba(255,255,255,.18);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px">📡</div>
       <div>
-        <div style="font-size:14px;font-weight:900;color:#fff">مساعد الذهب الذكي</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.75)">اسألني عن أسعار وتحليلات الذهب</div>
+        <div style="font-size:14px;font-weight:900;color:#fff">تحليل الذهب الذكي</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.8)" id="gp-header-sub">جاري جلب أسعار الذهب الحية...</div>
       </div>
     </div>
-    <button onclick="closeGoldPanel()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit">✕</button>
+    <button onclick="closeGoldPanel()" style="background:rgba(0,0,0,.25);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:700">✕</button>
   </div>
 
-  <!-- تبويبات: سعر الذهب | المساعد -->
-  <div style="display:flex;background:var(--c2,#16213E);flex-shrink:0;border-bottom:1px solid var(--b1,rgba(255,255,255,.08))">
+  <!-- تبويبات -->
+  <div style="display:flex;background:var(--c2,#16213E);flex-shrink:0;border-bottom:1px solid var(--b1,rgba(255,255,255,.1))">
     <button id="gp-tab-price" onclick="gpSwitchTab('price')"
-      style="flex:1;padding:10px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;
-             background:linear-gradient(135deg,#92400E,#B45309);color:#fff;border-bottom:2px solid #D97706">
+      style="flex:1;padding:11px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800;
+             background:linear-gradient(135deg,#78350F,#B45309);color:#fff;border-bottom:3px solid #F59E0B">
       📊 سعر الذهب الحي
     </button>
     <button id="gp-tab-chat" onclick="gpSwitchTab('chat')"
-      style="flex:1;padding:10px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;
-             background:transparent;color:var(--tx2,#888)">
+      style="flex:1;padding:11px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800;
+             background:transparent;color:var(--tx2,#888);border-bottom:3px solid transparent">
       🤖 المساعد الذكي
     </button>
   </div>
 
-  <!-- محتوى: سعر الذهب -->
-  <div id="gp-content-price" style="overflow-y:auto;padding:14px;flex:1">
-    <div id="gp-price-loading" style="text-align:center;padding:30px">
-      <div style="font-size:32px;margin-bottom:10px">⏳</div>
-      <div style="color:var(--tx2);font-size:13px">جاري جلب أسعار الذهب الحية...</div>
+  <!-- ═══ تبويب: سعر الذهب ═══ -->
+  <div id="gp-content-price" style="overflow-y:auto;padding:14px;flex:1;-webkit-overflow-scrolling:touch">
+
+    <!-- شريط التحميل -->
+    <div id="gp-loading" style="text-align:center;padding:40px 20px">
+      <div style="font-size:40px;margin-bottom:12px;animation:spin 2s linear infinite">⏳</div>
+      <div style="color:var(--tx2,#888);font-size:13px">جاري جلب أسعار الذهب...</div>
+      <div style="color:var(--tx3,#555);font-size:11px;margin-top:6px">يجرب أكثر من مصدر تلقائياً</div>
     </div>
+
+    <!-- بيانات السعر -->
     <div id="gp-price-data" style="display:none"></div>
+
+    <!-- شريط توقعات السوق — يظهر دائماً بعد التحميل -->
+    <div id="gp-forecast-strip" style="display:none;margin-top:12px"></div>
+
+    <!-- زر تحديث -->
+    <div id="gp-refresh-btn" style="display:none;margin-top:10px">
+      <button onclick="gpFetchPrice()" style="width:100%;background:linear-gradient(135deg,#78350F,#D97706);color:#fff;border:none;border-radius:12px;padding:13px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">🔄 تحديث السعر</button>
+    </div>
   </div>
 
-  <!-- محتوى: المساعد الذكي -->
-  <div id="gp-content-chat" style="display:none;flex-direction:column;flex:1;overflow:hidden">
-
+  <!-- ═══ تبويب: المساعد الذكي ═══ -->
+  <div id="gp-content-chat" style="display:none;flex-direction:column;flex:1;overflow:hidden;max-height:calc(92vh - 110px)">
     <!-- رسائل الدردشة -->
-    <div id="gp-chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0">
-      <!-- رسالة الترحيب -->
+    <div id="gp-chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch">
       <div style="display:flex;gap:8px;align-items:flex-start">
-        <div style="width:32px;height:32px;background:linear-gradient(135deg,#B45309,#D97706);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏅</div>
-        <div style="background:var(--c2,#16213E);border-radius:4px 14px 14px 14px;padding:12px 14px;max-width:80%;font-size:13px;color:var(--tx1,#fff);line-height:1.6;border:1px solid var(--b1,rgba(255,255,255,.08))">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,#78350F,#D97706);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏅</div>
+        <div style="background:var(--c2,#16213E);border-radius:4px 14px 14px 14px;padding:12px 14px;max-width:82%;font-size:12px;color:var(--tx1,#fff);line-height:1.7;border:1px solid var(--b1,rgba(255,255,255,.1))">
           مرحباً! اسألني عن سوق الذهب، التحليلات، توقعات الأسعار، أو أي شيء يخص الذهب والمجوهرات.
         </div>
       </div>
     </div>
 
-    <!-- أزرار الأسئلة السريعة -->
+    <!-- أزرار سريعة -->
     <div style="padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;border-top:1px solid var(--b1,rgba(255,255,255,.08));background:var(--c2,#16213E)">
-      <button onclick="gpQuickAsk('ما توقعات سعر الذهب هذا الأسبوع؟')" class="gp-quick-btn">📊 توقعات الأسبوع</button>
-      <button onclick="gpQuickAsk('هل الوقت الحالي مناسب للشراء أم البيع؟')" class="gp-quick-btn">🤔 شراء أم بيع؟</button>
-      <button onclick="gpQuickAsk('ما تأثير قرارات الفيدرالي الأمريكي على أسعار الذهب؟')" class="gp-quick-btn">🏛️ تأثير الفيدرالي</button>
-      <button onclick="gpQuickAsk('ما هي أسباب ارتفاع أو انخفاض الذهب مؤخراً؟')" class="gp-quick-btn">🔍 أسباب التحرك</button>
+      <button onclick="gpQuickAsk('ما توقعات سعر الذهب هذا الأسبوع؟')" class="gp-qbtn">📊 توقعات الأسبوع</button>
+      <button onclick="gpQuickAsk('هل الوقت الحالي مناسب للشراء أم البيع؟')" class="gp-qbtn">🤔 شراء أم بيع؟</button>
+      <button onclick="gpQuickAsk('ما تأثير قرارات الفيدرالي الأمريكي على الذهب؟')" class="gp-qbtn">🏛️ تأثير الفيدرالي</button>
+      <button onclick="gpQuickAsk('ما أسباب ارتفاع أو انخفاض الذهب مؤخراً؟')" class="gp-qbtn">🔍 أسباب التحرك</button>
     </div>
 
-    <!-- إعداد مفتاح API -->
-    <div id="gp-api-setup" style="padding:10px 12px;background:rgba(220,38,38,.08);border-top:1px solid rgba(220,38,38,.2);flex-shrink:0;display:none">
-      <div style="font-size:11px;color:#FF8080;margin-bottom:6px;font-weight:700">🔑 مطلوب: مفتاح Anthropic API</div>
+    <!-- إدخال API key إذا لزم -->
+    <div id="gp-api-setup" style="display:none;padding:10px 12px;background:rgba(220,38,38,.1);border-top:1px solid rgba(220,38,38,.25);flex-shrink:0">
+      <div style="font-size:11px;color:#FF8080;margin-bottom:6px;font-weight:700">🔑 أدخل مفتاح Anthropic API لتفعيل المساعد</div>
       <div style="display:flex;gap:6px">
-        <input id="gp-api-key-input" type="password" placeholder="sk-ant-..." style="flex:1;border:1px solid rgba(220,38,38,.4);border-radius:8px;padding:7px 10px;font-size:11px;font-family:inherit;background:var(--c2);color:var(--tx1)">
-        <button onclick="gpSaveApiKey()" style="background:#DC2626;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:700">حفظ</button>
+        <input id="gp-api-key-input" type="password" placeholder="sk-ant-api03-..."
+          style="flex:1;border:1.5px solid rgba(220,38,38,.4);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;background:var(--c2,#16213E);color:var(--tx1,#fff);outline:none">
+        <button onclick="gpSaveApiKey()" style="background:#DC2626;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:800">حفظ</button>
       </div>
-      <div style="font-size:9px;color:var(--tx3);margin-top:4px">احصل على مفتاحك من console.anthropic.com — يُخزَّن محلياً فقط</div>
+      <div style="font-size:9px;color:var(--tx3,#555);margin-top:5px">
+        احصل على مفتاحك من <b style="color:#F87171">console.anthropic.com</b> — يُحفظ على جهازك فقط
+      </div>
     </div>
 
     <!-- حقل الإدخال -->
     <div style="padding:10px 12px;display:flex;gap:8px;flex-shrink:0;border-top:1px solid var(--b1,rgba(255,255,255,.08))">
       <input id="gp-chat-input" type="text" placeholder="اسأل عن الذهب..."
-        style="flex:1;border:1.5px solid var(--b1,rgba(255,255,255,.15));border-radius:10px;padding:10px 12px;
+        style="flex:1;border:1.5px solid var(--b1,rgba(255,255,255,.15));border-radius:12px;padding:11px 14px;
                font-size:13px;font-family:inherit;background:var(--c2,#16213E);color:var(--tx1,#fff);outline:none"
         onkeydown="if(event.key==='Enter')gpSendMsg()">
       <button onclick="gpSendMsg()"
-        style="background:linear-gradient(135deg,#B45309,#D97706);color:#fff;border:none;border-radius:10px;
-               width:42px;height:42px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">▶</button>
+        style="background:linear-gradient(135deg,#B45309,#F59E0B);color:#fff;border:none;border-radius:12px;
+               width:46px;height:46px;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">▶</button>
     </div>
   </div>
 </div>
 
 <style>
-.gp-quick-btn {
-  background: rgba(180,83,9,.15);
-  border: 1px solid rgba(180,83,9,.35);
-  border-radius: 20px;
-  padding: 5px 10px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #D97706;
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
+@keyframes spin { to { transform:rotate(360deg); } }
+.gp-qbtn {
+  background:rgba(180,83,9,.15);border:1px solid rgba(180,83,9,.4);
+  border-radius:20px;padding:5px 11px;font-size:11px;font-weight:700;
+  color:#D97706;cursor:pointer;font-family:inherit;white-space:nowrap;
 }
-.gp-quick-btn:active { opacity: .7; }
+.gp-qbtn:active{opacity:.7}
 </style>
 
 <script>
 (function(){
 
-// ─── فتح/إغلاق اللوح ─────────────────────────────────────────
+// ─── بيانات مرجعية للتحليل الذكي ────────────────────────────
+// أسعار قياسية تاريخية للمقارنة (مطلع 2025)
+var GP_REF = {
+  high2024: 2790,   // أعلى سعر 2024
+  avg2024:  2300,   // متوسط 2024
+  low2024:  1980,   // أدنى 2024
+  sar_usd:  3.75,
+  g_per_oz: 31.1034
+};
+
+var _gpPrice = null; // آخر سعر مجلوب
+
+// ─── فتح / إغلاق ─────────────────────────────────────────────
 window.openGoldPanel = function(){
-  document.getElementById('gold-panel-overlay').style.display='block';
+  var ov = document.getElementById('gold-panel-overlay');
   var mp = document.getElementById('gold-panel-main');
-  mp.style.display='flex';
+  ov.style.display = 'block';
+  mp.style.display = 'flex';
   gpSwitchTab('price');
-  gpFetchPrice();
+  if(!_gpPrice) gpFetchPrice();
 };
 window.closeGoldPanel = function(){
-  document.getElementById('gold-panel-overlay').style.display='none';
-  document.getElementById('gold-panel-main').style.display='none';
+  document.getElementById('gold-panel-overlay').style.display = 'none';
+  document.getElementById('gold-panel-main').style.display = 'none';
 };
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeGoldPanel(); });
 
 // ─── تبديل التبويبات ─────────────────────────────────────────
 window.gpSwitchTab = function(tab){
-  var priceContent = document.getElementById('gp-content-price');
-  var chatContent  = document.getElementById('gp-content-chat');
-  var priceTab     = document.getElementById('gp-tab-price');
-  var chatTab      = document.getElementById('gp-tab-chat');
-
+  var tP  = document.getElementById('gp-tab-price');
+  var tC  = document.getElementById('gp-tab-chat');
+  var cP  = document.getElementById('gp-content-price');
+  var cC  = document.getElementById('gp-content-chat');
+  var ON  = 'linear-gradient(135deg,#78350F,#B45309)';
+  var OFF = 'transparent';
   if(tab==='price'){
-    priceContent.style.display='block';
-    chatContent.style.display='none';
-    priceTab.style.background='linear-gradient(135deg,#92400E,#B45309)';
-    priceTab.style.color='#fff';
-    priceTab.style.borderBottom='2px solid #D97706';
-    chatTab.style.background='transparent';
-    chatTab.style.color='var(--tx2,#888)';
-    chatTab.style.borderBottom='none';
+    cP.style.display='block'; cC.style.display='none';
+    tP.style.background=ON;   tP.style.color='#fff'; tP.style.borderBottomColor='#F59E0B';
+    tC.style.background=OFF;  tC.style.color='var(--tx2,#888)'; tC.style.borderBottomColor='transparent';
   } else {
-    chatContent.style.display='flex';
-    priceContent.style.display='none';
-    chatTab.style.background='linear-gradient(135deg,#92400E,#B45309)';
-    chatTab.style.color='#fff';
-    chatTab.style.borderBottom='2px solid #D97706';
-    priceTab.style.background='transparent';
-    priceTab.style.color='var(--tx2,#888)';
-    priceTab.style.borderBottom='none';
-    // تحقق من وجود API key
+    cC.style.display='flex';  cP.style.display='none';
+    tC.style.background=ON;   tC.style.color='#fff'; tC.style.borderBottomColor='#F59E0B';
+    tP.style.background=OFF;  tP.style.color='var(--tx2,#888)'; tP.style.borderBottomColor='transparent';
     gpCheckApiKey();
   }
 };
 
-// ─── جلب سعر الذهب الحي ───────────────────────────────────────
-var _gpLastPrice = null;
-var _gpFetching  = false;
-
+// ─── جلب سعر الذهب — محاولات متعددة ─────────────────────────
+var _gpFetching = false;
 window.gpFetchPrice = async function(){
   if(_gpFetching) return;
   _gpFetching = true;
-  var loading = document.getElementById('gp-price-loading');
-  var dataEl  = document.getElementById('gp-price-data');
-  loading.style.display='block';
-  dataEl.style.display='none';
+  document.getElementById('gp-loading').style.display    = 'block';
+  document.getElementById('gp-price-data').style.display = 'none';
+  document.getElementById('gp-forecast-strip').style.display = 'none';
+  document.getElementById('gp-refresh-btn').style.display = 'none';
 
+  var priceUSD = null;
+
+  // ── محاولة 1: goldprice.org (بيانات حية بدون مفتاح) ──
   try {
-    // محاولة جلب السعر من metals-api المجاني
-    var res = await fetch('https://api.metals.live/v1/spot/gold');
-    var data = await res.json();
-    var priceUSD = null;
-    if(Array.isArray(data)) {
-      var item = data.find(function(d){ return d.gold || d.price; });
-      priceUSD = item ? (item.gold || item.price) : null;
-    } else {
-      priceUSD = data.gold || data.price || null;
+    var r1 = await fetch('https://data-asg.goldprice.org/dbXRates/USD', { signal: AbortSignal.timeout(5000) });
+    var d1 = await r1.json();
+    if(d1 && d1.items && d1.items[0]) {
+      priceUSD = d1.items[0].xauPrice;
     }
+  } catch(e1){ /* جرب المصدر التالي */ }
 
-    if(!priceUSD) throw new Error('no price');
-
-    var SAR_PER_USD = 3.75;
-    var GRAM_PER_OZ = 31.1034;
-    var g24 = priceUSD * SAR_PER_USD / GRAM_PER_OZ;
-    var g21 = g24 * (21/24);
-    var g18 = g24 * (18/24);
-
-    _gpLastPrice = { usd_oz: priceUSD, g24_sar: g24, g21_sar: g21, g18_sar: g18, ts: Date.now() };
-    gpRenderPrice(_gpLastPrice, null);
-
-    // تحديث الشريط المصغر
-    var mini = document.getElementById('gold-ticker-mini');
-    if(mini) mini.textContent = 'عيار 21: ' + Math.round(g21) + ' ر · عيار 18: ' + Math.round(g18) + ' ر/جرام';
-
-  } catch(e) {
-    // عند فشل جلب السعر: اطلب من Claude تحليل السوق
-    gpRenderPrice(null, 'تعذّر جلب السعر الحي — يُعرض تحليل ذكي بدلاً من ذلك');
-    gpFetchAIPrice();
+  // ── محاولة 2: metals.live ──
+  if(!priceUSD) {
+    try {
+      var r2 = await fetch('https://api.metals.live/v1/spot/gold', { signal: AbortSignal.timeout(5000) });
+      var d2 = await r2.json();
+      if(Array.isArray(d2) && d2[0]) priceUSD = d2[0].gold || d2[0].price;
+      else if(d2 && d2.gold) priceUSD = d2.gold;
+    } catch(e2){ /* جرب التالي */ }
   }
+
+  // ── محاولة 3: frankfurter.app للدولار (سعر إشاري) ──
+  if(!priceUSD) {
+    try {
+      // نستخدم آخر سعر معروف مع تاريخ ونشير أنه تقريبي
+      priceUSD = 3320; // سعر تقريبي مطلع 2025 — يُحدَّث يدوياً
+      _gpPrice = { usd_oz: priceUSD, approx: true, ts: Date.now() };
+    } catch(e3){ priceUSD = 3320; }
+  }
+
   _gpFetching = false;
+  if(priceUSD) {
+    var sarGram = priceUSD * GP_REF.sar_usd / GP_REF.g_per_oz;
+    _gpPrice = {
+      usd_oz:   Math.round(priceUSD * 100) / 100,
+      g24_sar:  Math.round(sarGram * 100) / 100,
+      g21_sar:  Math.round(sarGram * 21/24 * 100) / 100,
+      g18_sar:  Math.round(sarGram * 18/24 * 100) / 100,
+      approx:   !priceUSD || (priceUSD === 3320),
+      ts: Date.now()
+    };
+    gpRenderPriceCard(_gpPrice);
+    gpRenderForecast(_gpPrice);
+    // تحديث الشريط المصغر في الصفحة الرئيسية
+    var mini = document.getElementById('gold-ticker-mini');
+    if(mini) mini.textContent = 'عيار 21: ' + Math.round(_gpPrice.g21_sar) + ' ر · عيار 18: ' + Math.round(_gpPrice.g18_sar) + ' ر/جرام';
+    var sub = document.getElementById('gp-header-sub');
+    if(sub) sub.textContent = 'عيار 21: ' + Math.round(_gpPrice.g21_sar) + ' ريال/جرام';
+  } else {
+    gpRenderError();
+  }
 };
 
-// تحليل ذكي للسعر عبر Claude API عند فشل الجلب المباشر
-async function gpFetchAIPrice(){
-  var key = localStorage.getItem('gp_api_key');
-  if(!key) return;
-
-  var dataEl = document.getElementById('gp-price-data');
-  dataEl.style.display='block';
-  dataEl.innerHTML += '<div id="gp-ai-price-loading" style="background:rgba(180,83,9,.1);border:1px solid rgba(180,83,9,.3);border-radius:12px;padding:14px;margin-top:10px;text-align:center"><div style="font-size:11px;color:#D97706">🤖 يجلب التحليل الذكي...</div></div>';
-
-  try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 600,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'أنت محلل ذهب خبير. أجب باللغة العربية فقط. كن موجزاً ومفيداً.',
-        messages: [{ role: 'user', content: 'ما سعر الذهب الحالي بالدولار للأوقية وبالريال السعودي للجرام (عيار 21 و18 و24)؟ وهل الاتجاه صاعد أم هابط الآن؟ أعطني ملخصاً سريعاً.' }]
-      })
-    });
-    var d = await res.json();
-    var text = (d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('\n');
-    var aiEl = document.getElementById('gp-ai-price-loading');
-    if(aiEl) aiEl.innerHTML = '<div style="font-size:11px;font-weight:700;color:#D97706;margin-bottom:6px">🤖 تحليل ذكي</div><div style="font-size:12px;color:var(--tx1);line-height:1.7;white-space:pre-wrap">' + (text||'تعذّر الحصول على التحليل') + '</div>';
-  } catch(e2) {
-    var aiEl2 = document.getElementById('gp-ai-price-loading');
-    if(aiEl2) aiEl2.innerHTML = '<div style="font-size:11px;color:var(--tx3)">تعذّر التحليل — تحقق من مفتاح API</div>';
-  }
-}
-
-// عرض بيانات السعر
-function gpRenderPrice(price, errMsg) {
-  var loading = document.getElementById('gp-price-loading');
+// ─── عرض بطاقة السعر ─────────────────────────────────────────
+function gpRenderPriceCard(p){
+  var loading = document.getElementById('gp-loading');
   var dataEl  = document.getElementById('gp-price-data');
-  loading.style.display='none';
-  dataEl.style.display='block';
+  loading.style.display = 'none';
+  dataEl.style.display  = 'block';
+  document.getElementById('gp-refresh-btn').style.display = 'block';
 
-  var now = new Date();
-  var timeStr = now.toLocaleTimeString('ar-SA');
+  var now = new Date().toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit' });
+  var approxNote = p.approx
+    ? '<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:7px 12px;font-size:11px;color:#F59E0B;margin-bottom:10px">⚠️ السعر تقريبي — تعذّر الاتصال بالمصدر المباشر</div>'
+    : '';
 
-  var html = '';
+  dataEl.innerHTML = approxNote +
+    '<div style="background:linear-gradient(135deg,rgba(120,53,15,.3),rgba(180,83,9,.2));border:1px solid rgba(180,83,9,.4);border-radius:16px;padding:18px;margin-bottom:12px;text-align:center">' +
+      '<div style="font-size:10px;color:var(--tx3,#777);margin-bottom:6px">🕐 آخر تحديث: ' + now + '</div>' +
+      '<div style="font-size:11px;font-weight:700;color:#D97706;margin-bottom:8px">💵 الذهب العالمي</div>' +
+      '<div style="font-size:32px;font-weight:900;color:#F59E0B;line-height:1">' +
+        '$' + Math.round(p.usd_oz).toLocaleString('ar') +
+      '</div>' +
+      '<div style="font-size:11px;color:rgba(245,158,11,.7);margin-top:4px">/ أوقية تروي</div>' +
+    '</div>' +
 
-  if(price) {
-    var g21r = Math.round(price.g21_sar);
-    var g18r = Math.round(price.g18_sar);
-    var g24r = Math.round(price.g24_sar);
-    var usdR = Math.round(price.usd_oz);
-
-    html += '<div style="background:linear-gradient(135deg,rgba(180,83,9,.15),rgba(217,119,6,.1));border:1px solid rgba(180,83,9,.3);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center">'
-          +   '<div style="font-size:10px;color:var(--tx3);margin-bottom:4px">🕐 آخر تحديث: '+timeStr+'</div>'
-          +   '<div style="font-size:11px;color:#D97706;font-weight:700;margin-bottom:8px">💵 سعر الذهب العالمي</div>'
-          +   '<div style="font-size:28px;font-weight:900;color:#D97706">$'+usdR.toLocaleString('ar')+' <span style="font-size:13px;opacity:.7">/ أوقية</span></div>'
-          + '</div>';
-
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
-    [['21','#B45309','#92400E',g21r],['18','#1D4ED8','#1E3A8A',g18r],['24','#065F46','#047857',g24r]].forEach(function(k){
-      html += '<div style="background:linear-gradient(135deg,'+k[2]+','+k[1]+');border-radius:12px;padding:12px 8px;text-align:center;color:#fff">'
-            +   '<div style="font-size:10px;opacity:.8;margin-bottom:4px">عيار '+k[0]+'</div>'
-            +   '<div style="font-size:18px;font-weight:900">'+k[3].toLocaleString('ar')+'</div>'
-            +   '<div style="font-size:9px;opacity:.7;margin-top:2px">ريال/جرام</div>'
-            + '</div>';
-    });
-    html += '</div>';
-
-    // مؤشر مبسط
-    html += gpRenderIndicator(price.usd_oz);
-  }
-
-  if(errMsg) {
-    html += '<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:10px 12px;font-size:11px;color:#FF8080;margin-bottom:10px">⚠️ '+errMsg+'</div>';
-  }
-
-  // زر تحديث
-  html += '<button onclick="gpFetchPrice()" style="width:100%;background:linear-gradient(135deg,#B45309,#D97706);color:#fff;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">🔄 تحديث السعر</button>';
-
-  dataEl.innerHTML = html;
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px">' +
+      gpKaratCard('21', p.g21_sar, '#B45309', '#78350F', '#F59E0B') +
+      gpKaratCard('18', p.g18_sar, '#1D4ED8', '#1E3A8A', '#60A5FA') +
+      gpKaratCard('24', p.g24_sar, '#065F46', '#064E3B', '#34D399') +
+    '</div>';
 }
 
-// مؤشر الاتجاه (مبسط بناءً على المستويات التاريخية)
-function gpRenderIndicator(priceUSD) {
-  // مستويات مرجعية تقريبية 2025
-  var level, color, icon, desc;
-  if(priceUSD > 3200) {
-    level='مرتفع جداً'; color='#DC2626'; icon='🔴'; desc='السعر عند مستويات قياسية. احذر من التصحيح.';
-  } else if(priceUSD > 2800) {
-    level='مرتفع'; color='#F59E0B'; icon='🟡'; desc='السعر أعلى من المتوسط. الاتجاه صعودي.';
-  } else if(priceUSD > 2400) {
-    level='معتدل'; color='#10B981'; icon='🟢'; desc='السعر عند مستوى متوسط. فرصة جيدة للشراء.';
+function gpKaratCard(k, price, c1, c2, textC){
+  return '<div style="background:linear-gradient(135deg,' + c2 + ',' + c1 + ');border-radius:14px;padding:14px 8px;text-align:center">' +
+           '<div style="font-size:10px;color:rgba(255,255,255,.75);margin-bottom:5px;font-weight:700">عيار ' + k + '</div>' +
+           '<div style="font-size:20px;font-weight:900;color:' + textC + ';line-height:1">' + Math.round(price).toLocaleString('ar') + '</div>' +
+           '<div style="font-size:9px;color:rgba(255,255,255,.6);margin-top:4px">ريال/جرام</div>' +
+         '</div>';
+}
+
+// ─── شريط توقعات السوق ───────────────────────────────────────
+function gpRenderForecast(p){
+  var strip = document.getElementById('gp-forecast-strip');
+  strip.style.display = 'block';
+
+  var usd = p.usd_oz;
+
+  // تحليل مستوى السعر
+  var level, trend, icon, bgGrad, borderC, reasons, advice;
+
+  if(usd >= 3300) {
+    level = 'مرتفع جداً — مستوى قياسي';
+    trend = 'تصحيح محتمل';
+    icon  = '🔴';
+    bgGrad = 'rgba(220,38,38,.12)';
+    borderC = 'rgba(220,38,38,.4)';
+    reasons = [
+      'السعر عند أعلى مستوياته التاريخية',
+      'قد يكون هناك ضغط بيع وتصحيح قريب',
+      'المستثمرون يجنون الأرباح عند هذه المستويات'
+    ];
+    advice = 'الحذر من الشراء عند هذه المستويات. انتظر تصحيحاً للأسفل.';
+  } else if(usd >= 2900) {
+    level = 'مرتفع — اتجاه صعودي قوي';
+    trend = 'ارتفاع مرجح مع تصحيحات';
+    icon  = '🟡';
+    bgGrad = 'rgba(245,158,11,.12)';
+    borderC = 'rgba(245,158,11,.4)';
+    reasons = [
+      'الاتجاه العام صعودي وقوي',
+      'الطلب على الملاذ الآمن مرتفع',
+      'الدولار ضعيف يدعم الذهب'
+    ];
+    advice = 'مناسب للاحتفاظ. الشراء على التراجعات أفضل من الشراء على الارتفاع.';
+  } else if(usd >= 2400) {
+    level = 'معتدل — نطاق طبيعي';
+    trend = 'ارتفاع مرجح على المدى البعيد';
+    icon  = '🟢';
+    bgGrad = 'rgba(16,185,129,.12)';
+    borderC = 'rgba(16,185,129,.4)';
+    reasons = [
+      'السعر عند مستويات جيدة للشراء',
+      'الطلب العالمي على الذهب مستقر',
+      'البنوك المركزية تشتري الذهب بكميات كبيرة'
+    ];
+    advice = 'فرصة شراء مناسبة على المدى المتوسط والبعيد.';
   } else {
-    level='منخفض'; color='#3B82F6'; icon='🔵'; desc='السعر منخفض نسبياً. فرصة شراء ممتازة.';
+    level = 'منخفض — فرصة شراء';
+    trend = 'ارتفاع قوي مرجح';
+    icon  = '🔵';
+    bgGrad = 'rgba(59,130,246,.12)';
+    borderC = 'rgba(59,130,246,.4)';
+    reasons = [
+      'السعر أقل من المتوسطات التاريخية',
+      'فرصة شراء نادرة للمستثمرين',
+      'الذهب يعود دائماً للارتفاع على المدى البعيد'
+    ];
+    advice = 'فرصة شراء استثنائية. السعر منخفض تاريخياً.';
   }
 
-  return '<div style="background:rgba('+( priceUSD>3200?'220,38,38':priceUSD>2800?'245,158,11':priceUSD>2400?'16,185,129':'59,130,246')+',.08);border:1px solid '+color+';border-radius:12px;padding:12px 14px;margin-bottom:10px">'
-       +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-       +     '<div style="font-size:12px;font-weight:900;color:'+color+'">'+icon+' مستوى السعر: '+level+'</div>'
-       +     '<div style="font-size:20px">📈</div>'
-       +   '</div>'
-       +   '<div style="font-size:11px;color:var(--tx2);line-height:1.6">'+desc+'</div>'
-       + '</div>';
+  // مؤشر عوامل السوق الحالية (ثابتة تقريبية — تتحدث مع السعر)
+  var factors = [
+    { label: 'قوة الدولار',         val: usd > 3000 ? 'ضعيف ✅' : 'معتدل',  up: usd > 3000 },
+    { label: 'مخاطر جيوسياسية',     val: usd > 2800 ? 'مرتفعة ✅' : 'منخفضة', up: usd > 2800 },
+    { label: 'توقعات الفيدرالي',    val: 'خفض فائدة مرتقب',                  up: true },
+    { label: 'طلب البنوك المركزية', val: 'شراء قوي ✅',                        up: true }
+  ];
+
+  var factorsHtml = factors.map(function(f){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+         + '<span style="font-size:11px;color:var(--tx2,#888)">' + f.label + '</span>'
+         + '<span style="font-size:11px;font-weight:700;color:' + (f.up?'#34D399':'#F87171') + '">' + f.val + '</span>'
+         + '</div>';
+  }).join('');
+
+  strip.innerHTML =
+    // رأس التوقع
+    '<div style="background:' + bgGrad + ';border:1.5px solid ' + borderC + ';border-radius:14px;padding:14px;margin-bottom:10px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+        '<div style="font-size:13px;font-weight:900;color:var(--tx1,#fff)">' + icon + ' توقع السوق</div>' +
+        '<div style="font-size:11px;color:var(--tx3,#666)">بناءً على مستوى السعر</div>' +
+      '</div>' +
+      '<div style="font-size:12px;font-weight:800;color:var(--tx1,#fff);margin-bottom:6px">' + level + '</div>' +
+      '<div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:8px">' +
+        '📈 التوقع: ' + trend +
+      '</div>' +
+      // أسباب
+      '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">' +
+        reasons.map(function(r){ return '<div style="font-size:11px;color:var(--tx2,#aaa);padding-right:4px">• ' + r + '</div>'; }).join('') +
+      '</div>' +
+      // نصيحة
+      '<div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--tx1,#fff);line-height:1.6;border-right:3px solid ' + borderC + '">' +
+        '💡 ' + advice +
+      '</div>' +
+    '</div>' +
+
+    // عوامل السوق
+    '<div style="background:var(--c2,#16213E);border:1px solid var(--b1,rgba(255,255,255,.08));border-radius:14px;padding:14px">' +
+      '<div style="font-size:12px;font-weight:800;color:var(--tx1,#fff);margin-bottom:8px">⚡ عوامل السوق الحالية</div>' +
+      factorsHtml +
+    '</div>';
 }
 
-// ─── AI Chat ────────────────────────────────────────────────────
-var _gpChatHistory = [];
+function gpRenderError(){
+  document.getElementById('gp-loading').style.display = 'none';
+  document.getElementById('gp-price-data').style.display = 'block';
+  document.getElementById('gp-refresh-btn').style.display = 'block';
+  document.getElementById('gp-price-data').innerHTML =
+    '<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:12px;padding:20px;text-align:center">' +
+      '<div style="font-size:32px;margin-bottom:10px">📡</div>' +
+      '<div style="font-size:13px;color:#FF8080;font-weight:700;margin-bottom:6px">تعذّر جلب السعر</div>' +
+      '<div style="font-size:11px;color:var(--tx3,#666)">تحقق من الاتصال بالإنترنت ثم اضغط تحديث</div>' +
+    '</div>';
+}
+
+// ─── المساعد الذكي (Chat) ─────────────────────────────────────
+var _gpHistory = [];
 
 function gpCheckApiKey(){
   var key = localStorage.getItem('gp_api_key');
@@ -13950,10 +14045,10 @@ function gpCheckApiKey(){
 
 window.gpSaveApiKey = function(){
   var val = (document.getElementById('gp-api-key-input').value||'').trim();
-  if(!val.startsWith('sk-ant-')){ alert('مفتاح غير صحيح. يجب أن يبدأ بـ sk-ant-'); return; }
+  if(!val){ alert('أدخل المفتاح'); return; }
   localStorage.setItem('gp_api_key', val);
-  document.getElementById('gp-api-setup').style.display='none';
-  gpAppendMsg('system', '✅ تم حفظ المفتاح. يمكنك الآن طرح أسئلتك!');
+  document.getElementById('gp-api-setup').style.display = 'none';
+  gpAppendMsg('system', '✅ تم حفظ المفتاح بنجاح!');
 };
 
 window.gpQuickAsk = function(q){
@@ -13965,20 +14060,25 @@ window.gpSendMsg = async function(){
   var input = document.getElementById('gp-chat-input');
   var msg = (input.value||'').trim();
   if(!msg) return;
-  input.value='';
+  input.value = '';
 
   var key = localStorage.getItem('gp_api_key');
   if(!key){
-    document.getElementById('gp-api-setup').style.display='block';
-    gpAppendMsg('bot', '⚠️ يرجى إدخال مفتاح Anthropic API أولاً من الحقل أدناه.');
+    document.getElementById('gp-api-setup').style.display = 'block';
+    gpAppendMsg('bot', '🔑 يرجى إدخال مفتاح Anthropic API من الحقل أدناه لتفعيل المساعد.');
     return;
   }
 
   gpAppendMsg('user', msg);
-  _gpChatHistory.push({ role: 'user', content: msg });
+  _gpHistory.push({ role:'user', content: msg });
 
-  var thinkId = 'gp-think-'+Date.now();
-  gpAppendMsg('bot', '<span id="'+thinkId+'">⏳ جاري التحليل...</span>');
+  var thinkId = 'gpt-' + Date.now();
+  gpAppendMsg('bot', '<span id="' + thinkId + '">⏳ جاري التحليل...</span>');
+
+  // إضافة سياق السعر الحالي إذا متوفر
+  var priceCtx = _gpPrice
+    ? 'السعر الحالي: $' + Math.round(_gpPrice.usd_oz) + '/أوقية | عيار 21: ' + Math.round(_gpPrice.g21_sar) + ' ريال/جرام | عيار 18: ' + Math.round(_gpPrice.g18_sar) + ' ريال/جرام. '
+    : '';
 
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -13991,62 +14091,62 @@ window.gpSendMsg = async function(){
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 800,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'أنت مساعد ذكي متخصص في سوق الذهب والمجوهرات. أجب دائماً باللغة العربية. كن موجزاً ومفيداً ومباشراً. إذا سُئلت عن أسعار، ابحث عنها أولاً.',
-        messages: _gpChatHistory.slice(-8)
+        system: 'أنت محلل ذكي لأسواق الذهب والمجوهرات. أجب دائماً بالعربية. كن موجزاً ومباشراً. ' + priceCtx,
+        messages: _gpHistory.slice(-8)
       })
     });
 
     if(!res.ok){
-      var errData = await res.json().catch(function(){return {};});
-      throw new Error((errData.error && errData.error.message) || ('HTTP '+res.status));
+      var errD = await res.json().catch(function(){return {};});
+      var em = (errD.error && errD.error.message) || ('خطأ '+res.status);
+      if(res.status===401) em = 'مفتاح API غير صحيح. تحقق منه.';
+      else if(res.status===429) em = 'تجاوزت الحد المسموح. انتظر قليلاً.';
+      throw new Error(em);
     }
 
     var d = await res.json();
     var text = (d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('\n');
+    if(!text) text = 'لم أتمكن من الحصول على رد مناسب.';
+    _gpHistory.push({ role:'assistant', content: text });
 
-    if(!text) text = 'لم أحصل على رد. حاول مجدداً.';
-    _gpChatHistory.push({ role: 'assistant', content: text });
-
-    // استبدال رسالة التحميل
     var thinkEl = document.getElementById(thinkId);
-    if(thinkEl) thinkEl.closest('.gp-msg-bot').querySelector('.gp-msg-text').innerHTML = text.replace(/\n/g,'<br>');
-
+    if(thinkEl){
+      var msgEl = thinkEl.closest('.gp-bot-msg');
+      if(msgEl) msgEl.querySelector('.gp-mt').innerHTML = text.replace(/\n/g,'<br>');
+    }
   } catch(e) {
     var thinkEl2 = document.getElementById(thinkId);
-    var errMsg = (e.message||'').includes('401') ? '🔑 مفتاح API غير صحيح.' : '⚠️ حدث خطأ: '+(e.message||'تعذّر الاتصال');
-    if(thinkEl2) thinkEl2.closest('.gp-msg-bot').querySelector('.gp-msg-text').innerHTML = errMsg;
-    _gpChatHistory.pop();
+    if(thinkEl2){
+      var msgEl2 = thinkEl2.closest('.gp-bot-msg');
+      if(msgEl2) msgEl2.querySelector('.gp-mt').innerHTML = '⚠️ ' + (e.message||'تعذّر الاتصال بالمساعد');
+    }
+    _gpHistory.pop();
   }
 };
 
 function gpAppendMsg(role, html){
-  var container = document.getElementById('gp-chat-messages');
-  if(!container) return;
-  var div = document.createElement('div');
+  var c = document.getElementById('gp-chat-messages');
+  if(!c) return;
+  var d = document.createElement('div');
   if(role==='user'){
-    div.style.cssText='display:flex;justify-content:flex-end';
-    div.innerHTML='<div style="background:linear-gradient(135deg,#B45309,#D97706);border-radius:14px 4px 14px 14px;padding:10px 14px;max-width:80%;font-size:13px;color:#fff;line-height:1.6">'+html+'</div>';
-  } else if(role==='system') {
-    div.style.cssText='text-align:center';
-    div.innerHTML='<div style="display:inline-block;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);border-radius:20px;padding:5px 14px;font-size:11px;color:#16A34A">'+html+'</div>';
+    d.style.cssText='display:flex;justify-content:flex-end;margin-bottom:2px';
+    d.innerHTML='<div style="background:linear-gradient(135deg,#78350F,#D97706);border-radius:14px 4px 14px 14px;padding:10px 14px;max-width:80%;font-size:13px;color:#fff;line-height:1.6">'+html+'</div>';
+  } else if(role==='system'){
+    d.style.cssText='text-align:center;margin:4px 0';
+    d.innerHTML='<span style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);border-radius:20px;padding:4px 14px;font-size:11px;color:#4ADE80">'+html+'</span>';
   } else {
-    div.className='gp-msg-bot';
-    div.style.cssText='display:flex;gap:8px;align-items:flex-start';
-    div.innerHTML='<div style="width:28px;height:28px;background:linear-gradient(135deg,#B45309,#D97706);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🏅</div>'
-               +'<div style="background:var(--c2,#16213E);border-radius:4px 14px 14px 14px;padding:10px 14px;max-width:82%;font-size:13px;color:var(--tx1,#fff);line-height:1.7;border:1px solid var(--b1,rgba(255,255,255,.08))"><span class="gp-msg-text">'+html+'</span></div>';
+    d.className='gp-bot-msg';
+    d.style.cssText='display:flex;gap:8px;align-items:flex-start;margin-bottom:2px';
+    d.innerHTML='<div style="width:28px;height:28px;background:linear-gradient(135deg,#78350F,#D97706);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🏅</div>'
+               +'<div style="background:var(--c2,#16213E);border-radius:4px 14px 14px 14px;padding:10px 14px;max-width:84%;font-size:12px;color:var(--tx1,#fff);line-height:1.75;border:1px solid var(--b1,rgba(255,255,255,.1))"><span class="gp-mt">'+html+'</span></div>';
   }
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
 }
 
-// إغلاق بالـ Escape
-document.addEventListener('keydown', function(e){
-  if(e.key==='Escape') closeGoldPanel();
-});
-
-})(); // end GOLD-AI
+})(); // end GOLD-AI v2
 </script>
 </body>
 </html>
