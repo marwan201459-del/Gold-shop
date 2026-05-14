@@ -1877,22 +1877,59 @@ body{
   <div class="card">
     <div class="ch">💾 النسخ الاحتياطي</div>
     <div class="cb">
-      <!-- تصدير -->
-      <div style="background:var(--ok-bg);border:1.5px solid var(--ok);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-size:14px;font-weight:700;color:var(--ok);margin-bottom:6px">📤 تصدير البيانات</div>
-        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">حفظ نسخة كاملة من بياناتك (معاملات، عملاء، صناديق) كملف JSON</div>
+
+      <!-- ═══ النسخ الاحتياطي التلقائي ═══ -->
+      <div style="background:var(--in-bg);border:1.5px solid var(--in-bd);border-radius:14px;padding:15px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;flex-wrap:wrap;gap:6px">
+          <div style="font-size:14px;font-weight:800;color:var(--in)">🔄 النسخ الاحتياطي التلقائي</div>
+          <div id="ab-status-badge" style="font-size:11px;background:var(--in-bg);border:1px solid var(--in-bd);color:var(--in);border-radius:20px;padding:3px 10px;font-weight:700">⟳ في انتظار أول حفظ</div>
+        </div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;line-height:1.7">
+          ✅ يُحفظ تلقائياً عند كل عملية حفظ وكل 30 دقيقة<br>
+          ✅ يحتفظ بآخر <b>10 نسخ</b> دائماً حتى لو نسيت<br>
+          ✅ مخزّن محلياً على الجهاز — يشتغل بدون إنترنت
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" style="background:var(--in);color:white;flex:1"
+            onclick="_doAutoBackup('يدوي');renderAutoBackups();toast('✅ تم حفظ نسخة احتياطية الآن')">
+            📸 احفظ نسخة الآن
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══ قائمة النسخ التلقائية ═══ -->
+      <div style="background:var(--c2);border-radius:14px;padding:14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:800">📂 النسخ المحفوظة محلياً</div>
+          <button onclick="clearAutoBackups()"
+            style="background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);border-radius:8px;
+            padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
+            🗑️ حذف الكل
+          </button>
+        </div>
+        <div id="ab-list">
+          <div class="empty"><div class="ei">📂</div><p>لا توجد نسخ بعد — ستُحفظ أول نسخة تلقائياً قريباً</p></div>
+        </div>
+      </div>
+
+      <!-- ═══ تصدير يدوي ═══ -->
+      <div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:14px;padding:14px;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:800;color:var(--ok);margin-bottom:6px">📤 تصدير يدوي</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">تنزيل ملف JSON كامل — احفظه في البريد أو جوجل درايف أو أي مكان</div>
         <button class="btn" style="background:var(--ok);color:white" onclick="exportBackup()">⬇️ تنزيل نسخة احتياطية</button>
       </div>
-      <!-- استيراد -->
-      <div style="background:var(--io-bg);border:1.5px solid var(--io);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-size:14px;font-weight:700;color:var(--io);margin-bottom:6px">📥 استيراد البيانات</div>
+
+      <!-- ═══ استيراد ═══ -->
+      <div style="background:var(--io-bg);border:1.5px solid var(--io-bd);border-radius:14px;padding:14px;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:800;color:var(--io);margin-bottom:6px">📥 استيراد من ملف</div>
         <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">⚠️ تحذير: سيحل الملف محل البيانات الحالية كلها</div>
         <input type="file" id="backup-file" accept=".json" onchange="importBackup(this)" style="display:none">
         <button class="btn" style="background:var(--io);color:white" onclick="document.getElementById('backup-file').click()">⬆️ استيراد من ملف</button>
       </div>
-      <!-- معلومات -->
-      <div style="background:var(--c2);border-radius:12px;padding:14px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px">📊 معلومات البيانات الحالية</div>
+
+      <!-- ═══ معلومات ═══ -->
+      <div style="background:var(--c2);border-radius:14px;padding:14px">
+        <div style="font-size:13px;font-weight:800;margin-bottom:8px">📊 معلومات البيانات الحالية</div>
         <div id="backup-info" style="font-size:12px;color:var(--tx2);line-height:2"></div>
       </div>
     </div>
@@ -6861,6 +6898,157 @@ function renderBackup(){
     <div>📸 عدد التسويات: <b>${(S.snapshots||[]).length}</b></div>
     <div>📅 آخر معاملة: <b>${lastDate}</b></div>
   `;
+  renderAutoBackups();
+}
+
+// ══════════════════════════════════════════════════════
+// النسخ الاحتياطي التلقائي — Auto Backup System
+// ══════════════════════════════════════════════════════
+const _AB_KEY = 'mnzoom-auto-backups';
+const _AB_MAX = 10;
+
+function _abGetList(){
+  try { return JSON.parse(localStorage.getItem(_AB_KEY)||'[]'); } catch(e){ return []; }
+}
+function _abSaveList(list){
+  try { localStorage.setItem(_AB_KEY, JSON.stringify(list)); } catch(e){ console.error('AB:', e); }
+}
+
+window._doAutoBackup = function(source){
+  source = source || 'تلقائي';
+  try {
+    if(!S || !S.transactions) return;
+    const snapshot = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      source: source,
+      txCount: (S.transactions||[]).length,
+      clientCount: (S.clients||[]).length,
+      data: {
+        version: 3,
+        exportDate: new Date().toISOString(),
+        appName: 'منظوم',
+        transactions:   S.transactions,
+        clients:        S.clients,
+        safes:          S.safes,
+        customSafes:    S.customSafes   || [],
+        snapshots:      S.snapshots     || [],
+        users:          S.users         || [],
+        openingBalance: S.openingBalance|| {safes:{},clients:{}},
+        safesBase:      S.safesBase     || {},
+        pendingItems:   S.pendingItems  || [],
+        activityLog:   (S.activityLog   || []).slice(0, 300)
+      }
+    };
+    let list = _abGetList();
+    list.unshift(snapshot);
+    if(list.length > _AB_MAX) list = list.slice(0, _AB_MAX);
+    _abSaveList(list);
+
+    // تحديث شارة الحالة
+    const badge = document.getElementById('ab-status-badge');
+    if(badge){
+      const t = new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+      badge.textContent = '✅ آخر نسخة ' + t;
+      badge.style.color = 'var(--ok)';
+      badge.style.borderColor = 'var(--ok-bd)';
+      badge.style.background = 'var(--ok-bg)';
+    }
+
+    if(typeof renderAutoBackups === 'function') renderAutoBackups();
+  } catch(e){ console.error('AutoBackup error:', e); }
+};
+
+window._abLastBackupId = 0;
+
+function renderAutoBackups(){
+  const el = document.getElementById('ab-list');
+  if(!el) return;
+  const list = _abGetList();
+  if(!list.length){
+    el.innerHTML = '<div class="empty" style="padding:16px"><div class="ei" style="font-size:32px">📂</div><p>لا توجد نسخ بعد — ستُحفظ أول نسخة تلقائياً</p></div>';
+    return;
+  }
+  el.innerHTML = list.map((b, i) => {
+    const d = new Date(b.date);
+    const dateStr = d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const timeStr = d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+    const isLatest = i === 0;
+    return `
+      <div style="background:var(--c1);border-radius:10px;border:1.5px solid ${isLatest?'var(--ok-bd)':'var(--b2)'};
+        padding:11px 12px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:800;color:var(--tx1)">
+              ${isLatest?'⭐ ':''} ${dateStr} — ${timeStr}
+            </div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:3px">
+              ${b.source} &nbsp;·&nbsp; ${b.txCount||0} معاملة &nbsp;·&nbsp; ${b.clientCount||0} عميل
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="downloadAutoBackup(${i})"
+              style="background:var(--in-bg);border:1px solid var(--in-bd);color:var(--in);
+              border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
+              ⬇️ تنزيل
+            </button>
+            <button onclick="restoreAutoBackup(${i})"
+              style="background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok);
+              border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
+              ♻️ استعادة
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function downloadAutoBackup(i){
+  const list = _abGetList();
+  const b = list[i];
+  if(!b) return;
+  const blob = new Blob([JSON.stringify(b.data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gold-backup-${new Date(b.date).toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('✅ تم تنزيل النسخة الاحتياطية');
+}
+
+function restoreAutoBackup(i){
+  const list = _abGetList();
+  const b = list[i];
+  if(!b) return;
+  const d = new Date(b.date);
+  const label = d.toLocaleDateString('ar-SA',{day:'2-digit',month:'long',year:'numeric'}) +
+                ' — ' + d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+  if(!confirm('⚠️ هذا سيحل محل بياناتك الحالية بنسخة:\n' + label + '\n\nهل أنت متأكد؟')) return;
+  try {
+    const data = b.data;
+    if(!data.transactions) throw new Error('بيانات غير صالحة');
+    S.transactions  = data.transactions || [];
+    S.clients       = data.clients      || [];
+    S.customSafes   = data.customSafes  || [];
+    S.snapshots     = data.snapshots    || [];
+    if(data.users && data.users.length) S.users = data.users;
+    if(data.openingBalance) S.openingBalance = data.openingBalance;
+    if(data.safesBase)      S.safesBase      = data.safesBase;
+    if(data.pendingItems)   S.pendingItems   = data.pendingItems;
+    if(data.activityLog)    S.activityLog    = data.activityLog;
+    sv(); renderAll();
+    toast('✅ تم استعادة النسخة — ' + S.transactions.length + ' معاملة');
+  } catch(err){
+    toast('❌ خطأ في الاستعادة: ' + err.message);
+  }
+}
+
+function clearAutoBackups(){
+  if(!confirm('هل تريد حذف كل النسخ الاحتياطية التلقائية من هذا الجهاز؟')) return;
+  localStorage.removeItem(_AB_KEY);
+  renderAutoBackups();
+  toast('🗑️ تم حذف النسخ الاحتياطية المحلية');
 }
 
 function setProfitRange(r){
@@ -14394,6 +14582,61 @@ function gpAppendMsg(role, html){
 }
 
 })(); // end GOLD-AI v2
+</script>
+<!-- ══ تهيئة النسخ الاحتياطي التلقائي ══ -->
+<script>
+(function(){
+  // ── الانتظار حتى يجهز sv_save ثم الربط به ──
+  function hookSvSave(){
+    const orig = window.sv_save;
+    if(typeof orig !== 'function') return false;
+    let _abLastTs = 0;
+    window.sv_save = function(){
+      orig.apply(this, arguments);
+      // نسخة احتياطية عند كل حفظ (مع debounce دقيقتين)
+      if(Date.now() - _abLastTs > 2 * 60 * 1000){
+        _abLastTs = Date.now();
+        setTimeout(function(){
+          if(typeof window._doAutoBackup === 'function') window._doAutoBackup('عند الحفظ');
+        }, 1500); // تأخير بسيط عشان البيانات تكون محدّثة
+      }
+    };
+    return true;
+  }
+
+  // محاولة الربط الفوري أو بعد جاهزية الصفحة
+  if(!hookSvSave()){
+    document.addEventListener('DOMContentLoaded', function(){
+      hookSvSave();
+    });
+  }
+
+  // ── نسخة احتياطية تلقائية كل 30 دقيقة ──
+  document.addEventListener('DOMContentLoaded', function(){
+    // نسخة أولى بعد دقيقة من تحميل الصفحة
+    setTimeout(function(){
+      if(typeof window._doAutoBackup === 'function' && window.S && (window.S.transactions||[]).length > 0){
+        window._doAutoBackup('تلقائي — بعد التحميل');
+      }
+    }, 60 * 1000);
+
+    // ثم كل 30 دقيقة
+    setInterval(function(){
+      if(typeof window._doAutoBackup === 'function' && window.S && (window.S.transactions||[]).length > 0){
+        window._doAutoBackup('تلقائي — دوري');
+      }
+    }, 30 * 60 * 1000);
+  });
+
+  // ── نسخة احتياطية عند إخفاء الصفحة (المستخدم يغلق التطبيق) ──
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden'){
+      if(typeof window._doAutoBackup === 'function' && window.S && (window.S.transactions||[]).length > 0){
+        window._doAutoBackup('تلقائي — عند الإغلاق');
+      }
+    }
+  });
+})();
 </script>
 <!-- ══ سكريبت شريط أسعار الذهب اللحظية ══ -->
 <script>
