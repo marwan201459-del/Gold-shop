@@ -3336,19 +3336,19 @@ function openStmtS(){
       cashTxt = '<span style="color:var(--ok);font-size:10px">✅ مسوى</span>';
     } else if(isSupp){
       cashTxt = bal.cashOwed < 0
-        ? `<span style="color:#DC2626;font-size:11px;font-weight:800">له: ${fmt(absC)} ر</span>`
-        : `<span style="color:#D97706;font-size:11px;font-weight:800">له↑: ${fmt(absC)} ر</span>`;
+        ? `<span style="color:#DC2626;font-size:11px;font-weight:800">له علينا: ${fmt(absC)} ر</span>`
+        : `<span style="color:#16A34A;font-size:11px;font-weight:800">له↑: ${fmt(absC)} ر</span>`;
     } else {
       cashTxt = bal.cashOwed > 0
         ? `<span style="color:#DC2626;font-size:11px;font-weight:800">عليه: ${fmt(absC)} ر</span>`
-        : `<span style="color:#D97706;font-size:11px;font-weight:800">له: ${fmt(absC)} ر</span>`;
+        : `<span style="color:#16A34A;font-size:11px;font-weight:800">له: ${fmt(absC)} ر</span>`;
     }
 
     // رصيد الذهب
     let goldTxt = '';
     if(absG >= 0.001){
       const gDir = isSupp ? (bal.goldOwedAs24>0 ? 'عليه ذهب' : 'له ذهب') : (bal.goldOwedAs24>0 ? 'عليه ذهب' : 'له ذهب');
-      const gClr = bal.goldOwedAs24 > 0 ? '#DC2626' : '#D97706';
+      const gClr = bal.goldOwedAs24 > 0 ? '#DC2626' : '#16A34A';
       goldTxt = `<span style="color:${gClr};font-size:10px;font-weight:700"> · 🥇${gDir}: ${fmtG(absG)}ج</span>`;
     }
 
@@ -8367,7 +8367,10 @@ async function openUsersPanel(){
     const pres = presData && presData[u.username] ? presData[u.username] : {};
     const _safeLabel = (u.label||u.username).replace(/[\x27\x22]/g,'');
     const isOnline = !!pres.online;
-    const lastSeenStr = (typeof window._fmtLastSeen==='function') ? window._fmtLastSeen(pres.lastSeen) : '';
+    // آخر ظهور: نحاول RTDB أولاً، ثم lastLogin من Firestore كـ backup
+    const _lastSeenTs = pres.lastSeen || (window._lastLoginCache && window._lastLoginCache[u.username]) || null;
+    const lastSeenStr = (typeof window._fmtLastSeen==='function') ? window._fmtLastSeen(_lastSeenTs) : '';
+    const _lastSeenLabel = (pres.lastSeen) ? 'آخر ظهور' : 'آخر دخول';
     const presenceBadge = isOnline
       ? `<span style="background:#14532D;color:#86EFAC;font-size:9px;font-weight:800;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px"><span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block;animation:_ublink 1.2s infinite"></span>متصل الآن</span>`
       : `<span style="background:rgba(100,100,100,.18);color:var(--tx3);font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px">غير متصل</span>`;
@@ -8376,7 +8379,7 @@ async function openUsersPanel(){
         <div style="font-weight:800;font-size:13px;color:${isTenant?'var(--g1)':isDist?'var(--in)':'var(--tx1)'}">${isTenant?'🏢 ':isDist?'🚚 ':''}${u.label||u.username}</div>
         <div style="font-size:11px;color:var(--tx2)">@${u.username} · ${_ROLE_LBL[u.role]||u.role}</div>
         ${isIsolated&&u.subEnd?`<div style="font-size:9px;color:var(--tx2);margin-top:2px">📅 ينتهي: ${new Date(u.subEnd).toLocaleDateString('ar-SA')}</div>`:''}
-        ${lastSeenStr&&!isOnline?`<div style="font-size:9px;color:var(--tx3);margin-top:1px">🕐 آخر ظهور: ${lastSeenStr}</div>`:''}
+        ${!isOnline&&lastSeenStr&&lastSeenStr!=='غير معروف'?`<div style="font-size:9px;color:var(--tx3);margin-top:1px">🕐 ${_lastSeenLabel}: ${lastSeenStr}</div>`:(!isOnline?`<div style="font-size:9px;color:var(--tx3);opacity:.6;margin-top:1px">🕐 لا يوجد سجل دخول</div>`:'')}
       </div>
       ${presenceBadge}
       ${subBadge}
@@ -8401,6 +8404,8 @@ async function openUsersPanel(){
   let _presenceData = {};
   function _rebuildCards(pd) {
     _presenceData = pd||{};
+    window._lastPresData = _presenceData; // حفظ عالمي للـ Firestore callback
+    window._rebuildCards = _rebuildCards; // تصدير للـ wrapper
     const tEl = document.getElementById('_tenants_list');
     const dEl = document.getElementById('_dists_list');
     const uEl = document.getElementById('_users_list');
@@ -11220,10 +11225,10 @@ function renderStmt(){
     else if(isSupp){
       // للمورد: runCash سالب = علينا له | موجب = دفعنا أكثر
       const suppOwes = runCash < 0; // علينا له = نحن مدينون له
-      runLabel=`<span style="color:${suppOwes?'#DC2626':'#D97706'};font-weight:900">${suppOwes?'علينا':'له زيادة'} ${fmt(absRun)}</span>`;
+      runLabel=`<span style="color:${suppOwes?'#DC2626':'#16A34A'};font-weight:900">${suppOwes?'علينا':'له زيادة'} ${fmt(absRun)}</span>`;
     } else {
       const rDebit = runCash>0; // عليه = هو مدين لنا
-      runLabel=`<span style="color:${rDebit?'#DC2626':'#D97706'};font-weight:900">${rDebit?'عليه':'له'} ${fmt(absRun)}</span>`;
+      runLabel=`<span style="color:${rDebit?'#DC2626':'#16A34A'};font-weight:900">${rDebit?'عليه':'له'} ${fmt(absRun)}</span>`;
     }
     const goldWt=(t.items||[]).filter(i=>i.karat!=='gems').reduce((a,i)=>a+(i.weight||0),0);
     const vatBadge=(t.vatAmt>0||t.hasVat)?'<span style="background:#F59E0B;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">ضريبة</span>':'';
@@ -11279,7 +11284,7 @@ function renderStmt(){
   } else if((!isSupp&&cash>0)||(isSupp&&cash<0)){
     sColor='#DC2626'; sBg='#FEE2E2'; sLabel=isSupp?'باقي له عندنا':'عليه مبلغ'; sIcon='🔴';
   } else {
-    sColor='#D97706'; sBg='#FEF9C3'; sLabel=isSupp?'له زيادة عندنا':'له رصيد عندنا'; sIcon='🟡';
+    sColor='#16A34A'; sBg='#DCFCE7'; sLabel=isSupp?'له زيادة عندنا':'له رصيد عندنا'; sIcon='🟢';
   }
 
   // ── حسابات الأجور الصحيحة (صافي بعد المرتجعات) ──
@@ -13002,18 +13007,49 @@ function _dlgStartActivityPing(username) {
   const _origWatch = window._watchPresence;
   if (typeof _origWatch !== 'function') return;
 
+  // كاش عالمي لـ lastLogin من Firestore
+  window._lastLoginCache = window._lastLoginCache || {};
+
+  // دالة تجلب lastLogin من Firestore لكل المستخدمين دفعة واحدة
+  async function _fetchFirestoreLastLogins(usernames, onDone) {
+    try {
+      if (typeof getDoc === 'undefined' || typeof doc === 'undefined' || typeof db === 'undefined') return;
+      for (const username of (usernames || [])) {
+        try {
+          const snap = await getDoc(doc(db, 'presence', username.toLowerCase()));
+          if (snap && snap.exists && snap.exists()) {
+            const data = snap.data() || {};
+            const ts = _dlgSafeParseTs(data.lastLogin) || _dlgSafeParseTs(data.lastSeen) || null;
+            if (ts) window._lastLoginCache[username] = ts;
+          }
+        } catch(e2) {}
+      }
+    } catch(e) {}
+    if (typeof onDone === 'function') onDone();
+  }
+
   window._watchPresence = function(usernames, callback) {
+    // جلب Firestore lastLogin أولاً (مرة واحدة) ثم ابدأ الـ RTDB listener
+    _fetchFirestoreLastLogins(usernames, null); // async في الخلفية
     _origWatch(usernames, function(rawResult) {
       // أصلح كل timestamp في النتائج
       const fixed = {};
       Object.keys(rawResult || {}).forEach(u => {
         const d = rawResult[u] || {};
+        const rtdbTs = _dlgSafeParseTs(d.lastSeen);
         fixed[u] = {
           online:   !!d.online,
-          lastSeen: _dlgSafeParseTs(d.lastSeen) || null
+          lastSeen: rtdbTs || window._lastLoginCache[u] || null
         };
       });
       callback(fixed);
+    });
+    // بعد جلب Firestore، أعد رسم الكروت لو كان النتيجة لا تزال فارغة
+    _fetchFirestoreLastLogins(usernames, function() {
+      // أعد استدعاء callback بنفس البيانات لتحديث الكروت بـ lastLogin الجديد
+      if (typeof window._rebuildCards === 'function') {
+        try { window._rebuildCards(window._lastPresData || {}); } catch(e) {}
+      }
     });
   };
 })();
