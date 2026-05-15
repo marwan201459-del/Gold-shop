@@ -1973,6 +1973,23 @@ body{
     </div>
   </div>
 
+  <!-- ── رصيد افتتاحي الموزعين (مخصص وواضح) ── -->
+  <div class="card" style="border:2px solid var(--ok-bd);margin-bottom:12px">
+    <div class="ch" style="background:linear-gradient(135deg,var(--ok-bg),rgba(34,199,122,.03))">
+      <span>🚚 رصيد الموزعين الافتتاحي</span>
+      <button class="btn-sm" onclick="_obLoadDistributors()" style="font-size:11px;background:var(--ok);color:#fff;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit">⬇️ تحميل الموزعين</button>
+    </div>
+    <div class="cb">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;padding:8px 10px;background:var(--ok-bg);border-radius:var(--rc);border:1px solid var(--ok-bd)">
+        🚚 <b>خطوة واحدة:</b> اضغط "تحميل الموزعين" لعرض قائمة موزعيك، ثم أدخل الرصيد لكل موزع واضغط حفظ.
+      </div>
+      <div id="ob-dist-list">
+        <div class="empty"><div class="ei">🚚</div><p>اضغط "تحميل الموزعين" لعرضهم هنا</p></div>
+      </div>
+      <button class="btn btn-gold" id="ob-dist-save-btn" style="display:none;margin-top:10px" onclick="_obSaveDistributors()">💾 حفظ أرصدة الموزعين</button>
+    </div>
+  </div>
+
   <!-- الجهات -->
   <div class="card">
     <div class="ch">👥 حسابات العملاء والموردين</div>
@@ -1981,9 +1998,9 @@ body{
         💡 <b>للعميل</b>: اختر "عليه لنا" إذا عنده دين · اختر "له عندنا" إذا دفع زيادة &nbsp;·&nbsp; <b>للمورد</b>: اختر "له علينا" إذا عندنا دين له
       </div>
       <div class="fr" style="margin-bottom:6px">
-        <label>🔍 ابحث عن جهة وأضفها</label>
+        <label>🔍 ابحث عن جهة وأضفها (عميل / مورد / موزع)</label>
         <div class="sw"><span class="si">🔍</span>
-          <input type="text" id="ob-cli-search" placeholder="اسم العميل أو المورد..."
+          <input type="text" id="ob-cli-search" placeholder="اسم العميل أو المورد أو الموزع..."
             oninput="renderObCliSearch()" onfocus="renderObCliSearch()" style="padding-left:34px" autocomplete="off">
           <div class="sdrop" id="ob-cli-drop"></div>
         </div>
@@ -4793,9 +4810,23 @@ function printStmt(){
         }
         else if(t.type==='purchase-return'||t.type==='supplier-return')
           dCash=(t.ajTotal||0);  // أجور المرتجع فقط
+        // إصلاح: إضافة أنواع ناقصة في المورد — مطابقة renderStmt
+        else if(t.type==='sell'||t.type==='sell-debt')
+          dCash=(t.ajTotal||0)+(t.vatAmt||0);  // بعنا للمورد — عليه لنا
+        else if(t.type==='payment'){
+          const _gcv=(t.goldItems||[]).reduce((a,gi)=>a+Math.round((gi.weight||0)*(gi.price||0)*100)/100,0)
+                   +((t.goldPrice||0)>0?Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100:0);
+          dCash=-((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcv);
+        }
+        else if(t.type==='cash-receipt') dCash=-(t.amount||0);
+        else if(t.type==='sales-return'||t.type==='return')
+          dCash=-((t.ajTotal||0)+(t.vatAmt||0));
+        else if(t.type==='charge')       dCash=-(t.amount||0);
+        else if(t.type==='discount-adj'&&t.isSettle) dCash=(t.amount||0);
         else if(t.type==='transfer'){
-          if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
-          if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
+          // إصلاح: مطابقة renderStmt للمورد
+          if(t.fromSafe===('__cli__'+v)) dCash=(t.amount||0);
+          if(t.toSafe===('__cli__'+v))   dCash=(t.amount||0);
         }
       } else {
         // أجور فقط هي الدين النقدي — الذهب في dGold24
@@ -4812,9 +4843,13 @@ function printStmt(){
           dCash=-((t.ajTotal||0)+(t.vatAmt||0));  // أجور المرتجع فقط
         else if(t.type==='charge')
           dCash=(t.amount||0);
+        else if(t.type==='discount-adj'&&t.isSettle)
+          dCash=-(t.amount||0);  // إصلاح: تصفير يخفض الرصيد
         else if(t.type==='transfer'){
-          if(t.fromSafe===('__cli__'+v)) dCash=t.amount||0;
-          if(t.toSafe===('__cli__'+v))   dCash=-(t.amount||0);
+          // إصلاح: العميل يدفع لنا (fromSafe) = ينخصم دينه (سالب)
+          // نحن ندفع له (toSafe) = يزيد دينه (موجب)
+          if(t.fromSafe===('__cli__'+v)) dCash=-(t.amount||0);
+          if(t.toSafe===('__cli__'+v))   dCash=(t.amount||0);
         }
       }
 
@@ -11455,19 +11490,19 @@ function renderStmt(){
   html += '</div>';
 
   // ── صندوق الملخص السريع — الباقي من الأجور + الذهب ──
-  // نحسب الباقي من الأجور هنا لاستخدامه في البطاقة العلوية
-  // للمورد: نستخدم cash مباشرة (bal.cashOwed) لأن حسابات _ajRemaining مصممة للعملاء فقط
-  const _ajRemaining  = isSupp ? cash : Math.round((totalAjWithVat - totalPaidAmt) * 100) / 100;
+  // إصلاح: نستخدم cash (bal.cashOwed) مباشرة لأنه يشمل جميع التعديلات
+  // (مبالغ إضافية charge + تصفير discount-adj + كل الحركات)
+  const _ajRemaining  = cash;  // دائماً من getClientBalance لضمان المطابقة
   const _ajRemAbs     = Math.abs(_ajRemaining);
   const _ajClr        = _ajRemAbs < 0.01 ? '#16A34A'
                       : isSupp ? (cash < 0 ? '#DC2626' : '#D97706')
-                      : (_ajRemaining > 0 ? '#DC2626' : '#D97706');
+                      : (cash > 0 ? '#DC2626' : '#D97706');
   const _ajBg         = _ajRemAbs < 0.01 ? '#DCFCE7'
                       : isSupp ? (cash < 0 ? '#FEE2E2' : '#FEF9C3')
-                      : (_ajRemaining > 0 ? '#FEE2E2' : '#FEF9C3');
+                      : (cash > 0 ? '#FEE2E2' : '#FEF9C3');
   const _ajDir        = _ajRemAbs < 0.01 ? '✅ مسدد'
                       : isSupp ? (cash < 0 ? 'باقي له علينا 🔴' : 'له فائض عندنا 🟡')
-                      : (_ajRemaining > 0 ? 'باقي عليه (أجور)' : 'له فائض');
+                      : (cash > 0 ? 'باقي عليه' : 'له فائض');
   const _goldAbs      = Math.abs(gold24);
   const _hasGold      = _goldAbs > 0.001;
   const _goldClr      = gold24 > 0 ? '#DC2626' : '#16A34A';
@@ -11928,6 +11963,120 @@ function saveOpeningClients(){
   toast('✅ تم حفظ الرصيد الافتتاحي للجهات');
   logActivity('opening-balance','تعديل الرصيد الافتتاحي للجهات');
 }
+
+// ══════════════════════════════════════════════════════════════
+// رصيد الموزعين الافتتاحي — قسم مخصص وسهل
+// ══════════════════════════════════════════════════════════════
+function _obLoadDistributors(){
+  const el=document.getElementById('ob-dist-list');
+  const saveBtn=document.getElementById('ob-dist-save-btn');
+  if(!el) return;
+  const ob=getOB();
+  const dists=(S.clients||[]).filter(c=>c.type==='موزع');
+  if(!dists.length){
+    el.innerHTML='<div class="empty"><div class="ei">🚚</div><p>لا يوجد موزعون مسجلون في النظام — أضف موزعين أولاً من صفحة العملاء</p></div>';
+    if(saveBtn) saveBtn.style.display='none';
+    return;
+  }
+  // تسجيل كل الموزعين في ob.clients إن لم يكونوا موجودين
+  dists.forEach(d=>{
+    if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع'};
+  });
+  let html='<div style="display:flex;flex-direction:column;gap:10px">';
+  dists.forEach(d=>{
+    const data=ob.clients[d.name]||{cash:0,gold24:0};
+    const cashAbs=Math.abs(data.cash||0);
+    const cashDir=data.cashDir||'عليه_لنا';
+    const hasCash=cashAbs>0.01;
+    html+=`<div style="background:var(--c2);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:20px">🚚</span>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--tx1)">${d.name}</div>
+          <div style="font-size:10px;color:var(--ok);font-weight:700">موزع${d.phone?` · ${d.phone}`:''}</div>
+        </div>
+        ${hasCash?`<span style="margin-right:auto;background:var(--ok);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700">✓ لديه رصيد</span>`:''}
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">💵 الرصيد النقدي (ريال)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+        <button type="button" onclick="_obDistSetDir('${d.name.replace(/'/g,"\\'")}','عليه_لنا')"
+          id="ob-dist-owe-${d.name.replace(/\s/g,'_')}"
+          style="padding:8px;border-radius:8px;border:2px solid ${cashDir==='عليه_لنا'?'var(--no)':'var(--b2)'};
+            background:${cashDir==='عليه_لنا'?'var(--no-bg)':'var(--c1)'};
+            color:${cashDir==='عليه_لنا'?'var(--no)':'var(--tx2)'};
+            font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+          عليه لنا 🔴
+        </button>
+        <button type="button" onclick="_obDistSetDir('${d.name.replace(/'/g,"\\'")}','له_عندنا')"
+          id="ob-dist-have-${d.name.replace(/\s/g,'_')}"
+          style="padding:8px;border-radius:8px;border:2px solid ${cashDir==='له_عندنا'?'var(--ok)':'var(--b2)'};
+            background:${cashDir==='له_عندنا'?'var(--ok-bg)':'var(--c1)'};
+            color:${cashDir==='له_عندنا'?'var(--ok)':'var(--tx2)'};
+            font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+          له عندنا 🟢
+        </button>
+      </div>
+      <input type="number" id="ob-dist-cash-${d.name}" value="${cashAbs||''}" placeholder="0" inputmode="decimal"
+        style="width:100%;padding:10px;border-radius:var(--rc);border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:16px;font-weight:700;color:var(--ok)">
+      <div style="margin-top:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">📝 ملاحظة (اختياري)</div>
+        <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}" placeholder="رقم وصل أو ملاحظة..."
+          style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+  if(saveBtn) saveBtn.style.display='block';
+}
+
+function _obDistSetDir(name, dir){
+  const ob=getOB();
+  if(!ob.clients[name]) ob.clients[name]={cash:0,gold24:0,type:'موزع'};
+  ob.clients[name].cashDir=dir;
+  S.openingBalance=ob;
+  // تحديث مظهر الأزرار
+  const safeName=name.replace(/\s/g,'_');
+  const oweBtn=document.getElementById('ob-dist-owe-'+safeName);
+  const haveBtn=document.getElementById('ob-dist-have-'+safeName);
+  if(oweBtn){
+    oweBtn.style.borderColor=dir==='عليه_لنا'?'var(--no)':'var(--b2)';
+    oweBtn.style.background=dir==='عليه_لنا'?'var(--no-bg)':'var(--c1)';
+    oweBtn.style.color=dir==='عليه_لنا'?'var(--no)':'var(--tx2)';
+  }
+  if(haveBtn){
+    haveBtn.style.borderColor=dir==='له_عندنا'?'var(--ok)':'var(--b2)';
+    haveBtn.style.background=dir==='له_عندنا'?'var(--ok-bg)':'var(--c1)';
+    haveBtn.style.color=dir==='له_عندنا'?'var(--ok)':'var(--tx2)';
+  }
+}
+
+function _obSaveDistributors(){
+  const ob=getOB();
+  const dists=(S.clients||[]).filter(c=>c.type==='موزع');
+  let savedCount=0;
+  dists.forEach(d=>{
+    const cashRaw=parseFloat(document.getElementById('ob-dist-cash-'+d.name)?.value)||0;
+    const noteV=document.getElementById('ob-dist-note-'+d.name)?.value||'';
+    const cashDir=(ob.clients[d.name]?.cashDir)||'عليه_لنا';
+    let cashSigned=cashRaw;
+    if(cashDir==='له_عندنا') cashSigned=-cashRaw;
+    if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع'};
+    ob.clients[d.name].cash=cashSigned;
+    ob.clients[d.name].cashDir=cashDir;
+    ob.clients[d.name].note=noteV;
+    ob.clients[d.name].type='موزع';
+    if(cashRaw>0) savedCount++;
+  });
+  S.openingBalance=ob;
+  sv(); renderObSummary();
+  toast('✅ تم حفظ رصيد '+savedCount+' موزع');
+  logActivity('opening-balance','تعديل الرصيد الافتتاحي للموزعين');
+  // إعادة تحميل القائمة لتحديث حالة "لديه رصيد"
+  _obLoadDistributors();
+}
+
+
 
 function renderObSummary(){
   const el=document.getElementById('ob-summary');
