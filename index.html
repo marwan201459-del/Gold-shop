@@ -8471,7 +8471,7 @@ async function openUsersPanel(){
     const _safeLabel = (u.label||u.username).replace(/[\x27\x22]/g,'');
     const isOnline = !!pres.online;
     // آخر ظهور: نحاول RTDB أولاً، ثم lastLogin من Firestore كـ backup
-    const _lastSeenTs = pres.lastSeen || (window._lastLoginCache && window._lastLoginCache[u.username]) || null;
+    const _lastSeenTs = pres.lastSeen || (window._lastLoginCache && (window._lastLoginCache[u.username] || window._lastLoginCache[u.username.toLowerCase()])) || null;
     const lastSeenStr = (typeof window._fmtLastSeen==='function') ? window._fmtLastSeen(_lastSeenTs) : '';
     const _lastSeenLabel = (pres.lastSeen) ? 'آخر ظهور' : 'آخر دخول';
     const presenceBadge = isOnline
@@ -12418,14 +12418,14 @@ async function _initPresence(username) {
     if (!snap.val()) return; // غير متصل بعد
     // عند قطع الاتصال: تلقائي Offline
     onDisconnect(_presenceRef).set({ online: false, lastSeen: rtServerTimestamp() });
-    // الآن: Online
-    await dbSet(_presenceRef, { online: true, lastSeen: rtServerTimestamp() });
+    // الآن: Online — نستخدم Date.now() رقمًا صريحًا لضمان parse صحيح
+    await dbSet(_presenceRef, { online: true, lastSeen: Date.now() });
     // [FIX] نصدِّر _presenceRef لـ window لكي يستطيع الـ ping الدوري الوصول إليه
     window._presenceRef = _presenceRef;
     // حفظ آخر وقت دخول في Firestore أيضاً
     try {
       const uDoc = doc(db, 'presence', lowerUser);
-      await setDoc(uDoc, { username: lowerUser, lastLogin: Date.now() }, { merge: true });
+      await setDoc(uDoc, { username: lowerUser, lastLogin: Date.now(), lastSeen: Date.now() }, { merge: true });
     } catch(e) { /* تجاهل أخطاء Firestore للحضور */ }
   });
 }
@@ -13061,9 +13061,9 @@ function _dlgStartActivityPing(username) {
         // لكن فقط إذا كان _presenceRef موجوداً (تهيئ من قبل)
         const _pRef = window._presenceRef_NEW || null;
         if (_pRef && typeof dbSet !== 'undefined') {
-          // ping مباشر
+          // ping مباشر — نستخدم Date.now() لضمان رقم صحيح دائمًا
           try {
-            await dbSet(_pRef, { online: true, lastSeen: rtServerTimestamp() });
+            await dbSet(_pRef, { online: true, lastSeen: Date.now() });
           } catch(e) { /* ignore */ }
         }
       }
@@ -13123,7 +13123,10 @@ function _dlgStartActivityPing(username) {
           if (snap && snap.exists && snap.exists()) {
             const data = snap.data() || {};
             const ts = _dlgSafeParseTs(data.lastLogin) || _dlgSafeParseTs(data.lastSeen) || null;
-            if (ts) window._lastLoginCache[username] = ts;
+            if (ts) {
+              window._lastLoginCache[username] = ts;
+              window._lastLoginCache[username.toLowerCase()] = ts; // backup كـ lowercase
+            }
           }
         } catch(e2) {}
       }
