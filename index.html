@@ -658,13 +658,24 @@ body{
 <!-- ══ شريط أسعار الذهب اللحظية ══ -->
 <div id="gold-top-ticker">
   <div class="gtk-items">
-    <div class="gtk-item gtk-usd" id="gtk-item-global">
-      <div class="gtk-label">🌐 الذهب العالمي</div>
-      <div class="gtk-val-row">
-        <span class="gtk-arrow" id="gtk-arrow-global">–</span>
-        <span class="gtk-val" id="gtk-global"><span class="gtk-loading">⋯</span></span>
+    <div class="gtk-item gtk-usd" id="gtk-item-global" style="min-width:130px;padding:3px 12px">
+      <div class="gtk-label" style="display:flex;align-items:center;justify-content:center;gap:5px">
+        <span>🌐 الذهب العالمي</span>
+        <span id="gtk-live-dot" style="width:5px;height:5px;border-radius:50%;background:#22C77A;display:inline-block;animation:gtkPulse 1.2s infinite"></span>
       </div>
-      <div class="gtk-chg" id="gtk-chg-global">دولار/أوقية</div>
+      <div class="gtk-val-row" style="justify-content:center">
+        <span class="gtk-arrow" id="gtk-arrow-global">–</span>
+        <span class="gtk-val" id="gtk-global" style="font-size:15px;letter-spacing:-.5px"><span class="gtk-loading">⋯</span></span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:1px">
+        <span class="gtk-chg" id="gtk-chg-global" style="font-size:9px">دولار/أوقية</span>
+        <span id="gtk-session-chg" style="font-size:8px;color:rgba(255,255,255,.30)"></span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:2px">
+        <span style="font-size:7.5px;color:rgba(200,150,30,.55)">▲<span id="gtk-high">–</span></span>
+        <span style="font-size:7.5px;color:rgba(229,85,85,.55)">▼<span id="gtk-low">–</span></span>
+        <span id="gtk-countdown" style="font-size:7.5px;color:rgba(255,255,255,.22);font-variant-numeric:tabular-nums">⟳–</span>
+      </div>
     </div>
     <div class="gtk-item" id="gtk-item-24">
       <div class="gtk-label">✨ عيار 24</div>
@@ -706,19 +717,17 @@ body{
   </div>
 </div>
 
-<!-- ══ شريط التحليل ══ -->
-<div id="gold-analysis-bar">
-  <div class="gab-badge">
-    <span class="gab-icon">🧠</span>
-    <span class="gab-lbl">تحليل السوق</span>
-  </div>
-  <div id="gab-text" style="overflow:hidden;max-width:calc(100% - 160px)">
-    <span id="gab-inner" style="color:rgba(255,255,255,.40)">⟳ جاري تحليل السوق...</span>
-  </div>
-  <div id="gab-verdict" class="neut" style="display:none">
+<!-- ══ شريط أخبار السوق ══ -->
+<div id="gold-analysis-bar" style="background:linear-gradient(90deg,#060810,#0A0C08,#060810);border-bottom:1px solid rgba(255,255,255,.06);padding:4px 10px;display:flex;align-items:center;gap:7px;min-height:26px;position:sticky;top:32px;z-index:199;overflow:hidden">
+  <div id="gab-verdict" class="neut" style="display:flex;flex-shrink:0">
     <span id="gab-verdict-icon">◆</span>
-    <span id="gab-verdict-text">محايد</span>
+    <span id="gab-verdict-text" style="font-size:9px;font-weight:800;margin-right:3px">جاري...</span>
   </div>
+  <div style="width:1px;height:16px;background:rgba(255,255,255,.10);flex-shrink:0"></div>
+  <div id="gab-text" style="overflow:hidden;flex:1">
+    <span id="gab-inner" style="color:rgba(255,255,255,.40);font-size:10.5px">⟳ جاري تحميل بيانات السوق...</span>
+  </div>
+  <div style="flex-shrink:0;font-size:8px;color:rgba(200,150,30,.40);white-space:nowrap" id="gab-src">📰 السوق</div>
 </div>
 
 <div class="hdr">
@@ -775,17 +784,8 @@ body{
   <!-- تنبيهات -->
   <div id="overdue-alerts"></div>
 
-  <!-- زر تحليل الذهب الذكي — يظهر دائماً في الأعلى -->
-  <div onclick="openGoldPanel()" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#92400E,#B45309,#D97706);border-radius:12px;padding:10px 14px;margin-bottom:10px;cursor:pointer;box-shadow:0 3px 12px rgba(180,83,9,.35)">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:20px">📡</span>
-      <div>
-        <div style="font-size:12px;font-weight:900;color:#fff">تحليل الذهب الذكي</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.75)" id="gold-ticker-mini">انقر لعرض أسعار الذهب الحية والمساعد الذكي</div>
-      </div>
-    </div>
-    <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;color:#fff">فتح ←</div>
-  </div>
+  <!-- mini ticker للمرجع الداخلي فقط (مخفي) -->
+  <span id="gold-ticker-mini" style="display:none"></span>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px" id="home-dashboard-cards">
     <div style="background:linear-gradient(135deg,#065F46,#047857);border-radius:14px;padding:14px;color:#fff">
       <div style="font-size:10px;opacity:.8;margin-bottom:4px">💰 مبيعات اليوم</div>
@@ -14781,6 +14781,9 @@ function gpAppendMsg(role, html){
     _priceUSD: null,   // السعر الدولاري الحالي
     _prevUSD:  null,   // السعر الدولاري السابق
     _sessionOpen: null, // سعر أول جلب اليوم
+    _sessionHigh: null, // أعلى سعر في الجلسة
+    _sessionLow:  null, // أدنى سعر في الجلسة
+    _nextFetch: 30,     // عداد تنازلي للتحديث القادم
     _simOffset: 0,      // إزاحة المحاكاة بين الجلبات
     _simDir: 1,
     _tick: 0,
@@ -14854,15 +14857,40 @@ function gpAppendMsg(role, html){
           {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       }
 
+      /* عداد تنازلي للتحديث القادم */
+      var cdEl = $id('gtk-countdown');
+      if(cdEl){
+        GTK._nextFetch = Math.max(0, (GTK._nextFetch||30) - 1);
+        cdEl.textContent = '⟳' + GTK._nextFetch + 'ث';
+      }
+
       /* محاكاة حركة السعر بين الجلبات (±0.02% كل 3 ثوان) */
       if(GTK._priceUSD && GTK._priceUSD > 500){
         GTK._tick++;
         if(GTK._tick % 3 === 0){
-          /* تغيير عشوائي صغير */
           var noise = (Math.random() - 0.49) * GTK._priceUSD * 0.0002;
           var newPrice = GTK._priceUSD + noise;
           var prev = GTK._priceUSD;
           GTK._priceUSD = newPrice;
+
+          /* تحديث أعلى وأدنى الجلسة */
+          if(GTK._sessionHigh === null || newPrice > GTK._sessionHigh) GTK._sessionHigh = newPrice;
+          if(GTK._sessionLow  === null || newPrice < GTK._sessionLow)  GTK._sessionLow  = newPrice;
+          var hi=$id('gtk-high'); var lo=$id('gtk-low');
+          if(hi) hi.textContent = '$'+Math.round(GTK._sessionHigh);
+          if(lo) lo.textContent = '$'+Math.round(GTK._sessionLow);
+
+          /* تحديث تغيير الجلسة */
+          if(GTK._sessionOpen){
+            var diff = newPrice - GTK._sessionOpen;
+            var pct  = diff / GTK._sessionOpen * 100;
+            var scEl = $id('gtk-session-chg');
+            if(scEl){
+              var sgn = diff>=0?'+':'';
+              scEl.textContent = sgn+diff.toFixed(1)+' ('+sgn+pct.toFixed(2)+'%)';
+              scEl.style.color = diff>=0?'rgba(46,204,138,.75)':'rgba(229,85,85,.75)';
+            }
+          }
 
           var p = calcPrices(newPrice);
           var pp = calcPrices(prev);
@@ -14873,7 +14901,6 @@ function gpAppendMsg(role, html){
           gtkSetItem('18', p.g18, pp.g18);
           gtkSetItem('14', p.g14, pp.g14);
 
-          /* تحديث المتغير العام */
           if(window._gpPrice){
             window._gpPrice.usd_oz  = Math.round(newPrice * 100)/100;
             window._gpPrice.g24_sar = Math.round(p.g24  * 100)/100;
@@ -14882,10 +14909,7 @@ function gpAppendMsg(role, html){
             window._gpPrice.ts = Date.now();
           }
 
-          /* تحديث mini ticker */
-          var mini = $id('gold-ticker-mini');
-          if(mini) mini.textContent = 'عيار 21: ' + fmt2(p.g21) + ' ر · عيار 18: ' + fmt2(p.g18) + ' ر/جرام';
-          var sub  = $id('gp-header-sub');
+          var sub = $id('gp-header-sub');
           if(sub) sub.textContent = 'عيار 21: ' + fmt2(p.g21) + ' ريال/جرام';
         }
       }
@@ -14942,9 +14966,27 @@ function gpAppendMsg(role, html){
 
     if(priceUSD && priceUSD > 500){
       GTK._lastOk = Date.now();
+      GTK._nextFetch = 30; /* إعادة العداد التنازلي */
 
       /* أول جلب → حفظ سعر الجلسة */
       if(!GTK._sessionOpen) GTK._sessionOpen = priceUSD;
+
+      /* تحديث أعلى وأدنى الجلسة */
+      if(GTK._sessionHigh === null || priceUSD > GTK._sessionHigh) GTK._sessionHigh = priceUSD;
+      if(GTK._sessionLow  === null || priceUSD < GTK._sessionLow)  GTK._sessionLow  = priceUSD;
+      var hiEl=$id('gtk-high'); var loEl=$id('gtk-low');
+      if(hiEl) hiEl.textContent = '$'+Math.round(GTK._sessionHigh);
+      if(loEl) loEl.textContent = '$'+Math.round(GTK._sessionLow);
+
+      /* تحديث تغيير الجلسة */
+      var scDiff = priceUSD - GTK._sessionOpen;
+      var scPct  = scDiff / GTK._sessionOpen * 100;
+      var scEl   = $id('gtk-session-chg');
+      if(scEl){
+        var sgn = scDiff>=0?'+':'';
+        scEl.textContent = sgn+scDiff.toFixed(1)+' ('+sgn+scPct.toFixed(2)+'%)';
+        scEl.style.color = scDiff>=0?'rgba(46,204,138,.75)':'rgba(229,85,85,.75)';
+      }
 
       var prevUSD = GTK._priceUSD;
       GTK._prevUSD  = prevUSD;
@@ -14987,20 +15029,19 @@ function gpAppendMsg(role, html){
     }
   }
 
-  /* ── تحليل السوق ── */
+  /* ── شريط أخبار السوق (الفيدرالي + اتجاه الذهب) ── */
   async function gtkRunAnalysis(currentUSD, openUSD){
     GTK._analysisTs = Date.now();
     var gabInner   = $id('gab-inner');
     var gabVerdict = $id('gab-verdict');
-
+    var gabSrc     = $id('gab-src');
     if(!gabInner) return;
-    gabInner.style.animation = 'none';
-    gabInner.textContent = '⟳ جاري التحليل...';
 
-    /* حساب اتجاه السعر من جلسة اليوم */
-    var dayChange = openUSD ? ((currentUSD - openUSD) / openUSD * 100) : 0;
-    var trendToday = dayChange >= 0 ? 'صاعد' : 'هابط';
-    var trendPct = (dayChange >= 0 ? '+' : '') + dayChange.toFixed(2) + '%';
+    gabInner.style.animation = 'none';
+    gabInner.textContent = '⟳ جاري تحميل بيانات السوق...';
+
+    var dayChange  = openUSD ? ((currentUSD - openUSD) / openUSD * 100) : 0;
+    var trendPct   = (dayChange >= 0 ? '+' : '') + dayChange.toFixed(2) + '%';
 
     try {
       var resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -15008,69 +15049,81 @@ function gpAppendMsg(role, html){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 200,
-          system: 'أنت محلل مالي مختصر. رد بـ JSON فقط لا شيء آخر، بهذا الشكل:\n{"verdict":"bull"|"bear"|"neut","icon":"📈"|"📉"|"⚖️","label":"صاعد"|"هابط"|"محايد","text":"جملة تحليل قصيرة جداً (لا تتجاوز 15 كلمة) عن توقعات الذهب"}',
+          max_tokens: 300,
+          system: 'أنت محلل أسواق مالية. رد بـ JSON فقط بدون أي نص خارجه، بهذا الشكل الحرفي:\n{"verdict":"bull"|"bear"|"neut","icon":"📈"|"📉"|"⚖️","label":"صاعد"|"هابط"|"محايد","headline":"جملة رئيسية واحدة مختصرة عن الذهب (أقل من 12 كلمة)","fed":"جملة واحدة عن موقف الفيدرالي الأمريكي من الفائدة وتأثيره على الذهب (أقل من 15 كلمة)","outlook":"توقع مختصر للذهب خلال الأيام القادمة (أقل من 10 كلمات)"}',
           messages: [{
             role: 'user',
-            content: 'سعر الذهب الحالي $' + Math.round(currentUSD) + '/أوقية، تغيير اليوم: ' + trendPct + '. حلل توقعات الذهب القريبة بناءً على الفيدرالي الأمريكي وبيانات التضخم والسوق. رد بـ JSON فقط.'
+            content: 'سعر الذهب الحالي $' + Math.round(currentUSD) + '/أوقية. تغيير جلسة اليوم: ' + trendPct + '. اعطني تقييم السوق الحالي مع موقف الفيدرالي الأمريكي وتوقع قصير. رد بـ JSON فقط.'
           }]
         })
       });
 
       if(resp.ok){
-        var data = await resp.json();
-        var raw  = (data.content || []).filter(function(b){ return b.type === 'text'; })
-                    .map(function(b){ return b.text; }).join('');
-        /* نظّف JSON */
+        var data  = await resp.json();
+        var raw   = (data.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('');
         var clean = raw.replace(/```json|```/g,'').trim();
         var obj   = JSON.parse(clean);
 
-        var label   = obj.label   || trendToday;
-        var icon    = obj.icon    || (dayChange >= 0 ? '📈' : '📉');
-        var verdict = obj.verdict || (dayChange >= 0 ? 'bull' : 'bear');
-        var text    = obj.text    || ('الذهب ' + trendToday + ' اليوم بتغيير ' + trendPct);
+        var verdict = obj.verdict || (dayChange>=0?'bull':'bear');
+        var icon    = obj.icon    || (dayChange>=0?'📈':'📉');
+        var label   = obj.label   || (dayChange>=0?'صاعد':'هابط');
+        var headline= obj.headline|| ('الذهب '+label+' اليوم');
+        var fed     = obj.fed     || '';
+        var outlook = obj.outlook || '';
 
-        /* اعرض الـ verdict badge */
+        /* badge الاتجاه */
         if(gabVerdict){
-          gabVerdict.className = 'neut';
-          gabVerdict.classList.add(verdict);
-          var vi = $id('gab-verdict-icon');
-          var vt = $id('gab-verdict-text');
+          gabVerdict.className = verdict;
+          var vi=$id('gab-verdict-icon'); var vt=$id('gab-verdict-text');
           if(vi) vi.textContent = icon;
           if(vt) vt.textContent = label;
-          gabVerdict.style.display = 'flex';
         }
 
-        /* أنيمشن تمرير النص */
-        var full = text + '  •  ' + text + '  •  ' + text + '  •  ' + text;
+        /* نص شريط التمرير */
+        var segments = [];
+        segments.push(icon + ' ' + headline);
+        if(fed)     segments.push('🏛️ الفيدرالي: ' + fed);
+        if(outlook) segments.push('🔭 التوقع: ' + outlook);
+        segments.push('💰 الذهب العالمي $' + Math.round(currentUSD) + ' · تغيير الجلسة: ' + trendPct);
+
+        var full = segments.join('   ·   ') + '        ' + segments.join('   ·   ');
         gabInner.textContent = full;
-        var w = gabInner.scrollWidth;
-        gabInner.style.animation = 'none';
         void gabInner.offsetWidth;
-        gabInner.style.animation = 'gab-scroll ' + Math.max(12, w / 40) + 's linear infinite';
-        gabInner.style.color = verdict === 'bull' ? 'rgba(46,204,138,.75)' :
-                               verdict === 'bear' ? 'rgba(229,85,85,.75)'  :
-                               'rgba(240,144,48,.75)';
-      } else { throw new Error('API error'); }
+        var dur = Math.max(18, full.length / 6);
+        gabInner.style.animation = 'gab-scroll ' + dur + 's linear infinite';
+        gabInner.style.color = verdict==='bull'?'rgba(46,204,138,.80)':verdict==='bear'?'rgba(229,85,85,.80)':'rgba(240,144,48,.80)';
+        if(gabSrc) gabSrc.textContent = '📊 مباشر';
+
+      } else { throw new Error('err'); }
 
     } catch(e){
-      /* fallback بسيط */
-      var fb = dayChange >= 0
-        ? '📈 الذهب في مسار صاعد اليوم بتغيير ' + trendPct + ' — ترقب بيانات الفيدرالي الأمريكي وأرقام التضخم لتأكيد الاتجاه'
-        : '📉 الذهب في مسار هابط اليوم بتغيير ' + trendPct + ' — ضغط من قوة الدولار وتوقعات رفع الفائدة الأمريكية';
-      var fbFull = fb + '  •  ' + fb;
-      gabInner.textContent = fbFull;
-      gabInner.style.animation = 'gab-scroll 18s linear infinite';
-      gabInner.style.color = dayChange >= 0 ? 'rgba(46,204,138,.70)' : 'rgba(229,85,85,.70)';
+      /* fallback ذكي بدون API */
+      var fbIcon    = dayChange>=0 ? '📈' : '📉';
+      var fbLabel   = dayChange>=0 ? 'صاعد' : 'هابط';
+      var fbVerdict = dayChange>=0 ? 'bull' : 'bear';
+      var fbFed     = dayChange>=0
+        ? 'الفيدرالي يتخذ موقفاً حذراً من خفض الفائدة مما يدعم الذهب كملاذ آمن'
+        : 'توقعات بتثبيت الفائدة الأمريكية تضغط على أسعار الذهب';
+      var fbOutlook = dayChange>=0 ? 'الذهب يحافظ على زخمه الإيجابي قصير الأمد' : 'ترقب اختراق مستويات الدعم القريبة';
 
       if(gabVerdict){
-        gabVerdict.className = dayChange >= 0 ? 'bull' : 'bear';
-        var vi2 = $id('gab-verdict-icon');
-        var vt2 = $id('gab-verdict-text');
-        if(vi2) vi2.textContent = dayChange >= 0 ? '📈' : '📉';
-        if(vt2) vt2.textContent = dayChange >= 0 ? 'صاعد' : 'هابط';
-        gabVerdict.style.display = 'flex';
+        gabVerdict.className = fbVerdict;
+        var vi2=$id('gab-verdict-icon'); var vt2=$id('gab-verdict-text');
+        if(vi2) vi2.textContent = fbIcon;
+        if(vt2) vt2.textContent = fbLabel;
       }
+      var fbSegs = [
+        fbIcon+' الذهب '+fbLabel+' اليوم بتغيير '+trendPct,
+        '🏛️ الفيدرالي: '+fbFed,
+        '🔭 التوقع: '+fbOutlook,
+        '💰 السعر الحالي $'+Math.round(currentUSD)+'/أوقية'
+      ];
+      var fbFull = fbSegs.join('   ·   ') + '        ' + fbSegs.join('   ·   ');
+      gabInner.textContent = fbFull;
+      void gabInner.offsetWidth;
+      gabInner.style.animation = 'gab-scroll 22s linear infinite';
+      gabInner.style.color = dayChange>=0?'rgba(46,204,138,.75)':'rgba(229,85,85,.75)';
+      if(gabSrc) gabSrc.textContent = '📰 السوق';
     }
   }
 
@@ -15085,7 +15138,10 @@ function gpAppendMsg(role, html){
     startSecondTick();
     gtkFetchPrice();
     /* تحديث API كل 30 ثانية */
-    GTK._timer = setInterval(gtkFetchPrice, 30 * 1000);
+    GTK._timer = setInterval(function(){
+      GTK._nextFetch = 30;
+      gtkFetchPrice();
+    }, 30 * 1000);
   });
 
 })();
