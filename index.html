@@ -1296,7 +1296,7 @@ body{
       <!-- ── تحويل بين صناديق ── -->
       <div id="tf-sec" style="display:none">
         <div style="background:var(--c2);border:1px solid var(--b1);border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--tx2)">
-          🔄 تحويل — نقل نقد أو ذهب من صندوق لصندوق آخر أو لعميل/مورد (بدون تأثير على الديون)
+          🔄 تحويل — نقل نقد أو ذهب بين الصناديق أو الجهات · <b style="color:var(--g1)">يظهر في كشف الحساب كسداد أو استلام حسب الاتجاه</b>
         </div>
         <div class="g2">
           <div class="fr"><label>📤 من</label>
@@ -4388,14 +4388,37 @@ function doTransfer(){
   const fromLabel = fromCli?fromCli:(_SM[from]?.label||from||'');
   const toLabel   = toCli  ?toCli  :(_SM[to]  ?.label||to  ||'');
 
-  // تحويل واحد فقط — نقل نقد أو ذهب بين الصناديق، بدون تأثير على الديون
+  // تحديد نوع الجهتين (عميل / مورد / صندوق)
+  const _clients = S.clients||[];
+  const _fromCliObj = fromCli ? _clients.find(c=>c.name===fromCli) : null;
+  const _toCliObj   = toCli   ? _clients.find(c=>c.name===toCli)   : null;
+  const fromEntityType = fromCli ? (_fromCliObj?.type||'عميل') : 'صندوق';
+  const toEntityType   = toCli   ? (_toCliObj?.type  ||'عميل') : 'صندوق';
+  // نوع التحويل المحاسبي
+  const _kindMap = {
+    'عميل-صندوق':'client-to-safe', 'صندوق-عميل':'safe-to-client',
+    'مورد-صندوق':'supplier-to-safe','صندوق-مورد':'safe-to-supplier',
+    'عميل-عميل':'client-to-client','مورد-مورد':'supplier-to-supplier',
+    'عميل-مورد':'client-to-supplier','مورد-عميل':'supplier-to-client',
+    'صندوق-صندوق':'safe-to-safe'
+  };
+  const transferKind = _kindMap[`${fromEntityType}-${toEntityType}`]||'safe-to-safe';
+  // بناء وصف محاسبي واضح في الملاحظة
+  const _roleNote = fromCli&&toCli
+    ? `تسوية حساب: ${fromLabel} → ${toLabel}`
+    : fromCli ? `سداد من ${fromLabel} إلى ${toLabel}`
+    : toCli   ? `تحويل من ${fromLabel} إلى ${toLabel}`
+    : `نقل داخلي: ${fromLabel} → ${toLabel}`;
+
+  // تحويل واحد — نقل نقد أو ذهب بين الصناديق/الجهات
   const tx={
     id:Date.now(), date:tfISO, type:'transfer',
     fromSafe, toSafe, fromLabel, toLabel,
+    fromEntityType, toEntityType, transferKind,
     amount:amt, goldAmount:gAmt, goldKarat:tfKarat,
     ajour,
     unit:gAmt>0&&amt<=0?'جرام':'ريال',
-    notes:note||`تحويل من ${fromLabel} إلى ${toLabel}`,
+    notes:note||_roleNote,
     client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
     cash:amt, goldPay:gAmt, weight:gAmt
   };
@@ -4447,14 +4470,33 @@ function renderInvModal(tx,editing){
       const _SM=getSM();
       const fLbl=tx.fromLabel||(_SM[tx.fromSafe]?.label||tx.fromSafe||'—');
       const tLbl=tx.toLabel  ||(_SM[tx.toSafe]  ?.label||tx.toSafe  ||'—');
+      // تحديد الدور المحاسبي
+      const _fIsCli = tx.fromSafe?.startsWith('__cli__');
+      const _tIsCli = tx.toSafe?.startsWith('__cli__');
+      const _fromEType = tx.fromEntityType||(_fIsCli?'جهة':'صندوق');
+      const _toEType   = tx.toEntityType  ||(_tIsCli?'جهة':'صندوق');
+      let _acctRole='', _acctColor='var(--in)', _acctBg='var(--in-bg)';
+      if(_fIsCli&&_tIsCli){
+        _acctRole=`تسوية بين جهتين — ${_fromEType} سدّد إلى ${_toEType}`;
+        _acctColor='var(--pu)'; _acctBg='var(--pu-bg)';
+      } else if(_fIsCli&&!_tIsCli){
+        _acctRole=`سداد — ${fLbl} حوّل إلى صندوق ${tLbl}`;
+        _acctColor='var(--ok)'; _acctBg='var(--ok-bg)';
+      } else if(!_fIsCli&&_tIsCli){
+        _acctRole=`تحويل — صندوق ${fLbl} أرسل إلى ${tLbl}`;
+        _acctColor='var(--io)'; _acctBg='var(--io-bg)';
+      } else {
+        _acctRole='نقل داخلي بين الصناديق';
+      }
       let html=`
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <button class="btn btn-red btn-sm" style="flex:0;padding:10px 14px" onclick="delTxFromModal(${tx.id})">🗑️</button>
         </div>
-        <div style="background:var(--in-bg);border:1.5px solid var(--in);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
-          <div style="font-size:12px;color:var(--tx2);margin-bottom:6px">🔄 عملية تحويل</div>
-          <div style="font-size:14px;font-weight:800;color:var(--in)">${fLbl} ← ${tLbl}</div>
-          <div style="font-size:11px;color:var(--tx3);margin-top:4px">${dt.ar} · ${dt.en}</div>
+        <div style="background:${_acctBg};border:1.5px solid ${_acctColor};border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">🔄 عملية تحويل محاسبية</div>
+          <div style="font-size:14px;font-weight:800;color:${_acctColor}">${fLbl} → ${tLbl}</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:4px">${_acctRole}</div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:3px">${dt.ar} · ${dt.en}</div>
         </div>
         <div style="background:var(--c2);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--b2)">`;
       if((tx.goldAmount||0)>0){
@@ -5277,7 +5319,16 @@ function txHtml(t){
     const _SM=getSM();
     const fromLbl = t.fromLabel || (t.fromSafe?(_SM[t.fromSafe]?.label||t.fromSafe):'—');
     const toLbl   = t.toLabel   || (t.toSafe  ?(_SM[t.toSafe]  ?.label||t.toSafe  ):'—');
-    sub = `${fromLbl} ← ${toLbl}`;
+    // وصف محاسبي حسب نوع الجهتين
+    const _fEType = t.fromEntityType||'';
+    const _tEType = t.toEntityType||'';
+    const _fIsCli = t.fromSafe?.startsWith('__cli__');
+    const _tIsCli = t.toSafe?.startsWith('__cli__');
+    let _acctLbl = '';
+    if(_fIsCli && _tIsCli)       _acctLbl = ' · تسوية بين جهتين';
+    else if(_fIsCli && !_tIsCli) _acctLbl = ' · سداد من جهة → صندوق';
+    else if(!_fIsCli && _tIsCli) _acctLbl = ' · تحويل من صندوق → جهة';
+    sub = `${fromLbl} ← ${toLbl}${_acctLbl}`;
   } else if(t.settlePurpose==='transfer'){
     // سداد عبر تحويل — نوضح المسار
     const _SM=getSM();
@@ -11433,7 +11484,21 @@ function renderStmt(){
 
   let txRows=txsWithBalance.map(({t, dCash, dGold24, runCash, runGold24})=>{
     const dt=fmtDate(t.date);
-    const lbl=TLBL[t.type]||t.type;
+    // ── لابل ديناميكي للتحويل في كشف الحساب ──
+    let lbl;
+    if(t.type==='transfer'){
+      const _isFrom = t.fromSafe===('__cli__'+v);
+      const _isTo   = t.toSafe===('__cli__'+v);
+      if(_isFrom){
+        lbl = isSupp ? '💳 تسوية صادرة' : '💳 سداد بتحويل';
+      } else if(_isTo){
+        lbl = isSupp ? '📥 تحويل وارد' : '📤 تحويل صادر';
+      } else {
+        lbl = '🔄 تحويل';
+      }
+    } else {
+      lbl = TLBL[t.type]||t.type;
+    }
     // ── تفاصيل العملية ──
     let detail = '';
     if(t.items&&t.items.length){
@@ -11494,10 +11559,50 @@ function renderStmt(){
     if(t.type==='cash-receipt')    detail=`قبض نقد: ${fmt(t.amount||0)} ر`;
     if(t.type==='charge')          detail=`💵 ${t.desc||t.notes||''} — ${fmt(t.amount||0)} ريال`;
     if(t.type==='transfer'){
-      const _tParts=[];
-      if(t.amount>0)    _tParts.push(`نقد: ${fmt(t.amount)} ر`);
-      if(t.goldAmount>0)_tParts.push(`ذهب: ${fmtG(t.goldAmount)}ج ع${t.goldKarat||'21'}`);
-      detail=_tParts.join(' · ');
+      // ── بناء تفاصيل التحويل المحاسبي الواضح ──
+      const _fLbl = t.fromLabel || t.fromSafe || '—';
+      const _tLbl = t.toLabel   || t.toSafe   || '—';
+      const _isFrom = t.fromSafe===('__cli__'+v); // الجهة هي المرسِل
+      const _isTo   = t.toSafe===('__cli__'+v);   // الجهة هي المستلِم
+      const _amtParts=[];
+      if((t.amount||0)>0)     _amtParts.push(`💵 ${fmt(t.amount)} ريال`);
+      if((t.goldAmount||0)>0) _amtParts.push(`🥇 ${fmtG(t.goldAmount)}ج ع${t.goldKarat||'21'}`);
+      if((t.ajour||0)>0)      _amtParts.push(`⚒️ أجور: ${fmt(t.ajour)} ر`);
+      const _amtStr = _amtParts.join(' · ');
+      // وصف المسار والدور المحاسبي
+      let _roleIcon, _roleDesc, _otherParty, _acctNote;
+      if(_isFrom){
+        // الجهة أرسلت (سدّدت / حوّلت) للطرف الآخر
+        _otherParty = _tLbl;
+        if(isSupp){
+          _roleIcon='💳'; _roleDesc='تسوية صادرة — المورد حوّل إلى';
+          _acctNote='يُخفِّض الرصيد المستحق';
+        } else {
+          _roleIcon='💳'; _roleDesc='سداد — العميل حوّل إلى';
+          _acctNote='يُعدّ سداداً جزئياً أو كلياً';
+        }
+      } else if(_isTo){
+        // الجهة استلمت من الطرف الآخر
+        _otherParty = _fLbl;
+        if(isSupp){
+          _roleIcon='📥'; _roleDesc='تحويل وارد — المورد استلم من';
+          _acctNote='يُضاف للمستحقات';
+        } else {
+          _roleIcon='📤'; _roleDesc='تحويل صادر — استلم من';
+          _acctNote='يُعدّ سداداً أو تسوية وردت';
+        }
+      } else {
+        _roleIcon='🔄'; _roleDesc='تحويل داخلي'; _otherParty=''; _acctNote='';
+      }
+      if(_otherParty){
+        detail=`<div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:11px;font-weight:800;color:var(--in)">${_roleIcon} ${_roleDesc} <b style="color:var(--tx1)">${_otherParty}</b></span>
+          <span style="font-size:10px;color:var(--tx2)">${_amtStr}</span>
+          <span style="font-size:9px;color:var(--tx3);font-style:italic">${_acctNote}</span>
+        </div>`;
+      } else {
+        detail=`<div><span style="font-size:11px">${_roleIcon} ${_fLbl} → ${_tLbl}</span><br><span style="font-size:10px;color:var(--tx2)">${_amtStr}</span></div>`;
+      }
     }
     if((t.type==='payment'||t.type==='supplier-payment') && t.settlePurpose==='transfer'){
       detail=`💳 سداد عبر تحويل — ${fmt(t.ajourPaid||t.amount||0)} ر`;
@@ -11509,7 +11614,8 @@ function renderStmt(){
     // للمورد:  dCash سالب = يزيد ديننا له | موجب = يقل ديننا له (سداد)
     const isDebit  = (!isSupp && dCash>0.01) || (isSupp && dCash<-0.01);
     const isCredit = (!isSupp && dCash<-0.01)|| (isSupp && dCash>0.01);
-    const isSetRow = t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||(t.settlePurpose==='transfer');
+    const isSetRow = t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||(t.settlePurpose==='transfer')
+      ||(t.type==='transfer' && t.fromSafe===('__cli__'+v) && (t.amount||0)>0); // التحويل الصادر = سداد
     const rowBg    = isDebit  ? 'rgba(220,38,38,.05)' : isSetRow ? 'rgba(22,163,74,.05)' : isCredit ? 'rgba(217,119,6,.05)' : '';
     const debitAmt  = isDebit  ? fmt(Math.abs(dCash)) : '–';
     const creditAmt = (isCredit||isSetRow) ? fmt(Math.abs(dCash)) : '–';
@@ -13957,6 +14063,14 @@ if(typeof _rsOrig==='function'){
         if((t.goldAmount||0)>0){
           if(t.fromSafe&&!t.fromSafe.startsWith('__cli__')) goldOut24+=_to24(t.goldAmount,t.goldKarat||'21');
           if(t.toSafe  &&!t.toSafe.startsWith('__cli__'))   goldIn24 +=_to24(t.goldAmount,t.goldKarat||'21');
+        }
+        // ── تحويل نقدي: إذا كان من جهة إلى صندوق = قبض ، من صندوق إلى جهة = صرف ──
+        if((t.amount||0)>0){
+          const _fIsCli = t.fromSafe?.startsWith('__cli__');
+          const _tIsCli = t.toSafe?.startsWith('__cli__');
+          if(_fIsCli && !_tIsCli)  cashIn  += (t.amount||0); // جهة → صندوق = قبض
+          else if(!_fIsCli&&_tIsCli)cashOut += (t.amount||0); // صندوق → جهة = صرف
+          // صندوق → صندوق: لا أثر على الإجماليات (حركة داخلية)
         }
         if(t.fromSafe==='madan'||t.fromSafe==='lava') unitsOut+=(t.goldAmount||0);
         if(t.toSafe==='madan'  ||t.toSafe==='lava')   unitsIn +=(t.goldAmount||0);
