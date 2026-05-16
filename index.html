@@ -15287,6 +15287,259 @@ function gpAppendMsg(role, html){
   });
 })();
 </script>
+<!-- ══ نظام التذكير بالحفظ + تسجيل الخروج التلقائي ══ -->
+<style>
+/* ── مودال تذكير الحفظ ── */
+#backup-reminder-overlay{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+#backup-reminder-overlay.show{display:flex;}
+#backup-reminder-box{
+  background:var(--c1);border:1.5px solid var(--g5);
+  border-radius:var(--ra);padding:28px 24px 20px;
+  max-width:360px;width:92%;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.35),0 0 0 1px var(--g4);
+  animation:brPop .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes brPop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+#backup-reminder-box .br-icon{font-size:40px;margin-bottom:10px}
+#backup-reminder-box .br-title{font-size:17px;font-weight:800;color:var(--tx1);margin-bottom:6px}
+#backup-reminder-box .br-sub{font-size:13px;color:var(--tx2);margin-bottom:18px;line-height:1.6}
+#backup-reminder-box .br-btns{display:flex;gap:10px;justify-content:center}
+#backup-reminder-box .br-yes{
+  background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;
+  border:none;border-radius:10px;padding:10px 22px;font-size:14px;
+  font-weight:700;cursor:pointer;font-family:inherit;
+  box-shadow:var(--sg);transition:var(--tr);
+}
+#backup-reminder-box .br-yes:hover{filter:brightness(1.1)}
+#backup-reminder-box .br-no{
+  background:var(--c3);color:var(--tx2);border:1px solid var(--b2);
+  border-radius:10px;padding:10px 18px;font-size:13px;
+  font-weight:600;cursor:pointer;font-family:inherit;transition:var(--tr);
+}
+#backup-reminder-box .br-no:hover{background:var(--c4)}
+
+/* ── شريط العد التنازلي للخروج التلقائي ── */
+#auto-logout-bar{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:8888;
+  background:linear-gradient(90deg,rgba(229,85,85,.95),rgba(200,50,50,.95));
+  color:#fff;padding:10px 20px;font-family:inherit;
+  align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:0 -4px 20px rgba(229,85,85,.4);
+  border-top:2px solid rgba(255,255,255,.15);
+  font-size:14px;font-weight:700;
+}
+#auto-logout-bar.show{display:flex;}
+#auto-logout-bar .alb-txt{display:flex;align-items:center;gap:8px}
+#auto-logout-bar .alb-cnt{
+  background:rgba(255,255,255,.2);border-radius:20px;
+  padding:2px 12px;font-size:16px;font-weight:900;
+  min-width:40px;text-align:center;
+}
+#auto-logout-bar .alb-stay{
+  background:#fff;color:var(--no);border:none;border-radius:8px;
+  padding:6px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;
+}
+</style>
+
+<!-- مودال تذكير الحفظ -->
+<div id="backup-reminder-overlay">
+  <div id="backup-reminder-box">
+    <div class="br-icon">💾</div>
+    <div class="br-title">هل تريد حفظ نسخة احتياطية؟</div>
+    <div class="br-sub">تم تسجيل العملية بنجاح ✅<br>يُنصح بحفظ نسخة خارجية لضمان سلامة بياناتك</div>
+    <div class="br-btns">
+      <button class="br-yes" onclick="window._backupReminderYes()">📥 حفظ نسخة الآن</button>
+      <button class="br-no"  onclick="window._backupReminderNo()">لاحقاً</button>
+    </div>
+  </div>
+</div>
+
+<!-- شريط تحذير الخروج التلقائي -->
+<div id="auto-logout-bar">
+  <div class="alb-txt">
+    ⚠️ سيتم تسجيل خروجك تلقائياً بعد:
+    <span class="alb-cnt" id="alb-seconds">60</span>
+    ثانية
+  </div>
+  <button class="alb-stay" onclick="window._resetIdleTimer()">🖐️ أنا هنا</button>
+</div>
+
+<script>
+(function(){
+  /* ═══════════════════════════════════════════
+     ١ — نظام التذكير بالحفظ بعد كل عملية
+  ═══════════════════════════════════════════ */
+  var _brOverlay   = null;
+  var _brShown     = false;
+  var _brLastShown = 0;
+  var BR_COOLDOWN  = 3 * 60 * 1000; // لا تكرر التذكير أقل من 3 دقايق
+
+  window._showBackupReminder = function(){
+    if(!_brOverlay) _brOverlay = document.getElementById('backup-reminder-overlay');
+    if(!_brOverlay) return;
+    var now = Date.now();
+    if(_brShown || now - _brLastShown < BR_COOLDOWN) return;
+    _brShown = true;
+    _brLastShown = now;
+    _brOverlay.classList.add('show');
+  };
+
+  window._backupReminderYes = function(){
+    _brShown = false;
+    if(_brOverlay) _brOverlay.classList.remove('show');
+    // تنزيل النسخة الاحتياطية
+    try{
+      var dataStr = JSON.stringify(window.S || {}, null, 2);
+      var blob = new Blob([dataStr], {type:'application/json'});
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      var now  = new Date();
+      var stamp = now.getFullYear()+'-'
+        +String(now.getMonth()+1).padStart(2,'0')+'-'
+        +String(now.getDate()).padStart(2,'0')+'_'
+        +String(now.getHours()).padStart(2,'0')
+        +String(now.getMinutes()).padStart(2,'0');
+      a.href     = url;
+      a.download = 'backup_karat_' + stamp + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 2000);
+      if(typeof window.toast === 'function') window.toast('✅ تم تنزيل النسخة الاحتياطية');
+      if(typeof window._doAutoBackup === 'function') window._doAutoBackup('بعد العملية — يدوي');
+    } catch(e){ console.error('Backup error:', e); }
+  };
+
+  window._backupReminderNo = function(){
+    _brShown = false;
+    if(_brOverlay) _brOverlay.classList.remove('show');
+  };
+
+  // ربط التذكير بـ safeSave — ننتظر حتى تجهز الدوال
+  function hookSafeSave(){
+    var origSafeSave = window.safeSave;
+    if(typeof origSafeSave !== 'function') return false;
+    window.safeSave = function(tx){
+      var result = origSafeSave.apply(this, arguments);
+      if(result === true){
+        // تأخير بسيط عشان تظهر الـ toast أولاً
+        setTimeout(function(){ window._showBackupReminder(); }, 1200);
+      }
+      return result;
+    };
+    return true;
+  }
+
+  if(!hookSafeSave()){
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(hookSafeSave, 500);
+    });
+  }
+
+  /* ═══════════════════════════════════════════
+     ٢ — تسجيل الخروج التلقائي بعد 7 دقايق
+  ═══════════════════════════════════════════ */
+  var IDLE_TIMEOUT  = 7 * 60 * 1000;  // 7 دقايق بالمللي ثانية
+  var WARN_BEFORE   = 60 * 1000;       // تحذير قبل دقيقة
+  var _idleTimer    = null;
+  var _warnTimer    = null;
+  var _cntInterval  = null;
+  var _albBar       = null;
+  var _albSec       = null;
+  var _idleActive   = false;
+
+  function isLoggedIn(){
+    return (sessionStorage.getItem('auth')==='1' || localStorage.getItem('auth')==='1');
+  }
+
+  function startIdleCountdown(){
+    if(!_albBar) _albBar = document.getElementById('auto-logout-bar');
+    if(!_albSec) _albSec = document.getElementById('alb-seconds');
+    if(!_albBar)  return;
+    var secs = Math.round(WARN_BEFORE / 1000);
+    if(_albSec) _albSec.textContent = secs;
+    _albBar.classList.add('show');
+    clearInterval(_cntInterval);
+    _cntInterval = setInterval(function(){
+      secs--;
+      if(_albSec) _albSec.textContent = Math.max(0, secs);
+      if(secs <= 0){ clearInterval(_cntInterval); }
+    }, 1000);
+  }
+
+  function hideIdleBar(){
+    if(!_albBar) _albBar = document.getElementById('auto-logout-bar');
+    if(_albBar) _albBar.classList.remove('show');
+    clearInterval(_cntInterval);
+  }
+
+  window._resetIdleTimer = function(){
+    if(!_idleActive) return;
+    clearTimeout(_idleTimer);
+    clearTimeout(_warnTimer);
+    hideIdleBar();
+    scheduleIdle();
+  };
+
+  function doAutoLogout(){
+    hideIdleBar();
+    _idleActive = false;
+    if(typeof window.toast === 'function')
+      window.toast('🔒 تم تسجيل الخروج تلقائياً لعدم النشاط');
+    setTimeout(function(){
+      if(typeof window.logout === 'function') window.logout();
+    }, 800);
+  }
+
+  function scheduleIdle(){
+    clearTimeout(_idleTimer);
+    clearTimeout(_warnTimer);
+    _warnTimer = setTimeout(function(){
+      if(!isLoggedIn()) return;
+      startIdleCountdown();
+      _idleTimer = setTimeout(function(){
+        if(!isLoggedIn()) return;
+        doAutoLogout();
+      }, WARN_BEFORE);
+    }, IDLE_TIMEOUT - WARN_BEFORE);
+  }
+
+  // أحداث النشاط
+  var ACTIVITY_EVENTS = ['mousemove','mousedown','keydown','touchstart','scroll','click','wheel'];
+  function onActivity(){
+    if(!isLoggedIn()) return;
+    window._resetIdleTimer();
+  }
+
+  function startIdleWatch(){
+    _idleActive = true;
+    ACTIVITY_EVENTS.forEach(function(ev){
+      document.addEventListener(ev, onActivity, {passive:true});
+    });
+    scheduleIdle();
+  }
+
+  // ابدأ المراقبة بعد ما تجهز الصفحة
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      if(isLoggedIn()) startIdleWatch();
+    }, 2000);
+  });
+
+  // لو المستخدم سجّل دخول بعدين (راقب تغييرات sessionStorage)
+  var _idleWatchStarted = false;
+  var _loginObsInterval = setInterval(function(){
+    if(isLoggedIn() && !_idleActive){
+      if(!_idleWatchStarted){ _idleWatchStarted = true; startIdleWatch(); }
+    }
+  }, 3000);
+
+})();
+</script>
+
 <!-- ══ شريط أسعار الذهب — النسخة المحسّنة v3 ══ -->
 <script>
 (function(){
