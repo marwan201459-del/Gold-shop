@@ -5212,7 +5212,7 @@ function printStmt(){
     const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?`
       <tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
         <td>—<br><small>رصيد مرحّل</small></td>
-        <td><b>🏁 رصيد افتتاحي</b>${_obEntry.note?`<br><small>${_obEntry.note}</small>`:''}</td>
+        <td><b>🏁 رصيد افتتاحي</b>${_obEntry.balanceType?`<span style="font-size:9px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;padding:1px 6px;margin-right:4px;color:#92400E;font-weight:700">${_obEntry.balanceType==='ذهب'?'🥇 ذهب':'💵 نقد'}</span>`:''}${_obEntry.note?`<br><small style="color:#92400E">📝 ${_obEntry.note}</small>`:''}</td>
         <td>${Math.abs(_obEntry.cash||0)>0.01?`${_obEntry.cash>0?'عليه':'له'} ${fmt(Math.abs(_obEntry.cash))} ر`:''}${Math.abs(_obEntry.gold24||0)>0.001?`<br>${fmtG(Math.abs(_obEntry.gold24))} ج ع24`:''}</td>
         <td>${Math.abs(_obEntry.cash||0)>0.01?`<span class="${_obEntry.cash>0?'neg':'pos'}">${fmt(Math.abs(_obEntry.cash))} ر</span>`:'—'}</td>
         <td>${Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—'}</td>
@@ -11971,6 +11971,20 @@ function renderStmt(){
   html += '<div class="ch">📋 سجل الحركات (' + txs.length + ')</div>';
   html += '<div class="cb">';
   if(txRows){
+    // صف الرصيد الافتتاحي إن وجد
+    const _ob2HasVal = _obEntry2 && (Math.abs(_obEntry2.cash||0)>0.01 || Math.abs(_obEntry2.gold24||0)>0.001);
+    const _obRow2 = _ob2HasVal ? `<tr style="background:#FFF9E6;border-bottom:2px solid #C9922A40">
+      <td style="padding:6px 8px;font-size:10px;color:var(--tx2)">—<br><small>مرحّل</small></td>
+      <td style="padding:6px 8px" colspan="2">
+        <span style="font-weight:800;font-size:12px">🏁 رصيد افتتاحي</span>
+        ${_obEntry2.balanceType?`<span style="font-size:9px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;padding:1px 6px;margin-right:4px;color:#92400E;font-weight:700">${_obEntry2.balanceType==='ذهب'?'🥇 ذهب':'💵 نقد'}</span>`:''}
+        ${_obEntry2.note?`<br><small style="font-size:10px;color:#92400E">📝 ${_obEntry2.note}</small>`:''}
+      </td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px">${Math.abs(_obEntry2.cash||0)>0.01?`<span style="color:${_obEntry2.cash>0?'#DC2626':'#16A34A'};font-weight:800">${fmt(Math.abs(_obEntry2.cash))}</span>`:'—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px">${Math.abs(_obEntry2.gold24||0)>0.001?`<span style="color:#D97706;font-weight:800">${fmtG(Math.abs(_obEntry2.gold24))} ج</span>`:'—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;color:#92400E;font-weight:700">${_obEntry2.cashDir==='له_عندنا'?'له عندنا 🟢':'عليه لنا 🔴'}</td>
+      <td></td>
+    </tr>` : '';
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
     html += '<thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">';
     html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">📅 التاريخ</th>';
@@ -11980,7 +11994,7 @@ function renderStmt(){
     html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:700">له</th>';
     html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:var(--tx2)">الرصيد</th>';
     html += '<th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>';
-    html += '</tr></thead><tbody>' + txRows + '</tbody></table></div>';
+    html += '</tr></thead><tbody>' + _obRow2 + txRows + '</tbody></table></div>';
   } else {
     html += '<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>';
   }
@@ -12391,54 +12405,103 @@ function _obLoadDistributors(){
   }
   // تسجيل كل الموزعين في ob.clients إن لم يكونوا موجودين
   dists.forEach(d=>{
-    if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع'};
+    if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع',balanceType:'نقد'};
   });
-  let html='<div style="display:flex;flex-direction:column;gap:10px">';
+
+  // أسباب سريعة شائعة
+  const quickSources = ['رصيد من المكتب','من جهة خارجية','رصيد شخصي','تحويل سابق','جرد أول الشهر','دين سابق'];
+
+  let html='<div style="display:flex;flex-direction:column;gap:12px">';
   dists.forEach(d=>{
-    const data=ob.clients[d.name]||{cash:0,gold24:0};
+    const data=ob.clients[d.name]||{cash:0,gold24:0,balanceType:'نقد'};
+    const balType=data.balanceType||'نقد';
+    const isGold=balType==='ذهب';
     const cashAbs=Math.abs(data.cash||0);
+    const goldAbs=Math.abs(data.gold24||0);
+    const curAmt=isGold?(goldAbs||''):(cashAbs||'');
     const cashDir=data.cashDir||'عليه_لنا';
-    const hasCash=cashAbs>0.01;
+    const hasBalance=(cashAbs>0.01)||(goldAbs>0.001);
+    const sn=d.name.replace(/\s/g,'_').replace(/'/g,'');
+    const esc=d.name.replace(/'/g,"\\'");
+
     html+=`<div style="background:var(--c2);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:20px">🚚</span>
-        <div>
-          <div style="font-size:14px;font-weight:800;color:var(--tx1)">${d.name}</div>
+
+      <!-- ─ رأس الموزع ─ -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:22px">🚚</span>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:800;color:var(--tx1)">${d.name}</div>
           <div style="font-size:10px;color:var(--ok);font-weight:700">موزع${d.phone?` · ${d.phone}`:''}</div>
         </div>
-        ${hasCash?`<span style="margin-right:auto;background:var(--ok);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700">✓ لديه رصيد</span>`:''}
+        ${hasBalance?`<span style="background:var(--ok);color:#fff;font-size:10px;padding:3px 9px;border-radius:10px;font-weight:700">✓ لديه رصيد</span>`:''}
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">💵 الرصيد النقدي (ريال)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-        <button type="button" onclick="_obDistSetDir('${d.name.replace(/'/g,"\\'")}','عليه_لنا')"
-          id="ob-dist-owe-${d.name.replace(/\s/g,'_')}"
-          style="padding:8px;border-radius:8px;border:2px solid ${cashDir==='عليه_لنا'?'var(--no)':'var(--b2)'};
-            background:${cashDir==='عليه_لنا'?'var(--no-bg)':'var(--c1)'};
-            color:${cashDir==='عليه_لنا'?'var(--no)':'var(--tx2)'};
-            font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-          عليه لنا 🔴
-        </button>
-        <button type="button" onclick="_obDistSetDir('${d.name.replace(/'/g,"\\'")}','له_عندنا')"
-          id="ob-dist-have-${d.name.replace(/\s/g,'_')}"
-          style="padding:8px;border-radius:8px;border:2px solid ${cashDir==='له_عندنا'?'var(--ok)':'var(--b2)'};
-            background:${cashDir==='له_عندنا'?'var(--ok-bg)':'var(--c1)'};
-            color:${cashDir==='له_عندنا'?'var(--ok)':'var(--tx2)'};
-            font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-          له عندنا 🟢
-        </button>
+
+      <!-- ─ نوع الرصيد ─ -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📂 نوع الرصيد</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button type="button" onclick="_obDistSetType('${esc}','نقد')"
+            id="ob-dist-type-cash-${sn}"
+            style="padding:9px 6px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+              border:2px solid ${!isGold?'var(--in)':'var(--b2)'};
+              background:${!isGold?'var(--in-bg)':'var(--c1)'};
+              color:${!isGold?'var(--in)':'var(--tx2)'}">
+            💵 نقد (ريال)
+          </button>
+          <button type="button" onclick="_obDistSetType('${esc}','ذهب')"
+            id="ob-dist-type-gold-${sn}"
+            style="padding:9px 6px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+              border:2px solid ${isGold?'var(--g1)':'var(--b2)'};
+              background:${isGold?'var(--g4)':'var(--c1)'};
+              color:${isGold?'var(--g1)':'var(--tx2)'}">
+            🥇 ذهب (جرام)
+          </button>
+        </div>
       </div>
-      <!-- ✦ المبلغ والملاحظة جنب بعض ✦ -->
-      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:8px;align-items:flex-start">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px">💵 المبلغ (ريال)</div>
-          <input type="number" id="ob-dist-cash-${d.name}" value="${cashAbs||''}" placeholder="0" inputmode="decimal"
-            style="width:100%;padding:10px;border-radius:var(--rc);border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:16px;font-weight:700;color:var(--ok)">
+
+      <!-- ─ اتجاه الرصيد ─ -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📊 اتجاه الرصيد</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button type="button" onclick="_obDistSetDir('${esc}','عليه_لنا')"
+            id="ob-dist-owe-${sn}"
+            style="padding:9px 6px;border-radius:8px;border:2px solid ${cashDir==='عليه_لنا'?'var(--no)':'var(--b2)'};
+              background:${cashDir==='عليه_لنا'?'var(--no-bg)':'var(--c1)'};
+              color:${cashDir==='عليه_لنا'?'var(--no)':'var(--tx2)'};
+              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            عليه لنا 🔴
+          </button>
+          <button type="button" onclick="_obDistSetDir('${esc}','له_عندنا')"
+            id="ob-dist-have-${sn}"
+            style="padding:9px 6px;border-radius:8px;border:2px solid ${cashDir==='له_عندنا'?'var(--ok)':'var(--b2)'};
+              background:${cashDir==='له_عندنا'?'var(--ok-bg)':'var(--c1)'};
+              color:${cashDir==='له_عندنا'?'var(--ok)':'var(--tx2)'};
+              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            له عندنا 🟢
+          </button>
         </div>
-        <div>
-          <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px">📝 مصدر الرصيد / ملاحظة</div>
-          <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}" placeholder="مثال: دين سابق 2024، جرد أول الشهر..."
-            style="width:100%;padding:10px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+      </div>
+
+      <!-- ─ المبلغ ─ -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px" id="ob-dist-amt-lbl-${sn}">${isGold?'🥇 الكمية (جرام عيار 24)':'💵 المبلغ (ريال)'}</div>
+        <input type="number" id="ob-dist-cash-${d.name}" value="${curAmt}" placeholder="0" inputmode="decimal"
+          style="width:100%;padding:12px;border-radius:var(--rc);border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:18px;font-weight:800;color:${isGold?'var(--g1)':'var(--ok)'}">
+      </div>
+
+      <!-- ─ مصدر الرصيد (أسباب سريعة + ملاحظة) ─ -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📝 مصدر / سبب الرصيد</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
+          ${quickSources.map(src=>`<button type="button"
+            onclick="_obDistSetNote('${esc}','${src}')"
+            style="padding:4px 10px;border-radius:20px;border:1px solid var(--b2);background:var(--c1);
+              font-family:inherit;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;
+              transition:all .15s" onmouseover="this.style.borderColor='var(--g1)';this.style.color='var(--g1)'"
+            onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--tx2)'">${src}</button>`).join('')}
         </div>
+        <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}" placeholder="أو اكتب السبب بنفسك..."
+          style="width:100%;padding:10px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
       </div>
     </div>`;
   });
@@ -12449,11 +12512,11 @@ function _obLoadDistributors(){
 
 function _obDistSetDir(name, dir){
   const ob=getOB();
-  if(!ob.clients[name]) ob.clients[name]={cash:0,gold24:0,type:'موزع'};
+  if(!ob.clients[name]) ob.clients[name]={cash:0,gold24:0,type:'موزع',balanceType:'نقد'};
   ob.clients[name].cashDir=dir;
   S.openingBalance=ob;
   // تحديث مظهر الأزرار
-  const safeName=name.replace(/\s/g,'_');
+  const safeName=name.replace(/\s/g,'_').replace(/'/g,'');
   const oweBtn=document.getElementById('ob-dist-owe-'+safeName);
   const haveBtn=document.getElementById('ob-dist-have-'+safeName);
   if(oweBtn){
@@ -12468,22 +12531,72 @@ function _obDistSetDir(name, dir){
   }
 }
 
+// ── تغيير نوع الرصيد (نقد / ذهب) للموزع ──
+function _obDistSetType(name, balType){
+  const ob=getOB();
+  if(!ob.clients[name]) ob.clients[name]={cash:0,gold24:0,type:'موزع',balanceType:'نقد'};
+  ob.clients[name].balanceType=balType;
+  S.openingBalance=ob;
+  const isGold=balType==='ذهب';
+  const sn=name.replace(/\s/g,'_').replace(/'/g,'');
+  // تبديل مظهر أزرار النوع
+  const cashBtn=document.getElementById('ob-dist-type-cash-'+sn);
+  const goldBtn=document.getElementById('ob-dist-type-gold-'+sn);
+  if(cashBtn){
+    cashBtn.style.borderColor=!isGold?'var(--in)':'var(--b2)';
+    cashBtn.style.background=!isGold?'var(--in-bg)':'var(--c1)';
+    cashBtn.style.color=!isGold?'var(--in)':'var(--tx2)';
+  }
+  if(goldBtn){
+    goldBtn.style.borderColor=isGold?'var(--g1)':'var(--b2)';
+    goldBtn.style.background=isGold?'var(--g4)':'var(--c1)';
+    goldBtn.style.color=isGold?'var(--g1)':'var(--tx2)';
+  }
+  // تغيير تسمية وتنسيق حقل المبلغ
+  const amtLbl=document.getElementById('ob-dist-amt-lbl-'+sn);
+  const amtInp=document.getElementById('ob-dist-cash-'+name);
+  if(amtLbl) amtLbl.textContent=isGold?'🥇 الكمية (جرام عيار 24)':'💵 المبلغ (ريال)';
+  if(amtInp){
+    amtInp.style.color=isGold?'var(--g1)':'var(--ok)';
+    amtInp.placeholder=isGold?'0.000':'0';
+    // نقل القيمة المخزنة للحقل
+    const curData=ob.clients[name]||{};
+    const curAbs=isGold?Math.abs(curData.gold24||0):Math.abs(curData.cash||0);
+    amtInp.value=curAbs>0?curAbs:'';
+  }
+}
+
+// ── وضع ملاحظة سريعة للموزع ──
+function _obDistSetNote(name, note){
+  const inp=document.getElementById('ob-dist-note-'+name);
+  if(inp){ inp.value=note; inp.focus(); }
+}
+
 function _obSaveDistributors(){
   const ob=getOB();
   const dists=(S.clients||[]).filter(c=>c.type==='موزع');
   let savedCount=0;
   dists.forEach(d=>{
-    const cashRaw=parseFloat(document.getElementById('ob-dist-cash-'+d.name)?.value)||0;
+    const rawVal=parseFloat(document.getElementById('ob-dist-cash-'+d.name)?.value)||0;
     const noteV=document.getElementById('ob-dist-note-'+d.name)?.value||'';
     const cashDir=(ob.clients[d.name]?.cashDir)||'عليه_لنا';
-    let cashSigned=cashRaw;
-    if(cashDir==='له_عندنا') cashSigned=-cashRaw;
+    const balType=(ob.clients[d.name]?.balanceType)||'نقد';
+    const isGold=balType==='ذهب';
+    const signed=(cashDir==='له_عندنا')?-rawVal:rawVal;
     if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع'};
-    ob.clients[d.name].cash=cashSigned;
+    // حفظ في الحقل الصحيح حسب النوع — والآخر يصفَّر
+    if(isGold){
+      ob.clients[d.name].gold24=signed;
+      ob.clients[d.name].cash=0;
+    } else {
+      ob.clients[d.name].cash=signed;
+      ob.clients[d.name].gold24=0;
+    }
     ob.clients[d.name].cashDir=cashDir;
+    ob.clients[d.name].balanceType=balType;
     ob.clients[d.name].note=noteV;
     ob.clients[d.name].type='موزع';
-    if(cashRaw>0) savedCount++;
+    if(rawVal>0) savedCount++;
   });
   S.openingBalance=ob;
   sv(); renderObSummary();
@@ -12494,22 +12607,28 @@ function _obSaveDistributors(){
   // ── عرض ملخص مرئي للأرصدة المحفوظة ──
   const sumEl=document.getElementById('ob-dist-summary');
   if(sumEl){
-    const rows=Object.entries(ob.clients||{}).filter(([n,d])=>d.type==='موزع'&&Math.abs(d.cash||0)>0.01);
+    const rows=Object.entries(ob.clients||{}).filter(([n,d])=>d.type==='موزع'&&(Math.abs(d.cash||0)>0.01||Math.abs(d.gold24||0)>0.001));
     if(rows.length){
       let sHtml=`<div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:12px">
         <div style="font-size:12px;font-weight:900;color:var(--ok);margin-bottom:8px">✅ ملخص الأرصدة الافتتاحية للموزعين</div>
         <div style="display:flex;flex-direction:column;gap:6px">`;
       rows.forEach(([name,d])=>{
         const isOwe=d.cashDir==='عليه_لنا';
-        const amt=Math.abs(d.cash||0);
-        sHtml+=`<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 8px;background:var(--c1);border-radius:var(--rc)">
+        const isGold=(d.balanceType==='ذهب');
+        const amt=isGold?Math.abs(d.gold24||0):Math.abs(d.cash||0);
+        const amtStr=isGold?(fmtG?fmtG(amt):amt.toFixed(3)+' ج'):fmt(amt)+' ر';
+        const typeTag=isGold?`<span style="font-size:9px;background:var(--g4);color:var(--g1);border-radius:8px;padding:1px 6px;border:1px solid var(--g5);font-weight:700">🥇 ذهب</span>`:`<span style="font-size:9px;background:var(--in-bg);color:var(--in);border-radius:8px;padding:1px 6px;border:1px solid var(--in-bd);font-weight:700">💵 نقد</span>`;
+        sHtml+=`<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px;background:var(--c1);border-radius:var(--rc)">
           <span style="font-size:16px">🚚</span>
           <div>
-            <div style="font-size:12px;font-weight:800;color:var(--tx1)">${name}</div>
-            ${d.note?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">📝 ${d.note}</div>`:''}
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+              <span style="font-size:12px;font-weight:800;color:var(--tx1)">${name}</span>
+              ${typeTag}
+            </div>
+            ${d.note?`<div style="font-size:10px;color:var(--tx3)">📝 ${d.note}</div>`:''}
           </div>
           <div style="text-align:left">
-            <div style="font-size:13px;font-weight:900;color:${isOwe?'var(--no)':'var(--ok)'}">${fmt(amt)} ر</div>
+            <div style="font-size:13px;font-weight:900;color:${isOwe?'var(--no)':'var(--ok)'}">${amtStr}</div>
             <div style="font-size:9px;color:var(--tx2)">${isOwe?'عليه لنا 🔴':'له عندنا 🟢'}</div>
           </div>
         </div>`;
