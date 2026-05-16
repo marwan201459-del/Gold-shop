@@ -1048,27 +1048,72 @@ body{
       <div id="pay-sec" style="display:none">
         <!-- ══ نوع العملية — إلزامي ══ -->
         <div style="margin-bottom:12px">
-          <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:6px">
-            💵 قبض / صرف — اختر نوع العملية <span style="color:var(--no)">*</span>
+          <!-- ══ محدد النوع العادي (غير الموزع) ══ -->
+          <div id="pay-type-regular-selector">
+            <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:6px">
+              💵 قبض / صرف — اختر نوع العملية <span style="color:var(--no)">*</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button type="button" id="pay-type-receipt"
+                onclick="setPayType('receipt')"
+                style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
+                <div style="font-size:20px;margin-bottom:4px">📥</div>
+                <div style="font-size:13px;font-weight:700;color:var(--ok)">📥 قبض — من عميل</div>
+                <div style="font-size:10px;color:var(--tx2)">استلمت من عميل</div>
+                <div style="font-size:10px;color:var(--ok);margin-top:2px">صندوقك يزيد ↑</div>
+              </button>
+              <button type="button" id="pay-type-payment"
+                onclick="setPayType('payment')"
+                style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
+                <div style="font-size:20px;margin-bottom:4px">📤</div>
+                <div style="font-size:13px;font-weight:700;color:var(--no)">📤 صرف — لمورد</div>
+                <div style="font-size:10px;color:var(--tx2)">دفعت لمورد</div>
+                <div style="font-size:10px;color:var(--no);margin-top:2px">صندوقك ينقص ↓</div>
+              </button>
+            </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <button type="button" id="pay-type-receipt"
-              onclick="setPayType('receipt')"
-              style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
-              <div style="font-size:20px;margin-bottom:4px">📥</div>
-              <div style="font-size:13px;font-weight:700;color:var(--ok)">📥 قبض — من عميل</div>
-              <div style="font-size:10px;color:var(--tx2)">استلمت من عميل</div>
-              <div style="font-size:10px;color:var(--ok);margin-top:2px">صندوقك يزيد ↑</div>
-            </button>
-            <button type="button" id="pay-type-payment"
-              onclick="setPayType('payment')"
-              style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
-              <div style="font-size:20px;margin-bottom:4px">📤</div>
-              <div style="font-size:13px;font-weight:700;color:var(--no)">📤 صرف — لمورد</div>
-              <div style="font-size:10px;color:var(--tx2)">دفعت لمورد</div>
-              <div style="font-size:10px;color:var(--no);margin-top:2px">صندوقك ينقص ↓</div>
-            </button>
+
+          <!-- ══ للموزع المستقل: محدد 4 عمليات واضحة ══ -->
+          <div id="dist-op-selector" style="display:none">
+            <div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:8px;padding:7px 12px;background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.04));border-radius:var(--rc);border:1px solid var(--g5)">
+              🚚 اختر نوع العملية — موزع مستقل
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <!-- 1. صرف بضاعة لعميل -->
+              <button type="button" id="dt-sell" onclick="setDistOpType('sell')"
+                style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center;transition:all .2s">
+                <div style="font-size:20px;margin-bottom:3px">📤</div>
+                <div style="font-size:12px;font-weight:900;color:var(--ok)">صرف بضاعة</div>
+                <div style="font-size:10px;color:var(--tx2);margin-top:1px">لعميل</div>
+                <div style="font-size:9px;color:var(--ok);margin-top:2px">مخزونك ينقص ↓</div>
+              </button>
+              <!-- 2. قبض بضاعة من مورد -->
+              <button type="button" id="dt-buy" onclick="setDistOpType('buy')"
+                style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center;transition:all .2s">
+                <div style="font-size:20px;margin-bottom:3px">📥</div>
+                <div style="font-size:12px;font-weight:900;color:var(--no)">قبض بضاعة</div>
+                <div style="font-size:10px;color:var(--tx2);margin-top:1px">من مورد</div>
+                <div style="font-size:9px;color:var(--no);margin-top:2px">مخزونك يزيد ↑</div>
+              </button>
+              <!-- 3. قبض كسر من عميل -->
+              <button type="button" id="dt-scrap-in" onclick="setDistOpType('scrap-in')"
+                style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center;transition:all .2s">
+                <div style="font-size:20px;margin-bottom:3px">♻️📥</div>
+                <div style="font-size:12px;font-weight:900;color:var(--in)">قبض كسر</div>
+                <div style="font-size:10px;color:var(--tx2);margin-top:1px">من عميل</div>
+                <div style="font-size:9px;color:var(--in);margin-top:2px">كسرك يزيد ↑</div>
+              </button>
+              <!-- 4. صرف كسر لمورد كسداد -->
+              <button type="button" id="dt-scrap-out" onclick="setDistOpType('scrap-out')"
+                style="padding:10px 6px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit;text-align:center;transition:all .2s">
+                <div style="font-size:20px;margin-bottom:3px">♻️📤</div>
+                <div style="font-size:12px;font-weight:900;color:var(--pu)">صرف كسر</div>
+                <div style="font-size:10px;color:var(--tx2);margin-top:1px">لمورد كسداد</div>
+                <div style="font-size:9px;color:var(--pu);margin-top:2px">كسرك ينقص ↓</div>
+              </button>
+            </div>
           </div>
+
           <!-- شرح العملية -->
           <div id="pay-type-hint" style="display:none;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:11px;font-weight:700"></div>
         </div>
@@ -1987,11 +2032,14 @@ body{
     <div class="cb">
       <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;padding:8px 10px;background:var(--ok-bg);border-radius:var(--rc);border:1px solid var(--ok-bd)">
         🚚 <b>خطوة واحدة:</b> اضغط "تحميل الموزعين" لعرض قائمة موزعيك، ثم أدخل الرصيد لكل موزع واضغط حفظ.
+        <br><span style="color:var(--g1);font-weight:700">💡 المبلغ والملاحظة (مصدر الرصيد) موضوعين جنب بعض لسهولة الإدخال.</span>
       </div>
       <div id="ob-dist-list">
         <div class="empty"><div class="ei">🚚</div><p>اضغط "تحميل الموزعين" لعرضهم هنا</p></div>
       </div>
       <button class="btn btn-gold" id="ob-dist-save-btn" style="display:none;margin-top:10px" onclick="_obSaveDistributors()">💾 حفظ أرصدة الموزعين</button>
+      <!-- ملخص أرصدة الموزعين بعد الحفظ -->
+      <div id="ob-dist-summary" style="display:none;margin-top:12px"></div>
     </div>
   </div>
 
@@ -3261,9 +3309,36 @@ function P(id,btn){
   }
   // حماية: صفحات محجوبة عن الموزع
   const _role = currentRole();
-  const _distHidden = ['opening','salary','trialbal'];
+  const _distHidden = ['salary','trialbal'];
   if(_role==='distributor' && _distHidden.includes(id)){
     toast('⛔ هذه الصفحة غير متاحة لحسابك');
+    return;
+  }
+  // الموزع يصل لصفحة الافتتاحي لكن يرى قسمه فقط
+  if(_role==='distributor' && id==='opening'){
+    document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+    document.getElementById('pg-opening').classList.add('on');
+    btn.classList.add('on');
+    closeAllDrops(); renderAll();
+    // إخفاء الأقسام غير المتعلقة بالموزع
+    setTimeout(()=>{
+      const allCards=[...document.querySelectorAll('#pg-opening .card')];
+      allCards.forEach(card=>{
+        const ch=card.querySelector('.ch');
+        if(ch){
+          const txt=ch.textContent||'';
+          // إظهار قسم الموزعين فقط
+          if(txt.includes('رصيد الموزعين')) card.style.display='';
+          else card.style.display='none';
+        }
+      });
+      // إخفاء كرت البداية أيضاً
+      const intro=document.querySelector('#pg-opening > div:first-child');
+      if(intro) intro.style.display='none';
+      // تحميل الموزعين تلقائياً
+      if(typeof _obLoadDistributors==='function') _obLoadDistributors();
+    },80);
     return;
   }
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -3298,6 +3373,10 @@ function openCS(inp,drp,val,types=null){
   const i=document.getElementById(inp),d=document.getElementById(drp);
   const q=i.value.trim().toLowerCase();
   let list=S.clients;
+  // ── للموزع المستقل: فلترة تلقائية حسب نوع العملية المختارة ──
+  if(!types && inp==='pay-cli-s' && currentRole()==='distributor' && window._distAllowedTypes){
+    types=window._distAllowedTypes;
+  }
   if(types) list=list.filter(c=>types.includes(c.type));
   if(q) list=list.filter(c=>c.name.toLowerCase().includes(q));
   d.innerHTML=list.length
@@ -3543,6 +3622,18 @@ function ST(t){
     });
     const pc=document.getElementById('pay-content'); if(pc) pc.style.display='none';
     const ph=document.getElementById('pay-type-hint'); if(ph) ph.style.display='none';
+    // ── إظهار المحدد المناسب حسب الدور ──
+    const _distSel=document.getElementById('dist-op-selector');
+    const _regSel=document.getElementById('pay-type-regular-selector');
+    const _isDist=currentRole()==='distributor';
+    if(_distSel) _distSel.style.display=_isDist?'block':'none';
+    if(_regSel)  _regSel.style.display=_isDist?'none':'block';
+    if(_isDist){
+      ['dt-sell','dt-buy','dt-scrap-in','dt-scrap-out'].forEach(id=>{
+        const b=document.getElementById(id);
+        if(b){b.style.border='2px solid var(--b1)';b.style.background='var(--c2)';}
+      });
+    }
     loadClientBalance();
   } else if(t==='cashrcv'){
     document.getElementById('cashrcv-sec').style.display='block';
@@ -5888,7 +5979,17 @@ function setPayType(type){
   if(currentRole()==='distributor'){
     if(distRow) distRow.style.display='block';
     if(btn){
-      btn.textContent  = isReceipt ? '🚚📥 تسجيل قبض (كفاتورة بيع)' : '🚚📤 تسجيل صرف (كفاتورة شراء)';
+      // الموزع: receipt = صرف بضاعة لعميل، payment = قبض بضاعة من مورد
+      btn.textContent = isReceipt ? '🚚📤 تسجيل صرف بضاعة لعميل' : '🚚📥 تسجيل قبض بضاعة من مورد';
+    }
+    // تحديث hint للموزع
+    const hint2 = document.getElementById('pay-type-hint');
+    if(hint2 && hint2.style.display!=='none'){
+      if(isReceipt){
+        hint2.textContent = '📤 صرف بضاعة لعميل — العميل يدين لك بقيمة البضاعة ✅';
+      } else {
+        hint2.textContent = '📥 قبض بضاعة من مورد — أنت تدين للمورد بقيمة البضاعة ✅';
+      }
     }
   } else {
     if(distRow) distRow.style.display='none';
@@ -5900,6 +6001,102 @@ function setPayType(type){
 
   // تحديث ملخص السداد
   calcPaySummary();
+}
+
+// ════════════════════════════════════════════════════════════
+// للموزع المستقل: معالج الأنواع الأربعة من العمليات
+// ════════════════════════════════════════════════════════════
+function setDistOpType(opType){
+  // ── تمييز الزر المختار ──
+  const colorMap   = {'sell':'var(--ok)','buy':'var(--no)','scrap-in':'var(--in)','scrap-out':'var(--pu)'};
+  const bgMap      = {'sell':'var(--ok-bg)','buy':'var(--no-bg)','scrap-in':'var(--in-bg)','scrap-out':'var(--pu-bg)'};
+  ['dt-sell','dt-buy','dt-scrap-in','dt-scrap-out'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b){b.style.border='2px solid var(--b1)';b.style.background='var(--c2)';}
+  });
+  const active=document.getElementById('dt-'+opType);
+  if(active){
+    active.style.border='2px solid '+(colorMap[opType]||'var(--g1)');
+    active.style.background=bgMap[opType]||'var(--g4)';
+  }
+
+  const hint=document.getElementById('pay-type-hint');
+  const btn =document.getElementById('pay-submit-btn');
+
+  if(opType==='sell'){
+    // ✦ صرف بضاعة لعميل = dist-receipt (العميل يدين لك)
+    setPayType('receipt');
+    if(hint){
+      hint.style.display='block';
+      hint.style.background='var(--ok-bg)';
+      hint.style.border='1px solid var(--ok)';
+      hint.style.color='var(--ok)';
+      hint.innerHTML='📤 <b>صرف بضاعة لعميل</b> — الذهب يخرج من مخزونك • العميل يدين لك بالقيمة ✅';
+    }
+    if(btn){btn.textContent='🚚📤 تسجيل صرف بضاعة لعميل';btn.style.background='var(--ok)';}
+    // تصفية البحث: عملاء وموزعون
+    window._distAllowedTypes=['عميل','موزع'];
+    _distRefreshClientHint('👤 اختر العميل الذي سيأخذ البضاعة');
+
+  } else if(opType==='buy'){
+    // ✦ قبض بضاعة من مورد = dist-payment (أنت تدين للمورد)
+    setPayType('payment');
+    if(hint){
+      hint.style.display='block';
+      hint.style.background='var(--no-bg)';
+      hint.style.border='1px solid var(--no)';
+      hint.style.color='var(--no)';
+      hint.innerHTML='📥 <b>قبض بضاعة من مورد</b> — الذهب يدخل مخزونك • أنت تدين للمورد بالقيمة ✅';
+    }
+    if(btn){btn.textContent='🚚📥 تسجيل قبض بضاعة من مورد';btn.style.background='var(--no)';}
+    // تصفية البحث: موردون فقط
+    window._distAllowedTypes=['مورد'];
+    _distRefreshClientHint('🏭 اختر المورد الذي ستأخذ منه البضاعة');
+
+  } else if(opType==='scrap-in'){
+    // ✦ قبض كسر من عميل → فتح شاشة الكسر
+    const pc=document.getElementById('pay-content');if(pc) pc.style.display='none';
+    if(hint){
+      hint.style.display='block';
+      hint.style.background='var(--in-bg)';
+      hint.style.border='1px solid var(--in)';
+      hint.style.color='var(--in)';
+      hint.innerHTML='♻️📥 <b>قبض كسر من عميل</b> — سيتم نقلك لشاشة قبض الكسر ✅';
+    }
+    setTimeout(()=>{ ST('scrap'); },350);
+
+  } else if(opType==='scrap-out'){
+    // ✦ صرف كسر لمورد كسداد = dist-payment + أصناف كسر
+    setPayType('payment');
+    if(hint){
+      hint.style.display='block';
+      hint.style.background='var(--pu-bg)';
+      hint.style.border='1px solid var(--pu)';
+      hint.style.color='var(--pu)';
+      hint.innerHTML='♻️📤 <b>صرف كسر لمورد كسداد</b> — أضف الكسر كصنف ذهب في "أصناف الذهب" أدناه ✅';
+    }
+    if(btn){btn.textContent='🚚♻️ تسجيل صرف كسر لمورد';btn.style.background='var(--pu)';}
+    // تصفية البحث: موردون فقط
+    window._distAllowedTypes=['مورد'];
+    _distRefreshClientHint('🏭 اختر المورد الذي ستسدد له بالكسر');
+  }
+}
+
+// ── تحديث تلميح البحث عن الجهة للموزع ──
+function _distRefreshClientHint(msg){
+  const lbl=document.querySelector('label[for="pay-cli-s"], #pay-sec label');
+  // تلميح نصي صغير جانب حقل البحث
+  let hintEl=document.getElementById('dist-cli-hint');
+  if(!hintEl){
+    hintEl=document.createElement('div');
+    hintEl.id='dist-cli-hint';
+    hintEl.style.cssText='font-size:10px;color:var(--g1);font-weight:700;margin-top:3px;padding:4px 8px;background:var(--g4);border-radius:6px;border:1px solid var(--g5)';
+    const cliField=document.getElementById('pay-cli-s');
+    if(cliField && cliField.parentElement && cliField.parentElement.parentElement){
+      cliField.parentElement.parentElement.appendChild(hintEl);
+    }
+  }
+  hintEl.textContent=msg;
 }
 
 function refreshGoldItemsLive(){
@@ -12124,12 +12321,18 @@ function _obLoadDistributors(){
           له عندنا 🟢
         </button>
       </div>
-      <input type="number" id="ob-dist-cash-${d.name}" value="${cashAbs||''}" placeholder="0" inputmode="decimal"
-        style="width:100%;padding:10px;border-radius:var(--rc);border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:16px;font-weight:700;color:var(--ok)">
-      <div style="margin-top:8px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">📝 ملاحظة (اختياري)</div>
-        <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}" placeholder="رقم وصل أو ملاحظة..."
-          style="width:100%;padding:8px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+      <!-- ✦ المبلغ والملاحظة جنب بعض ✦ -->
+      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:8px;align-items:flex-start">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px">💵 المبلغ (ريال)</div>
+          <input type="number" id="ob-dist-cash-${d.name}" value="${cashAbs||''}" placeholder="0" inputmode="decimal"
+            style="width:100%;padding:10px;border-radius:var(--rc);border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:16px;font-weight:700;color:var(--ok)">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px">📝 مصدر الرصيد / ملاحظة</div>
+          <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}" placeholder="مثال: دين سابق 2024، جرد أول الشهر..."
+            style="width:100%;padding:10px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
+        </div>
       </div>
     </div>`;
   });
@@ -12182,6 +12385,34 @@ function _obSaveDistributors(){
   logActivity('opening-balance','تعديل الرصيد الافتتاحي للموزعين');
   // إعادة تحميل القائمة لتحديث حالة "لديه رصيد"
   _obLoadDistributors();
+  // ── عرض ملخص مرئي للأرصدة المحفوظة ──
+  const sumEl=document.getElementById('ob-dist-summary');
+  if(sumEl){
+    const rows=Object.entries(ob.clients||{}).filter(([n,d])=>d.type==='موزع'&&Math.abs(d.cash||0)>0.01);
+    if(rows.length){
+      let sHtml=`<div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:12px">
+        <div style="font-size:12px;font-weight:900;color:var(--ok);margin-bottom:8px">✅ ملخص الأرصدة الافتتاحية للموزعين</div>
+        <div style="display:flex;flex-direction:column;gap:6px">`;
+      rows.forEach(([name,d])=>{
+        const isOwe=d.cashDir==='عليه_لنا';
+        const amt=Math.abs(d.cash||0);
+        sHtml+=`<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 8px;background:var(--c1);border-radius:var(--rc)">
+          <span style="font-size:16px">🚚</span>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:var(--tx1)">${name}</div>
+            ${d.note?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">📝 ${d.note}</div>`:''}
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:13px;font-weight:900;color:${isOwe?'var(--no)':'var(--ok)'}">${fmt(amt)} ر</div>
+            <div style="font-size:9px;color:var(--tx2)">${isOwe?'عليه لنا 🔴':'له عندنا 🟢'}</div>
+          </div>
+        </div>`;
+      });
+      sHtml+='</div></div>';
+      sumEl.innerHTML=sHtml;
+      sumEl.style.display='block';
+    }
+  }
 }
 
 
