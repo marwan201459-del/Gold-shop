@@ -4473,7 +4473,9 @@ function doTransfer(){
     ajour,
     unit:gAmt>0&&amt<=0?'جرام':'ريال',
     notes:_roleNote,
-    client:cliName, items:[], total:amt||(ajour>0?ajour:gAmt),
+    client:fromCli||toCli||'',   // الجهة الأساسية (المرسل إن كان جهة)
+    toClient:toCli||'',           // الجهة المستلمة (لضمان ظهور القيد في كشفها)
+    items:[], total:amt||(ajour>0?ajour:gAmt),
     cash:amt, goldPay:gAmt, weight:gAmt
   };
   if(!acquireSave()) return;
@@ -5143,7 +5145,10 @@ function printStmt(){
       }
     }
     const to24rb=(w,k)=>(w||0)*parseFloat(k||'21')/24;
-    const txs=S.transactions.filter(t=>t.client===v).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const txs=S.transactions.filter(t=>
+      t.client===v ||
+      (t.type==='transfer' && (t.fromSafe===('__cli__'+v) || t.toSafe===('__cli__'+v)))
+    ).sort((a,b)=>new Date(a.date)-new Date(b.date));
     let runCash=_obEntry?(_obEntry.cash||0):0;
     let runGold24=_obEntry?(_obEntry.gold24||0):0;
     const rows=txs.map(t=>{
@@ -6369,7 +6374,10 @@ function getClientBalance(cli){
   // المبدأ: كل العمليات تُسجل كدين. التسوية فقط تُخفِّض الدين.
   // الكاش مجرد معلومة وليس رصيداً محاسبياً مستقلاً.
   // ══════════════════════════════════════════════════════════════════
-  const txs = S.transactions.filter(t=>t.client===cli);
+  const txs = S.transactions.filter(t=>
+    t.client===cli ||
+    (t.type==='transfer' && (t.fromSafe===('__cli__'+cli) || t.toSafe===('__cli__'+cli)))
+  );
   const to24 = (w,k) => (w||0)*parseFloat(k||'21')/24;
 
   // ── رصيد الذهب (عيار 24) ──
@@ -11449,7 +11457,10 @@ function renderStmt(){
   const kNames={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 14K'};
   const bal=getClientBalance(v);
   const clientObj=(S.clients||[]).find(cl=>cl.name===v);
-  const txs=S.transactions.filter(t=>t.client===v).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const txs=S.transactions.filter(t=>
+    t.client===v ||
+    (t.type==='transfer' && (t.fromSafe===('__cli__'+v) || t.toSafe===('__cli__'+v)))
+  ).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sellTxs=txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
   const buyTxs=txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
   const payTxs=txs.filter(t=>t.type==='payment'||t.type==='supplier-payment');
