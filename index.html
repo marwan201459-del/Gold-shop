@@ -12169,6 +12169,113 @@ function renderStmt(){
   html += '</div>';
   html += '</div>'; // end entity card
 
+  // ══════════════════════════════════════════════════════════════
+  // ── قسم الرصيد الافتتاحي (للموزعين المستقلين فقط) ──
+  // ══════════════════════════════════════════════════════════════
+  if(clientObj && clientObj.type === 'موزع'){
+    const _obD = (S.openingBalance && S.openingBalance.clients && S.openingBalance.clients[v]) || {};
+    const _obDCashAbs = Math.abs(_obD.cash || 0);
+    const _obDDir = _obD.cashDir || 'عليه_لنا';
+    const _obDNote = (_obD.note || '').replace(/'/g, '&#39;');
+    const _obDSrc  = (_obD.source || '').replace(/'/g, '&#39;');
+    const _hasOB   = _obDCashAbs > 0.01;
+    const _vSafe   = v.replace(/'/g,"__APOS__");
+
+    html += `
+    <div style="background:var(--c1);border:2px solid ${_hasOB ? 'var(--ok-bd)' : 'var(--b2)'};
+      border-radius:14px;margin-bottom:12px;overflow:hidden">
+
+      <!-- رأس القسم -->
+      <div style="padding:10px 14px;background:${_hasOB ? 'var(--ok-bg)' : 'var(--c2)'};
+        border-bottom:1px solid ${_hasOB ? 'var(--ok-bd)' : 'var(--b1)'};
+        display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:16px">🏁</span>
+          <span style="font-size:13px;font-weight:900;color:var(--tx1)">الرصيد الافتتاحي</span>
+          ${_hasOB ? `<span style="background:var(--ok);color:#fff;font-size:9px;padding:2px 9px;border-radius:20px;font-weight:800">
+            ${_obDDir === 'له_عندنا' ? 'له عندنا' : 'عليه لنا'} ${fmt(_obDCashAbs)} ر</span>` : ''}
+        </div>
+        <button onclick="_stmtToggleOBForm('${_vSafe}')"
+          id="ob-stmt-toggle-${_vSafe}"
+          style="padding:4px 11px;border-radius:20px;border:1.5px solid var(--b2);background:var(--c3);
+          font-family:inherit;font-size:11px;font-weight:700;color:var(--tx2);cursor:pointer">
+          ${_hasOB ? '✏️ تعديل' : '➕ إضافة'}
+        </button>
+      </div>
+
+      <!-- نموذج الإدخال (مخفي مبدئياً) -->
+      <div id="ob-stmt-form-${_vSafe}" style="display:none;padding:14px">
+
+        <!-- السطر الأول: المبلغ + الجهة/الصندوق + الملاحظة -->
+        <div style="display:grid;grid-template-columns:100px 1fr 1fr;gap:8px;margin-bottom:10px;align-items:end">
+          <div>
+            <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">💵 المبلغ (ريال)</div>
+            <input type="number" id="ob-stmt-amt-${_vSafe}" value="${_obDCashAbs || ''}" placeholder="0"
+              inputmode="decimal"
+              style="width:100%;padding:10px 6px;border-radius:10px;border:2px solid var(--ok-bd);
+              background:var(--c2);font-family:inherit;font-size:20px;font-weight:900;
+              color:var(--ok);text-align:center">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">🏦 الجهة / الصندوق</div>
+            <input type="text" id="ob-stmt-src-${_vSafe}" value="${_obDSrc}"
+              placeholder="مثال: الصندوق الرئيسي، جهة X..."
+              style="width:100%;padding:10px 10px;border-radius:10px;border:1.5px solid var(--b2);
+              background:var(--c2);font-family:inherit;font-size:12px;color:var(--tx1)">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">📝 ملاحظة</div>
+            <input type="text" id="ob-stmt-note-${_vSafe}" value="${_obDNote}"
+              placeholder="أي تفاصيل إضافية..."
+              style="width:100%;padding:10px 10px;border-radius:10px;border:1.5px solid var(--b2);
+              background:var(--c2);font-family:inherit;font-size:12px;color:var(--tx1)">
+          </div>
+        </div>
+
+        <!-- مصادر سريعة -->
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+          ${['🗄️ الصندوق الرئيسي','🏦 صندوق الذهب','👥 من جهة','📦 جرد سابق','💸 دين قديم'].map(s=>`
+          <button type="button" onclick="document.getElementById('ob-stmt-src-${_vSafe}').value='${s}'"
+            style="padding:4px 11px;border-radius:20px;border:1px solid var(--b2);background:var(--c2);
+            font-family:inherit;font-size:11px;font-weight:700;color:var(--tx2);cursor:pointer;
+            transition:all .15s"
+            onmouseover="this.style.borderColor='var(--g1)';this.style.color='var(--g1)';this.style.background='var(--g4)'"
+            onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--tx2)';this.style.background='var(--c2)'"
+            >${s}</button>`).join('')}
+        </div>
+
+        <!-- اتجاه الرصيد -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+          <button type="button" id="ob-stmt-owe-${_vSafe}"
+            onclick="_stmtOBSetDir('${_vSafe}','عليه_لنا')"
+            style="padding:9px 6px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;
+            border:2px solid ${_obDDir==='عليه_لنا'?'var(--no)':'var(--b2)'};
+            background:${_obDDir==='عليه_لنا'?'var(--no-bg)':'var(--c2)'};
+            color:${_obDDir==='عليه_لنا'?'var(--no)':'var(--tx2)'}">
+            عليه لنا 🔴
+          </button>
+          <button type="button" id="ob-stmt-have-${_vSafe}"
+            onclick="_stmtOBSetDir('${_vSafe}','له_عندنا')"
+            style="padding:9px 6px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;
+            border:2px solid ${_obDDir==='له_عندنا'?'var(--ok)':'var(--b2)'};
+            background:${_obDDir==='له_عندنا'?'var(--ok-bg)':'var(--c2)'};
+            color:${_obDDir==='له_عندنا'?'var(--ok)':'var(--tx2)'}">
+            له عندنا 🟢
+          </button>
+        </div>
+
+        <!-- زر الحفظ -->
+        <button onclick="_stmtSaveDistOB('${_vSafe}')"
+          style="width:100%;padding:12px;border-radius:12px;border:none;
+          background:linear-gradient(135deg,var(--ok),#1aaf69);color:#fff;
+          font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;letter-spacing:.3px">
+          💾 حفظ الرصيد الافتتاحي
+        </button>
+      </div>
+    </div>`;
+  }
+  // ══════════════════════════════════════════════════════════════
+
   // ── سجل الحركات ──
   html += '<div class="card">';
   html += '<div class="ch">📋 سجل الحركات (' + txs.length + ')</div>';
@@ -12204,6 +12311,84 @@ function renderStmt(){
   html += '</div></div>';
 
   body.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// رصيد الموزع الافتتاحي — من داخل كشف الحساب
+// ══════════════════════════════════════════════════════════════
+function _stmtToggleOBForm(safeV){
+  const realName = safeV.replace(/__APOS__/g,"'");
+  const formEl   = document.getElementById('ob-stmt-form-' + safeV);
+  const btnEl    = document.getElementById('ob-stmt-toggle-' + safeV);
+  if(!formEl) return;
+  const isOpen = formEl.style.display !== 'none';
+  formEl.style.display = isOpen ? 'none' : 'block';
+  if(btnEl) btnEl.textContent = isOpen ? '➕ إضافة' : '✖️ إغلاق';
+  // تأكد الاتجاه محدد بشكل صحيح عند الفتح
+  if(!isOpen){
+    const ob = getOB();
+    const data = (ob.clients && ob.clients[realName]) || {};
+    _stmtOBRefreshDir(safeV, data.cashDir || 'عليه_لنا');
+  }
+}
+
+// تحديث مظهر أزرار الاتجاه دون حفظ
+function _stmtOBSetDir(safeV, dir){
+  _stmtOBRefreshDir(safeV, dir);
+  // حفظ الاختيار مؤقتاً في عنصر مخفي
+  const hdnEl = document.getElementById('ob-stmt-dir-' + safeV);
+  if(hdnEl) hdnEl.value = dir;
+  else {
+    const h = document.createElement('input');
+    h.type = 'hidden'; h.id = 'ob-stmt-dir-' + safeV; h.value = dir;
+    const form = document.getElementById('ob-stmt-form-' + safeV);
+    if(form) form.appendChild(h);
+  }
+}
+
+function _stmtOBRefreshDir(safeV, dir){
+  const oweBtn  = document.getElementById('ob-stmt-owe-'  + safeV);
+  const haveBtn = document.getElementById('ob-stmt-have-' + safeV);
+  if(oweBtn){
+    oweBtn.style.borderColor = dir==='عليه_لنا' ? 'var(--no)' : 'var(--b2)';
+    oweBtn.style.background  = dir==='عليه_لنا' ? 'var(--no-bg)' : 'var(--c2)';
+    oweBtn.style.color       = dir==='عليه_لنا' ? 'var(--no)' : 'var(--tx2)';
+  }
+  if(haveBtn){
+    haveBtn.style.borderColor = dir==='له_عندنا' ? 'var(--ok)' : 'var(--b2)';
+    haveBtn.style.background  = dir==='له_عندنا' ? 'var(--ok-bg)' : 'var(--c2)';
+    haveBtn.style.color       = dir==='له_عندنا' ? 'var(--ok)' : 'var(--tx2)';
+  }
+}
+
+function _stmtSaveDistOB(safeV){
+  const realName = safeV.replace(/__APOS__/g,"'");
+  const amtEl    = document.getElementById('ob-stmt-amt-'  + safeV);
+  const srcEl    = document.getElementById('ob-stmt-src-'  + safeV);
+  const noteEl   = document.getElementById('ob-stmt-note-' + safeV);
+  const dirEl    = document.getElementById('ob-stmt-dir-'  + safeV);
+  const rawAmt   = parseFloat(amtEl?.value) || 0;
+  const srcV     = srcEl?.value || '';
+  const noteV    = noteEl?.value || '';
+  // قراءة الاتجاه: من العنصر المخفي أو من الزر المفعّل
+  let dirV = dirEl ? dirEl.value : 'عليه_لنا';
+  const ob = getOB();
+  if(!ob.clients) ob.clients = {};
+  if(!ob.clients[realName]) ob.clients[realName] = {cash:0, gold24:0, type:'موزع'};
+  const signed = (dirV === 'له_عندنا') ? -rawAmt : rawAmt;
+  ob.clients[realName].cash      = signed;
+  ob.clients[realName].gold24    = ob.clients[realName].gold24 || 0;
+  ob.clients[realName].cashDir   = dirV;
+  ob.clients[realName].balanceType = 'نقد';
+  ob.clients[realName].source    = srcV;
+  ob.clients[realName].note      = noteV;
+  ob.clients[realName].type      = 'موزع';
+  S.openingBalance = ob;
+  sv();
+  toast('✅ تم حفظ الرصيد الافتتاحي لـ ' + realName);
+  logActivity('opening-balance', 'تعديل رصيد افتتاحي للموزع: ' + realName);
+  // إعادة رسم كشف الحساب لتحديث الرصيد الافتتاحي في الجدول
+  renderStmt();
 }
 
 // ── Clients CRUD ───────────────────────────────────────────────────
