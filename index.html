@@ -2031,8 +2031,8 @@ body{
     </div>
     <div class="cb">
       <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;padding:8px 10px;background:var(--ok-bg);border-radius:var(--rc);border:1px solid var(--ok-bd)">
-        🚚 <b>خطوة واحدة:</b> اضغط "تحميل الموزعين" لعرض قائمة موزعيك، ثم أدخل الرصيد لكل موزع واضغط حفظ.
-        <br><span style="color:var(--g1);font-weight:700">💡 المبلغ والملاحظة (مصدر الرصيد) موضوعين جنب بعض لسهولة الإدخال.</span>
+        🚚 <b>خطوة واحدة:</b> اضغط "تحميل الموزعين" ← أدخل المبلغ واختر المصدر لكل موزع ← اضغط حفظ.
+        <br><span style="color:var(--g1);font-weight:700">💡 المبلغ والملاحظة جنب بعض — اختر مصدراً سريعاً أو اكتب بنفسك.</span>
       </div>
       <div id="ob-dist-list">
         <div class="empty"><div class="ei">🚚</div><p>اضغط "تحميل الموزعين" لعرضهم هنا</p></div>
@@ -12591,109 +12591,92 @@ function _obLoadDistributors(){
   const ob=getOB();
   const dists=(S.clients||[]).filter(c=>c.type==='موزع');
   if(!dists.length){
-    el.innerHTML='<div class="empty"><div class="ei">🚚</div><p>لا يوجد موزعون مسجلون في النظام — أضف موزعين أولاً من صفحة العملاء</p></div>';
+    el.innerHTML='<div class="empty"><div class="ei">🚚</div><p>لا يوجد موزعون مسجلون — أضف موزعين من صفحة الجهات أولاً</p></div>';
     if(saveBtn) saveBtn.style.display='none';
     return;
   }
-  // تسجيل كل الموزعين في ob.clients إن لم يكونوا موجودين
   dists.forEach(d=>{
-    if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع',balanceType:'نقد'};
+    if(!ob.clients[d.name]) ob.clients[d.name]={cash:0,gold24:0,type:'موزع',balanceType:'نقد',cashDir:'عليه_لنا'};
   });
 
-  // أسباب سريعة شائعة
-  const quickSources = ['رصيد من المكتب','من جهة خارجية','رصيد شخصي','تحويل سابق','جرد أول الشهر','دين سابق'];
+  /* ── أسباب سريعة ── */
+  const quickSources=[
+    {lbl:'👥 من جهة',    val:'من جهة'},
+    {lbl:'🗄️ من صندوق', val:'من صندوق'},
+    {lbl:'📦 جرد سابق',  val:'جرد سابق'},
+    {lbl:'💸 دين قديم',  val:'دين قديم'},
+    {lbl:'🔄 تحويل',     val:'تحويل'}
+  ];
 
-  let html='<div style="display:flex;flex-direction:column;gap:12px">';
+  let html='<div style="display:flex;flex-direction:column;gap:10px">';
   dists.forEach(d=>{
-    const data=ob.clients[d.name]||{cash:0,gold24:0,balanceType:'نقد'};
-    const balType=data.balanceType||'نقد';
-    const isGold=balType==='ذهب';
-    const cashAbs=Math.abs(data.cash||0);
-    const goldAbs=Math.abs(data.gold24||0);
-    const curAmt=isGold?(goldAbs||''):(cashAbs||'');
+    const data=ob.clients[d.name]||{cash:0,gold24:0,balanceType:'نقد',cashDir:'عليه_لنا'};
     const cashDir=data.cashDir||'عليه_لنا';
-    const hasBalance=(cashAbs>0.01)||(goldAbs>0.001);
-    const sn=d.name.replace(/\s/g,'_').replace(/'/g,'');
+    const cashAbs=Math.abs(data.cash||0);
+    const hasBalance=cashAbs>0.01;
+    const sn=d.name.replace(/\s/g,'_').replace(/['"]/g,'');
     const esc=d.name.replace(/'/g,"\\'");
 
-    html+=`<div style="background:var(--c2);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:12px">
+    html+=`
+    <div style="background:var(--c1);border:2px solid ${hasBalance?'var(--ok-bd)':'var(--b2)'};
+      border-radius:14px;padding:14px;transition:all .2s">
 
-      <!-- ─ رأس الموزع ─ -->
+      <!-- ── رأس الموزع ── -->
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <span style="font-size:22px">🚚</span>
         <div style="flex:1">
-          <div style="font-size:15px;font-weight:800;color:var(--tx1)">${d.name}</div>
-          <div style="font-size:10px;color:var(--ok);font-weight:700">موزع${d.phone?` · ${d.phone}`:''}</div>
+          <div style="font-size:15px;font-weight:900;color:var(--tx1)">${d.name}</div>
+          ${d.phone?`<div style="font-size:10px;color:var(--tx3)">${d.phone}</div>`:''}
         </div>
-        ${hasBalance?`<span style="background:var(--ok);color:#fff;font-size:10px;padding:3px 9px;border-radius:10px;font-weight:700">✓ لديه رصيد</span>`:''}
+        ${hasBalance?`<span style="background:var(--ok);color:#fff;font-size:9px;padding:2px 9px;border-radius:20px;font-weight:800">✓ لديه رصيد</span>`:''}
       </div>
 
-      <!-- ─ نوع الرصيد ─ -->
-      <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📂 نوع الرصيد</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <button type="button" onclick="_obDistSetType('${esc}','نقد')"
-            id="ob-dist-type-cash-${sn}"
-            style="padding:9px 6px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
-              border:2px solid ${!isGold?'var(--in)':'var(--b2)'};
-              background:${!isGold?'var(--in-bg)':'var(--c1)'};
-              color:${!isGold?'var(--in)':'var(--tx2)'}">
-            💵 نقد (ريال)
-          </button>
-          <button type="button" onclick="_obDistSetType('${esc}','ذهب')"
-            id="ob-dist-type-gold-${sn}"
-            style="padding:9px 6px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
-              border:2px solid ${isGold?'var(--g1)':'var(--b2)'};
-              background:${isGold?'var(--g4)':'var(--c1)'};
-              color:${isGold?'var(--g1)':'var(--tx2)'}">
-            🥇 ذهب (جرام)
-          </button>
+      <!-- ── المبلغ + الملاحظة جنب بعض ── -->
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:8px;margin-bottom:10px;align-items:end">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">💵 المبلغ (ريال)</div>
+          <input type="number" id="ob-dist-cash-${d.name}" value="${cashAbs||''}" placeholder="0"
+            inputmode="decimal"
+            style="width:100%;padding:10px 8px;border-radius:10px;border:2px solid var(--ok-bd);
+            background:var(--c2);font-family:inherit;font-size:20px;font-weight:900;
+            color:var(--ok);text-align:center">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">📝 الملاحظة / المصدر</div>
+          <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}"
+            placeholder="من وين الرصيد؟ اكتب هنا..."
+            style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--b2);
+            background:var(--c2);font-family:inherit;font-size:13px;color:var(--tx1)">
         </div>
       </div>
 
-      <!-- ─ اتجاه الرصيد ─ -->
-      <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📊 اتجاه الرصيد</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <button type="button" onclick="_obDistSetDir('${esc}','عليه_لنا')"
-            id="ob-dist-owe-${sn}"
-            style="padding:9px 6px;border-radius:8px;border:2px solid ${cashDir==='عليه_لنا'?'var(--no)':'var(--b2)'};
-              background:${cashDir==='عليه_لنا'?'var(--no-bg)':'var(--c1)'};
-              color:${cashDir==='عليه_لنا'?'var(--no)':'var(--tx2)'};
-              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-            عليه لنا 🔴
-          </button>
-          <button type="button" onclick="_obDistSetDir('${esc}','له_عندنا')"
-            id="ob-dist-have-${sn}"
-            style="padding:9px 6px;border-radius:8px;border:2px solid ${cashDir==='له_عندنا'?'var(--ok)':'var(--b2)'};
-              background:${cashDir==='له_عندنا'?'var(--ok-bg)':'var(--c1)'};
-              color:${cashDir==='له_عندنا'?'var(--ok)':'var(--tx2)'};
-              font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-            له عندنا 🟢
-          </button>
-        </div>
+      <!-- ── أسباب سريعة ── -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+        ${quickSources.map(s=>`<button type="button" onclick="_obDistSetNote('${esc}','${s.val}')"
+          style="padding:4px 11px;border-radius:20px;border:1px solid var(--b2);background:var(--c2);
+          font-family:inherit;font-size:11px;font-weight:700;color:var(--tx2);cursor:pointer;
+          transition:all .15s"
+          onmouseover="this.style.borderColor='var(--g1)';this.style.color='var(--g1)';this.style.background='var(--g4)'"
+          onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--tx2)';this.style.background='var(--c2)'"
+          >${s.lbl}</button>`).join('')}
       </div>
 
-      <!-- ─ المبلغ ─ -->
-      <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px" id="ob-dist-amt-lbl-${sn}">${isGold?'🥇 الكمية (جرام عيار 24)':'💵 المبلغ (ريال)'}</div>
-        <input type="number" id="ob-dist-cash-${d.name}" value="${curAmt}" placeholder="0" inputmode="decimal"
-          style="width:100%;padding:12px;border-radius:var(--rc);border:1.5px solid var(--ok-bd);background:var(--c1);font-family:inherit;font-size:18px;font-weight:800;color:${isGold?'var(--g1)':'var(--ok)'}">
-      </div>
-
-      <!-- ─ مصدر الرصيد (أسباب سريعة + ملاحظة) ─ -->
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📝 مصدر / سبب الرصيد</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
-          ${quickSources.map(src=>`<button type="button"
-            onclick="_obDistSetNote('${esc}','${src}')"
-            style="padding:4px 10px;border-radius:20px;border:1px solid var(--b2);background:var(--c1);
-              font-family:inherit;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;
-              transition:all .15s" onmouseover="this.style.borderColor='var(--g1)';this.style.color='var(--g1)'"
-            onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--tx2)'">${src}</button>`).join('')}
-        </div>
-        <input type="text" id="ob-dist-note-${d.name}" value="${data.note||''}" placeholder="أو اكتب السبب بنفسك..."
-          style="width:100%;padding:10px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c1);font-family:inherit;font-size:13px;color:var(--tx1)">
+      <!-- ── اتجاه الرصيد ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button type="button" onclick="_obDistSetDir('${esc}','عليه_لنا')" id="ob-dist-owe-${sn}"
+          style="padding:9px 6px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;
+          border:2px solid ${cashDir==='عليه_لنا'?'var(--no)':'var(--b2)'};
+          background:${cashDir==='عليه_لنا'?'var(--no-bg)':'var(--c2)'};
+          color:${cashDir==='عليه_لنا'?'var(--no)':'var(--tx2)'}">
+          عليه لنا 🔴
+        </button>
+        <button type="button" onclick="_obDistSetDir('${esc}','له_عندنا')" id="ob-dist-have-${sn}"
+          style="padding:9px 6px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;
+          border:2px solid ${cashDir==='له_عندنا'?'var(--ok)':'var(--b2)'};
+          background:${cashDir==='له_عندنا'?'var(--ok-bg)':'var(--c2)'};
+          color:${cashDir==='له_عندنا'?'var(--ok)':'var(--tx2)'}">
+          له عندنا 🟢
+        </button>
       </div>
     </div>`;
   });
