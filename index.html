@@ -2623,6 +2623,7 @@ body{
             <th style="padding:8px;text-align:center;color:var(--g1)">👑 مالك</th>
             <th style="padding:8px;text-align:center;color:var(--g1)">🔑 مدير</th>
             <th style="padding:8px;text-align:center">📊 محاسب</th>
+            <th style="padding:8px;text-align:center;color:#28C8D8">👁️ مراقب</th>
             <th style="padding:8px;text-align:center;color:var(--tx2)">👤 موظف</th>
           </tr>
         </thead>
@@ -2644,6 +2645,7 @@ body{
       <select id="u-role">
         <option value="admin">🔑 مدير (كامل الصلاحيات)</option>
         <option value="accountant">📊 محاسب (إضافة وتعديل، بدون حذف)</option>
+        <option value="viewer">👁️ مراقب (عرض الحسابات فقط، بدون تعديل)</option>
         <option value="user">👤 موظف (عرض فقط)</option>
       </select>
     </div>
@@ -2864,7 +2866,11 @@ let draftItems=[];
 let itemCounter=0;
 
 // sv defined below by Firebase module
-function sv(){ if(window.sv_save) window.sv_save(); }
+function sv(){
+  // ⛔ المراقب لا يحفظ أي تغيير
+  if(currentRole && currentRole()==='viewer') return;
+  if(window.sv_save) window.sv_save();
+}
 
 const SM_BASE={
   cash:      {label:'💵 الصندوق النقدي',    unit:'ريال', cls:'cash',   type:'cash'},
@@ -7823,21 +7829,27 @@ function renderDebts(){
 function renderPermTable(){
   const el = document.getElementById('perm-table-body');
   if(!el) return;
+  // [label, owner/admin, accountant, viewer, user]
   const rows = [
-    ['➕ إضافة بيانات',         true,  true,  false],
-    ['✏️ تعديل بيانات',         true,  true,  false],
-    ['🗑️ حذف بيانات',           true,  false, false],
-    ['📊 الاطلاع على التقارير', true,  true,  false],
-    ['⚙️ إعدادات النظام',       true,  false, false],
-    ['👥 إدارة المستخدمين',     true,  false, false],
-    ['📋 سجل النشاط',           true,  true,  false],
+    ['➕ إضافة بيانات',         true,  true,  false, false],
+    ['✏️ تعديل بيانات',         true,  true,  false, false],
+    ['🗑️ حذف بيانات',           true,  false, false, false],
+    ['📊 الاطلاع على التقارير', true,  true,  true,  false],
+    ['👁️ عرض الحسابات والأرصدة',true,  true,  true,  false],
+    ['⚙️ إعدادات النظام',       true,  false, false, false],
+    ['👥 إدارة المستخدمين',     true,  false, false, false],
+    ['📋 سجل النشاط',           true,  true,  false, false],
   ];
-  el.innerHTML = rows.map(([label,a,b,u])=>`
+  const ck = (v) => v
+    ? '<span style="color:var(--g);font-size:16px">✓</span>'
+    : '<span style="color:var(--r);font-size:14px">✕</span>';
+  el.innerHTML = rows.map(([label,a,b,v,u])=>`
     <tr style="border-bottom:1px solid var(--b1)">
       <td style="padding:9px 12px;font-weight:600">${label}</td>
-      <td style="text-align:center;padding:9px">${a?'<span style="color:var(--g);font-size:16px">✓</span>':'<span style="color:var(--r);font-size:14px">✕</span>'}</td>
-      <td style="text-align:center;padding:9px">${b?'<span style="color:var(--g);font-size:16px">✓</span>':'<span style="color:var(--r);font-size:14px">✕</span>'}</td>
-      <td style="text-align:center;padding:9px">${u?'<span style="color:var(--g);font-size:16px">✓</span>':'<span style="color:var(--r);font-size:14px">✕</span>'}</td>
+      <td style="text-align:center;padding:9px">${ck(a)}</td>
+      <td style="text-align:center;padding:9px">${ck(b)}</td>
+      <td style="text-align:center;padding:9px">${ck(v)}</td>
+      <td style="text-align:center;padding:9px">${ck(u)}</td>
     </tr>`).join('');
 }
 function renderUsers(){
@@ -7849,9 +7861,11 @@ function renderUsers(){
   users.forEach((u,i)=>{
     const isMe = u.username === currentUser;
     const roleLabel = u.role==='admin' ? '🔑 مدير' :
-                   u.role==='accountant' ? '📊 محاسب' : '👤 موظف';
+                   u.role==='accountant' ? '📊 محاسب' :
+                   u.role==='viewer' ? '👁️ مراقب' : '👤 موظف';
     const roleColor = u.role==='admin' ? 'var(--au1)' :
-                      u.role==='accountant' ? 'var(--g)' : 'var(--tx2)';
+                      u.role==='accountant' ? 'var(--g)' :
+                      u.role==='viewer' ? '#28C8D8' : 'var(--tx2)';
     html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--c2);border-radius:12px;margin-bottom:8px;border:1px solid var(--b1)">
       <div>
         <div style="font-weight:700;font-size:14px">${u.label||u.username} ${isMe?'<span style="font-size:11px;color:#28C8D8">(أنت)</span>':''}</div>
@@ -9216,7 +9230,7 @@ function logout(){
 //  لوحة إدارة المستخدمين — للمالك فقط
 // ══════════════════════════════════════════════════════
 
-const _ROLE_LBL = { owner:'👑 مالك', tenant:'🏢 مالك مستقل', distributor:'🚚 موزع مستقل', admin:'🔑 مدير', accountant:'📊 محاسب', user:'👤 موظف' };
+const _ROLE_LBL = { owner:'👑 مالك', tenant:'🏢 مالك مستقل', distributor:'🚚 موزع مستقل', admin:'🔑 مدير', accountant:'📊 محاسب', viewer:'👁️ مراقب', user:'👤 موظف' };
 
 async function openUsersPanel(){
   const myRole = sessionStorage.getItem('auth-role')||'user';
@@ -9329,7 +9343,7 @@ async function openUsersPanel(){
 
     <!-- فورم إضافة موظف -->
     <div id="_add_staff_form" style="background:var(--g4);border:1.5px solid var(--g5);border-radius:12px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:10px">➕ موظف / مدير / محاسب</div>
+      <div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:10px">➕ موظف / مدير / محاسب / مراقب</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
         <input id="_nu_lbl" placeholder="الاسم الكامل" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
         <input id="_nu_usr" placeholder="اليوزر (انجليزي)" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;direction:ltr;color:var(--tx1)">
@@ -9339,6 +9353,7 @@ async function openUsersPanel(){
         <select id="_nu_rol" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--b2);background:var(--c1);font-family:inherit;font-size:12px;color:var(--tx1)">
           <option value="user">👤 موظف</option>
           <option value="accountant">📊 محاسب</option>
+          <option value="viewer">👁️ مراقب</option>
           <option value="admin">🔑 مدير</option>
         </select>
       </div>
@@ -9683,6 +9698,12 @@ const PERMISSIONS = {
     reports:true, settings:false, users:false, actlog:false,
     hideOpening:true,
   },
+  viewer: {
+    add:false, edit:false, delete:false, approve:false,
+    reports:true, settings:false, users:false, actlog:false,
+    hideOpening:false,
+    readOnly:true,
+  },
   user: {
     add:false, edit:false, delete:false, approve:false,
     reports:false, settings:false, users:false, actlog:false,
@@ -9746,6 +9767,40 @@ function applyPermissions(){
   // ── زر "المستخدمون" في الهيدر — owner فقط ──
   const ubtn = document.getElementById('btn-users-panel');
   if(ubtn) ubtn.style.display = perm.users ? 'inline-block' : 'none';
+
+  // ── شريط تنبيه المراقب ──
+  let viewerBar = document.getElementById('viewer-readonly-bar');
+  if(role === 'viewer'){
+    if(!viewerBar){
+      viewerBar = document.createElement('div');
+      viewerBar.id = 'viewer-readonly-bar';
+      viewerBar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9998;background:linear-gradient(90deg,#1a1505,#0d1a2a,#1a1505);border-top:1.5px solid rgba(40,200,216,.35);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Tajawal,sans-serif;font-size:12px;font-weight:700;color:rgba(40,200,216,.90);box-shadow:0 -4px 16px rgba(0,0,0,.4)';
+      viewerBar.innerHTML = '👁️ وضع المراقبة — يمكنك عرض جميع الحسابات والتقارير دون إجراء أي تعديلات';
+      document.body.appendChild(viewerBar);
+    }
+    // تعطيل جميع أزرار الإجراءات للمراقب
+    document.querySelectorAll('button:not(#gtk-refresh-btn):not(.tab):not(.xbtn):not(.mc):not([onclick*="P("])').forEach(btn=>{
+      const oc = btn.getAttribute('onclick')||btn.textContent||'';
+      const blocked = ['save','add','delete','edit','حفظ','إضافة','حذف','تعديل','صرف','فاتورة','بيع','شراء','تحويل','دفع','سداد','راتب','استلام'];
+      if(blocked.some(k => oc.includes(k) || btn.textContent.includes(k))){
+        btn.disabled = true;
+        btn.style.opacity = '0.35';
+        btn.style.cursor = 'not-allowed';
+        btn.title = '⛔ المراقب لا يملك صلاحية تنفيذ هذا الإجراء';
+      }
+    });
+    // تعطيل جميع حقول الإدخال
+    document.querySelectorAll('input:not([readonly]):not([type="search"]):not([type="text"][id*="filter"]):not([type="text"][id*="search"]):not([type="text"][id*="q"]), select:not([id*="filter"]):not([id*="sort"]), textarea').forEach(inp=>{
+      if(!inp.closest('#viewer-readonly-bar') && !inp.closest('#login-screen')){
+        inp.setAttribute('readonly','');
+        inp.style.opacity = '0.6';
+        inp.style.cursor = 'not-allowed';
+        inp.style.pointerEvents = 'none';
+      }
+    });
+  } else {
+    if(viewerBar) viewerBar.remove();
+  }
 }
 
 // ═══════════════════════════════════════════════
