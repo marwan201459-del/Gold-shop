@@ -2927,6 +2927,19 @@ function calcSafes(){
   if(_tob.gold21) base.worked21= (base.worked21||0) + _tob.gold21;
   if(_tob.gold24) base.pure24  = (base.pure24  ||0) + _tob.gold24;
 
+  // ── دمج أثر distPersonalOpening على الصناديق والنقدية ──
+  Object.values(S.distPersonalOpening||{}).forEach(entries=>{
+    (entries||[]).forEach(e=>{
+      if(!e.amount) return;
+      const sign = (e.direction==='له_عندنا') ? 1 : -1;
+      if(e.sourceType==='صندوق' && e.sourceId){
+        base[e.sourceId] = (base[e.sourceId]||0) + sign*e.amount;
+      } else if(['نقدية','وارد','أخرى'].includes(e.sourceType)){
+        base.cash = (base.cash||0) + sign*e.amount;
+      }
+    });
+  });
+
   const safes = {
     // ─ نقد ─
     cash:        base.cash        || 0,
@@ -5559,14 +5572,41 @@ function printStmt(){
         <td style="font-size:11px;white-space:nowrap">${wtStr}${gold24Str&&gold24Str!==wtStr?`<br><span style="color:#C9922A;font-size:10px">ع24: ${gold24Str}</span>`:''}</td>
         <td style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
     }).join('');
-    const obRow=_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)?`
-      <tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
+    // ── صفوف الرصيد الافتتاحي الأساسية ──
+    let obRow='';
+    if(_obEntry&&(Math.abs(_obEntry.cash||0)>0.01||Math.abs(_obEntry.gold24||0)>0.001)){
+      obRow+=`<tr style="background:#FFF9E6;border-bottom:2px solid #C9922A">
         <td>—<br><small>رصيد مرحّل</small></td>
         <td><b>🏁 رصيد افتتاحي</b>${_obEntry.balanceType?`<span style="font-size:9px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;padding:1px 6px;margin-right:4px;color:#92400E;font-weight:700">${_obEntry.balanceType==='ذهب'?'🥇 ذهب':'💵 نقد'}</span>`:''}${_obEntry.note?`<br><small style="color:#92400E">📝 ${_obEntry.note}</small>`:''}</td>
         <td>${Math.abs(_obEntry.cash||0)>0.01?`${_obEntry.cash>0?'عليه':'له'} ${fmt(Math.abs(_obEntry.cash))} ر`:''}${Math.abs(_obEntry.gold24||0)>0.001?`<br>${fmtG(Math.abs(_obEntry.gold24))} ج ع24`:''}</td>
         <td>${Math.abs(_obEntry.cash||0)>0.01?`<span class="${_obEntry.cash>0?'neg':'pos'}">${fmt(Math.abs(_obEntry.cash))} ر</span>`:'—'}</td>
         <td>${Math.abs(_obEntry.gold24||0)>0.001?fmtG(Math.abs(_obEntry.gold24))+' ج':'—'}</td>
-        <td>—</td></tr>`:'';
+        <td>—</td></tr>`;
+    }
+    // ── صفوف أرصدة الموزعين المرتبطة بهذه الجهة ──
+    const _cliRec2 = (S.clients||[]).find(c=>c.name===client);
+    if(_cliRec2){
+      Object.entries(S.distPersonalOpening||{}).forEach(([distUser,entries])=>{
+        (entries||[]).forEach(e=>{
+          if(!e.sourceId||!e.amount) return;
+          if(e.sourceId===('cli_'+_cliRec2.id)){
+            const isOweUs = e.direction==='علينا_له';
+            obRow+=`<tr style="background:#F0FDF4;border-bottom:1.5px solid #86EFAC">
+              <td>—<br><small>رصيد مرحّل</small></td>
+              <td><b>🏁 رصيد افتتاحي موزع</b><br>
+                <small style="color:#166534;font-size:9px">🚚 ${distUser}</small>
+                ${e.note?`<br><small style="color:#166534">📝 ${e.note}</small>`:''}
+              </td>
+              <td style="font-size:11px">${isOweUs?'مديونية علينا':'رصيد دائن'}</td>
+              <td><span class="${isOweUs?'pos':'neg'}">${fmt(e.amount)} ر</span></td>
+              <td>—</td>
+              <td><span style="font-size:9px;background:#DCFCE7;border:1px solid #86EFAC;
+                border-radius:6px;padding:2px 6px;color:#166534;font-weight:700">🔗 مرتبط</span></td>
+            </tr>`;
+          }
+        });
+      });
+    }
     bodyHtml=`
     <div class="bal-card ${isSettled?'settled-card':''}">
       <div class="bal-title">${isSettled?'الحساب مسدد':'الرصيد الحالي'}</div>
@@ -6800,15 +6840,30 @@ function getClientBalance(cli){
   const obCash  = obEntry.cash||0;
   const obGold24= obEntry.gold24||0;
 
+  // ── أثر distPersonalOpening على هذه الجهة ──
+  let distObCashAdj = 0;
+  const _cliRecord = (S.clients||[]).find(c=>c.name===cli);
+  if(_cliRecord){
+    Object.values(S.distPersonalOpening||{}).forEach(entries=>{
+      (entries||[]).forEach(e=>{
+        if(!e.sourceId||!e.amount) return;
+        if(e.sourceId===('cli_'+_cliRecord.id)){
+          distObCashAdj += (e.direction==='له_عندنا') ? -e.amount : e.amount;
+        }
+      });
+    });
+  }
+  const totalObCash = obCash + distObCashAdj;
+
   return {
-    cashOwed:     Math.round((cashOwed + obCash)*100)/100,
+    cashOwed:     Math.round((cashOwed + totalObCash)*100)/100,
     goldOwed,
     goldOwedAs24: Math.round((goldOwedAs24 + obGold24)*1000)/1000,
     ajTotal:      sellDebt,
     totalNaqd:    clientSettled + cashTransferIn,
     clientSettled: Math.round(clientSettled*100)/100,
     custodyIn, salaryOut,
-    obCash, obGold24
+    obCash: totalObCash, obGold24
   };
 }
 
@@ -13460,11 +13515,30 @@ function _obSaveDistributors(){
 
 
 // ══════════════════════════════════════════════════════════════
-//  🏁 الرصيد الافتتاحي الشخصي للموزع — distOb
+//  🏁 الرصيد الافتتاحي الشخصي للموزع — distOb v2 (محاسبي متكامل)
 //  البيانات: S.distPersonalOpening[username] = [entries]
-//  كل entry: { id, sourceType, sourceName, amount, direction, note }
+//  كل entry: { id, sourceType, sourceId, sourceName, amount, direction, note }
+//  sourceType: صندوق | جهة | نقدية | وارد | زبون | أخرى
+//  sourceId:   مفتاح الصندوق (مثلاً cs_123 أو cash) أو ID الجهة (رقم)
+//  direction:  له_عندنا | علينا_له
 // ══════════════════════════════════════════════════════════════
 
+/* ── بناء قائمة كل الصناديق المتاحة ── */
+function _distObGetSafes(){
+  const SM2 = getSM ? getSM() : {};
+  return Object.entries(SM2)
+    .filter(([k])=> !k.startsWith('debt') )   // نستثني صناديق المديونية
+    .map(([k,v])=>({ key:k, label:v.label, unit:v.unit }));
+}
+
+/* ── بناء قائمة كل الجهات (عملاء / موردين / موزعين / جهات) ── */
+function _distObGetClients(){
+  return (S.clients||[])
+    .filter(c=>c.type!=='موظف')
+    .map(c=>({ id:c.id, name:c.name, type:c.type||'جهة' }));
+}
+
+/* ── بيانات الموزع الحالي ── */
 function _distObData(){
   if(!S.distPersonalOpening) S.distPersonalOpening = {};
   const u = currentUser();
@@ -13472,8 +13546,113 @@ function _distObData(){
   return S.distPersonalOpening[u];
 }
 
+/* ── مزامنة اختيار مصدر (صندوق أو جهة) عبر قائمة البحث ── */
+function distObSelectSource(entryId, key, label){
+  const entries = _distObData();
+  const e = entries.find(x=>x.id===entryId);
+  if(!e) return;
+  e.sourceId   = key;
+  e.sourceName = label;
+  // إخفاء قائمة البحث وإظهار الاختيار
+  const drop = document.getElementById('dob-drop-'+entryId);
+  const inp  = document.getElementById('dob-inp-'+entryId);
+  if(drop) drop.style.display='none';
+  if(inp)  inp.value = label;
+}
+
+/* ── تصفية قائمة البحث أثناء الكتابة ── */
+function distObFilterDrop(entryId, q){
+  const entries = _distObData();
+  const e = entries.find(x=>x.id===entryId);
+  if(!e) return;
+  const drop = document.getElementById('dob-drop-'+entryId);
+  if(!drop) return;
+
+  let items = [];
+  if(e.sourceType==='صندوق'){
+    items = _distObGetSafes()
+      .filter(s=> !q || s.label.toLowerCase().includes(q.toLowerCase()))
+      .map(s=>`<div onclick="distObSelectSource('${entryId}','${s.key}','${s.label.replace(/'/g,'')}')"
+        style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--tx1);
+        border-bottom:1px solid var(--b1);transition:background .12s"
+        onmouseover="this.style.background='var(--c3)'" onmouseout="this.style.background=''">
+        ${s.label} <span style="font-size:10px;color:var(--tx3)">(${s.unit})</span>
+      </div>`);
+  } else if(e.sourceType==='جهة'||e.sourceType==='زبون'){
+    items = _distObGetClients()
+      .filter(c=> !q || c.name.toLowerCase().includes(q.toLowerCase()))
+      .map(c=>`<div onclick="distObSelectSource('${entryId}','cli_${c.id}','${c.name.replace(/'/g,'')}')"
+        style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--tx1);
+        border-bottom:1px solid var(--b1);transition:background .12s"
+        onmouseover="this.style.background='var(--c3)'" onmouseout="this.style.background=''">
+        ${c.name} <span style="font-size:10px;color:var(--tx3)">${c.type}</span>
+      </div>`);
+  }
+
+  if(items.length){
+    drop.innerHTML = items.join('');
+    drop.style.display = 'block';
+  } else {
+    drop.innerHTML = `<div style="padding:10px 12px;font-size:11px;color:var(--tx3)">لا توجد نتائج</div>`;
+    drop.style.display = 'block';
+  }
+}
+
+/* ── بناء حقل البحث حسب نوع المصدر ── */
+function _distObSourceInput(e){
+  const needSearch = (e.sourceType==='صندوق'||e.sourceType==='جهة'||e.sourceType==='زبون');
+  if(!needSearch){
+    // حقل نص عادي لـ: نقدية / وارد / أخرى
+    return `<input type="text" id="dob-inp-${e.id}" value="${(e.sourceName||'').replace(/"/g,'')}"
+      placeholder="مثال: صندوق المحل / أحمد الموزع..."
+      oninput="distObUpdateField('${e.id}','sourceName',this.value)"
+      style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--b2);
+      background:var(--c2);font-family:inherit;font-size:13px;color:var(--tx1)">`;
+  }
+
+  const plh = e.sourceType==='صندوق'
+    ? 'ابحث عن صندوق...' : 'ابحث عن جهة / عميل...';
+  const badge = (e.sourceId && e.sourceName)
+    ? `<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;
+        background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:9px;margin-bottom:5px">
+        <span style="font-size:18px">${e.sourceType==='صندوق'?'🗄️':'👤'}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:800;color:var(--ok)">${e.sourceName}</div>
+          <div style="font-size:9px;color:var(--tx3)">مرتبط بـ ID: ${e.sourceId}</div>
+        </div>
+        <button onclick="distObClearSource('${e.id}')"
+          style="background:var(--no-bg);border:1px solid var(--no);color:var(--no);
+          border-radius:7px;padding:2px 8px;font-size:10px;font-weight:800;cursor:pointer;font-family:inherit">✕</button>
+      </div>` : '';
+
+  return `${badge}
+    <div style="position:relative">
+      <input type="text" id="dob-inp-${e.id}"
+        value="${(!e.sourceId && e.sourceName) ? (e.sourceName||'').replace(/"/g,'') : ''}"
+        placeholder="${plh}"
+        oninput="distObFilterDrop('${e.id}',this.value)"
+        onfocus="distObFilterDrop('${e.id}',this.value)"
+        autocomplete="off"
+        style="width:100%;padding:9px 11px;border-radius:10px;
+        border:1.5px solid ${e.sourceId?'var(--ok-bd)':'var(--b2)'};
+        background:var(--c2);font-family:inherit;font-size:13px;color:var(--tx1)">
+      <div id="dob-drop-${e.id}"
+        style="display:none;position:absolute;top:100%;right:0;left:0;z-index:999;
+        background:var(--c1);border:1.5px solid var(--ok-bd);border-radius:10px;
+        box-shadow:var(--s2);max-height:180px;overflow-y:auto;margin-top:3px">
+      </div>
+    </div>`;
+}
+
+/* ── مسح مصدر مرتبط ── */
+function distObClearSource(id){
+  const e = _distObData().find(x=>x.id===id);
+  if(e){ e.sourceId=''; e.sourceName=''; }
+  distObRender();
+}
+
+/* ══ العرض الرئيسي ══ */
 function distObRender(){
-  // اسم الموزع في الرأس
   const lbl = document.getElementById('dist-ob-username-lbl');
   if(lbl) lbl.textContent = '🚚 ' + currentUser();
 
@@ -13495,16 +13674,18 @@ function distObRender(){
   const quickTypes = [
     {ico:'🗄️', lbl:'صندوق'},
     {ico:'👥', lbl:'جهة'},
-    {ico:'🛍️', lbl:'زبون'},
-    {ico:'📦', lbl:'وارد'},
     {ico:'💰', lbl:'نقدية'},
+    {ico:'📦', lbl:'وارد'},
+    {ico:'🛍️', lbl:'زبون'},
     {ico:'✏️', lbl:'أخرى'},
   ];
 
   list.innerHTML = entries.map((e,i)=>{
-    const isOwe = (e.direction||'عليه_لنا')==='عليه_لنا';
+    const isOweUs = (e.direction||'علينا_له')==='علينا_له'; // علينا له = نحن مدينون له
+    const borderClr = e.amount>0 ? (isOweUs?'var(--no-bd)':'var(--ok-bd)') : 'var(--b2)';
+
     return `
-    <div style="background:var(--c1);border:2px solid ${e.amount>0?'var(--ok-bd)':'var(--b2)'};
+    <div id="dob-card-${e.id}" style="background:var(--c1);border:2px solid ${borderClr};
       border-radius:14px;padding:14px;position:relative">
 
       <!-- رقم البند + حذف -->
@@ -13519,34 +13700,30 @@ function distObRender(){
           font-family:inherit">🗑️ حذف</button>
       </div>
 
-      <!-- نوع المصدر (أزرار سريعة) -->
+      <!-- ── نوع المصدر ── -->
       <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:6px">📂 المصدر</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
         ${quickTypes.map(qt=>`
           <button onclick="distObSetType('${e.id}','${qt.lbl}')"
             style="padding:5px 12px;border-radius:20px;font-family:inherit;font-size:11px;
             font-weight:700;cursor:pointer;transition:all .15s;
-            border:1.5px solid ${(e.sourceType===qt.lbl)?'var(--ok)':'var(--b2)'};
-            background:${(e.sourceType===qt.lbl)?'var(--ok-bg)':'var(--c2)'};
-            color:${(e.sourceType===qt.lbl)?'var(--ok)':'var(--tx2)'}"
+            border:1.5px solid ${(e.sourceType===qt.lbl)?'var(--g2)':'var(--b2)'};
+            background:${(e.sourceType===qt.lbl)?'var(--g4)':'var(--c2)'};
+            color:${(e.sourceType===qt.lbl)?'var(--g1)':'var(--tx2)'}"
           >${qt.ico} ${qt.lbl}</button>`).join('')}
       </div>
 
-      <!-- اسم المصدر + المبلغ -->
-      <div style="display:grid;grid-template-columns:1fr 110px;gap:8px;margin-bottom:10px;align-items:end">
+      <!-- ── اسم المصدر (بحث ذكي) + المبلغ ── -->
+      <div style="display:grid;grid-template-columns:1fr 110px;gap:8px;margin-bottom:10px;align-items:start">
         <div>
           <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">
-            ${e.sourceType?'🏷️ اسم '+e.sourceType:'🏷️ اسم المصدر'}
+            ${e.sourceType?'🏷️ اختر '+e.sourceType:'🏷️ المصدر'}
           </div>
-          <input type="text" value="${e.sourceName||''}"
-            placeholder="مثال: صندوق المحل / أحمد الموزع..."
-            oninput="distObUpdateField('${e.id}','sourceName',this.value)"
-            style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--b2);
-            background:var(--c2);font-family:inherit;font-size:13px;color:var(--tx1)">
+          ${_distObSourceInput(e)}
         </div>
         <div>
           <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">💵 المبلغ</div>
-          <input type="number" value="${e.amount||''}" placeholder="0" inputmode="decimal"
+          <input type="number" id="dob-amt-${e.id}" value="${e.amount||''}" placeholder="0" inputmode="decimal"
             oninput="distObUpdateField('${e.id}','amount',parseFloat(this.value)||0)"
             style="width:100%;padding:9px 6px;border-radius:10px;
             border:2px solid ${e.amount>0?'var(--ok-bd)':'var(--b2)'};
@@ -13555,60 +13732,110 @@ function distObRender(){
         </div>
       </div>
 
-      <!-- الملاحظة -->
-      <div>
+      <!-- ── الملاحظة ── -->
+      <div style="margin-bottom:10px">
         <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:4px">📝 ملاحظة</div>
-        <input type="text" value="${e.note||''}" placeholder="اكتب ملاحظة توضيحية..."
+        <input type="text" id="dob-nt-${e.id}" value="${(e.note||'').replace(/"/g,'')}"
+          placeholder="مثال: رصيد سابق، عهدة موزع، دين قديم..."
           oninput="distObUpdateField('${e.id}','note',this.value)"
           style="width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--b2);
           background:var(--c2);font-family:inherit;font-size:12px;color:var(--tx1)">
       </div>
 
-      <!-- الاتجاه -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
-        <button onclick="distObSetDir('${e.id}','عليه_لنا')"
-          style="padding:9px;border-radius:10px;font-family:inherit;font-size:12px;
-          font-weight:800;cursor:pointer;transition:all .15s;
-          border:2px solid ${isOwe?'var(--no)':'var(--b2)'};
-          background:${isOwe?'var(--no-bg)':'var(--c2)'};
-          color:${isOwe?'var(--no)':'var(--tx2)'}">
-          عليه لنا 🔴
-        </button>
+      <!-- ── الاتجاه المحاسبي ── -->
+      <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:6px">
+        ⚖️ الاتجاه المحاسبي
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
         <button onclick="distObSetDir('${e.id}','له_عندنا')"
-          style="padding:9px;border-radius:10px;font-family:inherit;font-size:12px;
-          font-weight:800;cursor:pointer;transition:all .15s;
-          border:2px solid ${!isOwe?'var(--ok)':'var(--b2)'};
-          background:${!isOwe?'var(--ok-bg)':'var(--c2)'};
-          color:${!isOwe?'var(--ok)':'var(--tx2)'}">
-          له عندنا 🟢
+          style="padding:10px 6px;border-radius:10px;font-family:inherit;font-size:12px;
+          font-weight:800;cursor:pointer;transition:all .15s;line-height:1.3;
+          border:2px solid ${(!isOweUs)?'var(--ok)':'var(--b2)'};
+          background:${(!isOweUs)?'var(--ok-bg)':'var(--c2)'};
+          color:${(!isOweUs)?'var(--ok)':'var(--tx2)'}">
+          🟢 له عندنا<br>
+          <span style="font-size:9px;font-weight:600;opacity:.8">رصيد دائن لصالحنا</span>
+        </button>
+        <button onclick="distObSetDir('${e.id}','علينا_له')"
+          style="padding:10px 6px;border-radius:10px;font-family:inherit;font-size:12px;
+          font-weight:800;cursor:pointer;transition:all .15s;line-height:1.3;
+          border:2px solid ${isOweUs?'var(--no)':'var(--b2)'};
+          background:${isOweUs?'var(--no-bg)':'var(--c2)'};
+          color:${isOweUs?'var(--no)':'var(--tx2)'}">
+          🔴 علينا له<br>
+          <span style="font-size:9px;font-weight:600;opacity:.8">مديونية علينا</span>
         </button>
       </div>
+
+      <!-- ── معلومة محاسبية مساعدة ── -->
+      ${e.amount>0 ? `
+      <div style="margin-top:8px;padding:8px 10px;background:var(--c2);border-radius:8px;
+        border:1px solid var(--b1);font-size:10px;color:var(--tx3);line-height:1.6">
+        📊 <b style="color:var(--tx2)">الأثر المحاسبي:</b>
+        ${_distObAccEffect(e)}
+      </div>` : ''}
     </div>`;
   }).join('');
 
   if(saveBtn) saveBtn.style.display = entries.length ? 'block' : 'none';
   distObRenderSummary();
+
+  // إغلاق قوائم البحث عند الضغط خارجها
+  setTimeout(()=>{
+    document.querySelectorAll('[id^="dob-drop-"]').forEach(d=>{
+      document.addEventListener('click', ev=>{
+        if(!d.contains(ev.target) && !ev.target.id?.startsWith('dob-inp-')){
+          d.style.display='none';
+        }
+      },{once:true});
+    });
+  },50);
 }
 
+/* ── وصف الأثر المحاسبي ── */
+function _distObAccEffect(e){
+  const isOweUs = e.direction==='علينا_له';
+  const amt = fmt(e.amount||0);
+  const sn  = e.sourceName || e.sourceType || '?';
+  if(e.sourceType==='صندوق'){
+    return isOweUs
+      ? `صندوق <b>${sn}</b> سيُرحَّل <b style="color:var(--no)">${amt} ر</b> دائناً (نقص رصيده لصالحك)`
+      : `صندوق <b>${sn}</b> سيُرحَّل <b style="color:var(--ok)">${amt} ر</b> مديناً (يزيد رصيده من نشاطك)`;
+  } else if(e.sourceType==='جهة'||e.sourceType==='زبون'){
+    return isOweUs
+      ? `حساب <b>${sn}</b> سيُفتح برصيد <b style="color:var(--no)">${amt} ر</b> دائن لصالحه`
+      : `حساب <b>${sn}</b> سيُفتح برصيد <b style="color:var(--ok)">${amt} ر</b> مدين (عليه لنا)`;
+  } else if(e.sourceType==='نقدية'){
+    return isOweUs
+      ? `نقدية <b style="color:var(--no)">${amt} ر</b> علينا تُضاف كمطلوبات افتتاحية`
+      : `نقدية <b style="color:var(--ok)">${amt} ر</b> لنا تُضاف كأرصدة افتتاحية`;
+  }
+  return isOweUs
+    ? `<b style="color:var(--no)">${amt} ر</b> مديونية علينا في الرصيد الافتتاحي`
+    : `<b style="color:var(--ok)">${amt} ر</b> رصيد دائن في حسابك الافتتاحي`;
+}
+
+/* ══ إضافة بند ══ */
 function distObAddEntry(){
   const entries = _distObData();
   entries.push({
     id: 'doe_'+Date.now(),
     sourceType: '',
+    sourceId:   '',
     sourceName: '',
     amount: 0,
-    direction: 'عليه_لنا',
+    direction: 'له_عندنا',
     note: '',
   });
   S.distPersonalOpening[currentUser()] = entries;
   distObRender();
-  // سكرول للأسفل
   setTimeout(()=>{
     const list = document.getElementById('dist-ob-entries-list');
     if(list) list.lastElementChild?.scrollIntoView({behavior:'smooth',block:'center'});
   },80);
 }
 
+/* ══ حذف بند ══ */
 function distObDeleteEntry(id){
   const u = currentUser();
   if(!S.distPersonalOpening) S.distPersonalOpening={};
@@ -13616,19 +13843,22 @@ function distObDeleteEntry(id){
   distObRender();
 }
 
+/* ══ تحديث حقل ══ */
 function distObUpdateField(id, field, val){
   const entries = _distObData();
   const e = entries.find(x=>x.id===id);
   if(e){ e[field]=val; }
 }
 
+/* ══ تغيير نوع المصدر ══ */
 function distObSetType(id, type){
   const entries = _distObData();
   const e = entries.find(x=>x.id===id);
-  if(e){ e.sourceType=type; }
+  if(e){ e.sourceType=type; e.sourceId=''; e.sourceName=''; }
   distObRender();
 }
 
+/* ══ تغيير الاتجاه ══ */
 function distObSetDir(id, dir){
   const entries = _distObData();
   const e = entries.find(x=>x.id===id);
@@ -13636,22 +13866,117 @@ function distObSetDir(id, dir){
   distObRender();
 }
 
-function distObSave(){
-  // قراءة القيم من الحقول المرئية قبل الحفظ
-  const entries = _distObData();
+/* ══ تطبيق الأرصدة الافتتاحية على الحسابات فعلياً ══ */
+function _distObApplyToAccounts(username, entries){
+  /* نجمع تأثير كل بند على الصناديق وعلى أرصدة الجهات */
+  const safeDeltas  = {};   // { safeKey: deltaAmount }
+  const clientDeltas= {};   // { clientName: deltaAmount }
+  /* رصيد الموزع نفسه كجهة */
+  let distNetCash = 0;
+
   entries.forEach(e=>{
-    const sn = document.querySelector(`input[oninput*="distObUpdateField('${e.id}','sourceName"]`);
-    const am = document.querySelector(`input[oninput*="distObUpdateField('${e.id}','amount"]`);
-    const nt = document.querySelector(`input[oninput*="distObUpdateField('${e.id}','note"]`);
-    if(sn) e.sourceName = sn.value;
+    if(!e.amount||e.amount<=0) return;
+    const isOweUs = e.direction==='علينا_له';
+    const sign = isOweUs ? -1 : 1; // له_عندنا = موجب لنا، علينا_له = سالب
+
+    /* ─ صندوق مرتبط ─ */
+    if(e.sourceType==='صندوق' && e.sourceId){
+      // إذا كان له عندنا (رصيد لنا) → الصندوق يزيد بالمبلغ
+      // إذا كان علينا له (نحن مدينون) → الصندوق ينقص
+      safeDeltas[e.sourceId] = (safeDeltas[e.sourceId]||0) + sign * e.amount;
+    }
+
+    /* ─ جهة / زبون مرتبطة ─ */
+    if((e.sourceType==='جهة'||e.sourceType==='زبون') && e.sourceId){
+      const clientId = parseInt(e.sourceId.replace('cli_',''));
+      const cli = (S.clients||[]).find(c=>c.id===clientId);
+      if(cli){
+        // له_عندنا = نحن دائنون لهذه الجهة = cashOwed لها يكون سالب (نحن ندين لها)
+        // علينا_له = الجهة دائنة لنا = cashOwed لها يكون موجب (تدين لنا)
+        clientDeltas[cli.name] = (clientDeltas[cli.name]||0) + sign * e.amount;
+      }
+    }
+
+    /* ─ نقدية / وارد / أخرى → تؤثر على الصندوق النقدي ─ */
+    if(e.sourceType==='نقدية'||e.sourceType==='وارد'||e.sourceType==='أخرى'){
+      distNetCash += sign * e.amount;
+    }
+  });
+
+  /* حفظ تأثيرات الصناديق في openingBalance.safes */
+  if(!S.openingBalance) S.openingBalance = {safes:{},clients:{}};
+  if(!S.openingBalance.safes) S.openingBalance.safes = {};
+  if(!S.openingBalance.clients) S.openingBalance.clients = {};
+
+  /* مسح التأثيرات السابقة لهذا الموزع قبل إعادة الحساب */
+  const _prevKey = '_distOB_'+username+'_';
+  Object.keys(S.openingBalance.safes).forEach(k=>{
+    if(k.startsWith(_prevKey)) delete S.openingBalance.safes[k];
+  });
+  Object.keys(S.openingBalance.clients).forEach(n=>{
+    if(S.openingBalance.clients[n]?._distObUser===username){
+      delete S.openingBalance.clients[n];
+    }
+  });
+
+  /* تطبيق تأثيرات الصناديق */
+  Object.entries(safeDeltas).forEach(([k,delta])=>{
+    if(Math.abs(delta)<0.001) return;
+    const markedKey = _prevKey+k;
+    S.openingBalance.safes[markedKey] = delta;
+  });
+
+  /* تأثير النقدية العامة */
+  if(Math.abs(distNetCash)>0.001){
+    S.openingBalance.safes[_prevKey+'cash'] =
+      (S.openingBalance.safes[_prevKey+'cash']||0) + distNetCash;
+  }
+
+  /* تطبيق تأثيرات الجهات */
+  Object.entries(clientDeltas).forEach(([name,delta])=>{
+    if(Math.abs(delta)<0.001) return;
+    if(!S.openingBalance.clients[name]) S.openingBalance.clients[name]={};
+    S.openingBalance.clients[name].cash = delta;
+    S.openingBalance.clients[name]._distObUser = username;
+  });
+
+  /* رصيد الموزع نفسه = مجموع ما له علينا - ما علينا له */
+  const totalForDist = entries.reduce((a,e)=>{
+    if(!e.amount) return a;
+    return e.direction==='له_عندنا' ? a+e.amount : a-e.amount;
+  },0);
+  if(!S.openingBalance.clients[username]) S.openingBalance.clients[username]={};
+  S.openingBalance.clients[username].cash = Math.round(totalForDist*100)/100;
+  S.openingBalance.clients[username]._distObUser = username;
+}
+
+/* ══ الحفظ مع ربط الحسابات ══ */
+function distObSave(){
+  const entries = _distObData();
+
+  // قراءة القيم الحالية من الحقول المرئية
+  entries.forEach(e=>{
+    const am = document.getElementById('dob-amt-'+e.id);
+    const nt = document.getElementById('dob-nt-'+e.id);
+    const inp= document.getElementById('dob-inp-'+e.id);
     if(am) e.amount = parseFloat(am.value)||0;
     if(nt) e.note = nt.value;
+    // إذا لم يكن مرتبطاً بـ ID، خذ القيمة النصية
+    if(inp && !e.sourceId) e.sourceName = inp.value;
   });
-  S.distPersonalOpening[currentUser()] = entries;
+
+  const u = currentUser();
+  S.distPersonalOpening[u] = entries;
+
+  // تطبيق الأثر المحاسبي الفعلي
+  _distObApplyToAccounts(u, entries);
+
   sv();
+
   const filled = entries.filter(e=>e.amount>0).length;
-  toast(`✅ تم حفظ ${filled} بند من رصيدك الافتتاحي`);
-  logActivity('dist-ob-save', `حفظ الرصيد الافتتاحي الشخصي — ${filled} بند`);
+  const linked = entries.filter(e=>e.amount>0&&e.sourceId).length;
+  toast(`✅ تم حفظ ${filled} بند — ${linked} مرتبط فعلياً بالحسابات`);
+  logActivity('dist-ob-save', `حفظ الرصيد الافتتاحي — ${filled} بند، ${linked} مرتبط`);
   distObRender();
 }
 
@@ -13661,49 +13986,85 @@ function distObRenderSummary(){
   const entries = (_distObData()||[]).filter(e=>e.amount>0);
   if(!entries.length){ sumEl.innerHTML=''; return; }
 
-  const totalOwe  = entries.filter(e=>e.direction==='عليه_لنا').reduce((a,e)=>a+e.amount,0);
-  const totalHave = entries.filter(e=>e.direction==='له_عندنا').reduce((a,e)=>a+e.amount,0);
+  const totalOweUs = entries.filter(e=>e.direction==='علينا_له').reduce((a,e)=>a+e.amount,0);
+  const totalHave  = entries.filter(e=>e.direction==='له_عندنا').reduce((a,e)=>a+e.amount,0);
+  const netBalance = totalHave - totalOweUs;
+  const linkedCount= entries.filter(e=>e.sourceId).length;
 
   sumEl.innerHTML = `
-  <div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:14px">
-    <div style="font-size:12px;font-weight:900;color:var(--ok);margin-bottom:10px">📊 ملخص رصيدك الافتتاحي</div>
+  <div style="background:var(--c2);border:1.5px solid var(--ok-bd);border-radius:var(--rb);padding:14px">
+
+    <!-- العنوان + شارة الربط -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:900;color:var(--ok)">📊 ملخص الرصيد الافتتاحي</div>
+      <div style="font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;
+        background:${linkedCount>0?'var(--ok-bg)':'var(--c3)'};
+        border:1px solid ${linkedCount>0?'var(--ok-bd)':'var(--b2)'};
+        color:${linkedCount>0?'var(--ok)':'var(--tx3)'}">
+        🔗 ${linkedCount}/${entries.length} مرتبط
+      </div>
+    </div>
 
     <!-- إجماليات -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div style="background:var(--no-bg);border:1px solid var(--no);border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:9px;color:var(--no);font-weight:700;margin-bottom:3px">عليه لنا 🔴</div>
-        <div style="font-size:17px;font-weight:900;color:var(--no)">${fmt(totalOwe)} <span style="font-size:10px">ر</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+      <div style="background:var(--no-bg);border:1px solid var(--no-bd,var(--no));border-radius:10px;
+        padding:9px 6px;text-align:center">
+        <div style="font-size:9px;color:var(--no);font-weight:700;margin-bottom:3px">علينا له 🔴</div>
+        <div style="font-size:15px;font-weight:900;color:var(--no)">${fmt(totalOweUs)}</div>
+        <div style="font-size:9px;color:var(--tx3)">ريال</div>
       </div>
-      <div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:10px;text-align:center">
+      <div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;
+        padding:9px 6px;text-align:center">
         <div style="font-size:9px;color:var(--ok);font-weight:700;margin-bottom:3px">له عندنا 🟢</div>
-        <div style="font-size:17px;font-weight:900;color:var(--ok)">${fmt(totalHave)} <span style="font-size:10px">ر</span></div>
+        <div style="font-size:15px;font-weight:900;color:var(--ok)">${fmt(totalHave)}</div>
+        <div style="font-size:9px;color:var(--tx3)">ريال</div>
+      </div>
+      <div style="background:var(--c1);border:1.5px solid ${netBalance>=0?'var(--ok-bd)':'var(--no)'};
+        border-radius:10px;padding:9px 6px;text-align:center">
+        <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-bottom:3px">الصافي ⚖️</div>
+        <div style="font-size:15px;font-weight:900;color:${netBalance>=0?'var(--ok)':'var(--no)'}">
+          ${netBalance>=0?'+':''}${fmt(netBalance)}
+        </div>
+        <div style="font-size:9px;color:var(--tx3)">ريال</div>
       </div>
     </div>
 
     <!-- تفاصيل البنود -->
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${entries.map((e,i)=>{
-        const isOwe = e.direction==='عليه_لنا';
-        const srcIcon = {صندوق:'🗄️',جهة:'👥',زبون:'🛍️',وارد:'📦',نقدية:'💰'}[e.sourceType]||'📌';
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${entries.map((e)=>{
+        const isOweUs = e.direction==='علينا_له';
+        const srcIcon = {صندوق:'🗄️',جهة:'👥',زبون:'🛍️',وارد:'📦',نقدية:'💰',أخرى:'✏️'}[e.sourceType]||'📌';
+        const isLinked= !!e.sourceId;
         return `<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;
           align-items:center;padding:9px 10px;background:var(--c1);border-radius:var(--rc);
-          border:1px solid var(--b2)">
+          border:1px solid ${isLinked?'var(--ok-bd)':'var(--b2)'}">
           <span style="font-size:18px">${srcIcon}</span>
-          <div>
-            <div style="font-size:12px;font-weight:800;color:var(--tx1)">
-              ${e.sourceType?e.sourceType+': ':''}${e.sourceName||'—'}
+          <div style="min-width:0">
+            <div style="font-size:12px;font-weight:800;color:var(--tx1);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${e.sourceType?'<span style="color:var(--tx3);font-size:10px">'+e.sourceType+'</span> ':''}
+              ${e.sourceName||'—'}
+              ${isLinked?'<span style="font-size:9px;background:var(--ok-bg);color:var(--ok);border-radius:6px;padding:1px 5px;margin-right:4px">🔗</span>':''}
             </div>
-            ${e.note?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">📝 ${e.note}</div>`:''}
+            ${e.note?`<div style="font-size:10px;color:var(--tx3);margin-top:1px;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📝 ${e.note}</div>`:''}
           </div>
-          <div style="text-align:left">
-            <div style="font-size:14px;font-weight:900;color:${isOwe?'var(--no)':'var(--ok)'}">
-              ${fmt(e.amount)} ر
+          <div style="text-align:center;min-width:62px">
+            <div style="font-size:14px;font-weight:900;color:${isOweUs?'var(--no)':'var(--ok)'}">
+              ${fmt(e.amount)} <span style="font-size:9px">ر</span>
             </div>
-            <div style="font-size:9px;color:var(--tx3)">${isOwe?'عليه 🔴':'له 🟢'}</div>
+            <div style="font-size:9px;color:var(--tx3)">${isOweUs?'علينا 🔴':'له 🟢'}</div>
           </div>
         </div>`;
       }).join('')}
     </div>
+
+    ${linkedCount<entries.length?`
+    <div style="margin-top:10px;padding:8px 10px;background:var(--warn-bg,rgba(234,179,8,.08));
+      border:1px solid var(--warn-bd,rgba(234,179,8,.3));border-radius:8px;
+      font-size:10px;color:var(--tx2)">
+      ⚠️ يوجد <b>${entries.length-linkedCount} بند</b> غير مرتبط بصندوق أو جهة — قد لا تؤثر على الكشوفات
+    </div>`:''}
   </div>`;
 }
 
