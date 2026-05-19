@@ -3683,8 +3683,8 @@ function openStmtS(){
       cashTxt = '<span style="color:var(--ok);font-size:10px">✅ مسوى</span>';
     } else if(isSupp){
       cashTxt = bal.cashOwed < 0
-        ? `<span style="color:#DC2626;font-size:11px;font-weight:800">له علينا: ${fmt(absC)} ر</span>`
-        : `<span style="color:#16A34A;font-size:11px;font-weight:800">له↑: ${fmt(absC)} ر</span>`;
+        ? `<span style="color:#16A34A;font-size:11px;font-weight:800">له: ${fmt(absC)} ر</span>`
+        : `<span style="color:#C67D00;font-size:11px;font-weight:800">له فائض: ${fmt(absC)} ر</span>`;
     } else {
       cashTxt = bal.cashOwed > 0
         ? `<span style="color:#DC2626;font-size:11px;font-weight:800">عليه: ${fmt(absC)} ر</span>`
@@ -5217,8 +5217,10 @@ function _doPrintBalances(filterType){
     let cashCell='', goldCell='';
     if(absC>0.01){
       const owes = isSupp ? r.cashOwed<0 : r.cashOwed>0;
-      const lbl  = isSupp ? (r.cashOwed<0?'له علينا':'له فائض') : (r.cashOwed>0?'عليه':'له');
-      cashCell = `<span style="font-weight:900;color:${owes?'#CC2222':'#1A7A3C'}">${lbl} ${fmt2(absC)}</span>`;
+      const lbl  = isSupp ? (r.cashOwed<0?'له':'له فائض') : (r.cashOwed>0?'عليه':'له');
+      // له = أخضر دائماً · عليه = أحمر
+      const cashClrD = isSupp ? (r.cashOwed<0?'#1A7A3C':'#C67D00') : (r.cashOwed>0?'#CC2222':'#1A7A3C');
+      cashCell = `<span style="font-weight:900;color:${cashClrD}">${lbl} ${fmt2(absC)}</span>`;
     } else cashCell='<span style="color:#888">—</span>';
     if(absG>0.001){
       const owes = r.goldOwed>0;
@@ -5341,7 +5343,7 @@ function printStmt(){
       if(Math.abs(bal.cashOwed)>0.01){
         const neg=isSupp?(bal.cashOwed<0):(bal.cashOwed>0);
         balRows+=`<div class="bal-row"><span>رصيد نقدي</span>
-          <span class="bal-val ${neg?'neg':'pos'}">${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال</span></div>`;
+          <span class="bal-val ${neg?'neg':'pos'}">${isSupp?(bal.cashOwed<0?'له':'له فائض'):(bal.cashOwed>0?'عليه':'له')} ${fmt(Math.abs(bal.cashOwed))} ريال</span></div>`;
       }
       if(Math.abs(bal.goldOwedAs24||0)>0.001){
         const neg=bal.goldOwedAs24>0;
@@ -5618,7 +5620,7 @@ function printStmt(){
     <div class="final-summary">
       <div class="fs-title">الملخص النهائي</div>
       <div class="fs-row"><span>الرصيد النقدي</span>
-        <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'neg':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له علينا':'له فائض'):(bal.cashOwed>0?'عليه لنا':'له عندنا')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
+        <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'pos':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له':'له فائض'):(bal.cashOwed>0?'عليه':'له')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
       ${Math.abs(bal.goldOwedAs24||0)>0.001?(()=>{
         const _gO2=bal.goldOwed||{};
         const _g21f=Math.abs(_gO2['21']||0),_g18f=Math.abs(_gO2['18']||0);
@@ -7732,27 +7734,29 @@ function renderDebts(){
 
     function balCard(b,i){
     const isSupp = b.type==='مورد';
+    // ── منطق الألوان الموحد: له = أخضر · عليه = أحمر ──
+    // للمورد: goldAs24<0 = نحن مدينون بذهب (عليه/علينا) · goldAs24>0 = هو مدين لنا
     const goldClr = isSupp
-      ? (b.goldAs24<0?'var(--no)':b.goldAs24>0?'var(--ok)':'var(--tx2)')
+      ? (b.goldAs24<0?'var(--ok)':b.goldAs24>0?'var(--no)':'var(--tx2)')
       : (b.goldAs24>0?'var(--no)':b.goldAs24<0?'var(--ok)':'var(--tx2)');
+    // للمورد: cashOwed<0 = له علينا (أخضر) · cashOwed>0 = له فائض (كهرماني)
     const cashClr = isSupp
-      ? (b.cashOwed<0?'var(--no)':b.cashOwed>0?'var(--ok)':'var(--tx2)')
+      ? (b.cashOwed<0?'var(--ok)':b.cashOwed>0?'var(--orange)':'var(--tx2)')
       : (b.cashOwed>0?'var(--no)':b.cashOwed<0?'var(--ok)':'var(--tx2)');
     const goldLbl = isSupp
-      ? (b.goldAs24<0?'نحن مدينون بذهب':'ذهب مستحق لنا منه')
-      : (b.goldAs24>0?'ذهب عليه':'ذهب له');
-    // عرض "له / عليه" بدل الإشارات
+      ? (b.goldAs24<0?'له ذهب':'عليه ذهب')
+      : (b.goldAs24>0?'عليه ذهب':'له ذهب');
     // ── له / عليه واضح ──
     const absC = Math.abs(b.cashOwed||0);
     const cashLbl = isSupp
-      ? (b.cashOwed<0 ? `له علينا ${fmt(absC)} ر`
-                      : b.cashOwed>0 ? `له عندنا فائض ${fmt(absC)} ر`
+      ? (b.cashOwed<0 ? `له ${fmt(absC)} ر`
+                      : b.cashOwed>0 ? `له فائض ${fmt(absC)} ر`
                       : '✅ مسوى')
-      : (b.cashOwed>0 ? `عليه لنا ${fmt(absC)} ر`
-                      : b.cashOwed<0 ? `له عندنا فائض ${fmt(absC)} ر`
+      : (b.cashOwed>0 ? `عليه ${fmt(absC)} ر`
+                      : b.cashOwed<0 ? `له ${fmt(absC)} ر`
                       : '✅ مسوى');
     const cashSign = isSupp
-      ? (b.cashOwed<0 ? 'له' : 'له عندنا')
+      ? (b.cashOwed<0 ? 'له' : 'له فائض')
       : (b.cashOwed>0 ? 'عليه' : 'له');
 
     // عند فلتر عيار محدد: نعرض العيار بالجرام مباشرة
@@ -11983,25 +11987,26 @@ function renderStmt(){
     statusDetail='الحساب مصفّى — لا يوجد أي رصيد متبقي';
   } else if(isSupp){
     if(cash<0){
-      // المورد له علينا — ندفع له
-      statusBg='#FEE2E2'; statusBorder='#FCA5A5'; statusIcon='🔴';
-      statusTitle=`باقي له ${fmt(absOwedQ)} ريال`;
-      statusDetail='هذا المبلغ مستحق للمورد — يجب سداده';
-    } else {
-      // دفعنا أكثر — له فائض عندنا
+      // المورد له علينا — ندفع له → أخضر (له = حق مستحق للمورد)
       statusBg='#D1FAE5'; statusBorder='#6EE7B7'; statusIcon='🟢';
-      statusTitle=`له زيادة ${fmt(absOwedQ)} ريال عندنا`;
-      statusDetail='دفعنا أكثر من المطلوب — له فائض';
+      statusTitle=`له ${fmt(absOwedQ)} ريال`;
+      statusDetail='مبلغ مستحق للمورد — يجب سداده';
+    } else {
+      // دفعنا أكثر — له فائض عندنا → كهرماني
+      statusBg='#FEF9C3'; statusBorder='#FDE68A'; statusIcon='🟡';
+      statusTitle=`له فائض ${fmt(absOwedQ)} ريال`;
+      statusDetail='دفعنا أكثر من المطلوب — له فائض مسترد';
     }
   } else {
     if(cash>0){
-      // العميل عليه لنا
-      statusBg='#FEF9C3'; statusBorder='#FCD34D'; statusIcon='🟡';
-      statusTitle=`عليه لنا ${fmt(absOwedQ)} ريال`;
-      statusDetail='هذا المبلغ مستحق منه — لم يُسدّد بعد';
+      // العميل عليه لنا → أحمر
+      statusBg='#FEE2E2'; statusBorder='#FCA5A5'; statusIcon='🔴';
+      statusTitle=`عليه ${fmt(absOwedQ)} ريال`;
+      statusDetail='مبلغ مستحق منه — لم يُسدّد بعد';
     } else {
+      // له رصيد (دفع أكثر) → أخضر
       statusBg='#D1FAE5'; statusBorder='#6EE7B7'; statusIcon='🟢';
-      statusTitle=`له عندنا فائض ${fmt(absOwedQ)} ريال`;
+      statusTitle=`له ${fmt(absOwedQ)} ريال`;
       statusDetail='دفع أكثر من المطلوب — له مبلغ مسترد';
     }
   }
@@ -12387,14 +12392,22 @@ function renderStmt(){
     : txs.filter(t=>t.type==='sell'||t.type==='sell-debt').length;
   const paidPct = totalInvoiced>0 ? Math.min(100,Math.round(totalPaidAmt/totalInvoiced*100)) : (isSettled?100:0);
 
-  // ألوان الحالة
+  // ألوان الحالة — منطق موحد: "له" = أخضر · "عليه" = أحمر · "فائض" = كهرماني
   let sColor,sBg,sLabel,sIcon;
   if(Math.abs(cash)<0.01){
     sColor='#16A34A'; sBg='#DCFCE7'; sLabel='الحساب متوازن'; sIcon='✅';
-  } else if((!isSupp&&cash>0)||(isSupp&&cash<0)){
-    sColor='#DC2626'; sBg='#FEE2E2'; sLabel=isSupp?'باقي له عندنا':'عليه مبلغ'; sIcon='🔴';
+  } else if(isSupp){
+    if(cash<0){
+      sColor='#16A34A'; sBg='#DCFCE7'; sLabel='له'; sIcon='🟢';
+    } else {
+      sColor='#D97706'; sBg='#FEF9C3'; sLabel='له فائض'; sIcon='🟡';
+    }
   } else {
-    sColor='#16A34A'; sBg='#DCFCE7'; sLabel=isSupp?'له زيادة عندنا':'له رصيد عندنا'; sIcon='🟢';
+    if(cash>0){
+      sColor='#DC2626'; sBg='#FEE2E2'; sLabel='عليه'; sIcon='🔴';
+    } else {
+      sColor='#16A34A'; sBg='#DCFCE7'; sLabel='له'; sIcon='🟢';
+    }
   }
 
   // ── حسابات الأجور الصحيحة (صافي بعد المرتجعات) ──
@@ -12490,16 +12503,16 @@ function renderStmt(){
     var hasTake = _tk21>0||_tk18>0||_tk24>0;
     var hasPay  = _py21>0||_py18>0||_py24>0;
 
-    html += '<div style="background:var(--c1);border:1.5px solid rgba(200,150,30,.35);'
-           +'border-radius:14px;margin-bottom:12px;overflow:hidden;'
-           +'box-shadow:0 2px 10px rgba(200,150,30,.10)">';
+    html += '<div style="background:var(--c1);border:1.5px solid rgba(200,150,30,.30);'
+           +'border-radius:16px;margin-bottom:12px;overflow:hidden;'
+           +'box-shadow:0 3px 12px rgba(200,150,30,.12)">';
 
     // عنوان البيان السريع
-    html += '<div style="padding:9px 14px;background:linear-gradient(135deg,rgba(200,150,30,.15),rgba(200,150,30,.05));'
-           +'border-bottom:1px solid rgba(200,150,30,.20);'
-           +'display:flex;align-items:center;gap:6px">';
-    html += '<span style="font-size:15px">⚖️</span>';
-    html += '<span style="font-size:12px;font-weight:900;color:var(--tx1)">بيان سريع — حركة الذهب بالعيارات</span>';
+    html += '<div style="padding:10px 14px;background:linear-gradient(135deg,rgba(200,150,30,.18),rgba(200,150,30,.06));'
+           +'border-bottom:1px solid rgba(200,150,30,.18);'
+           +'display:flex;align-items:center;gap:8px">';
+    html += '<span style="font-size:16px">⚖️</span>';
+    html += '<span style="font-size:13px;font-weight:900;color:var(--tx1)">بيان سريع — حركة الذهب بالعيارات</span>';
     html += '</div>';
 
     html += '<div style="padding:10px 12px;display:grid;grid-template-columns:'+(hasTake&&hasPay?'1fr 1fr':'1fr')+';gap:10px">';
@@ -12588,17 +12601,19 @@ function renderStmt(){
     // ══════════════════════════════════════════════════════════════
   })();
 
-  // ── بطاقة الجهة ──
+  // ── بطاقة الجهة — المحسّنة ──
   const _cashAbs2  = Math.abs(cash);
-  const _cashClr2  = (!isSupp && cash>0)||(isSupp && cash<0) ? '#DC2626' : cash===0 ? '#16A34A' : '#D97706';
+  const _cashClr2  = isSupp ? (cash<0?'#16A34A':cash>0?'#D97706':'#16A34A')
+                   : (cash>0?'#DC2626':cash<0?'#16A34A':'#16A34A');
 
-  html += '<div style="background:var(--c1);border-radius:14px;border:2px solid ' + sColor + '40;margin-bottom:12px;overflow:hidden">';
-  html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:' + sBg + '40">';
-  html += '<div style="font-size:32px">' + entityIcon + '</div>';
+  html += '<div style="background:var(--c1);border-radius:16px;border:2px solid ' + sColor + '30;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 16px ' + sColor + '18">';
+  html += '<div style="padding:14px 16px;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,' + sBg + '60,' + sColor + '08)">';
+  html += '<div style="font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))">' + entityIcon + '</div>';
   html += '<div style="flex:1">';
-  html += '<div style="font-size:18px;font-weight:900;color:var(--tx1)">' + v + '</div>';
-  html += '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">';
-  html += '<span style="background:' + sColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">' + entityType + '</span>';
+  html += '<div style="font-size:19px;font-weight:900;color:var(--tx1);letter-spacing:-.3px">' + v + '</div>';
+  html += '<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center">';
+  html += '<span style="background:' + sColor + ';color:#fff;font-size:11px;font-weight:800;padding:3px 12px;border-radius:20px;letter-spacing:.2px">' + sIcon + ' ' + sLabel + '</span>';
+  html += '<span style="background:' + sColor + '15;border:1px solid ' + sColor + '30;color:' + sColor + ';font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px">' + entityType + '</span>';
   if(entityPhone) html += '<span style="font-size:11px;color:var(--tx2)">📞 ' + entityPhone + '</span>';
   html += '<span style="background:var(--c2);border:1px solid var(--b2);color:var(--tx2);font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px">📄 ' + invoiceCount + ' فاتورة</span>';
   html += '</div></div>';
@@ -12609,64 +12624,67 @@ function renderStmt(){
   // (مبالغ إضافية charge + تصفير discount-adj + كل الحركات)
   const _ajRemaining  = cash;  // دائماً من getClientBalance لضمان المطابقة
   const _ajRemAbs     = Math.abs(_ajRemaining);
+  // منطق الألوان الموحد: له = أخضر · عليه = أحمر · فائض = كهرماني
   const _ajClr        = _ajRemAbs < 0.01 ? '#16A34A'
-                      : isSupp ? (cash < 0 ? '#DC2626' : '#D97706')
-                      : (cash > 0 ? '#DC2626' : '#D97706');
+                      : isSupp ? (cash < 0 ? '#16A34A' : '#D97706')
+                      : (cash > 0 ? '#DC2626' : '#16A34A');
   const _ajBg         = _ajRemAbs < 0.01 ? '#DCFCE7'
-                      : isSupp ? (cash < 0 ? '#FEE2E2' : '#FEF9C3')
-                      : (cash > 0 ? '#FEE2E2' : '#FEF9C3');
+                      : isSupp ? (cash < 0 ? '#DCFCE7' : '#FEF9C3')
+                      : (cash > 0 ? '#FEE2E2' : '#DCFCE7');
   const _ajDir        = _ajRemAbs < 0.01 ? '✅ مسدد'
-                      : isSupp ? (cash < 0 ? 'باقي له علينا 🔴' : 'له فائض عندنا 🟡')
-                      : (cash > 0 ? 'باقي عليه' : 'له فائض');
+                      : isSupp ? (cash < 0 ? 'له' : 'له فائض')
+                      : (cash > 0 ? 'عليه' : 'له');
   const _goldAbs      = Math.abs(gold24);
   const _hasGold      = _goldAbs > 0.001;
   const _goldClr      = gold24 > 0 ? '#DC2626' : '#16A34A';
   const _goldDir      = Math.abs(gold24)<0.001 ? '' : gold24>0 ? 'عليه ذهب' : 'له ذهب';
 
-  html += '<div style="padding:10px 14px 4px;display:grid;grid-template-columns:' + (_hasGold ? '1fr 1fr' : '1fr') + ';gap:8px">';
-  // خانة الباقي من الأجور
-  html += '<div style="background:' + _ajBg + ';border:2px solid ' + _ajClr + ';border-radius:10px;padding:10px 12px">';
-  html += '<div style="font-size:10px;color:' + _ajClr + ';font-weight:700;margin-bottom:4px">💵 ' + _ajDir + '</div>';
-  html += '<div style="font-size:' + (_ajRemAbs>999999?'16':'20') + 'px;font-weight:900;color:' + _ajClr + ';line-height:1.1">' + (_ajRemAbs<0.01?'—':fmt(_ajRemAbs)) + '</div>';
-  if(_ajRemAbs>0.01) html += '<div style="font-size:10px;color:' + _ajClr + ';opacity:.75;margin-top:2px">ريال</div>';
-  if(_ajRemAbs>0.01) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'cash\')" style="margin-top:6px;padding:2px 8px;font-size:9px;font-weight:700;border:none;border-radius:6px;background:#DC2626;color:#fff;cursor:pointer;font-family:inherit">⚖️ تصفير نقد</button>';
+  html += '<div style="padding:12px 14px 6px;display:grid;grid-template-columns:' + (_hasGold ? '1fr 1fr' : '1fr') + ';gap:10px">';
+  // خانة الرصيد النقدي / الأجور
+  html += '<div style="background:' + _ajBg + ';border:2px solid ' + _ajClr + '50;border-radius:13px;padding:12px 14px;position:relative;overflow:hidden">';
+  html += '<div style="position:absolute;top:0;right:0;width:60px;height:60px;background:' + _ajClr + '08;border-radius:50%;transform:translate(20px,-20px)"></div>';
+  html += '<div style="font-size:11px;color:' + _ajClr + ';font-weight:800;margin-bottom:5px;display:flex;align-items:center;gap:4px">💵 <span>' + _ajDir + '</span></div>';
+  html += '<div style="font-size:' + (_ajRemAbs>999999?'18':'24') + 'px;font-weight:900;color:' + _ajClr + ';line-height:1;letter-spacing:-.5px">' + (_ajRemAbs<0.01?'—':fmt(_ajRemAbs)) + '</div>';
+  if(_ajRemAbs>0.01) html += '<div style="font-size:11px;color:' + _ajClr + ';opacity:.70;margin-top:3px;font-weight:700">ريال</div>';
+  if(_ajRemAbs>0.01) html += '<button onclick="settleClientAccount(\'' + v.replace(/'/g,"\\'") + '\',\'cash\')" style="margin-top:8px;padding:4px 10px;font-size:10px;font-weight:800;border:none;border-radius:8px;background:' + _ajClr + ';color:#fff;cursor:pointer;font-family:inherit;opacity:.85">⚖️ تصفير</button>';
   html += '</div>';
   // خانة الذهب (فقط لو في رصيد ذهب)
   if(_hasGold){
-    html += '<div style="background:' + (gold24>0?'#FEE2E2':'#DCFCE7') + ';border:2px solid ' + _goldClr + ';border-radius:10px;padding:10px 12px">';
-    html += '<div style="font-size:10px;color:' + _goldClr + ';font-weight:700;margin-bottom:6px">🥇 ' + _goldDir + '</div>';
+    var _goldBg = gold24>0?'#FEE2E2':'#DCFCE7';
+    var _goldBorderColor = _goldClr + '50';
+    html += '<div style="background:' + _goldBg + ';border:2px solid ' + _goldBorderColor + ';border-radius:13px;padding:12px 14px;position:relative;overflow:hidden">';
+    html += '<div style="position:absolute;top:0;right:0;width:60px;height:60px;background:' + _goldClr + '08;border-radius:50%;transform:translate(20px,-20px)"></div>';
+    html += '<div style="font-size:11px;color:' + _goldClr + ';font-weight:800;margin-bottom:5px;display:flex;align-items:center;gap:4px">🥇 <span>' + _goldDir + '</span></div>';
     // ── تحويل العيارات + الرصيد ──
     var _svQ2 = v.replace(/'/g,"__APOS__");
     // الرصيد الكبير بعيار 24
-    html += '<div style="font-size:28px;font-weight:900;color:' + _goldClr + ';line-height:1;margin-bottom:2px">' + fmtG(_goldAbs) + '</div>';
-    html += '<div style="font-size:10px;color:' + _goldClr + ';opacity:.75;margin-bottom:8px">جرام ع٢٤</div>';
+    html += '<div style="font-size:24px;font-weight:900;color:' + _goldClr + ';line-height:1;margin-bottom:2px;letter-spacing:-.5px">' + fmtG(_goldAbs) + '</div>';
+    html += '<div style="font-size:11px;color:' + _goldClr + ';opacity:.70;margin-bottom:8px;font-weight:700">جرام ع٢٤</div>';
     // محول العيارات — يعادل
     var _eq21 = Math.round(_goldAbs * 24/21 * 1000)/1000;
     var _eq18 = Math.round(_goldAbs * 24/18 * 1000)/1000;
-    html += '<div style="background:rgba(0,0,0,.15);border-radius:8px;padding:7px 8px;margin-bottom:8px">';
-    html += '<div style="font-size:8px;color:' + _goldClr + ';font-weight:800;opacity:.85;margin-bottom:5px">🔄 يعادل بالعيارات:</div>';
+    html += '<div style="background:rgba(0,0,0,.10);border-radius:10px;padding:7px 8px;margin-bottom:8px">';
+    html += '<div style="font-size:9px;color:' + _goldClr + ';font-weight:800;opacity:.80;margin-bottom:5px">🔄 يعادل بالعيارات:</div>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">';
-    html += '<div style="text-align:center;background:rgba(255,255,255,.12);border-radius:7px;padding:5px 3px">';
-    html += '<div style="font-size:8px;color:#FCD34D;font-weight:900;margin-bottom:2px">عيار ٢١</div>';
-    html += '<div style="font-size:15px;font-weight:900;color:#FCD34D">' + fmtG(_eq21) + '</div>';
-    html += '<div style="font-size:8px;color:#FCD34D;opacity:.65">جرام</div></div>';
-    html += '<div style="text-align:center;background:rgba(255,255,255,.12);border-radius:7px;padding:5px 3px">';
-    html += '<div style="font-size:8px;color:#93C5FD;font-weight:900;margin-bottom:2px">عيار ١٨</div>';
-    html += '<div style="font-size:15px;font-weight:900;color:#93C5FD">' + fmtG(_eq18) + '</div>';
-    html += '<div style="font-size:8px;color:#93C5FD;opacity:.65">جرام</div></div>';
+    html += '<div style="text-align:center;background:rgba(255,255,255,.15);border-radius:8px;padding:5px 3px">';
+    html += '<div style="font-size:9px;color:#D97706;font-weight:900;margin-bottom:2px">عيار ٢١</div>';
+    html += '<div style="font-size:14px;font-weight:900;color:#D97706">' + fmtG(_eq21) + '</div>';
+    html += '<div style="font-size:8px;color:#D97706;opacity:.65">جرام</div></div>';
+    html += '<div style="text-align:center;background:rgba(255,255,255,.15);border-radius:8px;padding:5px 3px">';
+    html += '<div style="font-size:9px;color:#0891B2;font-weight:900;margin-bottom:2px">عيار ١٨</div>';
+    html += '<div style="font-size:14px;font-weight:900;color:#0891B2">' + fmtG(_eq18) + '</div>';
+    html += '<div style="font-size:8px;color:#0891B2;opacity:.65">جرام</div></div>';
     html += '</div></div>';
-    html += '<button onclick="_btnSettleAccount(this,&quot;gold&quot;)" data-v="' + _svQ2 + '" style="margin-top:4px;padding:5px 10px;font-size:10px;font-weight:800;border:none;border-radius:8px;background:#D97706;color:#fff;cursor:pointer;font-family:inherit;width:100%">⚖️ تصفير ذهب</button>';
+    html += '<button onclick="_btnSettleAccount(this,&quot;gold&quot;)" data-v="' + _svQ2 + '" style="margin-top:4px;padding:5px 10px;font-size:10px;font-weight:800;border:none;border-radius:8px;background:' + _goldClr + ';color:#fff;cursor:pointer;font-family:inherit;width:100%;opacity:.85">⚖️ تصفير</button>';
     html += '</div>';
   }
   html += '</div>';
 
 
-  // [ks-panel أعلاه يغني عن هذا القسم]
-
-    // شريط التسديد
-  html += '<div style="padding:8px 14px 12px">';
-  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:3px"><span>نسبة التسديد</span><span style="font-weight:700;color:' + sColor + '">' + paidPct + '%</span></div>';
-  html += '<div style="background:var(--b1);border-radius:8px;height:10px;overflow:hidden"><div style="width:' + paidPct + '%;height:100%;background:' + sColor + ';border-radius:8px"></div></div>';
+  // شريط التسديد — محسّن
+  html += '<div style="padding:10px 14px 14px">';
+  html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);margin-bottom:5px;font-weight:700"><span>نسبة التسديد</span><span style="color:' + sColor + ';font-size:12px">' + paidPct + '%</span></div>';
+  html += '<div style="background:var(--b1);border-radius:10px;height:8px;overflow:hidden"><div style="width:' + paidPct + '%;height:100%;background:linear-gradient(90deg,' + sColor + 'BB,' + sColor + ');border-radius:10px;transition:width .4s ease"></div></div>';
   html += '</div>';
   html += '</div>'; // end entity card
 
@@ -12977,13 +12995,13 @@ function openCliDetail(id){
   const bal=getClientBalance(cl.name);
   const isSupp=cl.type==='مورد';
 
-  // ── ملخص مالي ──
+  // ── ملخص مالي — منطق موحد: له = أخضر · عليه = أحمر ──
   const absOwed=Math.abs(bal.cashOwed);
   const stLbl=isSupp
-    ?(bal.cashOwed<0?'له علينا':'له عندنا فائض')
-    :(bal.cashOwed>0?'عليه لنا':'له عندنا');
+    ?(bal.cashOwed<0?'له':'له فائض')
+    :(bal.cashOwed>0?'عليه':'له');
   const stColor=isSupp
-    ?(bal.cashOwed<0?'var(--no)':'var(--ok)')
+    ?(bal.cashOwed<0?'var(--ok)':bal.cashOwed>0?'var(--orange)':'var(--ok)')
     :(bal.cashOwed>0?'var(--no)':'var(--ok)');
 
   document.getElementById('cd-name').textContent=cl.name+' · '+cl.type;
@@ -13175,18 +13193,18 @@ function renderObClientsList(){
         <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">💵 رصيد نقدي (ريال)</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
           <button type="button" id="ob-cashdir-owe-${name}" onclick="setObCashDir('${name.replace(/'/g,"\\'")}','${isSupp?'له_علينا':'عليه_لنا'}')"
-            style="padding:8px;border-radius:8px;border:2px solid ${cashDir===(isSupp?'له_علينا':'عليه_لنا')?'var(--no)':'var(--b2)'};
-              background:${cashDir===(isSupp?'له_علينا':'عليه_لنا')?'var(--no-bg)':'var(--c1)'};
-              color:${cashDir===(isSupp?'له_علينا':'عليه_لنا')?'var(--no)':'var(--tx2)'};
+            style="padding:8px;border-radius:8px;border:2px solid ${cashDir===(isSupp?'له_علينا':'عليه_لنا')?(isSupp?'var(--ok)':'var(--no)'):'var(--b2)'};
+              background:${cashDir===(isSupp?'له_علينا':'عليه_لنا')?(isSupp?'var(--ok-bg)':'var(--no-bg)'):'var(--c1)'};
+              color:${cashDir===(isSupp?'له_علينا':'عليه_لنا')?(isSupp?'var(--ok)':'var(--no)'):'var(--tx2)'};
               font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-            ${isSupp?'له علينا 🔴':'عليه لنا 🔴'}
+            ${isSupp?'له 🟢':'عليه 🔴'}
           </button>
           <button type="button" id="ob-cashdir-have-${name}" onclick="setObCashDir('${name.replace(/'/g,"\\'")}','${isSupp?'لنا_فائض':'له_عندنا'}')"
             style="padding:8px;border-radius:8px;border:2px solid ${cashDir===(isSupp?'لنا_فائض':'له_عندنا')?'var(--ok)':'var(--b2)'};
               background:${cashDir===(isSupp?'لنا_فائض':'له_عندنا')?'var(--ok-bg)':'var(--c1)'};
               color:${cashDir===(isSupp?'لنا_فائض':'له_عندنا')?'var(--ok)':'var(--tx2)'};
               font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-            ${isSupp?'لنا فائض 🟢':'له عندنا 🟢'}
+            ${isSupp?'له فائض 🟡':'له 🟢'}
           </button>
         </div>
         <input type="number" id="ob-cli-cash-${name}" value="${Math.abs(data.cash||0)||''}" placeholder="0" inputmode="decimal"
