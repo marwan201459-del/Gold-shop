@@ -5674,17 +5674,44 @@ function printStmt(){
   </div>
   ${bodyHtml}
   <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function(){window.print();},600);});${'\x3c/script\x3e'}
 </body></html>`;
 
-  const blob=new Blob([printHTML],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const win=window.open(url,'_blank');
-  if(!win){
-    const a=document.createElement('a');
-    a.href=url;a.download='كشف_حساب.html';a.click();
-    toast('📥 تم تنزيل الملف — افتحه واطبعه');
-  } else {
-    setTimeout(()=>URL.revokeObjectURL(url),10000);
+  /* ── فتح نافذة الطباعة — يعمل على الجوال والحاسب ── */
+  try {
+    /* الطريقة 1: فتح نافذة فارغة ثم كتابة المحتوى (أفضل للجوال) */
+    const win = window.open('', '_blank');
+    if(win && !win.closed){
+      win.document.open();
+      win.document.write(printHTML);
+      win.document.close();
+      /* تشغيل الطباعة تلقائياً بعد تحميل الصفحة */
+      win.onload = function(){ try{ win.focus(); }catch(e){} };
+    } else {
+      throw new Error('popup blocked');
+    }
+  } catch(err){
+    /* الطريقة 2: data URI — للحالات التي تُعاق فيها النوافذ المنبثقة */
+    try {
+      const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(printHTML);
+      const a = document.createElement('a');
+      a.href = encoded;
+      a.target = '_blank';
+      a.download = 'كشف_حساب.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('📥 تم تنزيل الكشف — افتحه واضغط طباعة');
+    } catch(err2){
+      /* الطريقة 3: Blob fallback */
+      const blob = new Blob([printHTML],{type:'text/html;charset=utf-8'});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = 'كشف_حساب.html';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 10000);
+      toast('📥 تم تنزيل الكشف — افتحه واضغط طباعة');
+    }
   }
 }
 
