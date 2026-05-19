@@ -504,6 +504,70 @@ body{
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
 ::-webkit-scrollbar-track{background:transparent}
+
+/* ════════════════════════════════════════
+   DLPRO MINI DASHBOARD — داشبورد الحركة
+   ════════════════════════════════════════ */
+.dlpro-mini-dash{display:flex;flex-direction:column;gap:10px}
+.dlpro-md-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.dlpro-md-karat-row{grid-template-columns:repeat(3,1fr)}
+.dlpro-md-karat-title{font-size:11px;font-weight:800;color:var(--g2);padding:6px 4px 2px;border-bottom:1px solid var(--g5);letter-spacing:.3px}
+.dlpro-md-card{background:var(--c1);border:1.5px solid var(--b1);border-radius:14px;padding:14px 10px 10px;text-align:center;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:3px}
+.dlpro-md-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.dlpro-md-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.dlpro-md-sales::before{background:linear-gradient(90deg,var(--g1),var(--g2))}
+.dlpro-md-exp::before{background:var(--no)}
+.dlpro-md-scrap::before{background:var(--in)}
+.dlpro-md-ret::before{background:var(--io)}
+.dlpro-md-cash::before{background:var(--ok)}
+.dlpro-md-k18::before{background:var(--in)}
+.dlpro-md-k21::before{background:linear-gradient(90deg,var(--g1),var(--g2))}
+.dlpro-md-k24::before{background:var(--ok)}
+.dlpro-md-card:hover.dlpro-md-sales{border-color:var(--g5)}
+.dlpro-md-card:hover.dlpro-md-exp{border-color:var(--no-bd)}
+.dlpro-md-card:hover.dlpro-md-scrap{border-color:var(--in-bd)}
+.dlpro-md-card:hover.dlpro-md-ret{border-color:var(--io-bd)}
+.dlpro-md-card:hover.dlpro-md-cash{border-color:var(--ok-bd)}
+.dlpro-md-card:hover.dlpro-md-k18{border-color:var(--in-bd)}
+.dlpro-md-card:hover.dlpro-md-k21{border-color:var(--g5)}
+.dlpro-md-card:hover.dlpro-md-k24{border-color:var(--ok-bd)}
+.dlpro-md-icon{font-size:22px;margin-bottom:2px}
+.dlpro-md-label{font-size:9px;font-weight:800;color:var(--tx2);letter-spacing:.2px}
+.dlpro-md-value{font-size:18px;font-weight:900;line-height:1.1;margin:2px 0}
+.dlpro-md-sub{font-size:9px;color:var(--tx3)}
+.dlpro-md-tap{font-size:8px;color:var(--g1);font-weight:700;margin-top:4px;opacity:.7}
+.dlpro-color-gold{color:var(--g1)}
+.dlpro-color-red{color:var(--no)}
+.dlpro-color-blue{color:var(--in)}
+.dlpro-color-orange{color:var(--io)}
+.dlpro-color-green{color:var(--ok)}
+.dlpro-md-kbadge{width:30px;height:30px;border-radius:50%;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+.dlpro-kbadge-18{background:var(--in-bg);color:var(--in);border:1.5px solid var(--in-bd)}
+.dlpro-kbadge-21{background:var(--g4);color:var(--g1);border:1.5px solid var(--g5)}
+.dlpro-kbadge-24{background:var(--ok-bg);color:var(--ok);border:1.5px solid var(--ok-bd)}
+#dlpro-popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+#dlpro-popup-overlay.open{display:flex}
+#dlpro-popup-box{background:var(--c1);border:1.5px solid var(--g5);border-radius:20px;width:100%;max-width:580px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.55);overflow:hidden;animation:dlproPopIn .2s ease}
+@keyframes dlproPopIn{from{transform:scale(.93) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+#dlpro-popup-header{padding:14px 16px;background:linear-gradient(135deg,var(--hd),rgba(200,150,30,.18));border-bottom:1px solid var(--g5);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#dlpro-popup-title{font-size:14px;font-weight:900;color:var(--g2);display:flex;align-items:center;gap:7px}
+#dlpro-popup-close{width:28px;height:28px;border-radius:50%;background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+#dlpro-popup-close:hover{background:var(--no);color:#fff}
+#dlpro-popup-summary{padding:10px 16px;background:var(--c2);border-bottom:1px solid var(--b1);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.dlpro-popup-stat{background:var(--c1);border:1px solid var(--b1);border-radius:10px;padding:8px 14px;text-align:center;flex:1;min-width:80px}
+.dlpro-popup-stat-lbl{font-size:8px;font-weight:700;color:var(--tx2);margin-bottom:2px}
+.dlpro-popup-stat-val{font-size:16px;font-weight:900}
+#dlpro-popup-body{flex:1;overflow-y:auto;padding:12px 16px;scrollbar-width:thin;scrollbar-color:var(--g5) transparent}
+#dlpro-popup-body::-webkit-scrollbar{width:5px}
+#dlpro-popup-body::-webkit-scrollbar-thumb{background:var(--g5);border-radius:3px}
+.dlpro-pop-row{background:var(--c2);border:1px solid var(--b1);border-right:3px solid;border-radius:10px;padding:10px 12px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dlpro-pop-row-info{flex:1;min-width:0}
+.dlpro-pop-row-name{font-size:12px;font-weight:800;color:var(--tx1)}
+.dlpro-pop-row-meta{font-size:10px;color:var(--tx2);margin-top:3px}
+.dlpro-pop-row-amount{font-size:14px;font-weight:900;white-space:nowrap}
+.dlpro-pop-empty{text-align:center;color:var(--tx3);font-size:12px;padding:28px 0}
+@media(max-width:680px){.dlpro-md-row{grid-template-columns:1fr 1fr}.dlpro-md-value{font-size:15px}}
+
 </style>
 <script>
   // ── تحقق مبكر من الجلسة ──
@@ -2722,6 +2786,19 @@ body{
      معزولة تماماً — لا تغيّر أي منطق قديم
      ════════════════════════════════════════════════════════════ -->
 <div id="pg-dailylog" class="pg">
+
+  <!-- ══ Popup نافذة التفاصيل ══ -->
+  <div id="dlpro-popup-overlay" onclick="if(event.target===this)_dlproClosePopup()">
+    <div id="dlpro-popup-box">
+      <div id="dlpro-popup-header">
+        <div id="dlpro-popup-title">📊 التفاصيل</div>
+        <button id="dlpro-popup-close" onclick="_dlproClosePopup()">✕</button>
+      </div>
+      <div id="dlpro-popup-summary"></div>
+      <div id="dlpro-popup-body"></div>
+    </div>
+  </div>
+
 
   <!-- ══ رأس الحركة اليومية ══ -->
   <div style="background:var(--hd);border-radius:var(--ra);padding:12px 14px;margin-bottom:12px;border:1.5px solid var(--g5)">
@@ -15617,6 +15694,9 @@ if(typeof _rsOrig==='function'){
     let scrap18=0,scrap21=0,scrap22=0,scrap24=0;
     let unitsIn=0,unitsOut=0,opCount=0;
     const typeCount={};
+    // ── كسر العيارات لكل نوع ──
+    let sell18={val:0,wt:0,cnt:0},sell21={val:0,wt:0,cnt:0},sell24={val:0,wt:0,cnt:0};
+    let _sellTxs=[],_retTxs=[],_expTxs=[],_cashTxs=[],_scrapTxs=[];
 
     dayTxs.forEach(t=>{
       const tp=t.type||'';
@@ -15625,6 +15705,11 @@ if(typeof _rsOrig==='function'){
       if(tp==='sell'||tp==='sell-debt'){
         sellAjr+=(t.ajTotal||0);
         (t.items||[]).forEach(i=>{ if(i.karat!=='gems') goldOut24+=_to24(i.weight,i.karat); });
+        _sellTxs.push(t);
+        (t.items||[]).forEach(i=>{const k=String(i.karat||'21'),w=i.weight||0;if(k==='18')sell18.wt+=w;else if(k==='21')sell21.wt+=w;else if(k==='24')sell24.wt+=w;});
+        if((t.items||[]).some(i=>i.karat==='18'))sell18.cnt++;
+        if((t.items||[]).some(i=>i.karat==='21'))sell21.cnt++;
+        if((t.items||[]).some(i=>i.karat==='24'))sell24.cnt++;
       } else if(tp==='buy'||tp==='buy-debt'){
         buyAjr+=(t.ajTotal||0);
         (t.items||[]).forEach(i=>{ if(i.karat!=='gems') goldIn24+=_to24(i.weight,i.karat); });
@@ -15632,21 +15717,26 @@ if(typeof _rsOrig==='function'){
         cashIn+=(t.ajourPaid||0)+(t.change||0);
         (t.goldItems||[]).forEach(gi=>goldIn24+=_to24(gi.weight,gi.karat));
         if(!(t.goldItems?.length)&&(t.goldWeight||0)>0) goldIn24+=_to24(t.goldWeight,t.goldKarat||'21');
+        _cashTxs.push(t);
       } else if(tp==='supplier-payment'){
         cashOut+=(t.ajourPaid||0)+(t.change||0);
         (t.goldItems||[]).forEach(gi=>goldOut24+=_to24(gi.weight,gi.karat));
         if(!(t.goldItems?.length)&&(t.goldWeight||0)>0) goldOut24+=_to24(t.goldWeight,t.goldKarat||'21');
       } else if(tp==='cash-receipt'){
         cashIn+=(t.amount||0);
+        _cashTxs.push(t);
       } else if(tp==='expense'){
         cashOut+=(t.amount||0); expTotal+=(t.amount||0);
+        _expTxs.push(t);
       } else if(tp==='scrap'){
+        _scrapTxs.push(t);
         const si=t.scrapItems||[];
         if(si.length){ si.forEach(s=>{ const w=s.weight||0,k=s.karat||'21'; if(k==='18')scrap18+=w; else if(k==='21')scrap21+=w; else if(k==='22')scrap22+=w; else if(k==='24')scrap24+=w; goldIn24+=_to24(w,k); }); }
         else { const w=t.weight||0,k=t.karat||'21'; if(k==='18')scrap18+=w; else if(k==='21')scrap21+=w; else if(k==='22')scrap22+=w; else if(k==='24')scrap24+=w; goldIn24+=_to24(w,k); }
       } else if(tp==='sales-return'||tp==='return'){
         retVal+=(t.ajTotal||0)+(t.vatAmt||0);
         (t.items||[]).forEach(i=>goldIn24+=_to24(i.weight,i.karat));
+        _retTxs.push(t);
       } else if(tp==='supplier-return'||tp==='purchase-return'){
         (t.items||[]).forEach(i=>goldOut24+=_to24(i.weight,i.karat));
       } else if(tp==='transfer'){
@@ -15684,121 +15774,110 @@ if(typeof _rsOrig==='function'){
     // حساب عدد الفواتير (عمليات البيع)
     const invoiceCount = dayTxs.filter(t=>t.type==='sell'||t.type==='sell-debt').length;
 
+    // ── كسر قيم عيارات البيع ──
+    sell18.val = sell18.wt>0 && window._gpPrice ? sell18.wt*(window._gpPrice.g18_sar||0) : 0;
+    sell21.val = sell21.wt>0 && window._gpPrice ? sell21.wt*(window._gpPrice.g21_sar||0) : 0;
+    sell24.val = sell24.wt>0 && window._gpPrice ? sell24.wt*(window._gpPrice.g24_sar||0) : 0;
+
+    // ── تخزين البيانات للـ Popup ──
+    window._dlproData = {
+      dayTxs, sellAjr, expTotal, retVal, cashIn, cashOut,
+      scrap18, scrap21, scrap22, scrap24,
+      invoiceCount, dayLabel, dayStr,
+      sell18, sell21, sell24,
+      _sellTxs, _retTxs, _expTxs, _cashTxs, _scrapTxs,
+      netCash, netAjr
+    };
+
     const sumEl = document.getElementById('dlpro-summary-section');
     if(sumEl) sumEl.innerHTML = `
-    <div style="background:var(--c1);border:1.5px solid var(--g5);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+    <!-- ══ ميني داشبورد الحركة اليومية ══ -->
+    <div class="dlpro-mini-dash">
 
-      <!-- رأس القسم -->
-      <div style="background:linear-gradient(135deg,var(--hd),rgba(200,150,30,.18));padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:7px">
-          <div style="width:3px;height:16px;background:linear-gradient(to bottom,var(--g2),var(--g1));border-radius:2px"></div>
-          <span style="font-size:13px;font-weight:900;color:var(--g2)">📊 حركة اليوم — ${dayLabel}</span>
-        </div>
-        <span style="font-size:10px;color:rgba(255,255,255,.45)">${opCount} عملية</span>
-      </div>
+      <!-- ── الصف الأول: الأرقام الكبيرة ── -->
+      <div class="dlpro-md-row">
 
-      <div style="padding:12px">
-
-        <!-- ══ الصف الأول: العيارات الثلاثة ══ -->
-        <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--b1)">
-          🗃️ الكسر الوارد اليوم (بالجرام)
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-          <div style="background:var(--in-bg);border:1.5px solid var(--in-bd);border-radius:12px;padding:12px 8px;text-align:center;position:relative">
-            <div style="font-size:9px;font-weight:800;color:var(--in);margin-bottom:2px">🥈 كسر 18</div>
-            <div style="font-size:24px;font-weight:900;color:var(--in);line-height:1">${_fmtG(scrap18)}</div>
-            <div style="font-size:8px;color:var(--tx3);margin-top:2px">جرام</div>
-          </div>
-          <div style="background:var(--g4);border:1.5px solid var(--g5);border-radius:12px;padding:12px 8px;text-align:center;position:relative">
-            <div style="font-size:9px;font-weight:800;color:var(--g1);margin-bottom:2px">💛 كسر 21</div>
-            <div style="font-size:24px;font-weight:900;color:var(--g1);line-height:1">${_fmtG(scrap21)}</div>
-            <div style="font-size:8px;color:var(--tx3);margin-top:2px">جرام</div>
-          </div>
-          <div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:12px;padding:12px 8px;text-align:center;position:relative">
-            <div style="font-size:9px;font-weight:800;color:var(--ok);margin-bottom:2px">⭐ ماي 24</div>
-            <div style="font-size:24px;font-weight:900;color:var(--ok);line-height:1">${_fmtG(scrap24)}</div>
-            <div style="font-size:8px;color:var(--tx3);margin-top:2px">جرام</div>
-          </div>
+        <!-- 1 إجمالي المبيعات -->
+        <div class="dlpro-md-card dlpro-md-sales" onclick="_dlproPopup('sales')">
+          <div class="dlpro-md-icon">🛍️</div>
+          <div class="dlpro-md-label">إجمالي المبيعات</div>
+          <div class="dlpro-md-value dlpro-color-gold">${_fmt(sellAjr)}</div>
+          <div class="dlpro-md-sub">ريال · ${invoiceCount} فاتورة</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
         </div>
 
-        <!-- ══ الصف الثاني: النقد + عدد الفواتير + الفرق ══ -->
-        <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--b1)">
-          💵 النقد وعدد الفواتير
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-          <!-- نقد داخل -->
-          <div style="background:var(--ok-bg);border:2px solid var(--ok-bd);border-radius:12px;padding:12px 8px;text-align:center">
-            <div style="font-size:9px;font-weight:800;color:var(--ok);margin-bottom:2px">📥 نقد داخل</div>
-            <div style="font-size:20px;font-weight:900;color:var(--ok);line-height:1">${_fmt(cashIn)}</div>
-            <div style="font-size:8px;color:var(--tx3);margin-top:2px">ريال</div>
-          </div>
-          <!-- عدد الفواتير -->
-          <div style="background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:12px;padding:12px 8px;text-align:center">
-            <div style="font-size:9px;font-weight:800;color:var(--pu);margin-bottom:2px">🧾 عدد الفواتير</div>
-            <div style="font-size:24px;font-weight:900;color:var(--pu);line-height:1">${invoiceCount}</div>
-            <div style="font-size:8px;color:var(--tx3);margin-top:2px">فاتورة</div>
-          </div>
-          <!-- فرق الريال -->
-          <div style="background:${netCash>=0?'var(--ok-bg)':'var(--no-bg)'};border:2px solid ${netCash>=0?'var(--ok-bd)':'var(--no-bd)'};border-radius:12px;padding:12px 8px;text-align:center">
-            <div style="font-size:9px;font-weight:800;color:${netCash>=0?'var(--ok)':'var(--no)'};margin-bottom:2px">⚖️ فرق الريال</div>
-            <div style="font-size:20px;font-weight:900;color:${netCash>=0?'var(--ok)':'var(--no)'};line-height:1">
-              ${netCash<0?'−':''}${_fmt(Math.abs(netCash))}
-            </div>
-            <div style="font-size:8px;color:var(--tx3);margin-top:2px">ريال</div>
-          </div>
+        <!-- 2 إجمالي المصروفات -->
+        <div class="dlpro-md-card dlpro-md-exp" onclick="_dlproPopup('exp')">
+          <div class="dlpro-md-icon">💸</div>
+          <div class="dlpro-md-label">إجمالي المصروفات</div>
+          <div class="dlpro-md-value dlpro-color-red">${_fmt(expTotal)}</div>
+          <div class="dlpro-md-sub">ريال · ${_expTxs.length} عملية</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
         </div>
 
-        <!-- ══ الصف الثالث: ذهب داخل/خارج + أجور ══ -->
-        <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--b1)">
-          🏅 حركة الذهب والأجور
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
-          <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:10px 6px;text-align:center">
-            <div style="font-size:8px;font-weight:700;color:var(--g1);margin-bottom:2px">📥 ذهب داخل</div>
-            <div style="font-size:14px;font-weight:900;color:var(--g1)">${_fmtG(goldIn24)}</div>
-            <div style="font-size:7px;color:var(--tx3)">جرام ع24</div>
-          </div>
-          <div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px 6px;text-align:center">
-            <div style="font-size:8px;font-weight:700;color:var(--io);margin-bottom:2px">📤 ذهب خارج</div>
-            <div style="font-size:14px;font-weight:900;color:var(--io)">${_fmtG(goldOut24)}</div>
-            <div style="font-size:7px;color:var(--tx3)">جرام ع24</div>
-          </div>
-          <div style="background:var(--g4);border:1px solid var(--g5);border-radius:10px;padding:10px 6px;text-align:center">
-            <div style="font-size:8px;font-weight:700;color:var(--g1);margin-bottom:2px">🧾 أجور البيع</div>
-            <div style="font-size:14px;font-weight:900;color:var(--g1)">${_fmt(sellAjr)}</div>
-            <div style="font-size:7px;color:var(--tx3)">ريال</div>
-          </div>
-          <div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px 6px;text-align:center">
-            <div style="font-size:8px;font-weight:700;color:var(--no);margin-bottom:2px">💸 مصروفات</div>
-            <div style="font-size:14px;font-weight:900;color:var(--no)">${_fmt(expTotal)}</div>
-            <div style="font-size:7px;color:var(--tx3)">ريال</div>
-          </div>
+        <!-- 3 إجمالي الكسر -->
+        <div class="dlpro-md-card dlpro-md-scrap" onclick="_dlproPopup('scrap')">
+          <div class="dlpro-md-icon">🪙</div>
+          <div class="dlpro-md-label">إجمالي الكسر</div>
+          <div class="dlpro-md-value dlpro-color-blue">${_fmtG(scrap18+scrap21+scrap24)}</div>
+          <div class="dlpro-md-sub">جرام · ${_scrapTxs.length} عملية</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
         </div>
 
-        <!-- ══ الصف الرابع: الأرصدة الحالية ══ -->
-        <div style="background:var(--c2);border-radius:10px;padding:10px;border:1px solid var(--b1)">
-          <div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:7px">💼 الأرصدة الحالية للصناديق</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-            <div style="background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:9px;text-align:center">
-              <div style="font-size:8px;color:var(--tx2);font-weight:700">💵 الصندوق النقدي</div>
-              <div style="font-size:16px;font-weight:900;color:var(--ok);margin:3px 0">${_fmt(safes.cash||0)}</div>
-              <div style="font-size:7px;color:var(--tx3)">ريال</div>
-            </div>
-            <div style="background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:9px;text-align:center">
-              <div style="font-size:8px;color:var(--tx2);font-weight:700">🏦 الخزينة</div>
-              <div style="font-size:16px;font-weight:900;color:var(--in);margin:3px 0">${_fmt(safes.khazina||0)}</div>
-              <div style="font-size:7px;color:var(--tx3)">ريال</div>
-            </div>
-            <div style="background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:9px;text-align:center">
-              <div style="font-size:8px;color:var(--tx2);font-weight:700">🥇 إجمالي الذهب</div>
-              <div style="font-size:16px;font-weight:900;color:var(--g1);margin:3px 0">${_fmtG(totalGoldAll24)}</div>
-              <div style="font-size:7px;color:var(--tx3)">جرام ع24</div>
-            </div>
-          </div>
+        <!-- 4 المرتجعات -->
+        <div class="dlpro-md-card dlpro-md-ret" onclick="_dlproPopup('ret')">
+          <div class="dlpro-md-icon">↩️</div>
+          <div class="dlpro-md-label">المرتجعات</div>
+          <div class="dlpro-md-value dlpro-color-orange">${_fmt(retVal)}</div>
+          <div class="dlpro-md-sub">ريال · ${_retTxs.length} عملية</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
+        </div>
+
+        <!-- 5 النقد المستلم -->
+        <div class="dlpro-md-card dlpro-md-cash" onclick="_dlproPopup('cash')">
+          <div class="dlpro-md-icon">💵</div>
+          <div class="dlpro-md-label">النقد المستلم</div>
+          <div class="dlpro-md-value dlpro-color-green">${_fmt(cashIn)}</div>
+          <div class="dlpro-md-sub">ريال · ${_cashTxs.length} عملية</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
         </div>
 
       </div>
-    </div>`;
+
+      <!-- ── الصف الثاني: العيارات ── -->
+      <div class="dlpro-md-karat-title">🏅 المبيعات حسب العيار</div>
+      <div class="dlpro-md-row dlpro-md-karat-row">
+
+        <!-- عيار 18 -->
+        <div class="dlpro-md-card dlpro-md-k18" onclick="_dlproPopup('k18')">
+          <div class="dlpro-md-kbadge dlpro-kbadge-18">18</div>
+          <div class="dlpro-md-label">مبيعات عيار 18</div>
+          <div class="dlpro-md-value dlpro-color-blue">${_fmtG(sell18.wt)}</div>
+          <div class="dlpro-md-sub">جرام · ${sell18.cnt} فاتورة</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
+        </div>
+
+        <!-- عيار 21 -->
+        <div class="dlpro-md-card dlpro-md-k21" onclick="_dlproPopup('k21')">
+          <div class="dlpro-md-kbadge dlpro-kbadge-21">21</div>
+          <div class="dlpro-md-label">مبيعات عيار 21</div>
+          <div class="dlpro-md-value dlpro-color-gold">${_fmtG(sell21.wt)}</div>
+          <div class="dlpro-md-sub">جرام · ${sell21.cnt} فاتورة</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
+        </div>
+
+        <!-- عيار 24 -->
+        <div class="dlpro-md-card dlpro-md-k24" onclick="_dlproPopup('k24')">
+          <div class="dlpro-md-kbadge dlpro-kbadge-24">24</div>
+          <div class="dlpro-md-label">مبيعات عيار 24</div>
+          <div class="dlpro-md-value dlpro-color-green">${_fmtG(sell24.wt)}</div>
+          <div class="dlpro-md-sub">جرام · ${sell24.cnt} فاتورة</div>
+          <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
+        </div>
+
+      </div>
+
+    </div>`
 
     // ─── [C] فواتير الشراء من الموردين ───
     const scrapEl = document.getElementById('dlpro-scrap-section');
@@ -16189,6 +16268,160 @@ if(typeof _rsOrig==='function'){
     const pg = document.getElementById('pg-dailylog');
     if(pg && pg.classList.contains('on')) _dlpro_render();
   }, 1200);
+
+
+  // ══ دوال Popup الحركة اليومية ══
+  function _dlproClosePopup(){
+    document.getElementById('dlpro-popup-overlay').classList.remove('open');
+  }
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') _dlproClosePopup(); });
+
+  window._dlproPopup = function(type){
+    const D = window._dlproData;
+    if(!D){ return; }
+    const overlay = document.getElementById('dlpro-popup-overlay');
+    const titleEl = document.getElementById('dlpro-popup-title');
+    const summEl  = document.getElementById('dlpro-popup-summary');
+    const bodyEl  = document.getElementById('dlpro-popup-body');
+    if(!overlay||!titleEl||!summEl||!bodyEl) return;
+
+    const _f  = v => (v||0).toLocaleString('ar-SA',{minimumFractionDigits:0,maximumFractionDigits:0});
+    const _fg = v => (v||0).toLocaleString('ar-SA',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const _t  = d => { try{ const dt=new Date(d); return dt.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} };
+
+    let title='', stats=[], rows=[];
+
+    if(type==='sales'){
+      title = '🛍️ تفاصيل المبيعات — ' + D.dayLabel;
+      stats = [
+        {lbl:'إجمالي المبيعات',val:_f(D.sellAjr)+' ر',clr:'var(--g1)'},
+        {lbl:'عدد الفواتير',val:D.invoiceCount,clr:'var(--pu)'},
+        {lbl:'صافي (بعد المرتجعات)',val:_f(D.netAjr)+' ر',clr:D.netAjr>=0?'var(--ok)':'var(--no)'}
+      ];
+      rows = D._sellTxs.map(t=>{
+        const items=(t.items||[]);
+        const wt=items.reduce((s,i)=>s+(i.weight||0),0);
+        const karats=[...new Set(items.map(i=>i.karat||'21'))].join('، ');
+        return `<div class="dlpro-pop-row" style="border-right-color:var(--g1)">
+          <div class="dlpro-pop-row-info">
+            <div class="dlpro-pop-row-name">🧾 ${t.client||'عميل غير محدد'}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · عيار ${karats} · ${_fg(wt)} جرام ${t.staff?'· 👤 '+t.staff:''}</div>
+          </div>
+          <div class="dlpro-pop-row-amount" style="color:var(--g1)">${_f(t.ajTotal||0)} ر</div>
+        </div>`;
+      });
+      if(!rows.length) rows=['<div class="dlpro-pop-empty">📭 لا توجد مبيعات اليوم</div>'];
+
+    } else if(type==='exp'){
+      title = '💸 تفاصيل المصروفات — ' + D.dayLabel;
+      stats = [
+        {lbl:'إجمالي المصروفات',val:_f(D.expTotal)+' ر',clr:'var(--no)'},
+        {lbl:'عدد العمليات',val:D._expTxs.length,clr:'var(--pu)'}
+      ];
+      rows = D._expTxs.map(t=>`
+        <div class="dlpro-pop-row" style="border-right-color:var(--no)">
+          <div class="dlpro-pop-row-info">
+            <div class="dlpro-pop-row-name">📌 ${t.category||t.notes||'مصروف'}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} ${t.staff?'· 👤 '+t.staff:''} ${t.notes?'· '+t.notes:''}</div>
+          </div>
+          <div class="dlpro-pop-row-amount" style="color:var(--no)">${_f(t.amount||0)} ر</div>
+        </div>`);
+      if(!rows.length) rows=['<div class="dlpro-pop-empty">✅ لا توجد مصروفات اليوم</div>'];
+
+    } else if(type==='scrap'){
+      title = '🪙 تفاصيل الكسر — ' + D.dayLabel;
+      stats = [
+        {lbl:'كسر 18',val:_fg(D.scrap18)+' ج',clr:'var(--in)'},
+        {lbl:'كسر 21',val:_fg(D.scrap21)+' ج',clr:'var(--g1)'},
+        {lbl:'كسر 24',val:_fg(D.scrap24)+' ج',clr:'var(--ok)'}
+      ];
+      rows = D._scrapTxs.map(t=>{
+        const si=t.scrapItems||[];
+        const wt=si.length?si.reduce((s,i)=>s+(i.weight||0),0):(t.weight||0);
+        const k=si.length?[...new Set(si.map(i=>i.karat||'21'))].join('، '):(t.karat||'21');
+        return `<div class="dlpro-pop-row" style="border-right-color:var(--in)">
+          <div class="dlpro-pop-row-info">
+            <div class="dlpro-pop-row-name">🪙 ${t.client||'—'}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · عيار ${k} ${t.staff?'· 👤 '+t.staff:''}</div>
+          </div>
+          <div class="dlpro-pop-row-amount" style="color:var(--in)">${_fg(wt)} ج</div>
+        </div>`;
+      });
+      if(!rows.length) rows=['<div class="dlpro-pop-empty">📭 لا يوجد كسر اليوم</div>'];
+
+    } else if(type==='ret'){
+      title = '↩️ تفاصيل المرتجعات — ' + D.dayLabel;
+      stats = [
+        {lbl:'إجمالي المرتجعات',val:_f(D.retVal)+' ر',clr:'var(--io)'},
+        {lbl:'عدد العمليات',val:D._retTxs.length,clr:'var(--pu)'}
+      ];
+      rows = D._retTxs.map(t=>{
+        const items=t.items||[];
+        const wt=items.reduce((s,i)=>s+(i.weight||0),0);
+        return `<div class="dlpro-pop-row" style="border-right-color:var(--io)">
+          <div class="dlpro-pop-row-info">
+            <div class="dlpro-pop-row-name">↩️ ${t.client||'—'}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · ${_fg(wt)} جرام ${t.staff?'· 👤 '+t.staff:''}</div>
+          </div>
+          <div class="dlpro-pop-row-amount" style="color:var(--io)">${_f((t.ajTotal||0)+(t.vatAmt||0))} ر</div>
+        </div>`;
+      });
+      if(!rows.length) rows=['<div class="dlpro-pop-empty">✅ لا توجد مرتجعات اليوم</div>'];
+
+    } else if(type==='cash'){
+      title = '💵 تفاصيل النقد المستلم — ' + D.dayLabel;
+      stats = [
+        {lbl:'إجمالي الداخل',val:_f(D.cashIn)+' ر',clr:'var(--ok)'},
+        {lbl:'إجمالي الخارج',val:_f(D.cashOut)+' ر',clr:'var(--no)'},
+        {lbl:'الصافي',val:_f(D.netCash)+' ر',clr:D.netCash>=0?'var(--ok)':'var(--no)'}
+      ];
+      rows = D._cashTxs.map(t=>{
+        const amt=(t.ajourPaid||t.amount||0)+(t.change||0);
+        const tp=t.type||'';
+        const lbl=tp==='payment'?'سداد عميل':tp==='cash-receipt'?'استلام نقد':'عملية نقدية';
+        return `<div class="dlpro-pop-row" style="border-right-color:var(--ok)">
+          <div class="dlpro-pop-row-info">
+            <div class="dlpro-pop-row-name">💵 ${t.client||lbl}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · ${lbl} ${t.staff?'· 👤 '+t.staff:''}</div>
+          </div>
+          <div class="dlpro-pop-row-amount" style="color:var(--ok)">+${_f(amt)} ر</div>
+        </div>`;
+      });
+      if(!rows.length) rows=['<div class="dlpro-pop-empty">📭 لا توجد عمليات نقدية اليوم</div>'];
+
+    } else if(type==='k18'||type==='k21'||type==='k24'){
+      const K = type.replace('k','');
+      const Kd = D['sell'+K]||{val:0,wt:0,cnt:0};
+      const clr = K==='18'?'var(--in)':K==='21'?'var(--g1)':'var(--ok)';
+      title = `🏅 مبيعات عيار ${K} — ` + D.dayLabel;
+      stats = [
+        {lbl:'الوزن',val:_fg(Kd.wt)+' ج',clr:clr},
+        {lbl:'عدد الفواتير',val:Kd.cnt,clr:'var(--pu)'}
+      ];
+      const kTxs = D._sellTxs.filter(t=>(t.items||[]).some(i=>String(i.karat||'21')===K));
+      rows = kTxs.map(t=>{
+        const items=(t.items||[]).filter(i=>String(i.karat||'21')===K);
+        const wt=items.reduce((s,i)=>s+(i.weight||0),0);
+        return `<div class="dlpro-pop-row" style="border-right-color:${clr}">
+          <div class="dlpro-pop-row-info">
+            <div class="dlpro-pop-row-name">🧾 ${t.client||'عميل غير محدد'}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · ${_fg(wt)} جرام عيار ${K} ${t.staff?'· 👤 '+t.staff:''}</div>
+          </div>
+          <div class="dlpro-pop-row-amount" style="color:${clr}">${_f(t.ajTotal||0)} ر</div>
+        </div>`;
+      });
+      if(!rows.length) rows=[`<div class="dlpro-pop-empty">📭 لا توجد مبيعات عيار ${K} اليوم</div>`];
+    }
+
+    titleEl.textContent = title;
+    summEl.innerHTML = stats.map(s=>`
+      <div class="dlpro-popup-stat">
+        <div class="dlpro-popup-stat-lbl">${s.lbl}</div>
+        <div class="dlpro-popup-stat-val" style="color:${s.clr}">${s.val}</div>
+      </div>`).join('');
+    bodyEl.innerHTML = rows.join('');
+    overlay.classList.add('open');
+  };
 
 })(); // end DLPRO
 </script>
