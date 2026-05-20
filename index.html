@@ -5058,63 +5058,205 @@ function renderInvModal(tx,editing){
     editItems = tx.items ? [...tx.items.map(i=>({...i}))] : [];
     editItemCounter = editItems.length ? Math.max(...editItems.map(i=>i.id||0)) + 100 : 100;
 
+    // ── معلومات الفاتورة الأصلية للعرض ──
+    const _origTotal   = fmt(tx.total||0);
+    const _origWeight  = fmtG(tx.weight||tx.items?.reduce((a,i)=>a+(i.weight||0),0)||0);
+    const _origAjTotal = fmt(tx.ajTotal||0);
+    const _origDate    = dt.ar + ' · ' + dt.en;
+    const _origType    = TLBL[tx.type]||tx.type||'—';
+
     let html=`
-      <div style="background:var(--no-bg);border:1px solid var(--no);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--no);font-weight:600">
-        ⚠️ التعديل يحذف الفاتورة القديمة ويحفظ الجديدة
+      <!-- ── تحذير ── -->
+      <div style="background:var(--no-bg);border:1px solid var(--no);border-radius:10px;
+          padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--no);font-weight:700;
+          display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">⚠️</span>
+        <span>التعديل يحذف الفاتورة القديمة ويحفظ الجديدة</span>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span class="st" style="margin:0">الأصناف</span>
-        <button class="btn-sm btn-gold" onclick="addEditItem()">＋ إضافة صنف</button>
+      <!-- ── ملخص الفاتورة الأصلية ── -->
+      <div style="background:var(--g4);border:1.5px solid var(--g5);border-radius:12px;
+          padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--g1);margin-bottom:10px;
+            padding-bottom:7px;border-bottom:1px solid var(--g5);display:flex;align-items:center;gap:6px">
+          📋 بيانات الفاتورة الأصلية
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="color:var(--tx2);font-size:10px;font-weight:700">نوع العملية</span>
+            <span style="font-weight:800;color:var(--tx1)">${_origType}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="color:var(--tx2);font-size:10px;font-weight:700">التاريخ</span>
+            <span style="font-weight:700;color:var(--tx1)">${_origDate}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="color:var(--tx2);font-size:10px;font-weight:700">الوزن الكلي</span>
+            <span style="font-weight:800;color:var(--g1)">${_origWeight} جرام</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="color:var(--tx2);font-size:10px;font-weight:700">إجمالي الفاتورة</span>
+            <span style="font-weight:900;color:var(--no)">${_origTotal} ريال</span>
+          </div>
+          ${(tx.ajTotal||0)>0?`
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="color:var(--tx2);font-size:10px;font-weight:700">أجور الصياغة</span>
+            <span style="font-weight:800;color:var(--io)">${_origAjTotal} ريال</span>
+          </div>`:''}
+          ${tx.staff?`
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="color:var(--tx2);font-size:10px;font-weight:700">الموظف المسجل</span>
+            <span style="font-weight:700;color:var(--tx1)">${tx.staff}</span>
+          </div>`:''}
+        </div>
       </div>
-      <div id="edit-items-list"></div>
 
-      <div class="fr" style="margin-top:10px">
-        <label>العميل / المورد</label>
-        <div class="sw"><span class="si">🔍</span>
-          <input type="text" id="ei-cli-s" value="${tx.client||''}" placeholder="ابحث..." autocomplete="off"
-            oninput="openCS('ei-cli-s','ei-cli-d','ei-cli-v')" onfocus="openCS('ei-cli-s','ei-cli-d','ei-cli-v')">
-          <input type="hidden" id="ei-cli-v" value="${tx.client||''}">
-          <div class="sdrop" id="ei-cli-d"></div>
+      <!-- ── قسم 1: الأصناف ── -->
+      <div style="background:var(--c2);border-radius:12px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--b1)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+            padding-bottom:8px;border-bottom:1px solid var(--b1)">
+          <span style="font-size:12px;font-weight:800;color:var(--tx1)">📦 الأصناف الذهبية</span>
+          <button class="btn-sm btn-gold" onclick="addEditItem()" style="padding:5px 12px;font-size:12px">
+            ＋ إضافة صنف
+          </button>
+        </div>
+        <div id="edit-items-list"></div>
+      </div>
+
+      <!-- ── قسم 2: الجهة والموظف ── -->
+      <div style="background:var(--c2);border-radius:12px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--b1)">
+        <div style="font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:10px;
+            padding-bottom:8px;border-bottom:1px solid var(--b1)">
+          👤 بيانات العميل والموظف
+        </div>
+        <div class="fr" style="margin-bottom:8px">
+          <label style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:4px;display:block">
+            العميل / المورد
+          </label>
+          <div class="sw"><span class="si">🔍</span>
+            <input type="text" id="ei-cli-s" value="${tx.client||''}" placeholder="ابحث عن عميل أو مورد..." autocomplete="off"
+              oninput="openCS('ei-cli-s','ei-cli-d','ei-cli-v')" onfocus="openCS('ei-cli-s','ei-cli-d','ei-cli-v')">
+            <input type="hidden" id="ei-cli-v" value="${tx.client||''}">
+            <div class="sdrop" id="ei-cli-d"></div>
+          </div>
+        </div>
+        <div class="fr">
+          <label style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:4px;display:block">
+            الموظف المسؤول
+          </label>
+          <div class="sw"><span class="si">👤</span>
+            <input type="text" id="ei-stf-s" value="${tx.staff||''}" placeholder="ابحث عن موظف..." autocomplete="off"
+              oninput="openCS('ei-stf-s','ei-stf-d','ei-stf-v',['موظف'])" onfocus="openCS('ei-stf-s','ei-stf-d','ei-stf-v',['موظف'])">
+            <input type="hidden" id="ei-stf-v" value="${tx.staff||''}">
+            <div class="sdrop" id="ei-stf-d"></div>
+          </div>
         </div>
       </div>
-      <div class="fr">
-        <label>الموظف</label>
-        <div class="sw"><span class="si">👤</span>
-          <input type="text" id="ei-stf-s" value="${tx.staff||''}" placeholder="ابحث..." autocomplete="off"
-            oninput="openCS('ei-stf-s','ei-stf-d','ei-stf-v',['موظف'])" onfocus="openCS('ei-stf-s','ei-stf-d','ei-stf-v',['موظف'])">
-          <input type="hidden" id="ei-stf-v" value="${tx.staff||''}">
-          <div class="sdrop" id="ei-stf-d"></div>
+
+      <!-- ── قسم 3: المدفوعات ── -->
+      <div style="background:var(--c2);border-radius:12px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--b1)">
+        <div style="font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:10px;
+            padding-bottom:8px;border-bottom:1px solid var(--b1)">
+          💰 المدفوعات والتعديلات
+        </div>
+        <div class="g2" style="margin-bottom:8px">
+          <div class="fr">
+            <label style="font-size:12px;font-weight:700;color:var(--ok);margin-bottom:4px;display:block">
+              💵 نقد مستلم (ريال)
+            </label>
+            <input type="number" id="ei-cash" value="${tx.cash||''}" inputmode="decimal" placeholder="0"
+              style="border-color:var(--ok-bd);background:var(--ok-bg)">
+          </div>
+          <div class="fr">
+            <label style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:4px;display:block">
+              🥇 ذهب مستلم (جرام)
+            </label>
+            <input type="number" id="ei-goldpay" value="${tx.goldPay||''}" inputmode="decimal" placeholder="0"
+              style="border-color:var(--g5);background:var(--g4)">
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fr">
+            <label style="font-size:12px;font-weight:700;color:var(--no);margin-bottom:4px;display:block">
+              🏷️ خصم (ريال)
+            </label>
+            <input type="number" id="ei-discount" value="${tx.discount||''}" inputmode="decimal" placeholder="0"
+              style="border-color:var(--no-bd);background:var(--no-bg)">
+          </div>
+          <div class="fr">
+            <label style="font-size:12px;font-weight:700;color:var(--in);margin-bottom:4px;display:block">
+              🚚 شحن (ريال)
+            </label>
+            <input type="number" id="ei-shipping" value="${tx.shipping||''}" inputmode="decimal" placeholder="0"
+              style="border-color:var(--in-bd);background:var(--in-bg)">
+          </div>
         </div>
       </div>
-      <div class="g2">
-        <div class="fr"><label>نقد مستلم (ريال)</label>
-          <input type="number" id="ei-cash" value="${tx.cash||''}" inputmode="decimal" placeholder="0">
+
+      <!-- ── قسم 4: بيانات إضافية محفوظة (قراءة فقط) ── -->
+      ${((tx.gemTotal||0)>0||(tx.stoneTotal||0)>0||(tx.extraAmount||0)>0)?`
+      <div style="background:var(--pu-bg);border:1.5px solid var(--pu-bd);border-radius:12px;
+          padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:800;color:var(--pu);margin-bottom:8px;
+            padding-bottom:6px;border-bottom:1px solid var(--pu-bd)">
+          💎 بيانات محفوظة — تنتقل تلقائياً
         </div>
-        <div class="fr"><label>ذهب مستلم (جرام)</label>
-          <input type="number" id="ei-goldpay" value="${tx.goldPay||''}" inputmode="decimal" placeholder="0">
+        ${(tx.gemTotal||0)>0?`
+        <div style="display:flex;justify-content:space-between;align-items:center;
+            padding:7px 0;border-bottom:1px solid var(--pu-bd);font-size:12px">
+          <span style="color:var(--tx2);font-weight:700">💎 الأحجار (Gems)</span>
+          <div style="text-align:left">
+            <div style="font-weight:900;color:var(--g1)">${fmt(tx.gemTotal||0)} ريال</div>
+            <div style="font-size:10px;color:var(--tx3)">${(tx.gems||[]).map(g=>g.type+': '+fmt(g.price)+' ر').join(' · ')}</div>
+          </div>
+        </div>`:''}
+        ${(tx.stoneTotal||0)>0?`
+        <div style="display:flex;justify-content:space-between;align-items:center;
+            padding:7px 0;border-bottom:1px solid var(--pu-bd);font-size:12px">
+          <span style="color:var(--tx2);font-weight:700">💍 أحجار كريمة</span>
+          <div style="text-align:left">
+            <div style="font-weight:900;color:var(--pu)">${fmt(tx.stoneTotal||0)} ريال</div>
+            <div style="font-size:10px;color:var(--tx3)">${(tx.stoneItems||[]).map(s=>s.type+': '+fmt(s.stonePrice)+' ر').join(' · ')}</div>
+          </div>
+        </div>`:''}
+        ${(tx.extraAmount||0)>0?`
+        <div style="display:flex;justify-content:space-between;align-items:center;
+            padding:7px 0;font-size:12px">
+          <span style="color:var(--tx2);font-weight:700">💵 ${tx.extraDesc||'مبلغ إضافي'}</span>
+          <span style="font-weight:900;color:var(--io)">${fmt(tx.extraAmount||0)} ريال</span>
+        </div>`:''}
+      </div>`:''}
+
+      <!-- ── قسم 5: التاريخ والملاحظات ── -->
+      <div style="background:var(--c2);border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1px solid var(--b1)">
+        <div style="font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:10px;
+            padding-bottom:8px;border-bottom:1px solid var(--b1)">
+          📅 التاريخ والملاحظات
+        </div>
+        <div class="fr" style="margin-bottom:8px">
+          <label style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:4px;display:block">
+            تاريخ الفاتورة
+          </label>
+          <input type="date" id="ei-date" value="${tx.date?tx.date.substring(0,10):''}">
+        </div>
+        <div class="fr">
+          <label style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:4px;display:block">
+            ملاحظات
+          </label>
+          <input type="text" id="ei-notes" value="${tx.notes||''}" placeholder="ملاحظات اختيارية...">
         </div>
       </div>
-      <div class="g2">
-        <div class="fr"><label>خصم (ريال)</label>
-          <input type="number" id="ei-discount" value="${tx.discount||''}" inputmode="decimal" placeholder="0">
-        </div>
-        <div class="fr"><label>شحن (ريال)</label>
-          <input type="number" id="ei-shipping" value="${tx.shipping||''}" inputmode="decimal" placeholder="0">
-        </div>
-      </div>
-      ${(tx.gemTotal||0)>0||((tx.gems||[]).length>0)?`<div style="padding:8px;background:var(--g4);border-radius:8px;font-size:12px;margin:4px 0">💎 الأحجار (gems): ${fmt(tx.gemTotal||0)} ريال — ${(tx.gems||[]).map(g=>g.type+': '+fmt(g.price)+' ر').join(' | ')}</div>`:''}
-      ${(tx.stoneTotal||0)>0?`<div style="padding:8px;background:var(--pu-bg);border-radius:8px;font-size:12px;margin:4px 0">💍 أحجار كريمة (صنف): ${fmt(tx.stoneTotal||0)} ريال — ${(tx.stoneItems||[]).map(s=>s.type+': '+fmt(s.stonePrice)+' ر').join(' | ')}</div>`:''}
-      ${(tx.extraAmount||0)>0?`<div style="padding:8px;background:var(--io-bg);border-radius:8px;font-size:12px;margin:4px 0">💵 ${tx.extraDesc||'مبلغ إضافي'}: ${fmt(tx.extraAmount||0)} ريال</div>`:''}
-      <div class="fr"><label>📅 تاريخ الفاتورة</label>
-        <input type="date" id="ei-date" value="${tx.date?tx.date.substring(0,10):''}">
-      </div>
-      <div class="fr"><label>ملاحظات</label>
-        <input type="text" id="ei-notes" value="${tx.notes||''}" placeholder="اختياري">
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="btn btn-gold" style="flex:1" onclick="saveEditInv(${tx.id})">💾 حفظ التعديلات</button>
-        <button class="btn btn-outline" style="flex:0;padding:12px 16px" onclick="renderInvModal(S.transactions.find(t=>t.id===${tx.id}),false)">إلغاء</button>
+
+      <!-- ── أزرار الحفظ والإلغاء ── -->
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-gold" style="flex:1;padding:14px;font-size:14px;font-weight:800"
+          onclick="saveEditInv(${tx.id})">
+          💾 حفظ التعديلات
+        </button>
+        <button class="btn btn-outline" style="flex:0;padding:14px 18px;font-size:13px"
+          onclick="renderInvModal(S.transactions.find(t=>t.id===${tx.id}),false)">
+          إلغاء
+        </button>
       </div>`;
 
     document.getElementById('m-inv-body').innerHTML=html;
@@ -5754,42 +5896,100 @@ function printStmt(){
 ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function(){window.print();},600);});${'\x3c/script\x3e'}
 </body></html>`;
 
-  /* ── فتح نافذة الطباعة — يعمل على الجوال والحاسب ── */
-  try {
-    /* الطريقة 1: فتح نافذة فارغة ثم كتابة المحتوى (أفضل للجوال) */
-    const win = window.open('', '_blank');
-    if(win && !win.closed){
-      win.document.open();
-      win.document.write(printHTML);
-      win.document.close();
-      /* تشغيل الطباعة تلقائياً بعد تحميل الصفحة */
-      win.onload = function(){ try{ win.focus(); }catch(e){} };
-    } else {
-      throw new Error('popup blocked');
-    }
-  } catch(err){
-    /* الطريقة 2: data URI — للحالات التي تُعاق فيها النوافذ المنبثقة */
-    try {
-      const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(printHTML);
-      const a = document.createElement('a');
-      a.href = encoded;
-      a.target = '_blank';
-      a.download = 'كشف_حساب.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast('📥 تم تنزيل الكشف — افتحه واضغط طباعة');
-    } catch(err2){
-      /* الطريقة 3: Blob fallback */
-      const blob = new Blob([printHTML],{type:'text/html;charset=utf-8'});
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = 'كشف_حساب.html';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url), 10000);
-      toast('📥 تم تنزيل الكشف — افتحه واضغط طباعة');
-    }
-  }
+  /* ── عرض كشف الحساب في طبقة كاملة تعمل على الجوال والحاسب ── */
+  // حذف أي طبقة سابقة
+  const _oldOv = document.getElementById('_print-overlay');
+  if(_oldOv) _oldOv.remove();
+  const _oldSt = document.getElementById('_print-overlay-style');
+  if(_oldSt) _oldSt.remove();
+
+  /* CSS خاص بالطباعة — يخفي كل شيء إلا طبقة الكشف */
+  const _pStyle = document.createElement('style');
+  _pStyle.id = '_print-overlay-style';
+  _pStyle.textContent = `
+    @media print {
+      body > *:not(#_print-overlay) { display:none!important; }
+      #_print-overlay { position:static!important; overflow:visible!important; }
+      #_print-overlay-toolbar { display:none!important; }
+    }`;
+  document.head.appendChild(_pStyle);
+
+  /* طبقة عرض الكشف */
+  const _ov = document.createElement('div');
+  _ov.id = '_print-overlay';
+  _ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;direction:rtl;font-family:Tajawal,sans-serif';
+
+  /* شريط الأدوات العلوي */
+  const _toolbar = document.createElement('div');
+  _toolbar.id = '_print-overlay-toolbar';
+  _toolbar.style.cssText = `
+    position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#C9922A,#E8B84B);
+    padding:10px 14px;display:flex;align-items:center;gap:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.25);`;
+  _toolbar.innerHTML = `
+    <button id="_pov-close" style="background:rgba(0,0,0,.2);border:none;color:#fff;font-size:14px;font-weight:900;
+      border-radius:8px;padding:8px 14px;cursor:pointer;font-family:Tajawal,sans-serif;flex-shrink:0">
+      ✕ إغلاق
+    </button>
+    <span style="flex:1;font-size:13px;font-weight:800;color:#1C1208;text-align:center">${title}</span>
+    <button id="_pov-print" style="background:#1C1208;border:none;color:#E8B84B;font-size:13px;font-weight:900;
+      border-radius:8px;padding:8px 16px;cursor:pointer;font-family:Tajawal,sans-serif;flex-shrink:0">
+      🖨️ طباعة / PDF
+    </button>`;
+
+  /* محتوى الكشف */
+  const _content = document.createElement('div');
+  _content.id = '_print-content';
+  _content.style.cssText = 'padding:16px;max-width:800px;margin:0 auto;';
+
+  /* بناء محتوى الكشف بنفس تنسيق الطباعة */
+  _content.innerHTML = `
+    <style>
+      #_print-content *{box-sizing:border-box}
+      #_print-content .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
+      #_print-content .header h2{font-size:20px;font-weight:900;color:#C9922A;margin:0}
+      #_print-content .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
+      #_print-content .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
+      #_print-content .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
+      #_print-content .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
+      #_print-content .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
+      #_print-content .bal-row:last-child{border-bottom:none}
+      #_print-content .bal-val{font-size:15px;font-weight:900}
+      #_print-content .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
+      #_print-content .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
+      #_print-content table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+      #_print-content th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
+      #_print-content td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
+      #_print-content tr:nth-child(even) td{background:#FDFAF3}
+      #_print-content .pos{color:#2D7A4F;font-weight:700}
+      #_print-content .neg{color:#B83232;font-weight:700}
+      #_print-content .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+      #_print-content .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+      #_print-content small{color:#7A6540;font-size:10px}
+      #_print-content .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
+      #_print-content .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
+      #_print-content .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+      #_print-content .fs-row:last-child{border-bottom:none}
+      #_print-content .fs-val{font-size:16px;font-weight:900}
+    </style>
+    <div class="header">
+      <h2>${title}</h2>
+      <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
+    </div>
+    ${bodyHtml}`;
+
+  _ov.appendChild(_toolbar);
+  _ov.appendChild(_content);
+  document.body.appendChild(_ov);
+
+  /* أحداث الأزرار */
+  document.getElementById('_pov-close').addEventListener('click', function(){
+    _ov.remove();
+    _pStyle.remove();
+  });
+  document.getElementById('_pov-print').addEventListener('click', function(){
+    window.print();
+  });
 }
 
 // ── Render helpers ─────────────────────────────────────────────────
