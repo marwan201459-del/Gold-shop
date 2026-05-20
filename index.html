@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>مكتب الذهب والمجوهرات</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
 
@@ -5260,7 +5262,7 @@ function renderInvModal(tx,editing){
       </div>`;
 
     document.getElementById('m-inv-body').innerHTML=html;
-    renderEditItems();
+    requestAnimationFrame(()=>{ renderEditItems(); });
   }
 }
 
@@ -5931,11 +5933,21 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
       border-radius:8px;padding:8px 14px;cursor:pointer;font-family:Tajawal,sans-serif;flex-shrink:0">
       ✕ إغلاق
     </button>
-    <span style="flex:1;font-size:13px;font-weight:800;color:#1C1208;text-align:center">${title}</span>
-    <button id="_pov-print" style="background:#1C1208;border:none;color:#E8B84B;font-size:13px;font-weight:900;
-      border-radius:8px;padding:8px 16px;cursor:pointer;font-family:Tajawal,sans-serif;flex-shrink:0">
-      🖨️ طباعة / PDF
-    </button>`;
+    <span style="flex:1;font-size:12px;font-weight:800;color:#1C1208;text-align:center;padding:0 6px">${title}</span>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button id="_pov-download" style="background:#1C1208;border:none;color:#E8B84B;font-size:12px;font-weight:900;
+        border-radius:8px;padding:8px 12px;cursor:pointer;font-family:Tajawal,sans-serif;white-space:nowrap">
+        ⬇️ PDF
+      </button>
+      <button id="_pov-share" style="background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:900;
+        border-radius:8px;padding:8px 12px;cursor:pointer;font-family:Tajawal,sans-serif;white-space:nowrap">
+        📤 مشاركة
+      </button>
+      <button id="_pov-print" style="background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:700;
+        border-radius:8px;padding:8px 10px;cursor:pointer;font-family:Tajawal,sans-serif;white-space:nowrap">
+        🖨️
+      </button>
+    </div>`;
 
   /* محتوى الكشف */
   const _content = document.createElement('div');
@@ -5946,6 +5958,7 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
   _content.innerHTML = `
     <style>
       #_print-content *{box-sizing:border-box}
+      #_print-content{background:#fff;color:#1C1208}
       #_print-content .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
       #_print-content .header h2{font-size:20px;font-weight:900;color:#C9922A;margin:0}
       #_print-content .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
@@ -5959,7 +5972,7 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
       #_print-content .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
       #_print-content table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
       #_print-content th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
-      #_print-content td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
+      #_print-content td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top;color:#1C1208}
       #_print-content tr:nth-child(even) td{background:#FDFAF3}
       #_print-content .pos{color:#2D7A4F;font-weight:700}
       #_print-content .neg{color:#B83232;font-weight:700}
@@ -5968,9 +5981,10 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
       #_print-content small{color:#7A6540;font-size:10px}
       #_print-content .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
       #_print-content .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
-      #_print-content .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+      #_print-content .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;color:#1C1208}
       #_print-content .fs-row:last-child{border-bottom:none}
       #_print-content .fs-val{font-size:16px;font-weight:900}
+      #_print-content .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
     </style>
     <div class="header">
       <h2>${title}</h2>
@@ -5990,9 +6004,103 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
   document.getElementById('_pov-print').addEventListener('click', function(){
     window.print();
   });
+
+  /* ── زر تحميل PDF ── */
+  document.getElementById('_pov-download').addEventListener('click', async function(){
+    const btn = this;
+    btn.textContent = '⏳ جاري...';
+    btn.disabled = true;
+    try {
+      await _generateStmtPDF(title, _content, false);
+    } catch(e){ toast('⚠️ تعذّر إنشاء PDF: '+e.message); }
+    btn.textContent = '⬇️ PDF';
+    btn.disabled = false;
+  });
+
+  /* ── زر المشاركة ── */
+  document.getElementById('_pov-share').addEventListener('click', async function(){
+    const btn = this;
+    btn.textContent = '⏳...';
+    btn.disabled = true;
+    try {
+      await _generateStmtPDF(title, _content, true);
+    } catch(e){ toast('⚠️ تعذّر المشاركة: '+e.message); }
+    btn.textContent = '📤 مشاركة';
+    btn.disabled = false;
+  });
 }
 
-// ── Render helpers ─────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   _generateStmtPDF — توليد PDF احترافي وتحميله / مشاركته
+   ══════════════════════════════════════════════════════════ */
+async function _generateStmtPDF(title, contentEl, shareMode){
+  /* ── 1. إنشاء نسخة طباعة مؤقتة ── */
+  const printWrap = document.createElement('div');
+  printWrap.style.cssText = `
+    position:fixed;left:-9999px;top:0;width:794px;background:#fff;
+    font-family:'Tajawal',sans-serif;direction:rtl;padding:0;z-index:-1`;
+  printWrap.innerHTML = contentEl.innerHTML;
+  /* إزالة أنماط CSS المتغيرة (var(--..)) وتحويلها لقيم ثابتة */
+  printWrap.style.color = '#1C1208';
+  document.body.appendChild(printWrap);
+
+  /* ── 2. رسم HTML → Canvas ── */
+  const canvas = await html2canvas(printWrap, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    windowWidth: 794,
+    logging: false
+  });
+  document.body.removeChild(printWrap);
+
+  /* ── 3. تحويل Canvas → PDF ── */
+  const { jsPDF } = window.jspdf;
+  const imgW = 210; /* A4 عرض بالمم */
+  const imgH = (canvas.height * imgW) / canvas.width;
+  const pageH = 297; /* A4 ارتفاع بالمم */
+
+  const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+  let remainH = imgH;
+  let pageNum = 0;
+
+  while(remainH > 0){
+    if(pageNum > 0) pdf.addPage();
+    const sliceH = Math.min(pageH, remainH);
+    const srcY = pageNum * pageH * (canvas.height / imgH);
+    const srcH = sliceH * (canvas.height / imgH);
+
+    /* قص الصورة للصفحة الحالية */
+    const sliceCanvas = document.createElement('canvas');
+    sliceCanvas.width = canvas.width;
+    sliceCanvas.height = srcH;
+    const ctx = sliceCanvas.getContext('2d');
+    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+    const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.92);
+    pdf.addImage(sliceImg, 'JPEG', 0, 0, imgW, sliceH);
+    remainH -= pageH;
+    pageNum++;
+  }
+
+  const safeTitle = title.replace(/[^\w\u0600-\u06FF\s]/g,'').trim() || 'كشف_حساب';
+  const fileName = safeTitle + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+
+  if(shareMode && navigator.share && navigator.canShare){
+    /* مشاركة عبر Web Share API (جوال) */
+    const pdfBlob = pdf.output('blob');
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    if(navigator.canShare({ files: [pdfFile] })){
+      await navigator.share({ files: [pdfFile], title: title });
+      return;
+    }
+  }
+  /* تحميل مباشر */
+  pdf.save(fileName);
+  toast('✅ تم تحميل PDF بنجاح');
+}
 function fmt(n){return(Math.round((n||0)*100)/100).toLocaleString('ar-SA')}
 function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')}
 
