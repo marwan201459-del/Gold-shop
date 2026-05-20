@@ -2813,7 +2813,7 @@ body{
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <select id="dlpro-date-sel" onchange="_dlpro_render()"
           style="padding:7px 10px;border-radius:var(--rc);border:1px solid var(--g5);background:var(--c2);font-family:inherit;font-size:12px;font-weight:700;color:var(--tx1)"></select>
-        <button onclick="_dlpro_render()"
+        <button onclick="(function(b){b.disabled=true;b.textContent='⏳';if(typeof window._dlpro_render==='function')window._dlpro_render();var f=document.getElementById('dlg-from'),t=document.getElementById('dlg-to');if(f&&t&&f.value&&t.value&&typeof window._dlgRender==='function')window._dlgRender();setTimeout(function(){b.disabled=false;b.textContent='🔄 تحديث';},600);})(this)"
           style="background:var(--g1);color:#060300;border:none;border-radius:var(--rc);padding:7px 13px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">🔄 تحديث</button>
         <div style="font-size:10px;padding:4px 10px;border-radius:20px;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd);font-weight:700">⚡ تلقائي</div>
       </div>
@@ -2863,7 +2863,7 @@ body{
   <div class="card">
     <div class="ch" style="justify-content:space-between">
       <span>📋 حركة كل يوم</span>
-      <button class="btn-sm btn-outline" onclick="_dlgRender()">🔄 تحديث</button>
+      <button class="btn-sm btn-outline" onclick="(function(b){b.disabled=true;if(typeof window._dlgRender==='function')window._dlgRender();setTimeout(function(){b.disabled=false;},500);})(this)">🔄 تحديث</button>
     </div>
     <div class="cb" id="dlg-days-list">
       <div class="empty"><div class="ei">📆</div><p>اختر فترة لعرض السجل</p></div>
@@ -11010,10 +11010,18 @@ function renderAll(){
   renderUsers();
   renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
   refreshExpSafes();
-  // إصلاح: تحديث صفحة الحركة اليومية تلقائياً عند تحديث البيانات
+  // تحديث صفحة الحركة اليومية تلقائياً عند أي تغيير في البيانات
   if(typeof window._dlpro_render==='function'){
     const _dlpg=document.getElementById('pg-dailylog');
-    if(_dlpg&&_dlpg.classList.contains('on')) window._dlpro_render();
+    if(_dlpg&&_dlpg.classList.contains('on')){
+      window._dlpro_render();
+      // تحديث قسم الفترة أيضاً إذا كانت التواريخ محددة
+      const _dlgFrom = document.getElementById('dlg-from');
+      const _dlgTo   = document.getElementById('dlg-to');
+      if(_dlgFrom&&_dlgTo&&_dlgFrom.value&&_dlgTo.value&&typeof window._dlgRender==='function'){
+        window._dlgRender();
+      }
+    }
   }
 }
 
@@ -14981,12 +14989,41 @@ function _dlgRender() {
   }
 }
 
+// ══ تصدير دوال فترة التقرير للنطاق العام ══
+window._dlgSetRange = function(days) {
+  const toEl   = document.getElementById('dlg-to');
+  const fromEl = document.getElementById('dlg-from');
+  if (!toEl || !fromEl) return;
+  const today = new Date();
+  toEl.value = today.toISOString().split('T')[0];
+  if (days === 0) {
+    // هذا الشهر: من أول الشهر حتى اليوم
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    fromEl.value = firstDay.toISOString().split('T')[0];
+  } else if (days === 7) {
+    // آخر 7 أيام فعلية
+    const from = new Date(today); from.setDate(from.getDate() - 6);
+    fromEl.value = from.toISOString().split('T')[0];
+  } else {
+    // آخر N يوم متحرك
+    const from = new Date(today); from.setDate(from.getDate() - (days - 1));
+    fromEl.value = from.toISOString().split('T')[0];
+  }
+  _dlgRender();
+};
+window._dlgRender = function() { _dlgRender(); };
+window._dlgInitDates = function() { _dlgInitDates(); };
+
+
+
 // ── تبديل ظهور قسم المقارنة ──
 function _dlgToggleCmp(dayStr) {
   const el = document.getElementById('dlg-cmp-' + dayStr);
   if (!el) return;
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+window._dlgToggleCmp = _dlgToggleCmp;
+
 
 // ── تهيئة الصفحة عند فتحها ──
 function _dlgInit() {
@@ -16423,8 +16460,72 @@ if(typeof _rsOrig==='function'){
     overlay.classList.add('open');
   };
 
+
+  // ══ تصدير دوال قسم الحركة اليومية للنطاق العام (window) ══
+  // (مطلوب لأن onclick="" في HTML لا يصل لنطاق type="module")
+  window._dlproClosePopup = _dlproClosePopup;
 })(); // end DLPRO
 </script>
+<script>
+/* ════════════════════════════════════════════════════
+   DLPRO GLOBAL SHIM — يربط onclick="" بدوال الوحدة
+   يُشغَّل بعد الوحدة مباشرة — لا يُعدَّل
+   ════════════════════════════════════════════════════ */
+(function(){
+  // دالة مساعدة: تنتظر حتى تُصبح دالة window.X متاحة ثم تُنشئ غلافاً عاماً
+  function _shim(name, fallback){
+    if(typeof window[name]==='function'){
+      window[name] = (function(orig){ return function(){ return orig.apply(this,arguments); }; })(window[name]);
+    } else if(fallback){
+      window[name] = fallback;
+    }
+  }
+
+  // ── دوال الحركة اليومية ──
+  // تعمل مباشرة إذا كانت window.X موجودة (تُضبط في الوحدة)
+  // أو تُنشئ غلافاً يعيد المحاولة عند الاستدعاء
+  function _deferred(name){
+    return function(){
+      var args = arguments;
+      if(typeof window['__'+name]==='function'){
+        return window['__'+name].apply(this,args);
+      }
+      // المحاولة بعد 100ms إذا لم تكن جاهزة بعد
+      setTimeout(function(){
+        if(typeof window['__'+name]==='function') window['__'+name].apply(window,args);
+      },100);
+    };
+  }
+
+  // الربط الفوري — إذا كانت الوحدة قد اكتملت بالفعل
+  function _bindAll(){
+    // _dlgSetRange و _dlgRender يتم ضبطهما على window داخل الوحدة
+    // هنا نتأكد أن الأسماء البسيطة (بدون window.) تعمل أيضاً
+    if(!window._dlgSetRange && window._dlgSetRange__module)
+      window._dlgSetRange = window._dlgSetRange__module;
+    if(!window._dlgRender && window._dlgRender__module)
+      window._dlgRender = window._dlgRender__module;
+
+    // _dlpro_render: مُعرَّف كـ window._dlpro_render داخل الوحدة
+    // نُنشئ اختصاراً بسيطاً
+    if(window._dlpro_render && !window.__dlpro_render_bound){
+      window.__dlpro_render_bound = true;
+    }
+
+    // _dlproClosePopup
+    if(window._dlproClosePopup && !window.__dlproClose_bound){
+      window.__dlproClose_bound = true;
+    }
+  }
+
+  // تشغيل فوري
+  _bindAll();
+  // وبعد 500ms للتأكد (الوحدة قد تأخذ وقتاً)
+  setTimeout(_bindAll, 500);
+  setTimeout(_bindAll, 1500);
+})();
+</script>
+
 
 <!-- ════════════════════════════════════════════════════════════
      [KARAT-SETTLE] نظام التسوية المتقاطعة بين العيارات
