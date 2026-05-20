@@ -5851,50 +5851,156 @@ function printStmt(){
     </div>`;
   }
 
-  const printHTML=`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
-  <meta charset="UTF-8"><title>${title}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Tajawal',sans-serif;color:#1C1208;padding:20px;font-size:13px;background:#fff;direction:rtl}
-    .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
-    .header h1{font-size:20px;font-weight:900;color:#C9922A}
-    .header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
-    .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-    .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
-    .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
-    .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
-    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
-    .bal-row:last-child{border-bottom:none}
-    .bal-val{font-size:15px;font-weight:900}
-    .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
-    .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
-    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
-    th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
-    td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
-    tr:nth-child(even) td{background:#FDFAF3}
-    .pos{color:#2D7A4F;font-weight:700}
-    .neg{color:#B83232;font-weight:700}
-    .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-    .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-    .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
-    small{color:#7A6540;font-size:10px}
-    .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
-    .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
-    .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
-    .fs-row:last-child{border-bottom:none}
-    .fs-val{font-size:16px;font-weight:900}
-    .print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
-    @media print{.print-btn{display:none!important}body{padding:8px}}
-  </style></head><body>
-  <div class="header">
-    <h2>${title}</h2>
-    <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
+  const printHTML=`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+body{font-family:'Tajawal',sans-serif;background:#F4F1EC;color:#1C1208;direction:rtl;font-size:13px}
+.page{max-width:1020px;margin:0 auto;background:#fff;box-shadow:0 0 40px rgba(0,0,0,.15)}
+
+/* Header */
+.hdr{background:linear-gradient(135deg,#1C1208 0%,#3A2710 45%,#1C1208 100%);position:relative;overflow:hidden}
+.hdr-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 25% 50%,rgba(200,150,30,.10),transparent);pointer-events:none}
+.hdr-main{position:relative;padding:22px 28px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.hdr-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(200,150,30,.18);border:1px solid rgba(200,150,30,.35);border-radius:20px;padding:3px 12px;margin-bottom:10px}
+.hdr-badge span{font-size:9px;font-weight:800;color:#E8B84B;letter-spacing:.5px}
+.hdr-name{font-size:23px;font-weight:900;color:#F0C850;line-height:1.1;margin-bottom:5px}
+.hdr-sub{font-size:11.5px;color:rgba(255,255,255,.45);font-weight:500}
+.hdr-right{text-align:left;flex-shrink:0}
+.hdr-co{font-size:10px;color:rgba(200,150,30,.70);font-weight:700;letter-spacing:.4px;margin-bottom:5px}
+.hdr-dt{font-size:11px;color:rgba(255,255,255,.50);line-height:1.8}
+.hdr-line{height:1px;background:linear-gradient(90deg,rgba(200,150,30,.45),rgba(200,150,30,.05) 80%);margin:0 28px}
+.hdr-stats{display:flex;padding:12px 28px 18px;gap:0}
+.hdr-st{flex:1;text-align:center;padding:8px 10px;border-right:1px solid rgba(255,255,255,.07)}
+.hdr-st:first-child{border-right:none}
+.hdr-st-v{font-size:14px;font-weight:900;color:#E8B84B;margin-bottom:2px}
+.hdr-st-l{font-size:9px;color:rgba(255,255,255,.35);font-weight:600;letter-spacing:.3px}
+
+/* Body */
+.body-wrap{padding:20px 24px 24px}
+
+/* Balance Card */
+.bal-card{border:2px solid #D4A030;border-radius:12px;padding:14px 16px;margin-bottom:16px;background:linear-gradient(135deg,#FFFBF0,#FEF5D9)}
+.bal-card.settled-card{border-color:#22C77A;background:linear-gradient(135deg,#F0FDF7,#E6F7EF)}
+.bal-title{font-size:11.5px;font-weight:800;color:#8B6220;margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px dashed rgba(212,160,48,.4);letter-spacing:.2px}
+.bal-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(212,160,48,.15);font-size:13px}
+.bal-row:last-child{border-bottom:none}
+.bal-val{font-size:15px;font-weight:900}
+.settled{text-align:center;font-size:16px;font-weight:900;color:#22C77A;padding:12px}
+
+/* Section Title */
+.section-title{font-size:11.5px;font-weight:900;letter-spacing:.2px;color:#5A3E10;margin:4px 0 12px;padding:7px 14px;background:rgba(200,150,30,.07);border-right:4px solid #C9922A;border-radius:0 8px 8px 0}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:11.5px;border:1.5px solid #E0D0B0;margin-bottom:20px}
+thead tr{background:linear-gradient(135deg,#1C1208,#3A2710)}
+th{color:#F0C050;padding:10px 9px;text-align:right;font-weight:800;font-size:10.5px;white-space:nowrap;letter-spacing:.15px}
+td{padding:8px 9px;border-bottom:1px solid #EFE4CE;vertical-align:middle;line-height:1.45}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:#FFFCF5}
+.pos{color:#1D7A4A;font-weight:800}
+.neg{color:#B83232;font-weight:800}
+.dir-in{background:#22C77A;color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;display:inline-block;white-space:nowrap}
+.dir-out{background:#E55555;color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;display:inline-block;white-space:nowrap}
+.badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:2px 6px;border-radius:20px;display:inline-block}
+small{color:#8A7250;font-size:10px}
+
+/* Final Summary */
+.final-summary{border:2px solid #1C1208;border-radius:12px;padding:16px 18px;margin-top:4px;background:linear-gradient(135deg,#FFF9E8,#FFF5D9)}
+.fs-title{font-size:15px;font-weight:900;margin-bottom:12px;color:#1C1208;padding-bottom:10px;border-bottom:2px solid rgba(28,18,8,.10);letter-spacing:.2px}
+.fs-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(28,18,8,.07)}
+.fs-row:last-child{border-bottom:none}
+.fs-val{font-size:18px;font-weight:900}
+
+/* Actions */
+.actions{text-align:center;padding:22px 24px;display:flex;justify-content:center;gap:12px;background:#F0EDE8;border-top:1px solid #E0D0B0}
+.btn-pdf{background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:13px 34px;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(200,150,30,.35)}
+.btn-cl{background:#fff;color:#666;border:1.5px solid #ccc;padding:13px 22px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+
+/* Footer */
+.footer{background:#1C1208;padding:13px 28px;display:flex;justify-content:space-between;align-items:center}
+.footer-l{font-size:10px;color:rgba(200,150,30,.65);font-weight:600}
+.footer-r{font-size:10px;color:rgba(255,255,255,.28)}
+
+/* Print */
+@page{size:A4 landscape;margin:10mm 12mm}
+@media print{
+  body{background:#fff!important}
+  .page{box-shadow:none!important;max-width:100%!important}
+  .actions{display:none!important}
+  .body-wrap{padding:8px 12px!important}
+  td{padding:5px 7px!important;font-size:10px!important}
+  th{padding:6px 7px!important;font-size:9.5px!important}
+  .hdr-name{font-size:18px!important}
+  .hdr-main{padding:14px 18px 10px!important}
+  .hdr-stats{padding:8px 18px 12px!important}
+  table{page-break-inside:auto}
+  tr{page-break-inside:avoid}
+  .final-summary,.bal-card{page-break-inside:avoid}
+  .footer{padding:8px 18px!important}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hdr">
+  <div class="hdr-bg"></div>
+  <div class="hdr-main">
+    <div>
+      <div class="hdr-badge"><span>📋 كشف حساب رسمي</span></div>
+      <div class="hdr-name">${entityName}</div>
+      <div class="hdr-sub">كشف تفصيلي شامل لجميع الحركات المالية والذهبية</div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-co">🏅 منظوم — إدارة الذهب والمجوهرات</div>
+      <div class="hdr-dt">${printDate}<br>${printDateEn}</div>
+    </div>
   </div>
+  <div class="hdr-line"></div>
+  <div class="hdr-stats">
+    <div class="hdr-st">
+      <div class="hdr-st-v">${isClient ? 'عميل / مورد' : 'صندوق'}</div>
+      <div class="hdr-st-l">نوع الجهة</div>
+    </div>
+    <div class="hdr-st">
+      <div class="hdr-st-v">${printDateEn}</div>
+      <div class="hdr-st-l">تاريخ الإصدار</div>
+    </div>
+    <div class="hdr-st">
+      <div class="hdr-st-v">📊</div>
+      <div class="hdr-st-l">كشف مفصّل</div>
+    </div>
+  </div>
+</div>
+
+<div class="body-wrap">
   ${bodyHtml}
-  <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
-${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function(){window.print();},600);});${'\x3c/script\x3e'}
-</body></html>`;
+</div>
+
+<div class="actions">
+  <button class="btn-pdf" onclick="window.print()">🖨️ حفظ PDF / طباعة</button>
+  <button class="btn-cl" onclick="window.close()">✕ إغلاق</button>
+</div>
+
+<div class="footer">
+  <span class="footer-l">🏅 منظوم — نظام إدارة الذهب والمجوهرات</span>
+  <span class="footer-r">${printDate} · ${printDateEn}</span>
+</div>
+
+</div>
+${'<script>'}
+window.addEventListener('load',function(){
+  setTimeout(function(){ window.print(); }, 900);
+});
+${'</script>'}
+</body>
+</html>`;
 
   /* ── عرض كشف الحساب في طبقة كاملة تعمل على الجوال والحاسب ── */
   // حذف أي طبقة سابقة
@@ -5946,39 +6052,56 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
   _content.id = '_print-content';
   _content.style.cssText = 'padding:16px;max-width:800px;margin:0 auto;';
 
-  /* بناء محتوى الكشف بنفس تنسيق الطباعة */
+  /* بناء محتوى الكشف — تصميم احترافي */
   _content.innerHTML = `
     <style>
-      #_print-content *{box-sizing:border-box}
-      #_print-content .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
-      #_print-content .header h2{font-size:20px;font-weight:900;color:#C9922A;margin:0}
-      #_print-content .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-      #_print-content .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
-      #_print-content .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
-      #_print-content .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
-      #_print-content .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
+      #_print-content *{box-sizing:border-box;font-family:'Tajawal',sans-serif}
+      /* Header mini inside overlay */
+      #_print-content .pc-hdr{background:linear-gradient(135deg,#1C1208,#3A2710);border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start}
+      #_print-content .pc-hdr-name{font-size:18px;font-weight:900;color:#F0C850;margin-bottom:3px}
+      #_print-content .pc-hdr-sub{font-size:11px;color:rgba(255,255,255,.45)}
+      #_print-content .pc-hdr-r{text-align:left}
+      #_print-content .pc-hdr-co{font-size:9.5px;color:rgba(200,150,30,.70);font-weight:700;margin-bottom:3px}
+      #_print-content .pc-hdr-dt{font-size:10.5px;color:rgba(255,255,255,.45);line-height:1.7}
+      /* Cards */
+      #_print-content .bal-card{border:2px solid #D4A030;border-radius:12px;padding:13px 15px;margin-bottom:14px;background:linear-gradient(135deg,#FFFBF0,#FEF5D9)}
+      #_print-content .bal-card.settled-card{border-color:#22C77A;background:linear-gradient(135deg,#F0FDF7,#E6F7EF)}
+      #_print-content .bal-title{font-size:11px;font-weight:800;color:#8B6220;margin-bottom:9px;padding-bottom:7px;border-bottom:1.5px dashed rgba(212,160,48,.4)}
+      #_print-content .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(212,160,48,.15);font-size:13px}
       #_print-content .bal-row:last-child{border-bottom:none}
-      #_print-content .bal-val{font-size:15px;font-weight:900}
-      #_print-content .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
-      #_print-content .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
-      #_print-content table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
-      #_print-content th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
-      #_print-content td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
-      #_print-content tr:nth-child(even) td{background:#FDFAF3}
-      #_print-content .pos{color:#2D7A4F;font-weight:700}
-      #_print-content .neg{color:#B83232;font-weight:700}
-      #_print-content .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-      #_print-content .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
-      #_print-content small{color:#7A6540;font-size:10px}
-      #_print-content .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
-      #_print-content .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
-      #_print-content .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+      #_print-content .bal-val{font-size:14px;font-weight:900}
+      #_print-content .settled{text-align:center;font-size:15px;font-weight:900;color:#22C77A;padding:10px}
+      /* Section title */
+      #_print-content .section-title{font-size:11px;font-weight:900;color:#5A3E10;margin:4px 0 11px;padding:6px 13px;background:rgba(200,150,30,.08);border-right:4px solid #C9922A;border-radius:0 8px 8px 0}
+      /* Table */
+      #_print-content table{width:100%;border-collapse:collapse;font-size:11px;border:1.5px solid #E0D0B0;margin-bottom:18px}
+      #_print-content thead tr{background:linear-gradient(135deg,#1C1208,#3A2710)}
+      #_print-content th{color:#F0C050;padding:9px 8px;text-align:right;font-weight:800;font-size:10px;white-space:nowrap}
+      #_print-content td{padding:7px 8px;border-bottom:1px solid #EFE4CE;vertical-align:middle;line-height:1.4}
+      #_print-content tr:last-child td{border-bottom:none}
+      #_print-content tr:nth-child(even) td{background:#FFFCF5}
+      #_print-content .pos{color:#1D7A4A;font-weight:800}
+      #_print-content .neg{color:#B83232;font-weight:800}
+      #_print-content .dir-in{background:#22C77A;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;display:inline-block;white-space:nowrap}
+      #_print-content .dir-out{background:#E55555;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;display:inline-block;white-space:nowrap}
+      #_print-content .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:2px 6px;border-radius:20px;display:inline-block}
+      #_print-content small{color:#8A7250;font-size:10px}
+      /* Final summary */
+      #_print-content .final-summary{border:2px solid #1C1208;border-radius:12px;padding:15px 17px;margin-top:4px;background:linear-gradient(135deg,#FFF9E8,#FFF5D9)}
+      #_print-content .fs-title{font-size:14px;font-weight:900;margin-bottom:11px;color:#1C1208;padding-bottom:9px;border-bottom:2px solid rgba(28,18,8,.09)}
+      #_print-content .fs-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,18,8,.06)}
       #_print-content .fs-row:last-child{border-bottom:none}
-      #_print-content .fs-val{font-size:16px;font-weight:900}
+      #_print-content .fs-val{font-size:17px;font-weight:900}
     </style>
-    <div class="header">
-      <h2>${title}</h2>
-      <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
+    <div class="pc-hdr">
+      <div>
+        <div class="pc-hdr-name">${entityName}</div>
+        <div class="pc-hdr-sub">📋 كشف حساب تفصيلي</div>
+      </div>
+      <div class="pc-hdr-r">
+        <div class="pc-hdr-co">🏅 منظوم — إدارة الذهب</div>
+        <div class="pc-hdr-dt">${printDate}<br>${printDateEn}</div>
+      </div>
     </div>
     ${bodyHtml}`;
 
