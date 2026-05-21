@@ -5514,6 +5514,9 @@ function _doPrintBalances(filterType){
 function printStmt(){
   const v=document.getElementById('stmt-v')?.value;
   if(!v){toast('⚠️ اختر جهة أولاً');return;}
+  try { _printStmtCore(v); } catch(err){ console.error('printStmt error:',err); toast('⚠️ خطأ: '+err.message); }
+}
+function _printStmtCore(v){
   const _SM=getSM();
   const kN={'21':'عيار 21','18':'عيار 18','24':'عيار 24 صافي','18k':'مجوهرات 18K','14k':'مجوهرات 14K'};
   const isClient=!v.startsWith('__safe__');
@@ -5807,7 +5810,7 @@ function printStmt(){
         <td>—</td></tr>`;
     }
     // ── صفوف أرصدة الموزعين المرتبطة بهذه الجهة ──
-    const _cliRec2 = (S.clients||[]).find(c=>c.name===client);
+    const _cliRec2 = (S.clients||[]).find(c=>c.name===v);
     if(_cliRec2){
       Object.entries(S.distPersonalOpening||{}).forEach(([distUser,entries])=>{
         (entries||[]).forEach(e=>{
