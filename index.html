@@ -5791,12 +5791,12 @@ function _printStmtCore(v){
         }
       }
 
-      return `<tr><td style="white-space:nowrap">${dt.ar}<br><small>${dt.en}</small></td>
-        <td><b>${TLBL[t.type]||t.type}</b>${t.isDebt?'<br><small class="badge-debt">آجل</small>':''}</td>
-        <td style="font-size:11px">${detail||'—'}</td>
-        <td>${amtStr}</td>
-        <td style="font-size:11px;white-space:nowrap">${wtStr}${gold24Str&&gold24Str!==wtStr?`<br><span style="color:#C9922A;font-size:10px">ع24: ${gold24Str}</span>`:''}</td>
-        <td style="font-size:11px;white-space:nowrap">${balLabel}</td></tr>`;
+      return `<tr><td style="white-space:nowrap;vertical-align:middle">${dt.ar}<br><small>${dt.en}</small></td>
+        <td style="vertical-align:middle"><b>${TLBL[t.type]||t.type}</b>${t.isDebt?'<br><small class="badge-debt">آجل</small>':''}</td>
+        <td style="font-size:11px;vertical-align:middle">${detail||'—'}</td>
+        <td style="text-align:center;vertical-align:middle">${amtStr!=='—'&&dCash>0.01?`<span class="debit-cell">${amtStr.replace(/<[^>]+>/g,'')}</span>`:amtStr==='—'||dCash<=0.01?'<span style="color:#ccc">—</span>':amtStr}</td>
+        <td style="text-align:center;vertical-align:middle">${dCash<-0.01?`<span class="credit-cell">${fmt(Math.abs(dCash))} ر</span>`:'<span style="color:#ccc">—</span>'}</td>
+        <td style="font-size:11px;white-space:nowrap;vertical-align:middle">${balLabel}</td></tr>`;
     }).join('');
     // ── صفوف الرصيد الافتتاحي الأساسية ──
     let obRow='';
@@ -5833,16 +5833,109 @@ function _printStmtCore(v){
         });
       });
     }
+    // ── حسابات ذكية للـ PDF ──
+    const _pdfTotalInv = isSupp
+      ? txs.filter(t=>t.type==='buy'||t.type==='buy-debt').reduce((a,t)=>a+(t.ajTotal||0),0)
+      : txs.filter(t=>t.type==='sell'||t.type==='sell-debt').reduce((a,t)=>a+(t.total||0),0);
+    const _pdfInvCount = isSupp
+      ? txs.filter(t=>t.type==='buy'||t.type==='buy-debt').length
+      : txs.filter(t=>t.type==='sell'||t.type==='sell-debt').length;
+    const _pdfPaidAmt = isSupp
+      ? txs.filter(t=>t.type==='supplier-payment').reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0)
+      : txs.filter(t=>t.type==='payment').reduce((a,t)=>a+(t.ajourPaid||0)+(t.discount||0)+(t.change||0),0)
+        + txs.filter(t=>t.type==='cash-receipt').reduce((a,t)=>a+(t.amount||0),0);
+    const _pdfTotalGrams = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+      .reduce((a,t)=>a+(t.items||[]).filter(i=>i.karat!=='gems').reduce((b,i)=>b+(i.weight||0),0),0);
+    const _pdfAvg = _pdfInvCount>0 ? Math.round(_pdfTotalInv/_pdfInvCount) : 0;
+    const _pdfPaidPct = _pdfTotalInv>0 ? Math.min(100,Math.round(_pdfPaidAmt/_pdfTotalInv*100)) : (isSettled?100:0);
+    const _pdfLastTx = txs.length>0 ? txs[txs.length-1] : null;
+    const _pdfLastDate = _pdfLastTx ? fmtDate(_pdfLastTx.date).ar : '—';
+    // تصنيف
+    let _pdfCls='متوسط',_pdfClsClr='#D97706';
+    const _pdfHasBigDebt = Math.abs(bal.cashOwed)>5000 && _pdfPaidPct<30 && _pdfTotalInv>0;
+    if(_pdfHasBigDebt){_pdfCls='متعثر';_pdfClsClr='#B83232';}
+    else if(_pdfTotalInv>50000||_pdfInvCount>20||(_pdfTotalInv>15000&&_pdfPaidPct>=70)){_pdfCls='VIP ⭐';_pdfClsClr='#6D28D9';}
+
     bodyHtml=`
-    <div class="bal-card ${isSettled?'settled-card':''}">
-      <div class="bal-title">${isSettled?'الحساب مسدد':'الرصيد الحالي'}</div>
-      ${isSettled?`<div class="settled">✅ الحساب مسدد بالكامل</div>`:balRows}
+    <!-- شعار المحل -->
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="display:inline-block;background:linear-gradient(135deg,#1C1208,#3A2810);color:#F0C050;
+        font-size:24px;font-weight:900;padding:10px 28px;border-radius:14px;letter-spacing:1px;
+        box-shadow:0 3px 12px rgba(0,0,0,.2)">🏅 مكتب الذهب والمجوهرات</div>
+      <div style="margin-top:6px;font-size:10px;color:#7A6540">كشف حساب عميل ذكي — صادر رسمياً</div>
     </div>
-    <div class="section-title">تفصيل الحركات (${txs.length} عملية)</div>
-    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الوزن / ع24</th><th>الرصيد المتراكم</th></tr></thead>
-    <tbody>${obRow}${rows}</tbody></table>
+
+    <!-- بيانات العميل -->
+    <div style="border:2px solid #C9922A;border-radius:12px;padding:12px 14px;margin-bottom:14px;
+      background:linear-gradient(135deg,#FDF6E3,#FFFBF0);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#1C1208">${clientObj?.type==='مورد'?'🏭':clientObj?.type==='موزع'?'🚚':'👤'} ${v}</div>
+        <div style="font-size:11px;color:#7A6540;margin-top:4px">${clientObj?.type||'عميل'} · ${clientObj?.phone?'📞 '+clientObj.phone:''}  · عدد الفواتير: ${_pdfInvCount}</div>
+        <div style="font-size:10px;color:#7A6540;margin-top:2px">📅 آخر تعامل: ${_pdfLastDate}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:${_pdfClsClr};font-weight:900;background:${_pdfClsClr}18;
+          border:1.5px solid ${_pdfClsClr}40;border-radius:20px;padding:4px 14px">${_pdfCls}</div>
+        <div style="font-size:10px;color:#7A6540;margin-top:4px">نسبة السداد: <b style="color:#1C1208">${_pdfPaidPct}%</b></div>
+      </div>
+    </div>
+
+    <!-- بطاقات الملخص الذكي -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:#FDF6E3;border:1.5px solid #C9922A;border-radius:10px;padding:9px;text-align:center">
+        <div style="font-size:9px;color:#7A6540;font-weight:700;margin-bottom:3px">إجمالي التعاملات</div>
+        <div style="font-size:15px;font-weight:900;color:#C9922A">${fmt(_pdfTotalInv)}</div>
+        <div style="font-size:9px;color:#7A6540">ريال</div>
+      </div>
+      <div style="background:#EAF7EF;border:1.5px solid #2D7A4F;border-radius:10px;padding:9px;text-align:center">
+        <div style="font-size:9px;color:#2D7A4F;font-weight:700;margin-bottom:3px">إجمالي المدفوعات</div>
+        <div style="font-size:15px;font-weight:900;color:#2D7A4F">${fmt(_pdfPaidAmt)}</div>
+        <div style="font-size:9px;color:#2D7A4F">ريال</div>
+      </div>
+      <div style="background:#FEE2E2;border:1.5px solid #B83232;border-radius:10px;padding:9px;text-align:center">
+        <div style="font-size:9px;color:#B83232;font-weight:700;margin-bottom:3px">الرصيد المتبقي</div>
+        <div style="font-size:15px;font-weight:900;color:#B83232">${isSettled?'✅ صفر':fmt(Math.abs(bal.cashOwed))}</div>
+        <div style="font-size:9px;color:#B83232">${isSettled?'مسوّى':isSupp?(bal.cashOwed<0?'له':'له فائض'):(bal.cashOwed>0?'عليه':'له')}</div>
+      </div>
+      <div style="background:#F5F0FF;border:1.5px solid #6D28D9;border-radius:10px;padding:9px;text-align:center">
+        <div style="font-size:9px;color:#6D28D9;font-weight:700;margin-bottom:3px">متوسط الفاتورة</div>
+        <div style="font-size:15px;font-weight:900;color:#6D28D9">${fmt(_pdfAvg)}</div>
+        <div style="font-size:9px;color:#6D28D9">ريال/فاتورة</div>
+      </div>
+      <div style="background:#FEF9C3;border:1.5px solid #D97706;border-radius:10px;padding:9px;text-align:center">
+        <div style="font-size:9px;color:#D97706;font-weight:700;margin-bottom:3px">إجمالي الذهب</div>
+        <div style="font-size:15px;font-weight:900;color:#D97706">${fmtG(Math.round(_pdfTotalGrams*100)/100)}</div>
+        <div style="font-size:9px;color:#D97706">جرام</div>
+      </div>
+      <div style="background:#EEF6FF;border:1.5px solid #1D6FAF;border-radius:10px;padding:9px;text-align:center">
+        <div style="font-size:9px;color:#1D6FAF;font-weight:700;margin-bottom:3px">عدد العمليات</div>
+        <div style="font-size:22px;font-weight:900;color:#1D6FAF">${txs.length}</div>
+        <div style="font-size:9px;color:#1D6FAF">عملية</div>
+      </div>
+    </div>
+
+    <!-- بطاقة الرصيد الختامي -->
+    <div class="bal-card ${isSettled?'settled-card':''}">
+      <div class="bal-title">${isSettled?'✅ الحساب مسدد بالكامل':'📌 الرصيد الختامي'}</div>
+      ${isSettled?`<div class="settled">الحساب مصفّى — لا يوجد أي رصيد متبقي ✅</div>`:balRows}
+    </div>
+
+    <div class="section-title">📋 تفصيل الحركات (${txs.length} عملية)</div>
+    <table>
+      <thead><tr>
+        <th style="width:80px">التاريخ</th>
+        <th>النوع</th>
+        <th>التفاصيل</th>
+        <th style="width:80px;color:#FF6B6B">🔴 عليه</th>
+        <th style="width:80px;color:#4ADE80">🟢 له</th>
+        <th style="width:60px">الرصيد</th>
+      </tr></thead>
+      <tbody>${obRow}${rows}</tbody>
+    </table>
+
+    <!-- الملخص النهائي -->
     <div class="final-summary">
-      <div class="fs-title">الملخص النهائي</div>
+      <div class="fs-title">📊 الملخص النهائي — ${v}</div>
       <div class="fs-row"><span>الرصيد النقدي</span>
         <span class="fs-val ${isSettled?'pos':(isSupp?(bal.cashOwed<0?'pos':'pos'):(bal.cashOwed>0?'neg':'pos'))}">${isSettled?'مسوى ✅':`${isSupp?(bal.cashOwed<0?'له':'له فائض'):(bal.cashOwed>0?'عليه':'له')} ${fmt(Math.abs(bal.cashOwed))} ريال`}</span></div>
       ${Math.abs(bal.goldOwedAs24||0)>0.001?(()=>{
@@ -5850,14 +5943,19 @@ function _printStmtCore(v){
         const _g21f=Math.abs(_gO2['21']||0),_g18f=Math.abs(_gO2['18']||0);
         return `<div class="fs-row"><span>الرصيد الذهبي</span>
           <span class="fs-val ${bal.goldOwedAs24>0?'neg':'pos'}">${bal.goldOwedAs24>0?'عليه':'له'} ${fmtG(Math.abs(bal.goldOwedAs24))} جرام عيار 24</span></div>`
-          +(_g21f>0.001?`<div class="fs-row" style="padding-right:12px;opacity:.85"><span style="font-size:11px">↳ باقي سداد عيار 21</span><span class="fs-val neg" style="font-size:14px">${fmtG(_g21f)} جرام</span></div>`:'')
-          +(_g18f>0.001?`<div class="fs-row" style="padding-right:12px;opacity:.85"><span style="font-size:11px">↳ باقي سداد عيار 18</span><span class="fs-val neg" style="font-size:14px">${fmtG(_g18f)} جرام</span></div>`:'');
+          +(_g21f>0.001?`<div class="fs-row" style="padding-right:12px"><span style="font-size:11px;color:#888">↳ باقي سداد عيار 21</span><span class="fs-val neg" style="font-size:13px">${fmtG(_g21f)} جرام</span></div>`:'')
+          +(_g18f>0.001?`<div class="fs-row" style="padding-right:12px"><span style="font-size:11px;color:#888">↳ باقي سداد عيار 18</span><span class="fs-val neg" style="font-size:13px">${fmtG(_g18f)} جرام</span></div>`:'');
       })():''}
+      <div class="fs-row" style="font-size:10px;color:#7A6540;padding-top:8px">
+        <span>🖨️ تاريخ الطباعة: ${printDate}</span>
+        <span>مكتب الذهب والمجوهرات ©</span>
+      </div>
     </div>`;
   }
 
   const printHTML=`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
-  <meta charset="UTF-8"><title>${title}</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
@@ -5866,31 +5964,47 @@ function _printStmtCore(v){
     .header h1{font-size:20px;font-weight:900;color:#C9922A}
     .header h2{font-size:16px;font-weight:700;margin-top:4px;color:#3A2810}
     .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-    .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
+    .bal-card{border:2px solid #C9922A;border-radius:12px;padding:14px;margin-bottom:14px;background:#FDF6E3}
     .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
-    .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
-    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
+    .bal-title{font-size:13px;font-weight:900;color:#C9922A;margin-bottom:10px;padding-bottom:7px;border-bottom:1.5px solid #E8D9AA}
+    .bal-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
     .bal-row:last-child{border-bottom:none}
     .bal-val{font-size:15px;font-weight:900}
-    .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
-    .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
+    .settled{text-align:center;font-size:15px;font-weight:900;color:#2D7A4F;padding:12px;background:#D1FAE5;border-radius:8px}
+    .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:16px 0 8px;padding-right:12px;
+      border-right:4px solid #C9922A;display:flex;align-items:center;gap:6px}
     table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
-    th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
-    td{padding:6px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top}
+    th{background:#1C1208;color:#F0C050;padding:8px 7px;text-align:right;font-weight:700}
+    td{padding:7px 7px;border-bottom:1px solid #E8D9AA;vertical-align:top;color:#1C1208}
     tr:nth-child(even) td{background:#FDFAF3}
     .pos{color:#2D7A4F;font-weight:700}
     .neg{color:#B83232;font-weight:700}
+    .debit-cell{background:#FFF0F0;border:1px solid rgba(184,50,50,.25);color:#B83232;font-weight:900;
+      padding:3px 8px;border-radius:7px;display:inline-block;text-align:center;min-width:55px}
+    .credit-cell{background:#F0FDF4;border:1px solid rgba(45,122,79,.25);color:#2D7A4F;font-weight:900;
+      padding:3px 8px;border-radius:7px;display:inline-block;text-align:center;min-width:55px}
     .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
     .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
     .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
     small{color:#7A6540;font-size:10px}
-    .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
-    .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
-    .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA}
+    .final-summary{border:2px solid #1C1208;border-radius:12px;padding:14px;margin-top:18px;background:#FFF9E6}
+    .fs-title{font-size:14px;font-weight:900;margin-bottom:10px;color:#1C1208;padding-bottom:8px;border-bottom:2px solid #E8D9AA}
+    .fs-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #E8D9AA}
     .fs-row:last-child{border-bottom:none}
     .fs-val{font-size:16px;font-weight:900}
-    .print-btn{display:block;margin:20px auto;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;border:none;padding:12px 32px;border-radius:10px;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;cursor:pointer}
-    @media print{.print-btn{display:none!important}body{padding:8px}}
+    .print-btn{display:block;margin:22px auto 0;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#1C1208;
+      border:none;padding:12px 36px;border-radius:12px;font-family:Tajawal,sans-serif;font-size:15px;
+      font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(201,146,42,.3)}
+    @media print{
+      .print-btn{display:none!important}
+      body{padding:8px}
+      tr{page-break-inside:avoid}
+    }
+    @media(max-width:600px){
+      table{font-size:10px}
+      th,td{padding:5px 4px}
+      .fs-val{font-size:13px}
+    }
   </style></head><body>
   <div class="header">
     <h2>${title}</h2>
@@ -5965,13 +6079,13 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
       #_print-content .header{text-align:center;border-bottom:3px solid #C9922A;padding-bottom:14px;margin-bottom:18px}
       #_print-content .header h2{font-size:20px;font-weight:900;color:#C9922A;margin:0}
       #_print-content .header .dates{font-size:11px;color:#7A6540;margin-top:5px}
-      #_print-content .bal-card{border:2px solid #C9922A;border-radius:10px;padding:12px;margin-bottom:16px;background:#FDF6E3}
+      #_print-content .bal-card{border:2px solid #C9922A;border-radius:12px;padding:14px;margin-bottom:14px;background:#FDF6E3}
       #_print-content .bal-card.settled-card{border-color:#2D7A4F;background:#EAF7EF}
       #_print-content .bal-title{font-size:14px;font-weight:900;color:#C9922A;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E8D9AA}
       #_print-content .bal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;font-size:13px}
       #_print-content .bal-row:last-child{border-bottom:none}
       #_print-content .bal-val{font-size:15px;font-weight:900}
-      #_print-content .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px}
+      #_print-content .settled{text-align:center;font-size:14px;font-weight:900;color:#2D7A4F;padding:10px;background:#D1FAE5;border-radius:8px}
       #_print-content .section-title{font-size:13px;font-weight:900;color:#1C1208;margin:14px 0 7px;padding-right:10px;border-right:4px solid #C9922A}
       #_print-content table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
       #_print-content th{background:#1C1208;color:#F0C050;padding:7px;text-align:right;font-weight:700}
@@ -5979,10 +6093,12 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
       #_print-content tr:nth-child(even) td{background:#FDFAF3}
       #_print-content .pos{color:#2D7A4F;font-weight:700}
       #_print-content .neg{color:#B83232;font-weight:700}
+      #_print-content .debit-cell{background:#FFF0F0;border:1px solid rgba(184,50,50,.25);color:#B83232;font-weight:900;padding:3px 8px;border-radius:7px;display:inline-block;text-align:center;min-width:55px}
+      #_print-content .credit-cell{background:#F0FDF4;border:1px solid rgba(45,122,79,.25);color:#2D7A4F;font-weight:900;padding:3px 8px;border-radius:7px;display:inline-block;text-align:center;min-width:55px}
       #_print-content .dir-in{background:#2D7A4F;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
       #_print-content .dir-out{background:#B83232;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
       #_print-content small{color:#7A6540;font-size:10px}
-      #_print-content .final-summary{border:2px solid #1C1208;border-radius:10px;padding:12px;margin-top:16px;background:#FFF9E6}
+      #_print-content .final-summary{border:2px solid #1C1208;border-radius:12px;padding:14px;margin-top:16px;background:#FFF9E6}
       #_print-content .fs-title{font-size:13px;font-weight:900;margin-bottom:8px;color:#1C1208}
       #_print-content .fs-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #E8D9AA;color:#1C1208}
       #_print-content .fs-row:last-child{border-bottom:none}
@@ -5990,6 +6106,10 @@ ${'\x3cscript\x3e'}window.addEventListener("load",function(){setTimeout(function
       #_print-content .badge-debt{background:#7C3AED;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px}
     </style>
     <div class="header">
+      <div style="display:inline-block;background:linear-gradient(135deg,#1C1208,#3A2810);color:#F0C050;
+        font-size:18px;font-weight:900;padding:8px 22px;border-radius:12px;margin-bottom:10px">
+        🏅 مكتب الذهب والمجوهرات
+      </div>
       <h2>${title}</h2>
       <div class="dates">تاريخ الطباعة: ${printDate} · ${printDateEn}</div>
     </div>
@@ -12771,23 +12891,38 @@ function renderStmt(){
     const goldWt=(t.items||[]).filter(i=>i.karat!=='gems').reduce((a,i)=>a+(i.weight||0),0);
     const vatBadge=(t.vatAmt>0||t.hasVat)?'<span style="background:#F59E0B;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">ضريبة</span>':'';
 
-    return `<tr style="border-bottom:1px solid var(--b1);background:${rowBg}">
-      <td style="padding:6px 8px;font-size:10px;color:var(--tx2);white-space:nowrap">${dt.ar}<br><span style="font-size:9px">${dt.en}</span></td>
-      <td style="padding:6px 8px">
+    // ── تحديد لون حد الصف حسب نوع الحركة ──
+    const _rowBorderClr = isDebit ? 'rgba(220,38,38,.18)' : (isCredit||isSetRow) ? 'rgba(22,163,74,.18)' : 'transparent';
+    const _rowBorderStyle = (isDebit||isCredit||isSetRow) ? `border-right:3px solid ${_rowBorderClr}` : '';
+
+    return `<tr style="border-bottom:1px solid var(--b1);background:${rowBg};${_rowBorderStyle}">
+      <td style="padding:7px 10px;font-size:10px;color:var(--tx2);white-space:nowrap;vertical-align:middle">
+        <div style="font-weight:700;color:var(--tx1);font-size:11px">${dt.ar}</div>
+        <div style="font-size:9px;color:var(--tx3);margin-top:1px">${dt.en}</div>
+      </td>
+      <td style="padding:7px 10px;vertical-align:middle">
         <span class="badge ${TBDG[t.type]||'bg-gold'}" style="font-size:10px">${lbl}</span>
         ${vatBadge}
-        ${goldWt>0?`<div style="font-size:10px;color:var(--g1);font-weight:700;margin-top:2px">🥇 ${fmtG(goldWt)}ج</div>`:''}
-        ${detail?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">${detail}</div>`:''}
+        ${goldWt>0?`<div style="font-size:10px;color:var(--g1);font-weight:700;margin-top:3px">🥇 ${fmtG(goldWt)}ج</div>`:''}
       </td>
-      <td style="padding:6px 8px;font-size:10px;color:var(--tx2)">
-        ${(t.vatAmt||0)>0?`<span style="color:#F59E0B;font-weight:700">ضريبة: ${fmt(t.vatAmt)} ر</span><br>`:''}
-        ${t.notes?`<span style="font-size:9px">📝 ${t.notes}</span>`:''}
+      <td style="padding:7px 10px;font-size:10px;color:var(--tx2);vertical-align:middle">
+        ${detail?`<div style="font-size:10px;color:var(--tx2);line-height:1.5">${detail}</div>`:''}
+        ${(t.vatAmt||0)>0?`<div style="margin-top:2px"><span style="background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px">🧾 ضريبة: ${fmt(t.vatAmt)} ر</span></div>`:''}
+        ${t.notes&&!detail?`<div style="font-size:9px;color:var(--tx3)">📝 ${t.notes}</div>`:''}
       </td>
-      <td style="padding:6px 8px;text-align:center;font-weight:900;color:#DC2626;font-size:13px">${debitAmt}</td>
-      <td style="padding:6px 8px;text-align:center;font-weight:900;color:#16A34A;font-size:13px">${creditAmt}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:12px">${runLabel}${Math.abs(runGold24)>0.001?`<br><span style="font-size:10px;color:var(--g1)">${fmtG(Math.abs(runGold24))}ج</span>`:''}</td>
-      <td style="padding:5px 6px;text-align:center">
-        <button onclick="viewInv(${t.id})" style="background:var(--g4);border:1px solid var(--g5);color:var(--g1);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit">✏️</button>
+      <td style="padding:7px 10px;text-align:center;vertical-align:middle">
+        ${debitAmt!=='–'?`<div style="background:rgba(220,38,38,.10);border:1.5px solid rgba(220,38,38,.28);color:#DC2626;font-weight:900;font-size:13px;padding:4px 10px;border-radius:10px;display:inline-block;min-width:55px">${debitAmt}</div>`:'<span style="color:var(--tx3);font-size:12px">—</span>'}
+      </td>
+      <td style="padding:7px 10px;text-align:center;vertical-align:middle">
+        ${creditAmt!=='–'?`<div style="background:rgba(22,163,74,.10);border:1.5px solid rgba(22,163,74,.28);color:#16A34A;font-weight:900;font-size:13px;padding:4px 10px;border-radius:10px;display:inline-block;min-width:55px">${creditAmt}</div>`:'<span style="color:var(--tx3);font-size:12px">—</span>'}
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-size:12px;vertical-align:middle">
+        ${runLabel}
+        ${Math.abs(runGold24)>0.001?`<div style="margin-top:3px"><span style="background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.25);color:var(--g1);font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px">${fmtG(Math.abs(runGold24))}ج ذهب</span></div>`:''}
+      </td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:middle">
+        <button onclick="viewInv(${t.id})" style="background:var(--g4);border:1px solid var(--g5);color:var(--g1);border-radius:8px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s"
+          onmouseover="this.style.background='var(--g5)'" onmouseout="this.style.background='var(--g4)'">✏️</button>
       </td>
     </tr>`;
   }).join('');
@@ -12847,6 +12982,188 @@ function renderStmt(){
   const netCash = Math.abs(cash);
 
   let html = '';
+
+  // ══════════════════════════════════════════════════════════════
+  // ── كشف عميل ذكي — الملخص والتحليل (إضافة احترافية) ──
+  // ══════════════════════════════════════════════════════════════
+  if(!isSupp){
+    // ── حسابات التحليل الذكي ──
+    const _kCounts={};
+    txs.filter(t=>t.type==='sell'||t.type==='sell-debt').forEach(t=>{
+      (t.items||[]).forEach(i=>{
+        const k=i.karat||'21'; if(i.karat==='gems') return;
+        _kCounts[k]=(_kCounts[k]||0)+(i.weight||0);
+      });
+    });
+    const _topK=Object.entries(_kCounts).sort((a,b)=>b[1]-a[1])[0];
+    const _topKLabel = _topK ? 'عيار '+_topK[0] : '—';
+    const _topKWt    = _topK ? Math.round(_topK[1]*100)/100 : 0;
+
+    const _totalGoldGrams = txs.filter(t=>t.type==='sell'||t.type==='sell-debt')
+      .reduce((a,t)=>a+(t.items||[]).filter(i=>i.karat!=='gems').reduce((b,i)=>b+(i.weight||0),0),0);
+    const _avgPurchase = invoiceCount>0 ? Math.round(totalInvoiced/invoiceCount) : 0;
+
+    const _lastTx  = txs.length>0 ? txs[0] : null; // txs sorted desc
+    const _lastDate= _lastTx ? fmtDate(_lastTx.date).ar : '—';
+    const _lastLbl = _lastTx ? (TLBL[_lastTx.type]||_lastTx.type) : '';
+
+    // ── معدل السداد ──
+    let _pRateLabel,_pRateIcon,_pRateColor,_pRateDesc;
+    if(paidPct>=80){
+      _pRateLabel='يسدد بسرعة';_pRateIcon='🟢';_pRateColor='#16A34A';_pRateDesc='ممتاز — يسدد في الوقت المناسب';
+    } else if(paidPct>=40){
+      _pRateLabel='منتظم';_pRateIcon='🟡';_pRateColor='#D97706';_pRateDesc='يسدد بشكل معقول ومقبول';
+    } else {
+      _pRateLabel='متأخر';_pRateIcon='🔴';_pRateColor='#DC2626';_pRateDesc='تأخر في السداد — يحتاج متابعة';
+    }
+
+    // ── تصنيف العميل ──
+    let _cls,_clsIcon,_clsColor,_clsBg,_clsDesc;
+    const _hasBigDebt = Math.abs(cash)>5000 && paidPct<30 && totalInvoiced>0;
+    if(_hasBigDebt){
+      _cls='متعثر';_clsIcon='⚠️';_clsColor='#DC2626';_clsBg='rgba(220,38,38,.08)';_clsDesc='يحتاج متابعة خاصة';
+    } else if(totalInvoiced>50000||invoiceCount>20||(totalInvoiced>15000&&paidPct>=70)){
+      _cls='VIP';_clsIcon='💎';_clsColor='#7C3AED';_clsBg='rgba(124,58,237,.08)';_clsDesc='عميل مميز — تعاملات عالية';
+    } else {
+      _cls='متوسط';_clsIcon='⭐';_clsColor='#D97706';_clsBg='rgba(217,119,6,.08)';_clsDesc='عميل منتظم بمستوى جيد';
+    }
+
+    html += `
+    <!-- ════ الملخص الذكي ════ -->
+    <div style="background:var(--c1);border:1.5px solid rgba(200,150,30,.22);border-radius:18px;
+      margin-bottom:12px;overflow:hidden;box-shadow:0 4px 20px rgba(200,150,30,.10)">
+      <!-- رأس القسم -->
+      <div style="background:linear-gradient(135deg,#1C1208 0%,#2E1F0C 100%);
+        padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">📊</span>
+          <div>
+            <div style="font-size:14px;font-weight:900;color:#F0C050;letter-spacing:.3px">الملخص الذكي</div>
+            <div style="font-size:10px;color:rgba(240,192,80,.55);margin-top:1px">تحليل شامل لتعاملات ${v}</div>
+          </div>
+        </div>
+        <div style="background:${_clsBg};border:1.5px solid ${_clsColor}50;border-radius:20px;padding:5px 14px;
+          display:flex;align-items:center;gap:6px">
+          <span style="font-size:16px">${_clsIcon}</span>
+          <div>
+            <div style="font-size:12px;font-weight:900;color:${_clsColor}">${_cls}</div>
+            <div style="font-size:9px;color:${_clsColor};opacity:.7">${_clsDesc}</div>
+          </div>
+        </div>
+      </div>
+      <!-- شبكة الإحصاءات السداسية -->
+      <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <!-- إجمالي التعاملات -->
+        <div style="background:rgba(200,150,30,.07);border:1px solid rgba(200,150,30,.18);
+          border-radius:14px;padding:11px;text-align:center;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-6px;left:-6px;font-size:32px;opacity:.06">💰</div>
+          <div style="font-size:9px;font-weight:800;color:var(--g1);margin-bottom:5px;letter-spacing:.2px">إجمالي التعاملات</div>
+          <div style="font-size:${totalInvoiced>999999?'14':'17'}px;font-weight:900;color:var(--g1);line-height:1">${fmt(totalInvoiced)}</div>
+          <div style="font-size:9px;color:var(--tx3);margin-top:3px">ريال</div>
+        </div>
+        <!-- إجمالي المشتريات بالجرام -->
+        <div style="background:rgba(200,150,30,.07);border:1px solid rgba(200,150,30,.18);
+          border-radius:14px;padding:11px;text-align:center;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-6px;left:-6px;font-size:32px;opacity:.06">🥇</div>
+          <div style="font-size:9px;font-weight:800;color:var(--g1);margin-bottom:5px;letter-spacing:.2px">إجمالي الذهب</div>
+          <div style="font-size:17px;font-weight:900;color:var(--g1);line-height:1">${fmtG(Math.round(_totalGoldGrams*100)/100)}</div>
+          <div style="font-size:9px;color:var(--tx3);margin-top:3px">جرام</div>
+        </div>
+        <!-- عدد الفواتير -->
+        <div style="background:rgba(80,144,224,.07);border:1px solid rgba(80,144,224,.2);
+          border-radius:14px;padding:11px;text-align:center;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-6px;left:-6px;font-size:32px;opacity:.06">📄</div>
+          <div style="font-size:9px;font-weight:800;color:var(--in);margin-bottom:5px;letter-spacing:.2px">عدد الفواتير</div>
+          <div style="font-size:28px;font-weight:900;color:var(--in);line-height:1">${invoiceCount}</div>
+          <div style="font-size:9px;color:var(--in);opacity:.65;margin-top:3px">فاتورة</div>
+        </div>
+        <!-- إجمالي المدفوعات -->
+        <div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);
+          border-radius:14px;padding:11px;text-align:center;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-6px;left:-6px;font-size:32px;opacity:.06">💳</div>
+          <div style="font-size:9px;font-weight:800;color:#16A34A;margin-bottom:5px;letter-spacing:.2px">إجمالي المدفوعات</div>
+          <div style="font-size:${totalPaidAmt>999999?'14':'17'}px;font-weight:900;color:#16A34A;line-height:1">${fmt(totalPaidAmt)}</div>
+          <div style="font-size:9px;color:#16A34A;opacity:.65;margin-top:3px">ريال</div>
+        </div>
+        <!-- الرصيد الحالي -->
+        <div style="background:${Math.abs(cash)<0.01?'rgba(22,163,74,.06)':cash>0?'rgba(220,38,38,.06)':'rgba(22,163,74,.06)'};
+          border:1px solid ${Math.abs(cash)<0.01?'rgba(22,163,74,.2)':cash>0?'rgba(220,38,38,.2)':'rgba(22,163,74,.2)'};
+          border-radius:14px;padding:11px;text-align:center;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-6px;left:-6px;font-size:32px;opacity:.06">⚖️</div>
+          <div style="font-size:9px;font-weight:800;color:${Math.abs(cash)<0.01?'#16A34A':cash>0?'#DC2626':'#16A34A'};margin-bottom:5px">الرصيد الحالي</div>
+          <div style="font-size:${Math.abs(cash)<0.01?'18':Math.abs(cash)>999999?'13':'17'}px;font-weight:900;
+            color:${Math.abs(cash)<0.01?'#16A34A':cash>0?'#DC2626':'#16A34A'};line-height:1">
+            ${Math.abs(cash)<0.01?'✅ صفر':fmt(Math.abs(cash))}
+          </div>
+          <div style="font-size:9px;color:${Math.abs(cash)<0.01?'#16A34A':cash>0?'#DC2626':'#16A34A'};opacity:.75;margin-top:3px">
+            ${Math.abs(cash)<0.01?'مسوّى':cash>0?'عليه':'له'}
+          </div>
+        </div>
+        <!-- متوسط الشراء -->
+        <div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.18);
+          border-radius:14px;padding:11px;text-align:center;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-6px;left:-6px;font-size:32px;opacity:.06">📈</div>
+          <div style="font-size:9px;font-weight:800;color:#7C3AED;margin-bottom:5px;letter-spacing:.2px">متوسط الشراء</div>
+          <div style="font-size:${_avgPurchase>99999?'14':'17'}px;font-weight:900;color:#7C3AED;line-height:1">${fmt(_avgPurchase)}</div>
+          <div style="font-size:9px;color:#7C3AED;opacity:.65;margin-top:3px">ريال/فاتورة</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ التحليل الذكي ════ -->
+    <div style="background:var(--c1);border:1.5px solid var(--b1);border-radius:18px;
+      margin-bottom:12px;overflow:hidden;box-shadow:var(--s1)">
+      <div style="background:linear-gradient(135deg,rgba(200,150,30,.14),rgba(200,150,30,.05));
+        padding:10px 14px;border-bottom:1px solid rgba(200,150,30,.15);
+        display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">🔍</span>
+        <span style="font-size:13px;font-weight:900;color:var(--tx1)">التحليل الذكي للعميل</span>
+      </div>
+      <div style="padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <!-- أكثر عيار -->
+        <div style="background:var(--c2);border:1px solid rgba(200,150,30,.2);border-radius:13px;padding:11px">
+          <div style="font-size:9px;font-weight:800;color:var(--tx2);margin-bottom:6px">🥇 أكثر عيار مشترى</div>
+          <div style="font-size:18px;font-weight:900;color:var(--g1)">${_topKLabel}</div>
+          ${_topKWt>0?`<div style="font-size:10px;color:var(--tx2);margin-top:3px">${fmtG(_topKWt)} جرام إجمالاً</div>`:''}
+        </div>
+        <!-- آخر زيارة -->
+        <div style="background:var(--c2);border:1px solid var(--b1);border-radius:13px;padding:11px">
+          <div style="font-size:9px;font-weight:800;color:var(--tx2);margin-bottom:6px">📅 آخر زيارة / عملية</div>
+          <div style="font-size:14px;font-weight:900;color:var(--tx1)">${_lastDate}</div>
+          ${_lastLbl?`<div style="background:var(--g4);border:1px solid var(--g5);color:var(--g1);font-size:9px;font-weight:700;padding:2px 8px;border-radius:8px;display:inline-block;margin-top:4px">${_lastLbl}</div>`:''}
+        </div>
+        <!-- معدل السداد -->
+        <div style="background:${_pRateColor}0D;border:1.5px solid ${_pRateColor}35;border-radius:13px;padding:11px">
+          <div style="font-size:9px;font-weight:800;color:${_pRateColor};margin-bottom:6px">${_pRateIcon} معدل السداد</div>
+          <div style="font-size:16px;font-weight:900;color:${_pRateColor}">${_pRateLabel}</div>
+          <div style="font-size:9px;color:${_pRateColor};opacity:.8;margin-top:3px;font-weight:700">${_pRateDesc}</div>
+        </div>
+        <!-- تصنيف العميل -->
+        <div style="background:${_clsBg};border:1.5px solid ${_clsColor}40;border-radius:13px;padding:11px">
+          <div style="font-size:9px;font-weight:800;color:${_clsColor};margin-bottom:6px">${_clsIcon} تصنيف العميل</div>
+          <div style="font-size:18px;font-weight:900;color:${_clsColor}">${_cls}</div>
+          <div style="font-size:9px;color:${_clsColor};opacity:.8;margin-top:3px;font-weight:700">${_clsDesc}</div>
+        </div>
+      </div>
+      <!-- شريط نسبة الإنجاز المالي -->
+      <div style="padding:0 12px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:10px;font-weight:800;color:var(--tx2)">نسبة الإنجاز المالي</span>
+          <span style="font-size:13px;font-weight:900;color:${paidPct>=80?'#16A34A':paidPct>=40?'#D97706':'#DC2626'}">${paidPct}%</span>
+        </div>
+        <div style="background:var(--c3);border-radius:10px;height:12px;overflow:hidden;position:relative">
+          <div style="width:${paidPct}%;height:100%;border-radius:10px;
+            background:linear-gradient(90deg,${paidPct>=80?'#16A34A,#22C77A':paidPct>=40?'#D97706,#F59E0B':'#DC2626,#EF4444'});
+            transition:width .5s ease;position:relative">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--tx3)">
+          <span>دفع: ${fmt(totalPaidAmt)} ر</span>
+          <span>الإجمالي: ${fmt(totalInvoiced)} ر</span>
+        </div>
+      </div>
+    </div>`;
+  }
 
   // ══════════════════════════════════════════════════════════════
   // ── بيان سريع العيارات (إضافة جديدة) ──
@@ -13218,35 +13535,55 @@ function renderStmt(){
   }
   // ══════════════════════════════════════════════════════════════
 
-  // ── سجل الحركات ──
-  html += '<div class="card">';
-  html += '<div class="ch">📋 سجل الحركات (' + txs.length + ')</div>';
-  html += '<div class="cb">';
+  // ── سجل الحركات — محسّن احترافياً ──
+  html += '<div class="card" style="overflow:hidden">';
+  html += '<div class="ch" style="display:flex;align-items:center;justify-content:space-between">';
+  html += '<span>📋 سجل الحركات (' + txs.length + ')</span>';
+  html += '<div style="display:flex;gap:6px;align-items:center">';
+  html += '<span style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);color:#DC2626;font-size:9px;font-weight:800;padding:2px 9px;border-radius:10px">● مدين = عليه</span>';
+  html += '<span style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.25);color:#16A34A;font-size:9px;font-weight:800;padding:2px 9px;border-radius:10px">● دائن = له</span>';
+  html += '</div></div>';
+  html += '<div class="cb" style="padding:0">';
   if(txRows){
-    // صف الرصيد الافتتاحي إن وجد
     const _ob2HasVal = _obEntry2 && (Math.abs(_obEntry2.cash||0)>0.01 || Math.abs(_obEntry2.gold24||0)>0.001);
-    const _obRow2 = _ob2HasVal ? `<tr style="background:#FFF9E6;border-bottom:2px solid #C9922A40">
-      <td style="padding:6px 8px;font-size:10px;color:var(--tx2)">—<br><small>مرحّل</small></td>
-      <td style="padding:6px 8px" colspan="2">
-        <span style="font-weight:800;font-size:12px">🏁 رصيد افتتاحي</span>
+    const _obRow2 = _ob2HasVal ? `<tr style="background:linear-gradient(135deg,#FFF9E6,#FFFDF5);border-bottom:2px solid rgba(201,146,42,.30)">
+      <td style="padding:7px 10px;font-size:10px;color:var(--tx2);white-space:nowrap">—<br><small style="font-size:9px;background:#FEF3C7;padding:1px 5px;border-radius:4px;color:#92400E">مرحّل</small></td>
+      <td style="padding:7px 10px" colspan="2">
+        <span style="font-weight:900;font-size:12px;color:#92400E">🏁 رصيد افتتاحي</span>
         ${_obEntry2.balanceType?`<span style="font-size:9px;background:#FEF3C7;border:1px solid #D97706;border-radius:8px;padding:1px 6px;margin-right:4px;color:#92400E;font-weight:700">${_obEntry2.balanceType==='ذهب'?'🥇 ذهب':'💵 نقد'}</span>`:''}
-        ${_obEntry2.note?`<br><small style="font-size:10px;color:#92400E">📝 ${_obEntry2.note}</small>`:''}
+        ${_obEntry2.note?`<br><small style="font-size:10px;color:#92400E;margin-top:2px;display:block">📝 ${_obEntry2.note}</small>`:''}
       </td>
-      <td style="padding:6px 8px;text-align:center;font-size:11px">${Math.abs(_obEntry2.cash||0)>0.01?`<span style="color:${_obEntry2.cash>0?'#DC2626':'#16A34A'};font-weight:800">${fmt(Math.abs(_obEntry2.cash))}</span>`:'—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:11px">${Math.abs(_obEntry2.gold24||0)>0.001?`<span style="color:#D97706;font-weight:800">${fmtG(Math.abs(_obEntry2.gold24))} ج</span>`:'—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:11px;color:#92400E;font-weight:700">${_obEntry2.cashDir==='له_عندنا'?'له عندنا 🟢':'عليه لنا 🔴'}</td>
+      <td style="padding:7px 10px;text-align:center">
+        ${Math.abs(_obEntry2.cash||0)>0.01?`<div style="background:${_obEntry2.cash>0?'rgba(220,38,38,.1)':'rgba(22,163,74,.1)'};border:1px solid ${_obEntry2.cash>0?'rgba(220,38,38,.3)':'rgba(22,163,74,.3)'};color:${_obEntry2.cash>0?'#DC2626':'#16A34A'};font-weight:900;font-size:12px;padding:3px 8px;border-radius:8px;display:inline-block">${fmt(Math.abs(_obEntry2.cash))}</div>`:'<span style="color:var(--tx3)">—</span>'}
+      </td>
+      <td style="padding:7px 10px;text-align:center">
+        ${Math.abs(_obEntry2.gold24||0)>0.001?`<span style="color:#D97706;font-weight:900;font-size:11px">${fmtG(Math.abs(_obEntry2.gold24))} ج</span>`:'<span style="color:var(--tx3)">—</span>'}
+      </td>
+      <td style="padding:7px 10px;text-align:center">
+        <span style="font-size:10px;font-weight:900;padding:3px 10px;border-radius:10px;
+          background:${_obEntry2.cashDir==='له_عندنا'?'rgba(22,163,74,.12)':'rgba(220,38,38,.12)'};
+          color:${_obEntry2.cashDir==='له_عندنا'?'#16A34A':'#DC2626'}">
+          ${_obEntry2.cashDir==='له_عندنا'?'له 🟢':'عليه 🔴'}
+        </span>
+      </td>
       <td></td>
     </tr>` : '';
-    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html += '<thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">';
-    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">📅 التاريخ</th>';
-    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">النوع</th>';
-    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">البيان</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#DC2626;font-weight:700">عليه</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:700">له</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:var(--tx2)">الرصيد</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>';
-    html += '</tr></thead><tbody>' + _obRow2 + txRows + '</tbody></table></div>';
+    html += '<div style="overflow-x:auto">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<thead>';
+    html += '<tr style="background:linear-gradient(135deg,var(--hd),#1a1f2e);border-bottom:2px solid var(--g5)">';
+    html += '<th style="padding:8px 10px;text-align:right;font-size:10px;color:rgba(240,192,80,.8);font-weight:700;white-space:nowrap">📅 التاريخ</th>';
+    html += '<th style="padding:8px 10px;text-align:right;font-size:10px;color:rgba(240,192,80,.8);font-weight:700">النوع</th>';
+    html += '<th style="padding:8px 10px;text-align:right;font-size:10px;color:rgba(240,192,80,.8);font-weight:700">البيان والتفاصيل</th>';
+    html += '<th style="padding:8px 10px;text-align:center;min-width:70px">';
+    html += '<div style="background:rgba(220,38,38,.18);border:1px solid rgba(220,38,38,.35);color:#FF6B6B;font-size:10px;font-weight:900;padding:2px 8px;border-radius:8px;display:inline-block">🔴 عليه</div></th>';
+    html += '<th style="padding:8px 10px;text-align:center;min-width:70px">';
+    html += '<div style="background:rgba(22,163,74,.18);border:1px solid rgba(22,163,74,.35);color:#4ADE80;font-size:10px;font-weight:900;padding:2px 8px;border-radius:8px;display:inline-block">🟢 له</div></th>';
+    html += '<th style="padding:8px 10px;text-align:center;font-size:10px;color:rgba(240,192,80,.8);font-weight:700;white-space:nowrap">الرصيد</th>';
+    html += '<th style="padding:8px 10px;text-align:center;font-size:9px;color:rgba(240,192,80,.5)">✏️</th>';
+    html += '</tr></thead>';
+    html += '<tbody>' + _obRow2 + txRows + '</tbody>';
+    html += '</table></div>';
   } else {
     html += '<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>';
   }
