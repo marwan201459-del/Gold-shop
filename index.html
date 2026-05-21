@@ -4797,6 +4797,9 @@ function revSafe(tx){ /* محذوف — calcSafes يعيد الحساب كامل
 let editingInvId=null;
 let editItems=[];
 let editItemCounter=100;
+// ── حالة الذهب المستلم المتعدد العيارات ──
+let editGoldPayItems=[];
+let editGoldPayCounter=200;
 
 function viewInv(id){
   editingInvId=id;
@@ -5161,22 +5164,26 @@ function renderInvModal(tx,editing){
             padding-bottom:8px;border-bottom:1px solid var(--b1)">
           💰 المدفوعات والتعديلات
         </div>
-        <div class="g2" style="margin-bottom:8px">
-          <div class="fr">
-            <label style="font-size:12px;font-weight:700;color:var(--ok);margin-bottom:4px;display:block">
-              💵 نقد مستلم (ريال)
-            </label>
-            <input type="number" id="ei-cash" value="${tx.cash||''}" inputmode="decimal" placeholder="0"
-              style="border-color:var(--ok-bd);background:var(--ok-bg)">
-          </div>
-          <div class="fr">
-            <label style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:4px;display:block">
-              🥇 ذهب مستلم (جرام)
-            </label>
-            <input type="number" id="ei-goldpay" value="${tx.goldPay||''}" inputmode="decimal" placeholder="0"
-              style="border-color:var(--g5);background:var(--g4)">
-          </div>
+        <!-- نقد -->
+        <div class="fr" style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:700;color:var(--ok);margin-bottom:4px;display:block">
+            💵 نقد مستلم (ريال)
+          </label>
+          <input type="number" id="ei-cash" value="${tx.cash||''}" inputmode="decimal" placeholder="0"
+            style="border-color:var(--ok-bd);background:var(--ok-bg)">
         </div>
+        <!-- ذهب مستلم متعدد العيارات -->
+        <div style="border:1.5px solid var(--g5);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--g4)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:800;color:var(--g1)">🥇 ذهب مستلم</span>
+            <button type="button" class="btn-sm btn-gold" onclick="addEditGoldPayItem()" style="padding:4px 10px;font-size:11px">
+              ＋ إضافة عيار
+            </button>
+          </div>
+          <div id="edit-goldpay-list"></div>
+          <div id="edit-goldpay-total" style="font-size:11px;color:var(--g1);font-weight:700;margin-top:6px;text-align:left;display:none"></div>
+        </div>
+        <!-- خصم وشحن -->
         <div class="g2">
           <div class="fr">
             <label style="font-size:12px;font-weight:700;color:var(--no);margin-bottom:4px;display:block">
@@ -5262,7 +5269,19 @@ function renderInvModal(tx,editing){
       </div>`;
 
     document.getElementById('m-inv-body').innerHTML=html;
-    requestAnimationFrame(()=>{ renderEditItems(); });
+    // ── تهيئة بنود الذهب المستلم من بيانات الفاتورة ──
+    if(tx.goldPayItems && tx.goldPayItems.length > 0){
+      editGoldPayItems = tx.goldPayItems.map((g,i)=>({id:201+i, weight:g.weight||0, karat:g.karat||'21', notes:g.notes||''}));
+      editGoldPayCounter = 200 + editGoldPayItems.length;
+    } else if((tx.goldPay||0) > 0){
+      // فاتورة قديمة: تحويل goldPay القديم لعنصر واحد
+      editGoldPayCounter = 201;
+      editGoldPayItems = [{id:201, weight:tx.goldPay||0, karat:tx.goldPayKarat||'21', notes:''}];
+    } else {
+      editGoldPayItems = [];
+      editGoldPayCounter = 200;
+    }
+    requestAnimationFrame(()=>{ renderEditItems(); renderEditGoldPayItems(); });
   }
 }
 
@@ -5345,10 +5364,99 @@ function renderEditItems(){
   }).join('');
 }
 
+// ── إدارة الذهب المستلم متعدد العيارات ────────────────────────────
+function addEditGoldPayItem(){
+  editGoldPayCounter++;
+  editGoldPayItems.push({id:editGoldPayCounter, weight:0, karat:'21', notes:''});
+  renderEditGoldPayItems();
+}
+function removeEditGoldPayItem(id){
+  editGoldPayItems = editGoldPayItems.filter(g=>g.id!==id);
+  renderEditGoldPayItems();
+}
+function updateEditGoldPayItem(id, field, val){
+  const g = editGoldPayItems.find(g=>g.id===id);
+  if(!g) return;
+  if(field==='weight') g.weight = parseFloat(val)||0;
+  else g[field] = val;
+  _refreshGoldPayTotal();
+  // تحديث عرض الوزن في الصف مباشرة
+  const wEl = document.getElementById('egp-w-'+id);
+  if(wEl && field==='weight') wEl.value = val;
+}
+function _refreshGoldPayTotal(){
+  const totEl = document.getElementById('edit-goldpay-total');
+  if(!totEl) return;
+  const parts = editGoldPayItems.filter(g=>(g.weight||0)>0)
+    .map(g=>`${fmtG(g.weight)} ج عيار ${g.karat}`);
+  if(parts.length){
+    totEl.style.display='block';
+    totEl.innerHTML = '📊 الإجمالي: ' + parts.join(' + ');
+  } else {
+    totEl.style.display='none';
+  }
+}
+function renderEditGoldPayItems(){
+  const el = document.getElementById('edit-goldpay-list');
+  if(!el) return;
+  if(!editGoldPayItems.length){
+    el.innerHTML=`<div style="font-size:11px;color:var(--tx3);padding:6px 0;text-align:center">
+      لا يوجد ذهب مستلم — اضغط "＋ إضافة عيار" لتسجيله</div>`;
+    _refreshGoldPayTotal();
+    return;
+  }
+  el.innerHTML = editGoldPayItems.map((g,idx)=>`
+    <div style="background:var(--c1);border:1px solid var(--g5);border-radius:9px;padding:9px 11px;
+        margin-bottom:7px;display:flex;flex-direction:column;gap:7px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:800;color:var(--g1)">🥇 ذهب ${idx+1}</span>
+        <button type="button" onclick="removeEditGoldPayItem(${g.id})"
+          style="background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);
+          border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:inherit">✕</button>
+      </div>
+      <div class="g2">
+        <div class="fr">
+          <label style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px;display:block">الوزن (جرام)</label>
+          <input type="number" id="egp-w-${g.id}" value="${g.weight||''}" step="0.001" inputmode="decimal" placeholder="0.000"
+            style="border-color:var(--g5);background:var(--c2)"
+            oninput="updateEditGoldPayItem(${g.id},'weight',parseFloat(this.value)||0)">
+        </div>
+        <div class="fr">
+          <label style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px;display:block">العيار</label>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${['18','21','24'].map(k=>`
+              <button type="button" onclick="updateEditGoldPayItem(${g.id},'karat','${k}');renderEditGoldPayItems()"
+                style="flex:1;padding:8px 4px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
+                border:2px solid ${g.karat===k?'var(--g2)':'var(--b2)'};
+                background:${g.karat===k?'var(--g5)':'var(--c2)'};
+                color:${g.karat===k?'var(--g1)':'var(--tx2)'}">
+                عيار ${k}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="fr">
+        <label style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:3px;display:block">ملاحظة (اختياري)</label>
+        <input type="text" value="${g.notes||''}" placeholder="مثال: خواتم قديمة، سبيكة..."
+          style="font-size:12px" onchange="updateEditGoldPayItem(${g.id},'notes',this.value)">
+      </div>
+      ${(g.weight||0)>0?`<div style="background:var(--g4);border-radius:7px;padding:5px 10px;font-size:11px;
+          font-weight:700;color:var(--g1);text-align:center">
+          ✅ ${fmtG(g.weight)} جرام عيار ${g.karat}
+          ${g.notes?`<span style="color:var(--tx2);font-weight:400"> — ${g.notes}</span>`:''}
+        </div>`:''}
+    </div>`).join('');
+  _refreshGoldPayTotal();
+}
+
 function saveEditInv(oldId){
-  if(!editItems.length){toast('⚠️ أضف صنفاً واحداً على الأقل');return;}
   const oldTx=S.transactions.find(t=>t.id===oldId);
-  if(!oldTx)return;
+  if(!oldTx) return;
+
+  // التحقق من الأصناف فقط لأنواع الفواتير الفعلية
+  const invTypes=['sell','sell-debt','buy','buy-debt'];
+  if(invTypes.includes(oldTx.type) && !editItems.length){
+    toast('⚠️ أضف صنفاً واحداً على الأقل');return;
+  }
 
   revSafe(oldTx);
   S.transactions=S.transactions.filter(t=>t.id!==oldId);
@@ -5367,7 +5475,10 @@ function saveEditInv(oldId){
   const total24    = editItems.reduce((a,i)=>a+convertTo24(i.weight,i.karat),0);
 
   const cash    = parseFloat(document.getElementById('ei-cash')?.value)||0;
-  const goldPay = parseFloat(document.getElementById('ei-goldpay')?.value)||0;
+  // جمع الذهب المستلم من كل العيارات
+  const validGoldPayItems = editGoldPayItems.filter(g=>(g.weight||0)>0);
+  const goldPay = validGoldPayItems.reduce((a,g)=>a+(g.weight||0),0);
+  const goldPayKarat = validGoldPayItems.length===1 ? validGoldPayItems[0].karat : (validGoldPayItems.length>1?'mixed':'21');
   const notes   = document.getElementById('ei-notes')?.value||'';
   const eiDate  = document.getElementById('ei-date')?.value;
   const eiISO   = eiDate?new Date(eiDate).toISOString():oldTx.date||new Date().toISOString();
@@ -5383,7 +5494,9 @@ function saveEditInv(oldId){
     gemTotal, gems:oldTx.gems||[],
     stoneTotal, stoneItems:oldTx.stoneItems||[],
     extraAmount, extraDesc:oldTx.extraDesc||'',
-    cash, goldPay, client, staff, notes
+    cash, goldPay, goldPayKarat,
+    goldPayItems: validGoldPayItems.map(g=>({weight:g.weight,karat:g.karat,notes:g.notes||''})),
+    client, staff, notes
   };
 
   if(!safeSave(newTx)) return;
@@ -16063,9 +16176,31 @@ if(typeof _rsOrig==='function'){
         (t.items||[]).forEach(i=>{ if(i.karat!=='gems') goldIn24+=_to24(i.weight,i.karat); });
       } else if(tp==='payment'){
         cashIn+=(t.ajourPaid||0)+(t.change||0);
-        (t.goldItems||[]).forEach(gi=>goldIn24+=_to24(gi.weight,gi.karat));
-        if(!(t.goldItems?.length)&&(t.goldWeight||0)>0) goldIn24+=_to24(t.goldWeight,t.goldKarat||'21');
+        // ── كشف الكسر داخل سند القبض ──
+        const _scrapSafes=['scrap21','scrap18','pure24'];
+        const _k21s=k=>String(k||'21')==='21'||String(k||'21')==='22';
+        const _k24s=k=>String(k||'21')==='24';
+        let _pmtHasScrap=false;
+        (t.goldItems||[]).forEach(gi=>{
+          const _gk=String(gi.karat||'21'),_gw=gi.weight||0;
+          goldIn24+=_to24(_gw,_gk);
+          const _gd=gi.safe||(_k21s(_gk)?'scrap21':_k24s(_gk)?'pure24':'scrap18');
+          if(_scrapSafes.includes(_gd)&&_gw>0){
+            if(_gk==='18')scrap18+=_gw; else if(_gk==='21')scrap21+=_gw; else if(_gk==='22')scrap22+=_gw; else if(_gk==='24')scrap24+=_gw;
+            _pmtHasScrap=true;
+          }
+        });
+        if(!(t.goldItems?.length)&&(t.goldWeight||0)>0){
+          const _gk=String(t.goldKarat||'21'),_gw=t.goldWeight||0;
+          goldIn24+=_to24(_gw,_gk);
+          const _gd=t.goldDest||(_k21s(_gk)?'scrap21':_k24s(_gk)?'pure24':'scrap18');
+          if(_scrapSafes.includes(_gd)&&_gw>0){
+            if(_gk==='18')scrap18+=_gw; else if(_gk==='21')scrap21+=_gw; else if(_gk==='22')scrap22+=_gw; else if(_gk==='24')scrap24+=_gw;
+            _pmtHasScrap=true;
+          }
+        }
         _cashTxs.push(t);
+        if(_pmtHasScrap) _scrapTxs.push(t);
       } else if(tp==='supplier-payment'){
         cashOut+=(t.ajourPaid||0)+(t.change||0);
         (t.goldItems||[]).forEach(gi=>goldOut24+=_to24(gi.weight,gi.karat));
@@ -16073,7 +16208,22 @@ if(typeof _rsOrig==='function'){
         _expTxs.push(t);
       } else if(tp==='cash-receipt'){
         cashIn+=(t.amount||0);
-        _cashTxs.push(t);
+        // كشف كسر داخل استلام نقد (إن وُجد ذهب كسر)
+        {
+          const _scS=['scrap21','scrap18','pure24'];
+          let _crHasScrap=false;
+          (t.goldItems||[]).forEach(gi=>{
+            const _gk=String(gi.karat||'21'),_gw=gi.weight||0;
+            goldIn24+=_to24(_gw,_gk);
+            const _gd=gi.safe||(_gk==='21'||_gk==='22'?'scrap21':_gk==='24'?'pure24':'scrap18');
+            if(_scS.includes(_gd)&&_gw>0){
+              if(_gk==='18')scrap18+=_gw; else if(_gk==='21')scrap21+=_gw; else if(_gk==='22')scrap22+=_gw; else if(_gk==='24')scrap24+=_gw;
+              _crHasScrap=true;
+            }
+          });
+          _cashTxs.push(t);
+          if(_crHasScrap) _scrapTxs.push(t);
+        }
       } else if(tp==='expense'){
         cashOut+=(t.amount||0); expTotal+=(t.amount||0);
         _expTxs.push(t);
@@ -16112,6 +16262,33 @@ if(typeof _rsOrig==='function'){
       } else if(tp==='sal-withdraw'||tp==='salary-pay'||tp==='sal-payout'){
         cashOut+=(t.amount||0);
         _expTxs.push(t);
+      }
+      // ── مسح شامل: أي عملية لم تُعالج بعد وتحتوي كسر ذهب فعلي ──
+      // (تجنب الأنواع التي تم تناولها صراحةً أو التحويلات الداخلية)
+      if(!['scrap','payment','cash-receipt','transfer','sell','sell-debt','buy','buy-debt',
+           'sales-return','return','supplier-return','purchase-return','supplier-payment',
+           'expense','opening-balance','sal-deposit','sal-withdraw','salary-custody',
+           'salary-pay','sal-payout','scrap-return'].includes(tp)){
+        const _scS2=['scrap21','scrap18','pure24'];
+        let _anyHasScrap=false;
+        (t.goldItems||[]).forEach(gi=>{
+          const _gk=String(gi.karat||'21'),_gw=gi.weight||0;
+          const _gd=gi.safe||(_gk==='21'||_gk==='22'?'scrap21':_gk==='24'?'pure24':'scrap18');
+          if(_scS2.includes(_gd)&&_gw>0){
+            if(_gk==='18')scrap18+=_gw; else if(_gk==='21')scrap21+=_gw; else if(_gk==='22')scrap22+=_gw; else if(_gk==='24')scrap24+=_gw;
+            _anyHasScrap=true;
+          }
+        });
+        // دعم النمط القديم: goldWeight + goldSafe
+        if(!((t.goldItems||[]).length) && (t.goldWeight||0)>0){
+          const _gk=String(t.goldKarat||'21'),_gw=t.goldWeight||0;
+          const _gd=t.goldSafe||t.goldDest||(_gk==='21'||_gk==='22'?'scrap21':_gk==='24'?'pure24':'scrap18');
+          if(_scS2.includes(_gd)&&_gw>0){
+            if(_gk==='18')scrap18+=_gw; else if(_gk==='21')scrap21+=_gw; else if(_gk==='22')scrap22+=_gw; else if(_gk==='24')scrap24+=_gw;
+            _anyHasScrap=true;
+          }
+        }
+        if(_anyHasScrap && !_scrapTxs.includes(t)) _scrapTxs.push(t);
       }
     });
 
@@ -16170,7 +16347,7 @@ if(typeof _rsOrig==='function'){
         <div class="dlpro-md-card dlpro-md-scrap" onclick="_dlproPopup('scrap')">
           <div class="dlpro-md-icon">🪙</div>
           <div class="dlpro-md-label">إجمالي الكسر</div>
-          <div class="dlpro-md-value dlpro-color-blue">${_fmtG(scrap18+scrap21+scrap24)}</div>
+          <div class="dlpro-md-value dlpro-color-blue">${_fmtG(scrap18+scrap21+scrap22+scrap24)}</div>
           <div class="dlpro-md-sub">جرام · ${_scrapTxs.length} عملية</div>
           <div class="dlpro-md-tap">اضغط للتفاصيل ←</div>
         </div>
@@ -16681,19 +16858,40 @@ if(typeof _rsOrig==='function'){
 
     } else if(type==='scrap'){
       title = '🪙 تفاصيل الكسر — ' + D.dayLabel;
+      const _totalScrap = (D.scrap18||0)+(D.scrap21||0)+(D.scrap22||0)+(D.scrap24||0);
       stats = [
-        {lbl:'كسر 18',val:_fg(D.scrap18)+' ج',clr:'var(--in)'},
-        {lbl:'كسر 21',val:_fg(D.scrap21)+' ج',clr:'var(--g1)'},
-        {lbl:'كسر 24',val:_fg(D.scrap24)+' ج',clr:'var(--ok)'}
+        {lbl:'🥈 كسر عيار 18',val:_fg(D.scrap18)+' ج',clr:'var(--in)'},
+        {lbl:'🥇 كسر عيار 21',val:_fg(D.scrap21)+' ج',clr:'var(--g1)'},
+        {lbl:'✨ كسر عيار 24',val:_fg(D.scrap24)+' ج',clr:'var(--ok)'},
+        {lbl:'📦 الإجمالي الكلي',val:_fg(_totalScrap)+' ج',clr:'var(--tx1)'},
+        {lbl:'عدد العمليات',val:D._scrapTxs.length,clr:'var(--pu)'}
       ];
       rows = D._scrapTxs.map(t=>{
         const si=t.scrapItems||[];
-        const wt=si.length?si.reduce((s,i)=>s+(i.weight||0),0):(t.weight||0);
-        const k=si.length?[...new Set(si.map(i=>i.karat||'21'))].join('، '):(t.karat||'21');
+        // كسر من goldItems (سند قبض يحتوي كسر ذهب)
+        const gi=(t.goldItems||[]).filter(g=>{
+          const _gk=String(g.karat||'21');
+          const _gd=g.safe||(_gk==='21'||_gk==='22'?'scrap21':_gk==='24'?'pure24':'scrap18');
+          return ['scrap21','scrap18','pure24'].includes(_gd)&&(g.weight||0)>0;
+        });
+        let wt, k, txLabel;
+        if(si.length){
+          wt=si.reduce((s,i)=>s+(i.weight||0),0);
+          k=[...new Set(si.map(i=>i.karat||'21'))].join('، ');
+          txLabel='قبض كسر';
+        } else if(gi.length){
+          wt=gi.reduce((s,i)=>s+(i.weight||0),0);
+          k=[...new Set(gi.map(i=>String(i.karat||'21')))].join('، ');
+          txLabel='سند قبض';
+        } else {
+          wt=t.weight||t.goldWeight||0;
+          k=t.karat||t.goldKarat||'21';
+          txLabel='كسر';
+        }
         return `<div class="dlpro-pop-row" style="border-right-color:var(--in)">
           <div class="dlpro-pop-row-info">
             <div class="dlpro-pop-row-name">🪙 ${t.client||'—'}</div>
-            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · عيار ${k} ${t.staff?'· 👤 '+t.staff:''}</div>
+            <div class="dlpro-pop-row-meta">⏰ ${_t(t.date)} · عيار ${k} · ${txLabel} ${t.staff?'· 👤 '+t.staff:''}</div>
           </div>
           <div class="dlpro-pop-row-amount" style="color:var(--in)">${_fg(wt)} ج</div>
         </div>`;
