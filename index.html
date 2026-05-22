@@ -8842,8 +8842,6 @@ function renderProfit(){
   const sellTxs   = txs.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='dist-receipt');
   const buyTxs    = txs.filter(t=>t.type==='buy'||t.type==='buy-debt'||t.type==='dist-payment');
   const retTxs    = txs.filter(t=>t.type==='return');
-  // 🔧 [إصلاح] مردودات مصحّحة: تشمل sales-return بالإضافة إلى return
-  const retTxsAll = txs.filter(t=>t.type==='return'||t.type==='sales-return');
   const suppRetTxs= txs.filter(t=>t.type==='supplier-return');
   const payTxs    = txs.filter(t=>t.type==='payment');
 
@@ -8858,34 +8856,21 @@ function renderProfit(){
   const totalBuyAjour  = buyTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
   const totalBuy       = buyTxs.reduce((a,t)=>a+(t.total||0),0);
 
-  // ── المردودات (الأصلية — محتفظ بها) ──
+  // ── المردودات ──
   const totalRetSell   = retTxs.reduce((a,t)=>a+(t.total||0),0);
   const totalRetBuy    = suppRetTxs.reduce((a,t)=>a+(t.total||0),0);
-
-  // ── مردودات مصحّحة تشمل كلا النوعين ──
-  const retAjTotalFixed   = retTxsAll.reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
-  const retGoldTotalFixed = retTxsAll.reduce((a,t)=>a+(t.goldTotal||0),0);
-  const retTotalFixed     = retTxsAll.reduce((a,t)=>a+(t.total||0),0);
-  // 🔧 [إصلاح] المصروفات — كانت مفقودة من صافي الربح
-  const totalExpensesPr   = txs.filter(t=>t.type==='expense').reduce((a,t)=>a+(t.amount||0),0);
 
   // ── صافي ──
   const netSell = totalSell - totalRetSell;
   const netBuy  = totalBuy  - totalRetBuy;
 
-  // ── الأرباح (المعادلة الأصلية — محتفظ بها للمرجعية) ──
+  // ── الأرباح ──
   // ربح الأجور = أجور البيع − أجور الشراء
   const ajProfit = totalSellAjour - totalBuyAjour;
   // ربح الذهب = قيمة بيع الذهب − تكلفة شرائه
   const goldProfit = totalSellGold - totalBuyGold;
-  // إجمالي الربح (الأصلي — بدون خصم مردودات أو مصروفات — محتفظ به)
+  // إجمالي الربح
   const totalProfit = ajProfit + goldProfit - totalDiscount;
-  // 🔧 [إصلاح] ربح الأجور المصحّح: بعد خصم أجور المرتجعات
-  const ajProfitFixed   = totalSellAjour - retAjTotalFixed - totalBuyAjour;
-  // 🔧 [إصلاح] ربح الذهب المصحّح: بعد خصم قيمة المرتجعات
-  const goldProfitFixed = totalSellGold - retGoldTotalFixed - totalBuyGold;
-  // 🔧 [إصلاح] صافي الربح النهائي: مرتجعات + مصروفات مطروحة
-  const totalProfitFixed = ajProfitFixed + goldProfitFixed - totalDiscount - totalExpensesPr;
 
   // ── عدد الفواتير ──
   const sellCount = sellTxs.length;
@@ -8909,57 +8894,39 @@ function renderProfit(){
     </div>`;
   }).join('');
 
-  // 🔧 [إصلاح] استخدام الربح المصحّح (يشمل مرتجعات + مصروفات)
-  const profitClr = totalProfitFixed>=0 ? 'var(--ok)' : 'var(--no)';
+  const profitClr = totalProfit>=0 ? 'var(--ok)' : 'var(--no)';
 
   el.innerHTML = `
     <!-- بطاقة الربح الإجمالي -->
     <div style="background:linear-gradient(135deg,#1C1208,#3A2810);border-radius:14px;padding:16px;margin-bottom:14px;text-align:center">
       <div style="font-size:12px;color:#B89A60;margin-bottom:4px">📈 صافي الربح</div>
-      <div style="font-size:32px;font-weight:900;color:${totalProfitFixed>=0?'#7fff7f':'#ff6b6b'}">${fmt(totalProfitFixed)} ريال</div>
+      <div style="font-size:32px;font-weight:900;color:${totalProfit>=0?'#7fff7f':'#ff6b6b'}">${fmt(totalProfit)} ريال</div>
       <div style="font-size:11px;color:#B89A60;margin-top:6px">${fromVal&&toVal?(fromVal+' → '+toVal):'كل الفترات'}</div>
     </div>
     <!-- تفصيل -->
     <div class="g2" style="margin-bottom:10px">
-      <div class="sb green"><div class="v" style="font-size:16px">${fmt(totalSell)}</div><div class="l">إجمالي المبيعات (ريال)</div></div>
-      <div class="sb red"><div class="v" style="font-size:16px">${fmt(totalBuy)}</div><div class="l">إجمالي المشتريات (ريال)</div></div>
+      <div class="sb green"><div class="v" style="font-size:16px">${fmt(netSell)}</div><div class="l">صافي المبيعات (ريال)</div></div>
+      <div class="sb red"><div class="v" style="font-size:16px">${fmt(netBuy)}</div><div class="l">صافي المشتريات (ريال)</div></div>
       <div class="sb gold"><div class="v" style="font-size:16px">${fmt(totalSellAjour)}</div><div class="l">أجور البيع (ريال)</div></div>
       <div class="sb blue"><div class="v" style="font-size:16px">${fmt(totalBuyAjour)}</div><div class="l">أجور الشراء (ريال)</div></div>
       <div class="sb purple"><div class="v" style="font-size:16px">${sellCount}</div><div class="l">فواتير بيع</div></div>
       <div class="sb teal"><div class="v" style="font-size:16px">${buyCount}</div><div class="l">فواتير شراء</div></div>
     </div>
-    ${retTotalFixed>0?`<!-- مرتجعات مصحّحة -->
-    <div style="background:var(--io-bg);border:1.5px solid var(--io);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--io)">↩️ إجمالي المرتجعات</div>
-        <div style="font-size:11px;color:var(--tx2)">أجور مرتجعة: ${fmt(retAjTotalFixed)} ر | ذهب: ${fmt(retGoldTotalFixed)} ر</div>
-      </div>
-      <div style="font-size:18px;font-weight:900;color:var(--io)">− ${fmt(retTotalFixed)} ر</div>
-    </div>`:''}
-    ${totalExpensesPr>0?`<!-- مصروفات -->
-    <div style="background:var(--no-bg);border:1.5px solid var(--no);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--no)">💸 إجمالي المصروفات</div>
-        <div style="font-size:11px;color:var(--tx2)">تُطرح من صافي الربح</div>
-      </div>
-      <div style="font-size:18px;font-weight:900;color:var(--no)">− ${fmt(totalExpensesPr)} ر</div>
-    </div>`:''}
-    
     <!-- ربح الأجور -->
     <div style="background:var(--ok-bg);border:1.5px solid var(--ok);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--ok)">⚒️ ربح الأجور</div>
-        <div style="font-size:11px;color:var(--tx2)">أجور البيع − أجور المرتجعات − أجور الشراء</div>
+        <div style="font-size:11px;color:var(--tx2)">أجور البيع − أجور الشراء</div>
       </div>
-      <div style="font-size:20px;font-weight:900;color:${ajProfitFixed>=0?'var(--ok)':'var(--no)'}">${fmt(ajProfitFixed)} ر</div>
+      <div style="font-size:20px;font-weight:900;color:${ajProfit>=0?'var(--ok)':'var(--no)'}">${fmt(ajProfit)} ر</div>
     </div>
     <!-- ربح الذهب -->
     <div style="background:var(--g4);border:1.5px solid var(--g1);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--g1)">🏅 فرق قيمة الذهب</div>
-        <div style="font-size:11px;color:var(--tx2)">قيمة البيع − المرتجعات − تكلفة الشراء</div>
+        <div style="font-size:13px;font-weight:700;color:var(--g1)">🏅 ربح الذهب</div>
+        <div style="font-size:11px;color:var(--tx2)">فرق سعر البيع والشراء</div>
       </div>
-      <div style="font-size:20px;font-weight:900;color:${goldProfitFixed>=0?'var(--ok)':'var(--no)'}">${fmt(goldProfitFixed)} ر</div>
+      <div style="font-size:20px;font-weight:900;color:${goldProfit>=0?'var(--ok)':'var(--no)'}">${fmt(goldProfit)} ر</div>
     </div>
     ${totalDiscount>0?`<div style="background:var(--io-bg);border:1.5px solid var(--io);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:13px;font-weight:700;color:var(--io)">🏷️ إجمالي الخصومات</div>
@@ -12029,9 +11996,7 @@ function renderHome(){
   // ── الإجماليات الخام ──
   const grossSellCash  = sellToday.reduce((a,t)=>a+(t.total||0),0);
   const grossSellDebt  = debtToday.reduce((a,t)=>a+(t.total||0),0);
-  // 🔧 [إصلاح] كانت [sellToday,debtToday] تضاعف كل فاتورة بيع (نفس الفلتر مكرر)
-  // الأصل (محتفظ للمرجعية): const grossSellAj = [...sellToday,...debtToday].reduce(...)
-  const grossSellAj    = sellToday.reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
+  const grossSellAj    = [...sellToday,...debtToday].reduce((a,t)=>a+(t.ajTotal||0)+(t.vatAmt||0),0);
   const grossBuy       = buyToday.reduce((a,t)=>a+(t.total||0),0);
   const grossBuyAj     = buyToday.reduce((a,t)=>a+(t.ajTotal||0),0);
 
@@ -15541,11 +15506,9 @@ function _dlgCalcDayMovement(dayStr) {
         goldIn24 += _to24(t.weight, t.karat || '21');
     }
 
-    // ── مردود عميل (ذهب يرجع + خصم أجور المرتجع من الربح) ──
+    // ── مردود عميل (ذهب يرجع) ──
     else if (type === 'return' || type === 'sales-return') {
       (t.items || []).forEach(i => goldIn24 += _to24(i.weight, i.karat));
-      // 🔧 [إصلاح] خصم أجور المرتجع من أجور البيع حتى لا يُحتسب ربح على بضاعة مرتجعة
-      sellAjr -= (t.ajTotal || 0);
     }
 
     // ── رواتب ──
@@ -18984,6 +18947,472 @@ function gpAppendMsg(role, html){
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════════
+     🔧 إصلاح تشخيص الأرباح — Profit Diagnosis Fix v1.0
+     ADDITIVE ONLY — لا يُعدَّل أي كود موجود
+     المشاكل المُصلَحة:
+       1. فلتر السنة يقطع بيانات السنة السابقة (الأكثر شيوعاً)
+       2. لا يوجد Fallback عند الصفر — يظهر فقط أصفار بلا تفسير
+       3. حقول التاريخ فارغة عند أول فتح → لا تأشير على أي فاتورة
+       4. عدم وجود تحذير عند غياب بيانات الشراء
+     ══════════════════════════════════════════════════════════════════ -->
+<style id="pf-styles">
+/* ── Profit Fix — CSS معزول ── */
+#pf-diag-banner {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: linear-gradient(135deg,#1C1000,#3A2400);
+  border: 1.5px solid rgba(200,150,30,.45);
+  border-radius: 14px;
+  margin-bottom: 14px;
+  animation: pfSlide .25s ease;
+  font-family: 'Tajawal', sans-serif;
+}
+#pf-diag-banner.pf-vis { display: flex; }
+@keyframes pfSlide { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:none} }
+.pf-diag-title { font-size: 13px; font-weight: 900; color: #F0C040; display: flex; align-items: center; gap: 7px; }
+.pf-diag-body  { font-size: 11px; color: rgba(255,255,255,.60); line-height: 1.7; }
+.pf-diag-btns  { display: flex; gap: 8px; flex-wrap: wrap; }
+.pf-diag-btn {
+  padding: 8px 14px; border-radius: 9px; border: 1.5px solid rgba(200,150,30,.4);
+  background: rgba(200,150,30,.12); color: #F0C040; font-family: 'Tajawal', sans-serif;
+  font-size: 11px; font-weight: 800; cursor: pointer; transition: all .15s;
+}
+.pf-diag-btn:hover { background: rgba(200,150,30,.25); transform: translateY(-1px); }
+.pf-diag-btn.pf-btn-g {
+  border-color: rgba(34,199,122,.4); background: rgba(34,199,122,.1); color: #22C77A;
+}
+.pf-diag-btn.pf-btn-r {
+  border-color: rgba(229,85,85,.35); background: rgba(229,85,85,.08); color: #E55555;
+}
+/* شريط ملخص سريع للتشخيص */
+#pf-quick-stats {
+  display: none;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--c2);
+  border-radius: var(--rb);
+  border: 1px solid var(--b1);
+  margin-bottom: 12px;
+  font-family: 'Tajawal', sans-serif;
+}
+#pf-quick-stats.pf-vis { display: flex; }
+.pf-qs-item {
+  flex: 1; min-width: 80px;
+  text-align: center;
+  padding: 8px 6px;
+  background: var(--c3);
+  border-radius: 10px;
+  border: 1px solid var(--b2);
+}
+.pf-qs-v { font-size: 15px; font-weight: 900; color: var(--tx1); }
+.pf-qs-l { font-size: 9px; color: var(--tx3); margin-top: 2px; font-weight: 600; }
+/* تنبيه غياب بيانات الشراء */
+#pf-no-buy-warn {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--io-bg);
+  border: 1.5px solid var(--io);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-family: 'Tajawal', sans-serif;
+}
+#pf-no-buy-warn.pf-vis { display: flex; }
+.pf-nbw-txt { font-size: 11px; color: var(--io); font-weight: 700; line-height: 1.5; }
+</style>
+
+<script id="pf-fix-script">
+/* ══════════════════════════════════════════════════════════════════
+   🔧 Profit Fix v1.0 — إصلاح تشخيص الأرباح
+   ADDITIVE ONLY — Wrapper Pattern فقط
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  /* ─── مساعدات ─── */
+  function $i(id){ return document.getElementById(id); }
+  function pfLog(m){ try{ console.log('[PF] '+m); }catch(e){} }
+
+  /* ── 1. حقن عناصر HTML الإضافية داخل صفحة الأرباح ── */
+  function pfInjectUI(){
+    var pgProfit = $i('pg-profit');
+    if(!pgProfit) return;
+    var cb = pgProfit.querySelector('.card > .cb');
+    if(!cb || $i('pf-diag-banner')) return;
+
+    /* شريط الإحصاء السريع */
+    var qs = document.createElement('div');
+    qs.id = 'pf-quick-stats';
+    qs.innerHTML =
+      '<div class="pf-qs-item"><div class="pf-qs-v" id="pf-qs-total-inv">—</div><div class="pf-qs-l">إجمالي الفواتير في النظام</div></div>' +
+      '<div class="pf-qs-item"><div class="pf-qs-v" id="pf-qs-sell-inv">—</div><div class="pf-qs-l">فواتير البيع</div></div>' +
+      '<div class="pf-qs-item"><div class="pf-qs-v" id="pf-qs-buy-inv">—</div><div class="pf-qs-l">فواتير الشراء</div></div>' +
+      '<div class="pf-qs-item"><div class="pf-qs-v" id="pf-qs-data-range" style="font-size:10px">—</div><div class="pf-qs-l">نطاق البيانات</div></div>';
+    cb.insertBefore(qs, cb.firstChild);
+
+    /* بانر التشخيص */
+    var banner = document.createElement('div');
+    banner.id = 'pf-diag-banner';
+    banner.innerHTML =
+      '<div class="pf-diag-title"><span>⚠️</span><span id="pf-diag-ttl">تشخيص الأرباح</span></div>' +
+      '<div class="pf-diag-body" id="pf-diag-msg"></div>' +
+      '<div class="pf-diag-btns" id="pf-diag-btns"></div>';
+    cb.insertBefore(banner, qs.nextSibling);
+
+    /* تنبيه غياب بيانات الشراء */
+    var noBuyWarn = document.createElement('div');
+    noBuyWarn.id = 'pf-no-buy-warn';
+    noBuyWarn.innerHTML =
+      '<span style="font-size:20px;flex-shrink:0">💡</span>' +
+      '<div class="pf-nbw-txt" id="pf-nbw-txt">لا توجد فواتير شراء في هذه الفترة — الأرباح تُحسب من أجور البيع فقط.</div>';
+
+    /* نُضيفه بعد profit-body */
+    var profitBody = $i('profit-body');
+    if(profitBody && profitBody.parentNode){
+      profitBody.parentNode.insertBefore(noBuyWarn, profitBody.nextSibling);
+    }
+  }
+
+  /* ── 2. تحليل بيانات S.transactions الكاملة ── */
+  function pfAnalyzeData(){
+    var allTxs = (window.S && window.S.transactions) ? window.S.transactions : [];
+    var sellTypes = ['sell','sell-debt','dist-receipt'];
+    var buyTypes  = ['buy','buy-debt','dist-payment'];
+    var invTypes  = sellTypes.concat(buyTypes);
+
+    var allInvTxs  = allTxs.filter(function(t){ return invTypes.indexOf(t.type) >= 0; });
+    var allSellTxs = allTxs.filter(function(t){ return sellTypes.indexOf(t.type) >= 0; });
+    var allBuyTxs  = allTxs.filter(function(t){ return buyTypes.indexOf(t.type)  >= 0; });
+
+    /* نطاق التواريخ الفعلي */
+    var minDate = null, maxDate = null;
+    allInvTxs.forEach(function(t){
+      if(!t.date) return;
+      var d = new Date(t.date);
+      if(isNaN(d)) return;
+      if(!minDate || d < minDate) minDate = d;
+      if(!maxDate || d > maxDate) maxDate = d;
+    });
+
+    return {
+      total:    allTxs.length,
+      invTotal: allInvTxs.length,
+      sellCount: allSellTxs.length,
+      buyCount:  allBuyTxs.length,
+      minDate:   minDate,
+      maxDate:   maxDate,
+      allInvTxs: allInvTxs,
+      allSellTxs: allSellTxs,
+      allBuyTxs:  allBuyTxs
+    };
+  }
+
+  /* ── 3. تحديث شريط الإحصاء السريع ── */
+  function pfUpdateQuickStats(){
+    var qs = $i('pf-quick-stats');
+    if(!qs) return;
+    var d = pfAnalyzeData();
+    if(d.invTotal === 0 && d.total === 0){ qs.classList.remove('pf-vis'); return; }
+    qs.classList.add('pf-vis');
+    var qsTotal = $i('pf-qs-total-inv');
+    var qsSell  = $i('pf-qs-sell-inv');
+    var qsBuy   = $i('pf-qs-buy-inv');
+    var qsRange = $i('pf-qs-data-range');
+    if(qsTotal) qsTotal.textContent = d.invTotal;
+    if(qsSell)  qsSell.textContent  = d.sellCount;
+    if(qsBuy)   qsBuy.textContent   = d.buyCount;
+    if(qsRange){
+      if(d.minDate && d.maxDate){
+        var fmt2 = function(dt){ return dt.toLocaleDateString('ar-SA',{year:'2-digit',month:'short'}); };
+        qsRange.textContent = fmt2(d.minDate) + ' — ' + fmt2(d.maxDate);
+      } else {
+        qsRange.textContent = 'لا بيانات';
+      }
+    }
+  }
+
+  /* ── 4. تحليل نتيجة renderProfit وإظهار التشخيص المناسب ── */
+  function pfPostRender(){
+    try {
+      pfUpdateQuickStats();
+      var d = pfAnalyzeData();
+      var fromVal = ($i('profit-from')||{}).value || '';
+      var toVal   = ($i('profit-to')||{}).value   || '';
+      var fromD   = fromVal ? new Date(fromVal)              : null;
+      var toD     = toVal   ? new Date(toVal+'T23:59:59')    : null;
+
+      /* فلترة ما يراه المستخدم حالياً */
+      var sellTypes = ['sell','sell-debt','dist-receipt'];
+      var buyTypes  = ['buy','buy-debt','dist-payment'];
+      var allTxs    = (window.S && window.S.transactions) ? window.S.transactions : [];
+      var filtered  = allTxs;
+      if(fromD) filtered = filtered.filter(function(t){ return new Date(t.date) >= fromD; });
+      if(toD)   filtered = filtered.filter(function(t){ return new Date(t.date) <= toD;   });
+      var filteredSell = filtered.filter(function(t){ return sellTypes.indexOf(t.type) >= 0; });
+      var filteredBuy  = filtered.filter(function(t){ return buyTypes.indexOf(t.type)  >= 0; });
+
+      var banner  = $i('pf-diag-banner');
+      var noBuy   = $i('pf-no-buy-warn');
+      var nbwTxt  = $i('pf-nbw-txt');
+
+      /* ══ حالة 1: لا توجد بيانات في النظام بالكامل ══ */
+      if(d.invTotal === 0){
+        pfShowBanner('📭 لا توجد فواتير في النظام بعد',
+          'لم يتم حفظ أي فاتورة بيع أو شراء حتى الآن. أضف فاتورة من صفحة الفاتورة وستظهر هنا تلقائياً.',
+          [], 'neutral');
+        if(noBuy) noBuy.classList.remove('pf-vis');
+        return;
+      }
+
+      /* ══ حالة 2: يوجد بيانات لكن الفلتر يحجبها ══ */
+      if(filteredSell.length === 0 && d.sellCount > 0){
+        /* اكتشاف السبب */
+        var reason = '';
+        var btns   = [];
+
+        if(fromD && d.maxDate && d.maxDate < fromD){
+          reason = 'الفلتر يبدأ من ' + fromD.toLocaleDateString('ar-SA') +
+                   ' لكن آخر فاتورة في النظام بتاريخ ' + d.maxDate.toLocaleDateString('ar-SA') +
+                   '.\nسبب شائع: ضغطت "هذه السنة" وبيانات المبيعات من سنة سابقة.';
+        } else if(fromD && d.minDate && d.maxDate){
+          reason = 'الفترة المحددة (' + fromVal + ' → ' + (toVal||'اليوم') + ') لا تحتوي فواتير بيع.\n' +
+                   'بيانات النظام موجودة من ' + d.minDate.toLocaleDateString('ar-SA') +
+                   ' حتى ' + d.maxDate.toLocaleDateString('ar-SA') + '.';
+        } else {
+          reason = 'الفلتر الحالي لا يُطابق أي فاتورة بيع — جرّب توسيع نطاق التاريخ.';
+        }
+
+        /* زر: عرض السنة الصحيحة */
+        if(d.minDate){
+          var dataYear = d.maxDate ? d.maxDate.getFullYear() : d.minDate.getFullYear();
+          btns.push({
+            label: '📅 عرض سنة ' + dataYear,
+            cls: 'pf-btn-g',
+            fn: 'PF_showYear(' + dataYear + ')'
+          });
+        }
+        /* زر: عرض كل البيانات */
+        btns.push({ label: '📋 عرض كل الفترات', cls: 'pf-btn-g', fn: 'PF_showAll()' });
+        /* زر: مسح الفلتر */
+        btns.push({ label: '✕ مسح الفلتر', cls: 'pf-btn-r', fn: 'PF_clearFilter()' });
+
+        pfShowBanner(
+          '🔍 الفلتر يحجب ' + d.sellCount + ' فاتورة بيع',
+          reason, btns, 'warn');
+        if(noBuy) noBuy.classList.remove('pf-vis');
+        return;
+      }
+
+      /* ══ حالة 3: بيانات موجودة وتُعرض — لكن لا شراء ══ */
+      if(banner) banner.classList.remove('pf-vis');
+      if(noBuy){
+        if(filteredSell.length > 0 && filteredBuy.length === 0){
+          if(nbwTxt) nbwTxt.innerHTML =
+            '💡 لا توجد فواتير <b>شراء</b> في هذه الفترة. ' +
+            'الأرباح تُحسب حالياً من <b>أجور البيع فقط</b> — ' +
+            'لتحسين الدقة سجّل فواتير الشراء من المورد.';
+          noBuy.classList.add('pf-vis');
+        } else {
+          noBuy.classList.remove('pf-vis');
+        }
+      }
+
+    } catch(e){ pfLog('postRender err: ' + e.message); }
+  }
+
+  /* ── مساعد إظهار البانر ── */
+  function pfShowBanner(title, msg, btns, type){
+    var banner = $i('pf-diag-banner');
+    var ttl    = $i('pf-diag-ttl');
+    var msgEl  = $i('pf-diag-msg');
+    var btnsEl = $i('pf-diag-btns');
+    if(!banner) return;
+    if(ttl)    ttl.textContent = title;
+    if(msgEl)  msgEl.innerHTML = msg.replace(/\n/g,'<br>');
+    if(btnsEl){
+      btnsEl.innerHTML = btns.map(function(b){
+        return '<button class="pf-diag-btn ' + (b.cls||'') + '" onclick="' + b.fn + '">' + b.label + '</button>';
+      }).join('');
+    }
+    /* لون البانر حسب النوع */
+    if(type === 'warn'){
+      banner.style.background = 'linear-gradient(135deg,#1C0800,#3A1500)';
+      banner.style.borderColor = 'rgba(229,140,30,.55)';
+    } else {
+      banner.style.background = 'linear-gradient(135deg,#1C1000,#3A2400)';
+      banner.style.borderColor = 'rgba(200,150,30,.45)';
+    }
+    banner.classList.add('pf-vis');
+  }
+
+  /* ── 5. الدوال المُصدَّرة للأزرار ── */
+
+  /* عرض سنة محددة */
+  window.PF_showYear = function(year){
+    var from = $i('profit-from');
+    var to   = $i('profit-to');
+    if(from) from.value = year + '-01-01';
+    if(to)   to.value   = year + '-12-31';
+    if(typeof renderProfit === 'function') renderProfit();
+  };
+
+  /* عرض كل البيانات بدون فلتر */
+  window.PF_showAll = function(){
+    var from = $i('profit-from');
+    var to   = $i('profit-to');
+    if(from) from.value = '';
+    if(to)   to.value   = '';
+    if(typeof renderProfit === 'function') renderProfit();
+  };
+
+  /* مسح الفلتر وعرض الكل */
+  window.PF_clearFilter = function(){
+    PF_showAll();
+  };
+
+  /* ── 6. Wrapper لـ renderProfit — يُضيف post-render ── */
+  function pfWrapRenderProfit(){
+    if(typeof window.renderProfit !== 'function') return false;
+    if(window.renderProfit.__pfWrapped) return true;
+    var orig = window.renderProfit;
+    window.renderProfit = function(){
+      var r = orig.apply(this, arguments);
+      setTimeout(pfPostRender, 30); /* بعد DOM update */
+      return r;
+    };
+    window.renderProfit.__pfWrapped = true;
+    pfLog('renderProfit wrapped');
+    return true;
+  }
+
+  /* ── 7. Wrapper لـ setProfitRange — يُصلح مشكلة السنة ── */
+  function pfWrapSetProfitRange(){
+    if(typeof window.setProfitRange !== 'function') return false;
+    if(window.setProfitRange.__pfWrapped) return true;
+    var origSet = window.setProfitRange;
+    window.setProfitRange = function(r){
+      /* قبل تطبيق الفلتر: تحقق هل يوجد بيانات في السنة الحالية */
+      if(r === 'year'){
+        var d = pfAnalyzeData();
+        if(d.invTotal > 0 && d.maxDate){
+          var curYear  = new Date().getFullYear();
+          var dataYear = d.maxDate.getFullYear();
+          if(dataYear < curYear){
+            /* البيانات من سنة سابقة — استخدم سنة البيانات تلقائياً */
+            pfLog('year mismatch: data=' + dataYear + ' cur=' + curYear + ' → auto redirect');
+            var from = $i('profit-from');
+            var to   = $i('profit-to');
+            if(from) from.value = dataYear + '-01-01';
+            if(to)   to.value   = dataYear + '-12-31';
+            if(typeof renderProfit === 'function') renderProfit();
+            if(typeof toast === 'function')
+              toast('📅 عُرضت بيانات سنة ' + dataYear + ' (آخر سنة بها بيانات)');
+            return;
+          }
+        }
+      }
+      return origSet.apply(this, arguments);
+    };
+    window.setProfitRange.__pfWrapped = true;
+    pfLog('setProfitRange wrapped');
+    return true;
+  }
+
+  /* ── 8. تهيئة ذكية عند فتح صفحة الأرباح ── */
+  function pfInitPage(){
+    /* إذا الحقلين فارغين — ضع نطاق تلقائي ذكي */
+    var from = $i('profit-from');
+    var to   = $i('profit-to');
+    if(!from || !to) return;
+    if(from.value && to.value) return; /* المستخدم ضبطها يدوياً */
+
+    var d = pfAnalyzeData();
+    if(d.invTotal === 0) return; /* لا بيانات بعد */
+
+    if(d.minDate && d.maxDate){
+      var dataYear = d.maxDate.getFullYear();
+      from.value = dataYear + '-01-01';
+      to.value   = d.maxDate.toISOString().split('T')[0];
+      pfLog('auto-init date range: ' + from.value + ' → ' + to.value);
+      if(typeof renderProfit === 'function') renderProfit();
+    }
+  }
+
+  /* ── 9. اعتراض P() لتهيئة صفحة الأرباح عند الفتح ── */
+  function pfWrapP(){
+    if(typeof window.P !== 'function') return false;
+    if(window.P.__pfWrapped) return true;
+    var origP = window.P;
+    window.P = function(id, btn){
+      var r = origP.apply(this, arguments);
+      if(id === 'profit'){
+        setTimeout(function(){
+          pfInitPage();
+          pfUpdateQuickStats();
+          pfPostRender();
+        }, 120);
+      }
+      return r;
+    };
+    window.P.__pfWrapped = true;
+    pfLog('P wrapped');
+    return true;
+  }
+
+  /* ── 10. إصلاح renderAll — يُحدِّث إحصاءات الأرباح بعد كل تحميل ── */
+  function pfWrapRenderAll(){
+    if(typeof window.renderAll !== 'function') return false;
+    if(window.renderAll.__pfWrapped) return true;
+    var origRA = window.renderAll;
+    window.renderAll = function(){
+      var r = origRA.apply(this, arguments);
+      setTimeout(function(){
+        pfUpdateQuickStats();
+        /* تشغيل post-render فقط إذا صفحة الأرباح مفتوحة */
+        var pg = $i('pg-profit');
+        if(pg && pg.classList.contains('on')){
+          pfPostRender();
+        }
+      }, 60);
+      return r;
+    };
+    window.renderAll.__pfWrapped = true;
+    pfLog('renderAll wrapped');
+    return true;
+  }
+
+  /* ── 11. تسلسل التهيئة مع انتظار جاهزية الدوال ── */
+  function pfInit(){
+    pfInjectUI();
+    var tries = 0;
+    var tryAll = function(){
+      tries++;
+      if(tries > 40) return;
+      var done =
+        pfWrapRenderProfit() &&
+        pfWrapSetProfitRange() &&
+        pfWrapP() &&
+        pfWrapRenderAll();
+      if(!done) setTimeout(tryAll, 250);
+      else pfLog('all patches applied');
+    };
+    setTimeout(tryAll, 400);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', pfInit);
+  } else {
+    setTimeout(pfInit, 200);
+  }
+
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
      ⚡ وضع التاجر السريع — Quick Merchant Mode v1.0
      ADDITIVE ONLY — لا يُعدَّل أي كود موجود — معزول وآمن تماماً
      ══════════════════════════════════════════════════════════════════ -->
@@ -19729,230 +20158,4 @@ body.qm-on #inv-sec select:focus {
 
 })();
 </script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     🔍 وضع التشخيص (Debug Mode) — إضافة فقط، لا يؤثر على النظام
-     ═══════════════════════════════════════════════════════════════ -->
-<div id="dbg-fab" onclick="dbgOpen()"
-  style="position:fixed;bottom:80px;left:16px;z-index:9999;
-    background:linear-gradient(135deg,#1e3a5f,#2563eb);
-    color:#fff;border-radius:50px;padding:10px 16px;
-    font-size:12px;font-weight:800;cursor:pointer;
-    box-shadow:0 4px 16px rgba(0,0,0,.4);
-    display:flex;align-items:center;gap:6px;
-    border:1.5px solid rgba(255,255,255,.15);
-    font-family:inherit;user-select:none">
-  🔍 تشخيص الربح
-</div>
-
-<div id="dbg-overlay" onclick="dbgClose()"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000"></div>
-
-<div id="dbg-modal"
-  style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:10001;
-    background:var(--c1,#1a1a1a);border-radius:18px 18px 0 0;
-    padding:20px;max-height:85vh;overflow-y:auto;
-    border-top:2px solid #2563eb;font-family:inherit">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <div style="font-size:15px;font-weight:900;color:#60a5fa">🔍 تشخيص صافي الربح</div>
-    <button onclick="dbgClose()"
-      style="background:#374151;border:none;color:#fff;border-radius:8px;
-        padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit">✕ إغلاق</button>
-  </div>
-  <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
-    <button onclick="dbgSetRange('today')" id="dbg-btn-today"
-      style="padding:6px 12px;border-radius:8px;border:1px solid #374151;
-        background:#1f2937;color:#9ca3af;font-size:11px;font-family:inherit;cursor:pointer">اليوم</button>
-    <button onclick="dbgSetRange('month')" id="dbg-btn-month"
-      style="padding:6px 12px;border-radius:8px;border:1px solid #2563eb;
-        background:#1e3a5f;color:#60a5fa;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">هذا الشهر ✓</button>
-    <button onclick="dbgSetRange('year')" id="dbg-btn-year"
-      style="padding:6px 12px;border-radius:8px;border:1px solid #374151;
-        background:#1f2937;color:#9ca3af;font-size:11px;font-family:inherit;cursor:pointer">هذه السنة</button>
-    <button onclick="dbgSetRange('all')" id="dbg-btn-all"
-      style="padding:6px 12px;border-radius:8px;border:1px solid #374151;
-        background:#1f2937;color:#9ca3af;font-size:11px;font-family:inherit;cursor:pointer">الكل</button>
-  </div>
-  <div id="dbg-body" style="font-size:13px"></div>
-</div>
-
-<script>
-// ═══════════════════════════ DEBUG MODE ═══════════════════════════
-let _dbgRange = 'month';
-
-function dbgOpen(){ 
-  document.getElementById('dbg-overlay').style.display='block';
-  document.getElementById('dbg-modal').style.display='block';
-  dbgRender(); 
-}
-function dbgClose(){ 
-  document.getElementById('dbg-overlay').style.display='none';
-  document.getElementById('dbg-modal').style.display='none';
-}
-function dbgSetRange(r){
-  _dbgRange = r;
-  ['today','month','year','all'].forEach(x=>{
-    const b = document.getElementById('dbg-btn-'+x);
-    if(!b) return;
-    b.style.borderColor   = x===r ? '#2563eb' : '#374151';
-    b.style.background    = x===r ? '#1e3a5f' : '#1f2937';
-    b.style.color         = x===r ? '#60a5fa' : '#9ca3af';
-    b.style.fontWeight    = x===r ? '700' : '400';
-  });
-  dbgRender();
-}
-
-function dbgRender(){
-  const el = document.getElementById('dbg-body');
-  if(!el) return;
-  const txs = window.S?.transactions || [];
-  const now = new Date();
-
-  let fromD, toD = new Date(now.getFullYear(),now.getMonth(),now.getDate(),23,59,59);
-  if(_dbgRange==='today'){
-    fromD = new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0);
-  } else if(_dbgRange==='month'){
-    fromD = new Date(now.getFullYear(),now.getMonth(),1,0,0,0);
-  } else if(_dbgRange==='year'){
-    fromD = new Date(now.getFullYear(),0,1,0,0,0);
-  } else {
-    fromD = null; toD = null;
-  }
-
-  let filtered = txs;
-  if(fromD) filtered = filtered.filter(t=>new Date(t.date)>=fromD);
-  if(toD)   filtered = filtered.filter(t=>new Date(t.date)<=toD);
-
-  // ── 1. المبيعات ──
-  const sellTxs  = filtered.filter(t=>t.type==='sell'||t.type==='sell-debt'||t.type==='dist-receipt');
-  const sellGold = sellTxs.reduce((a,t)=>a+(t.goldTotal||0),0);
-  const sellAj   = sellTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  const sellVat  = sellTxs.reduce((a,t)=>a+(t.vatAmt||0),0);
-  const sellDisc = sellTxs.reduce((a,t)=>a+(t.discount||0),0);
-  const sellTotal= sellTxs.reduce((a,t)=>a+(t.total||0),0);
-
-  // ── 2. المشتريات ──
-  const buyTxs   = filtered.filter(t=>t.type==='buy'||t.type==='buy-debt'||t.type==='dist-payment');
-  const buyGold  = buyTxs.reduce((a,t)=>a+(t.goldTotal||0),0);
-  const buyAj    = buyTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  const buyTotal = buyTxs.reduce((a,t)=>a+(t.total||0),0);
-
-  // ── 3. المرتجعات (مبيعات) ──
-  const retSTxs  = filtered.filter(t=>t.type==='return'||t.type==='sales-return');
-  const retSGold = retSTxs.reduce((a,t)=>a+(t.goldTotal||0),0);
-  const retSAj   = retSTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  const retSVat  = retSTxs.reduce((a,t)=>a+(t.vatAmt||0),0);
-  const retSTotal= retSTxs.reduce((a,t)=>a+(t.total||0),0);
-  // مرتجعات مشتريات
-  const retPTxs  = filtered.filter(t=>t.type==='purchase-return'||t.type==='supplier-return');
-  const retPAj   = retPTxs.reduce((a,t)=>a+(t.ajTotal||0),0);
-  const retPTotal= retPTxs.reduce((a,t)=>a+(t.total||0),0);
-
-  // ── 4. المصروفات ──
-  const expTxs   = filtered.filter(t=>t.type==='expense');
-  const expTotal = expTxs.reduce((a,t)=>a+(t.amount||0),0);
-
-  // ── 5. الربح — المعادلات ──
-  // أ) معادلة صفحة الأرباح المصحّحة
-  const profitAjFixed   = sellAj - retSAj - buyAj;
-  const profitGoldFixed = sellGold - retSGold - buyGold;
-  const profitPageFixed = profitAjFixed + profitGoldFixed - sellDisc - expTotal;
-
-  // ب) معادلة لوحة التحكم (أجور فقط)
-  const netBuyCostDash  = Math.max(0, buyAj - retPAj);
-  const profitDash      = sellAj + sellVat - retSAj - retSVat - netBuyCostDash - expTotal;
-
-  // ── تنبيهات التشخيص ──
-  const warnings = [];
-  if(sellTxs.some(t=>!(t.ajTotal>0)&&!(t.goldTotal>0))) 
-    warnings.push('⚠️ توجد فواتير بيع بدون أجور ولا قيمة ذهب — قد تُخفّض الربح');
-  if(buyTxs.some(t=>t.ajTotal>0&&!(t.goldTotal>0)))
-    warnings.push('⚠️ توجد فواتير شراء بأجور بدون قيمة ذهب — ستُخصم من الربح');
-  if(retSTxs.length>0 && retSTxs.some(t=>!(t.ajTotal>0)))
-    warnings.push('ℹ️ بعض المرتجعات بدون أجور (قد يكون صحيحاً)');
-  if(profitGoldFixed < -1000)
-    warnings.push('⚠️ فرق قيمة الذهب سالب كبير — ربما اشتريت أكثر مما بعت في هذه الفترة');
-
-  const _f = v => typeof fmt==='function' ? fmt(Math.round(v)) : v.toFixed(0);
-  const row = (icon,label,val,clr,sub='') => `
-    <div style="display:flex;justify-content:space-between;align-items:center;
-      padding:8px 10px;border-radius:8px;margin-bottom:4px;
-      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)">
-      <div>
-        <div style="font-size:12px;color:var(--tx1,#e5e7eb)">${icon} ${label}</div>
-        ${sub?`<div style="font-size:10px;color:#6b7280;margin-top:1px">${sub}</div>`:''}
-      </div>
-      <div style="font-size:14px;font-weight:800;color:${clr}">${_f(val)} ر</div>
-    </div>`;
-
-  el.innerHTML = `
-    <!-- المبيعات -->
-    <div style="font-size:10px;font-weight:700;color:#6b7280;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">📥 الإيرادات</div>
-    ${row('🏷️','إجمالي المبيعات (ذهب)',sellGold,'#34d399',`${sellTxs.length} فاتورة`)}
-    ${row('⚒️','إجمالي أجور البيع',sellAj,'#34d399','')}
-    ${row('🧾','ضريبة المبيعات',sellVat,'#9ca3af','')}
-    ${sellDisc?row('🏷️','الخصومات',sellDisc,'#f59e0b','تُطرح'):''}
-
-    <!-- المشتريات -->
-    <div style="font-size:10px;font-weight:700;color:#6b7280;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px">📤 التكاليف</div>
-    ${row('🏅','إجمالي تكلفة الذهب (شراء)',buyGold,'#f87171',`${buyTxs.length} فاتورة`)}
-    ${row('⚒️','أجور الشراء',buyAj,'#f87171','')}
-    ${retPTotal?row('↩️','مردودات مشتريات',retPTotal,'#34d399','تُضاف — مرتجعة للمورد'):''}
-
-    <!-- المرتجعات -->
-    ${retSTotal?`
-    <div style="font-size:10px;font-weight:700;color:#6b7280;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px">↩️ مرتجعات المبيعات (${retSTxs.length})</div>
-    ${row('🏅','ذهب مرتجع (قيمة)',retSGold,'#fb923c','')}
-    ${row('⚒️','أجور مرتجعة',retSAj,'#fb923c','')}
-    `:''}
-
-    <!-- المصروفات -->
-    ${expTotal?`
-    <div style="font-size:10px;font-weight:700;color:#6b7280;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px">💸 المصروفات (${expTxs.length})</div>
-    ${row('💸','إجمالي المصروفات',expTotal,'#f87171','تُطرح من صافي الربح')}
-    `:''}
-
-    <!-- النتيجة -->
-    <div style="height:1px;background:rgba(255,255,255,.1);margin:12px 0"></div>
-    <div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📊 صافي الربح</div>
-    
-    <div style="background:${profitAjFixed>=0?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)'};
-      border:2px solid ${profitAjFixed>=0?'#22c55e':'#ef4444'};
-      border-radius:10px;padding:12px;margin-bottom:6px">
-      <div style="font-size:10px;color:#9ca3af;margin-bottom:4px">ربح الأجور (المصحّح)</div>
-      <div style="font-size:20px;font-weight:900;color:${profitAjFixed>=0?'#22c55e':'#ef4444'}">${_f(profitAjFixed)} ر</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:3px">أجور البيع − أجور المرتجعات − أجور الشراء</div>
-    </div>
-    
-    <div style="background:${profitPageFixed>=0?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};
-      border:2px solid ${profitPageFixed>=0?'#16a34a':'#dc2626'};
-      border-radius:10px;padding:14px;margin-bottom:8px">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">🏆 صافي الربح الكامل (صفحة الأرباح)</div>
-      <div style="font-size:26px;font-weight:900;color:${profitPageFixed>=0?'#4ade80':'#f87171'}">${_f(profitPageFixed)} ر</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">
-        (أجور) ${_f(profitAjFixed)} +
-        (ذهب) ${_f(profitGoldFixed)} −
-        (خصم) ${_f(sellDisc)} −
-        (مصروف) ${_f(expTotal)}
-      </div>
-    </div>
-
-    <div style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.3);
-      border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="font-size:10px;color:#93c5fd;margin-bottom:4px">لوحة التحكم (أجور فقط)</div>
-      <div style="font-size:18px;font-weight:900;color:${profitDash>=0?'#60a5fa':'#f87171'}">${_f(profitDash)} ر</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:3px">أجور البيع − المرتجعات − أجور الشراء − المصروفات</div>
-    </div>
-
-    ${warnings.length?`
-    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);
-      border-radius:10px;padding:12px;margin-top:8px">
-      <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:6px">⚠️ تنبيهات التشخيص</div>
-      ${warnings.map(w=>`<div style="font-size:11px;color:#fcd34d;margin-bottom:4px">${w}</div>`).join('')}
-    </div>`:''}
-  `;
-}
-// ═══════════════════════════════════════════════════════════════
-</script>
 </body>
-
