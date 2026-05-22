@@ -570,6 +570,115 @@ body{
 .dlpro-pop-empty{text-align:center;color:var(--tx3);font-size:12px;padding:28px 0}
 @media(max-width:680px){.dlpro-md-row{grid-template-columns:1fr 1fr}.dlpro-md-value{font-size:15px}}
 
+/* ══════════════════════════════════════════════════════════════
+   STMT SMART ANALYTICS — لوحة تحليل كشف الحساب الذكي
+   NO-PRINT: هذا القسم لا يظهر عند الطباعة أو PDF
+   ══════════════════════════════════════════════════════════════ */
+@media print {
+  .stmt-analytics-wrap,
+  .stmt-info-bar,
+  .stmt-smart-analysis { display:none !important; }
+}
+
+/* ── شريط المعلومات السريعة ── */
+.stmt-info-bar {
+  display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto;
+  padding:10px 14px; background:linear-gradient(135deg,var(--hd),#1a1530);
+  border-radius:14px; margin-bottom:10px; scrollbar-width:none;
+  border:1px solid var(--g5); box-shadow:0 4px 16px rgba(0,0,0,.18);
+}
+.stmt-info-bar::-webkit-scrollbar{display:none}
+.stmt-ib-item {
+  display:flex; flex-direction:column; align-items:center; flex-shrink:0;
+  min-width:72px; padding:6px 10px;
+  border-left:1px solid rgba(255,255,255,.08);
+  cursor:default;
+}
+.stmt-ib-item:first-child{border-left:none}
+.stmt-ib-icon { font-size:16px; margin-bottom:2px; }
+.stmt-ib-val  { font-size:13px; font-weight:900; color:#F0C040; white-space:nowrap; }
+.stmt-ib-lbl  { font-size:8px; color:rgba(255,255,255,.40); font-weight:700; text-align:center; margin-top:1px; }
+
+/* ── بطاقات الملخص ── */
+.stmt-analytics-wrap {
+  margin-bottom:12px;
+}
+.stmt-summary-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:8px;
+}
+.stmt-sum-card {
+  background:var(--c1); border-radius:13px; padding:12px 10px; text-align:center;
+  border:1.5px solid var(--b1); position:relative; overflow:hidden;
+  transition:transform .15s,box-shadow .15s;
+}
+.stmt-sum-card:hover { transform:translateY(-2px); box-shadow:var(--s2); }
+.stmt-sum-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  border-radius:13px 13px 0 0;
+}
+.stmt-sum-card.c-gold::before { background:linear-gradient(90deg,var(--g1),var(--g2)); }
+.stmt-sum-card.c-green::before { background:var(--ok); }
+.stmt-sum-card.c-red::before { background:var(--no); }
+.stmt-sum-card.c-blue::before { background:var(--in); }
+.stmt-sum-card.c-purple::before { background:var(--pu); }
+.stmt-sum-card.c-teal::before { background:#28C8D8; }
+.stmt-sum-card.c-orange::before { background:var(--io); }
+.stmt-sum-card.c-gray::before { background:var(--tx3); }
+.stmt-sum-icon { font-size:20px; margin-bottom:3px; }
+.stmt-sum-val  { font-size:15px; font-weight:900; line-height:1.1; margin-bottom:2px; }
+.stmt-sum-lbl  { font-size:9px; color:var(--tx2); font-weight:700; letter-spacing:.2px; }
+.stmt-sum-card.c-gold .stmt-sum-val  { color:var(--g1); }
+.stmt-sum-card.c-green .stmt-sum-val { color:var(--ok); }
+.stmt-sum-card.c-red .stmt-sum-val   { color:var(--no); }
+.stmt-sum-card.c-blue .stmt-sum-val  { color:var(--in); }
+.stmt-sum-card.c-purple .stmt-sum-val{ color:var(--pu); }
+.stmt-sum-card.c-teal .stmt-sum-val  { color:#28C8D8; }
+.stmt-sum-card.c-orange .stmt-sum-val{ color:var(--io); }
+.stmt-sum-card.c-gray .stmt-sum-val  { color:var(--tx3); }
+
+/* ── بطاقة التحليل الذكي ── */
+.stmt-smart-analysis {
+  background:var(--c1); border-radius:14px; border:1.5px solid var(--b2);
+  overflow:hidden; margin-bottom:10px;
+}
+.stmt-smart-header {
+  padding:10px 14px; background:linear-gradient(135deg,var(--c2),var(--g4));
+  border-bottom:1px solid var(--b1);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.stmt-smart-title {
+  font-size:13px; font-weight:900; color:var(--g1);
+  display:flex; align-items:center; gap:6px;
+}
+.stmt-smart-body {
+  padding:12px 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.stmt-sa-row {
+  display:flex; align-items:center; gap:8px;
+  background:var(--c2); border-radius:10px; padding:8px 12px;
+  border:1px solid var(--b1);
+}
+.stmt-sa-icon { font-size:18px; flex-shrink:0; }
+.stmt-sa-info { flex:1; min-width:0; }
+.stmt-sa-label { font-size:9px; color:var(--tx2); font-weight:700; margin-bottom:2px; }
+.stmt-sa-val   { font-size:13px; font-weight:900; color:var(--tx1); }
+
+/* ── شارة التقييم ── */
+.stmt-rating-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 14px; border-radius:20px; font-size:12px; font-weight:900;
+  border:2px solid; letter-spacing:.2px;
+}
+.stmt-rating-vip     { background:#FEF9C3; color:#92400E; border-color:#D97706; }
+.stmt-rating-good    { background:#DCFCE7; color:#065F46; border-color:#16A34A; }
+.stmt-rating-late    { background:#FEF3C7; color:#92400E; border-color:#D97706; }
+.stmt-rating-bad     { background:#FEE2E2; color:#991B1B; border-color:#DC2626; }
+
+@media(max-width:520px){
+  .stmt-summary-grid { grid-template-columns:repeat(2,1fr); }
+  .stmt-smart-body   { grid-template-columns:1fr; }
+  .stmt-ib-item { min-width:60px; }
+}
 </style>
 <script>
   // ── تحقق مبكر من الجلسة ──
@@ -12225,6 +12334,238 @@ function updateTfAmtLabel(){
   else                 lbl.textContent = 'المبلغ (ريال أو جرام)';
 }
 
+/* ══════════════════════════════════════════════════════════════
+   buildStmtAnalytics — داشبورد التحليل الذكي لكشف الحساب
+   يُحسب من بيانات الكشف الحالي ولا يظهر عند الطباعة
+   ══════════════════════════════════════════════════════════════ */
+function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
+  /* ─── حسابات أساسية ─── */
+  const cash    = bal.cashOwed || 0;
+  const gold24  = bal.goldOwedAs24 || 0;
+  const absOwed = Math.abs(cash);
+
+  const sellTxs = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
+  const buyTxs  = txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
+  const payTxs  = txs.filter(t=>t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt');
+  const allSorted = [...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const mainTxs = isSupp ? buyTxs : sellTxs;
+
+  /* إجمالي المشتريات / المبيعات */
+  const totalPurchases = mainTxs.reduce((a,t)=>a+(t.total||t.ajTotal||0),0);
+
+  /* إجمالي المدفوعات */
+  const totalPaid = payTxs.reduce((a,t)=>a+(t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0),0);
+
+  /* إجمالي الذهب بالجرام (عيار 24) */
+  let totalGoldGrams = 0;
+  mainTxs.forEach(t=>{
+    (t.items||[]).forEach(i=>{
+      totalGoldGrams += (i.weight||0) * parseFloat(i.karat||'21') / 24;
+    });
+  });
+  totalGoldGrams = Math.round(totalGoldGrams * 1000) / 1000;
+
+  /* عدد الفواتير */
+  const invoiceCount = mainTxs.length;
+
+  /* متوسط قيمة الشراء */
+  const avgPurchase = invoiceCount > 0 ? Math.round(totalPurchases / invoiceCount) : 0;
+
+  /* آخر عملية */
+  const lastTx = allSorted[0];
+  const lastTxDate = lastTx ? fmtDate(lastTx.date) : null;
+
+  /* آخر زيارة (آخر فاتورة بيع/شراء) */
+  const lastMainTx = [...mainTxs].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+  const lastVisit  = lastMainTx ? fmtDate(lastMainTx.date) : null;
+
+  /* ─── أكثر عيار يُشترى ─── */
+  const karatCount = {};
+  mainTxs.forEach(t=>{
+    (t.items||[]).forEach(i=>{
+      const k = i.karat||'21';
+      karatCount[k] = (karatCount[k]||0) + (i.weight||0);
+    });
+  });
+  const karatNames = {'21':'عيار 21','18':'عيار 18','24':'عيار 24','18k':'مجوهرات 18K','14k':'مجوهرات 14K'};
+  let topKarat = '—', topKaratWt = 0;
+  Object.entries(karatCount).forEach(([k,w])=>{
+    if(w > topKaratWt){ topKaratWt = w; topKarat = karatNames[k]||k; }
+  });
+
+  /* ─── تحليل الانتظام في السداد ─── */
+  // حساب أيام التأخير: آخر فاتورة بيع بدون سداد
+  const lastSellDate = lastMainTx ? new Date(lastMainTx.date) : null;
+  const lastPayDate  = payTxs.length > 0
+    ? new Date([...payTxs].sort((a,b)=>new Date(b.date)-new Date(a.date))[0].date)
+    : null;
+
+  const today = new Date();
+  let debtDays = 0;
+  if(absOwed > 0.01 && lastSellDate){
+    // أيام منذ آخر فاتورة بدون سداد كامل
+    debtDays = Math.floor((today - lastSellDate) / (1000*60*60*24));
+  }
+
+  /* ─── تقييم العميل التلقائي ─── */
+  let ratingKey, ratingIcon, ratingLabel, ratingClass;
+  const paidPct = totalPurchases > 0 ? Math.round(totalPaid / totalPurchases * 100) : (absOwed<0.01?100:0);
+
+  if(absOwed < 0.01){
+    // مسدد بالكامل
+    ratingKey='vip'; ratingIcon='⭐'; ratingLabel='عميل VIP — يسدد باستمرار'; ratingClass='stmt-rating-vip';
+  } else if(debtDays <= 7 && absOwed < 500){
+    ratingKey='vip'; ratingIcon='⭐'; ratingLabel='عميل VIP — يسدد باستمرار'; ratingClass='stmt-rating-vip';
+  } else if(debtDays <= 30 || (absOwed < 2000 && paidPct >= 60)){
+    ratingKey='good'; ratingIcon='✅'; ratingLabel='عميل عادي — مقبول'; ratingClass='stmt-rating-good';
+  } else if(debtDays <= 90){
+    ratingKey='late'; ratingIcon='⚠️'; ratingLabel='متأخر بالسداد'; ratingClass='stmt-rating-late';
+  } else {
+    ratingKey='bad'; ratingIcon='🔴'; ratingLabel='عميل متعثر'; ratingClass='stmt-rating-bad';
+  }
+
+  /* ─── شريط الانتظام بالسداد ─── */
+  let payPattern = '—';
+  if(payTxs.length === 0 && absOwed < 0.01) payPattern = 'لا توجد ديون';
+  else if(payTxs.length === 0 && absOwed > 0) payPattern = 'لم يسدد بعد';
+  else if(paidPct >= 90) payPattern = 'منتظم جداً ✅';
+  else if(paidPct >= 60) payPattern = 'منتظم نسبياً';
+  else payPattern = 'غير منتظم ⚠️';
+
+  /* ═══════════ بناء HTML ═══════════ */
+  const fmt2 = (n)=>{
+    if(n>=1000000) return (Math.round(n/10000)/100)+'م';
+    if(n>=1000)    return (Math.round(n/100)/10)+'ألف';
+    return String(Math.round(n));
+  };
+
+  /* ── شريط المعلومات السريعة ── */
+  const cashColor  = absOwed<0.01 ? '#22C77A' : (cash>0&&!isSupp)||(cash<0&&isSupp) ? '#E55555' : '#22C77A';
+  const cashLabel  = absOwed<0.01 ? 'متوازن' : (cash>0&&!isSupp)||(cash<0&&isSupp) ? 'عليه' : 'له';
+
+  let infoBarHTML = `<div class="stmt-info-bar no-print">
+    <div class="stmt-ib-item">
+      <div class="stmt-ib-icon">📊</div>
+      <div class="stmt-ib-val">${invoiceCount}</div>
+      <div class="stmt-ib-lbl">عدد الفواتير</div>
+    </div>
+    <div class="stmt-ib-item">
+      <div class="stmt-ib-icon">💰</div>
+      <div class="stmt-ib-val" style="color:${cashColor}">${absOwed<0.01?'صفر':fmt2(absOwed)}</div>
+      <div class="stmt-ib-lbl">الرصيد (${cashLabel})</div>
+    </div>
+    <div class="stmt-ib-item">
+      <div class="stmt-ib-icon">🥇</div>
+      <div class="stmt-ib-val">${totalGoldGrams>0?fmtG(totalGoldGrams):'—'}</div>
+      <div class="stmt-ib-lbl">جرام ذهب</div>
+    </div>
+    <div class="stmt-ib-item">
+      <div class="stmt-ib-icon">💵</div>
+      <div class="stmt-ib-val">${fmt2(totalPurchases)}</div>
+      <div class="stmt-ib-lbl">إجمالي المبالغ</div>
+    </div>
+    <div class="stmt-ib-item">
+      <div class="stmt-ib-icon">${ratingIcon}</div>
+      <div class="stmt-ib-val" style="font-size:10px;color:#F0C040">${ratingLabel.split('—')[0].trim()}</div>
+      <div class="stmt-ib-lbl">تقييم العميل</div>
+    </div>
+    <div class="stmt-ib-item">
+      <div class="stmt-ib-icon">🕐</div>
+      <div class="stmt-ib-val" style="font-size:10px">${lastTxDate ? lastTxDate.ar : '—'}</div>
+      <div class="stmt-ib-lbl">آخر حركة</div>
+    </div>
+  </div>`;
+
+  /* ── بطاقات الملخص السريع ── */
+  const sumCards = [
+    { icon:'🔄', val: txs.length,                   lbl:'إجمالي التعاملات',  cls:'c-blue'  },
+    { icon:'🛒', val: fmt(totalPurchases)+' ر',       lbl:(isSupp?'إجمالي المشتريات':'إجمالي المبيعات'), cls:'c-gold' },
+    { icon:'💳', val: fmt(totalPaid)+' ر',            lbl:'إجمالي المدفوعات', cls:'c-green' },
+    { icon:'⚖️', val: absOwed<0.01?'مسدد':fmt(absOwed)+' ر', lbl:'الرصيد الحالي',    cls: absOwed<0.01?'c-green':(cash>0&&!isSupp?'c-red':'c-green') },
+    { icon:'🥇', val: totalGoldGrams>0?fmtG(totalGoldGrams)+'ج':'—', lbl:'إجمالي الذهب',   cls:'c-gold'  },
+    { icon:'📄', val: invoiceCount,                  lbl:'عدد الفواتير',      cls:'c-purple'},
+    { icon:'📅', val: lastTxDate ? lastTxDate.ar : '—', lbl:'آخر عملية',      cls:'c-teal'  },
+    { icon:'📈', val: avgPurchase>0?fmt(avgPurchase)+' ر':'—', lbl:'متوسط الشراء',  cls:'c-orange'},
+  ];
+
+  let summaryHTML = `<div class="stmt-analytics-wrap no-print">
+    <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:7px;display:flex;align-items:center;gap:5px">
+      <span style="background:var(--g4);border:1px solid var(--g5);border-radius:8px;padding:2px 8px;color:var(--g1)">📊 ملخص الحساب السريع</span>
+    </div>
+    <div class="stmt-summary-grid">`;
+
+  sumCards.forEach(c=>{
+    summaryHTML += `<div class="stmt-sum-card ${c.cls}">
+      <div class="stmt-sum-icon">${c.icon}</div>
+      <div class="stmt-sum-val">${c.val}</div>
+      <div class="stmt-sum-lbl">${c.lbl}</div>
+    </div>`;
+  });
+  summaryHTML += `</div></div>`;
+
+  /* ── التحليل الذكي ── */
+  const debtDaysStr = absOwed < 0.01 ? 'لا توجد مديونية' : (debtDays > 0 ? debtDays + ' يوم' : 'حديثة');
+  const lastVisitStr = lastVisit ? lastVisit.ar : '—';
+
+  let analysisHTML = `<div class="stmt-smart-analysis no-print">
+    <div class="stmt-smart-header">
+      <div class="stmt-smart-title">🧠 التحليل الذكي للعميل</div>
+      <span class="stmt-rating-badge ${ratingClass}">${ratingIcon} ${ratingLabel}</span>
+    </div>
+    <div class="stmt-smart-body">
+      <div class="stmt-sa-row">
+        <div class="stmt-sa-icon">🥇</div>
+        <div class="stmt-sa-info">
+          <div class="stmt-sa-label">أكثر عيار يُشترى</div>
+          <div class="stmt-sa-val">${topKarat}</div>
+        </div>
+      </div>
+      <div class="stmt-sa-row">
+        <div class="stmt-sa-icon">💳</div>
+        <div class="stmt-sa-info">
+          <div class="stmt-sa-label">نمط السداد</div>
+          <div class="stmt-sa-val">${payPattern}</div>
+        </div>
+      </div>
+      <div class="stmt-sa-row">
+        <div class="stmt-sa-icon">⏳</div>
+        <div class="stmt-sa-info">
+          <div class="stmt-sa-label">مدة المديونية الحالية</div>
+          <div class="stmt-sa-val" style="color:${debtDays>30?'#DC2626':debtDays>7?'#D97706':'var(--tx1)'}">${debtDaysStr}</div>
+        </div>
+      </div>
+      <div class="stmt-sa-row">
+        <div class="stmt-sa-icon">🗓️</div>
+        <div class="stmt-sa-info">
+          <div class="stmt-sa-label">آخر زيارة للمحل</div>
+          <div class="stmt-sa-val">${lastVisitStr}</div>
+        </div>
+      </div>
+      <div class="stmt-sa-row">
+        <div class="stmt-sa-icon">📊</div>
+        <div class="stmt-sa-info">
+          <div class="stmt-sa-label">نسبة السداد</div>
+          <div class="stmt-sa-val">${paidPct}%
+            <span style="font-size:9px;background:${paidPct>=80?'#DCFCE7':paidPct>=50?'#FEF3C7':'#FEE2E2'};
+              color:${paidPct>=80?'#065F46':paidPct>=50?'#92400E':'#991B1B'};
+              padding:1px 6px;border-radius:8px;font-weight:700;margin-right:4px">${paidPct>=80?'جيد':paidPct>=50?'متوسط':'ضعيف'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="stmt-sa-row">
+        <div class="stmt-sa-icon">🔢</div>
+        <div class="stmt-sa-info">
+          <div class="stmt-sa-label">إجمالي التعاملات</div>
+          <div class="stmt-sa-val">${txs.length} عملية · ${invoiceCount} فاتورة</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  return infoBarHTML + summaryHTML + analysisHTML;
+}
+
 function renderStmt(){
   const v=document.getElementById('stmt-v')?.value;
   const body=document.getElementById('stmt-body');
@@ -12882,23 +13223,51 @@ function renderStmt(){
       runLabel=`<span style="color:${rDebit?'#DC2626':'#16A34A'};font-weight:900">${rDebit?'عليه':'له'} ${fmt(absRun)}</span>`;
     }
     const goldWt=(t.items||[]).filter(i=>i.karat!=='gems').reduce((a,i)=>a+(i.weight||0),0);
-    const vatBadge=(t.vatAmt>0||t.hasVat)?'<span style="background:#F59E0B;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">ضريبة</span>':'';
+    const vatBadge=(t.vatAmt>0||t.hasVat)?'<span style="background:#F59E0B;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-right:3px">ضريبة</span>':'';
 
-    return `<tr style="border-bottom:1px solid var(--b1);background:${rowBg}">
-      <td style="padding:6px 8px;font-size:10px;color:var(--tx2);white-space:nowrap">${dt.ar}<br><span style="font-size:9px">${dt.en}</span></td>
-      <td style="padding:6px 8px">
+    // ── تحسين خلفية الصف بألوان أكثر وضوحاً ──
+    const rowBgEnhanced = isDebit
+      ? 'rgba(220,38,38,.06)'
+      : isSetRow ? 'rgba(22,163,74,.05)'
+      : isCredit ? 'rgba(217,119,6,.04)' : '';
+
+    // ── حدود جانبية ملوّنة للتمييز ──
+    const rowBorderLeft = isDebit
+      ? 'border-right:3px solid rgba(220,38,38,.45)'
+      : isSetRow ? 'border-right:3px solid rgba(22,163,74,.45)'
+      : '';
+
+    // ── خلية الدين بخلفية ملوّنة ──
+    const debitCell  = debitAmt !== '–'
+      ? `<td style="padding:6px 8px;text-align:center;font-weight:900;color:#DC2626;font-size:13px;background:rgba(220,38,38,.08)">
+           <span style="background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:8px;font-size:12px;font-weight:900">${debitAmt}</span>
+         </td>`
+      : `<td style="padding:6px 8px;text-align:center;color:var(--tx3);font-size:12px">—</td>`;
+
+    const creditCell = creditAmt !== '–'
+      ? `<td style="padding:6px 8px;text-align:center;font-weight:900;color:#16A34A;font-size:13px;background:rgba(22,163,74,.06)">
+           <span style="background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:8px;font-size:12px;font-weight:900">${creditAmt}</span>
+         </td>`
+      : `<td style="padding:6px 8px;text-align:center;color:var(--tx3);font-size:12px">—</td>`;
+
+    return `<tr style="border-bottom:1px solid var(--b1);background:${rowBgEnhanced};${rowBorderLeft};transition:background .12s">
+      <td style="padding:7px 8px;white-space:nowrap">
+        <div style="font-size:11px;font-weight:700;color:var(--tx1)">${dt.ar}</div>
+        <div style="font-size:9px;color:var(--tx3);margin-top:1px">${dt.en}</div>
+      </td>
+      <td style="padding:7px 8px">
         <span class="badge ${TBDG[t.type]||'bg-gold'}" style="font-size:10px">${lbl}</span>
         ${vatBadge}
-        ${goldWt>0?`<div style="font-size:10px;color:var(--g1);font-weight:700;margin-top:2px">🥇 ${fmtG(goldWt)}ج</div>`:''}
-        ${detail?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">${detail}</div>`:''}
+        ${goldWt>0?`<div style="font-size:10px;color:var(--g1);font-weight:700;margin-top:3px">🥇 ${fmtG(goldWt)}ج</div>`:''}
       </td>
-      <td style="padding:6px 8px;font-size:10px;color:var(--tx2)">
-        ${(t.vatAmt||0)>0?`<span style="color:#F59E0B;font-weight:700">ضريبة: ${fmt(t.vatAmt)} ر</span><br>`:''}
-        ${t.notes?`<span style="font-size:9px">📝 ${t.notes}</span>`:''}
+      <td style="padding:7px 8px;font-size:10px;color:var(--tx2)">
+        ${detail?`<div style="margin-bottom:2px">${detail}</div>`:''}
+        ${(t.vatAmt||0)>0?`<div><span style="color:#F59E0B;font-weight:700;font-size:9px">🧾 ضريبة: ${fmt(t.vatAmt)} ر</span></div>`:''}
+        ${t.notes?`<div style="font-size:9px;color:var(--tx3)">📝 ${t.notes}</div>`:''}
       </td>
-      <td style="padding:6px 8px;text-align:center;font-weight:900;color:#DC2626;font-size:13px">${debitAmt}</td>
-      <td style="padding:6px 8px;text-align:center;font-weight:900;color:#16A34A;font-size:13px">${creditAmt}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:12px">${runLabel}${Math.abs(runGold24)>0.001?`<br><span style="font-size:10px;color:var(--g1)">${fmtG(Math.abs(runGold24))}ج</span>`:''}</td>
+      ${debitCell}
+      ${creditCell}
+      <td style="padding:6px 8px;text-align:center;font-size:12px">${runLabel}${Math.abs(runGold24)>0.001?`<br><span style="font-size:10px;color:var(--g1)">🥇 ${fmtG(Math.abs(runGold24))}ج</span>`:''}</td>
       <td style="padding:5px 6px;text-align:center">
         <button onclick="viewInv(${t.id})" style="background:var(--g4);border:1px solid var(--g5);color:var(--g1);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit">✏️</button>
       </td>
@@ -12960,6 +13329,11 @@ function renderStmt(){
   const netCash = Math.abs(cash);
 
   let html = '';
+
+  // ══════════════════════════════════════════════════════════════
+  // ── لوحة التحليل الذكي (لا تظهر عند الطباعة) ──
+  // ══════════════════════════════════════════════════════════════
+  html += buildStmtAnalytics(v, txs, bal, isSupp, clientObj);
 
   // ══════════════════════════════════════════════════════════════
   // ── بيان سريع العيارات (إضافة جديدة) ──
@@ -13333,8 +13707,14 @@ function renderStmt(){
 
   // ── سجل الحركات ──
   html += '<div class="card">';
-  html += '<div class="ch">📋 سجل الحركات (' + txs.length + ')</div>';
-  html += '<div class="cb">';
+  html += '<div class="ch" style="display:flex;justify-content:space-between;align-items:center">'+
+    '<span>📋 سجل الحركات (' + txs.length + ')</span>'+
+    '<span style="font-size:10px;font-weight:700;display:flex;gap:8px;align-items:center">'+
+      '<span style="background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:8px;border:1px solid rgba(220,38,38,.2)">🔴 عليه</span>'+
+      '<span style="background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:8px;border:1px solid rgba(22,163,74,.2)">🟢 له</span>'+
+    '</span>'+
+  '</div>';
+  html += '<div class="cb" style="padding:0">';
   if(txRows){
     // صف الرصيد الافتتاحي إن وجد
     const _ob2HasVal = _obEntry2 && (Math.abs(_obEntry2.cash||0)>0.01 || Math.abs(_obEntry2.gold24||0)>0.001);
@@ -13351,14 +13731,14 @@ function renderStmt(){
       <td></td>
     </tr>` : '';
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html += '<thead><tr style="background:var(--c3);border-bottom:2px solid var(--b2)">';
-    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">📅 التاريخ</th>';
-    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">النوع</th>';
-    html += '<th style="padding:7px 8px;text-align:right;font-size:11px;color:var(--tx2)">البيان</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#DC2626;font-weight:700">عليه</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:700">له</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:11px;color:var(--tx2)">الرصيد</th>';
-    html += '<th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>';
+    html += '<thead><tr style="background:linear-gradient(90deg,var(--c3),var(--c2));border-bottom:2px solid var(--b2)">';
+    html += '<th style="padding:8px 8px;text-align:right;font-size:11px;color:var(--tx2);font-weight:800">📅 التاريخ</th>';
+    html += '<th style="padding:8px 8px;text-align:right;font-size:11px;color:var(--tx2);font-weight:800">🔖 النوع</th>';
+    html += '<th style="padding:8px 8px;text-align:right;font-size:11px;color:var(--tx2);font-weight:800">📝 البيان</th>';
+    html += '<th style="padding:8px 8px;text-align:center;font-size:11px;color:#DC2626;font-weight:800;background:rgba(220,38,38,.06);border-right:2px solid rgba(220,38,38,.15)">🔴 عليه</th>';
+    html += '<th style="padding:8px 8px;text-align:center;font-size:11px;color:#16A34A;font-weight:800;background:rgba(22,163,74,.06);border-right:2px solid rgba(22,163,74,.15)">🟢 له</th>';
+    html += '<th style="padding:8px 8px;text-align:center;font-size:11px;color:var(--g1);font-weight:800;background:var(--g4)">⚖️ الرصيد</th>';
+    html += '<th style="padding:8px 6px;text-align:center;font-size:10px;color:var(--tx2)">✏️</th>';
     html += '</tr></thead><tbody>' + _obRow2 + txRows + '</tbody></table></div>';
   } else {
     html += '<div class="empty" style="padding:14px"><p>لا توجد حركات</p></div>';
