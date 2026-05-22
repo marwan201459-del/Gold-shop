@@ -18945,4 +18945,751 @@ function gpAppendMsg(role, html){
 
 })();
 </script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ⚡ وضع التاجر السريع — Quick Merchant Mode v1.0
+     ADDITIVE ONLY — لا يُعدَّل أي كود موجود — معزول وآمن تماماً
+     ══════════════════════════════════════════════════════════════════ -->
+<style id="qm-styles">
+/* ═══ وضع التاجر السريع — CSS معزول بالكامل ═══ */
+
+/* ── شريط التبديل ── */
+#qm-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, var(--c2), rgba(200,150,30,.06));
+  border: 1.5px solid rgba(200,150,30,.18);
+  border-radius: var(--rb);
+  gap: 10px;
+}
+#qm-toggle-bar .qm-tb-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+#qm-toggle-bar .qm-tb-icon { font-size: 20px; flex-shrink:0; }
+#qm-toggle-bar .qm-tb-label {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--tx1);
+  line-height: 1.2;
+}
+#qm-toggle-bar .qm-tb-hint {
+  font-size: 10px;
+  color: var(--tx2);
+  margin-top: 2px;
+}
+
+/* ── زر التشغيل / الإيقاف ── */
+#qm-main-toggle {
+  position: relative;
+  width: 54px;
+  height: 30px;
+  background: var(--c3);
+  border: 1.5px solid var(--b2);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .22s ease;
+  flex-shrink: 0;
+}
+#qm-main-toggle::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--tx3);
+  transition: all .22s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+#qm-main-toggle.qm-on {
+  background: linear-gradient(135deg, var(--g3), var(--g1));
+  border-color: var(--g1);
+  box-shadow: 0 0 14px rgba(200,150,30,.38);
+}
+#qm-main-toggle.qm-on::after {
+  right: auto;
+  left: 4px;
+  background: #fff;
+}
+
+/* ── مؤشر الحفظ التلقائي ── */
+#qm-autosave-indicator {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--tx3);
+  font-weight: 600;
+  font-family: 'Tajawal', sans-serif;
+}
+#qm-autosave-indicator.qm-visible { display: flex; }
+#qm-autosave-indicator.qm-saved   { color: var(--ok); }
+#qm-autosave-indicator.qm-saving  { color: var(--io); }
+@keyframes qmDotPulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+#qm-autosave-indicator.qm-saving .qm-as-dot { animation: qmDotPulse .75s infinite; }
+.qm-as-dot { font-size: 9px; }
+
+/* ── شريط الأدوات السريعة (يظهر فقط وضع=ON) ── */
+#qm-toolbar {
+  display: none;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(200,150,30,.08), rgba(200,150,30,.03));
+  border: 1.5px solid var(--g5);
+  border-radius: var(--rb);
+  margin-bottom: 10px;
+  animation: qmSlideIn .2s ease;
+}
+@keyframes qmSlideIn {
+  from { opacity:0; transform:translateY(-8px); }
+  to   { opacity:1; transform:none; }
+}
+#qm-toolbar.qm-visible { display: flex; }
+
+/* أزرار الشريط السريع */
+.qm-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--b2);
+  border-radius: var(--rb);
+  background: var(--c1);
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  transition: all .15s ease;
+  flex: 1;
+  min-width: 58px;
+  outline: none;
+}
+.qm-btn:hover  { transform: translateY(-1px); box-shadow: var(--s2); }
+.qm-btn:active { transform: scale(.92); }
+.qm-btn .qm-bi { font-size: 24px; line-height: 1; }
+.qm-btn .qm-bl { font-size: 10px; font-weight: 800; color: var(--tx2); white-space: nowrap; }
+.qm-btn .qm-bk { font-size: 8px;  color: var(--tx3); font-weight: 600; letter-spacing: .2px; }
+
+/* ألوان حسب النوع */
+.qm-btn.qm-save  { border-color: var(--ok-bd);  background: var(--ok-bg); }
+.qm-btn.qm-save .qm-bl { color: var(--ok); }
+.qm-btn.qm-new   { border-color: var(--in-bd);  background: var(--in-bg); }
+.qm-btn.qm-new .qm-bl  { color: var(--in); }
+.qm-btn.qm-add   { border-color: var(--g5);     background: var(--g4);   }
+.qm-btn.qm-add .qm-bl  { color: var(--g1); }
+.qm-btn.qm-print { border-color: var(--pu-bd);  background: var(--pu-bg); }
+.qm-btn.qm-print .qm-bl { color: var(--pu); }
+.qm-btn.qm-clear { border-color: var(--no-bd);  background: var(--no-bg); }
+.qm-btn.qm-clear .qm-bl { color: var(--no); }
+
+/* ── شريط الاختصارات ── */
+#qm-shortcuts-bar {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--c2);
+  border-radius: var(--rc);
+  margin-bottom: 10px;
+  border: 1px solid var(--b1);
+}
+#qm-shortcuts-bar.qm-visible { display: flex; }
+.qm-sc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--tx2);
+  font-family: 'Tajawal', sans-serif;
+}
+.qm-sc kbd {
+  background: var(--c3);
+  border: 1px solid var(--b2);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 7px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--tx1);
+  font-family: 'Tajawal', sans-serif;
+  white-space: nowrap;
+}
+
+/* ══ الوضع السريع — تكبير العناصر الحيوية في صفحة الفاتورة فقط ══ */
+body.qm-on #inv-sec .btn {
+  padding: 16px 18px !important;
+  font-size: 16px !important;
+  min-height: 52px !important;
+}
+body.qm-on #inv-sec .btn-sm {
+  padding: 12px 22px !important;
+  font-size: 14px !important;
+  width: auto !important;
+  min-height: 44px !important;
+}
+body.qm-on #inv-sec .del-item {
+  width: 38px !important;
+  height: 38px !important;
+  font-size: 17px !important;
+  border-radius: 10px !important;
+}
+body.qm-on #inv-sec .fr input,
+body.qm-on #inv-sec .fr select {
+  padding: 13px 15px !important;
+  font-size: 16px !important;
+  min-height: 48px !important;
+}
+body.qm-on #inv-sec .fr label {
+  font-size: 12px !important;
+  margin-bottom: 7px !important;
+}
+body.qm-on #inv-sec .inv-summary input[type="number"] {
+  padding: 7px 10px !important;
+  font-size: 15px !important;
+  min-height: 38px !important;
+}
+body.qm-on #inv-sec .inv-sum-row .lbl { font-size: 13px !important; }
+body.qm-on #inv-sec .inv-sum-row .val { font-size: 15px !important; }
+body.qm-on #inv-sec .inv-sum-row.total-row .val { font-size: 22px !important; }
+body.qm-on #inv-sec .item-total { font-size: 16px !important; }
+
+/* ── تمييز الحقل النشط في الوضع السريع ── */
+body.qm-on #inv-sec input:focus,
+body.qm-on #inv-sec select:focus {
+  border-color: var(--g1) !important;
+  box-shadow: 0 0 0 4px rgba(200,150,30,.18) !important;
+  background: var(--c4) !important;
+  outline: 3px solid rgba(200,150,30,.12) !important;
+  outline-offset: 1px !important;
+}
+
+/* ── شاشات صغيرة ── */
+@media (max-width: 520px) {
+  .qm-btn { padding: 9px 10px; min-width: 48px; }
+  .qm-btn .qm-bi { font-size: 20px; }
+  .qm-btn .qm-bl { font-size: 9px; }
+  #qm-toolbar { gap: 5px; padding: 8px 10px; }
+}
+/* ── بانر الاستعادة ── */
+@keyframes qmBannerIn {
+  from { opacity:0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+</style>
+
+<script id="qm-script">
+/* ══════════════════════════════════════════════════════════════════
+   ⚡ وضع التاجر السريع — Quick Merchant Mode v1.0
+   ADDITIVE ONLY — لا يُعدَّل أي كود موجود
+   الاستراتيجية: Wrapper-Pattern فقط — آمن وقابل للتراجع
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  /* ── مفاتيح التخزين ── */
+  var QM_MODE_KEY  = 'qm_mode_v1';
+  var QM_DRAFT_KEY = 'qm_draft_v1';
+  var QM_FORM_KEY  = 'qm_form_v1';
+
+  /* ── حالة داخلية معزولة ── */
+  var QM = {
+    active: false,
+    saveTimer: null,
+    wrapsDone: false
+  };
+
+  /* ── مساعد DOM آمن ── */
+  function $i(id){ return document.getElementById(id); }
+  function qLog(m){ try{ console.log('[QM] '+m); }catch(e){} }
+
+  /* ══ 1. تهيئة ══ */
+  function qmInit(){
+    try {
+      qmInjectUI();
+      qmLoadMode();
+      qmBindKeyboard();
+      qmStartAutoSave();
+      qmApplyWrappers();
+      qmCheckRestore();
+      qLog('ready');
+    } catch(e){ qLog('init err: '+e.message); }
+  }
+
+  /* ══ 2. حقن واجهة الوضع السريع ══ */
+  function qmInjectUI(){
+    var pgTx = $i('pg-tx');
+    if(!pgTx){ qLog('pg-tx not found'); return; }
+    var cb = pgTx.querySelector('.card > .cb');
+    if(!cb){ qLog('.cb not found'); return; }
+
+    /* ── شريط التبديل الرئيسي ── */
+    var bar = document.createElement('div');
+    bar.id = 'qm-toggle-bar';
+    bar.innerHTML =
+      '<div class="qm-tb-left">' +
+        '<span class="qm-tb-icon">⚡</span>' +
+        '<div>' +
+          '<div class="qm-tb-label">وضع التاجر السريع</div>' +
+          '<div class="qm-tb-hint">أزرار كبيرة · حفظ تلقائي · اختصارات كيبورد</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
+        '<div id="qm-autosave-indicator" role="status" aria-live="polite">' +
+          '<span class="qm-as-dot">●</span>' +
+          '<span id="qm-as-txt">حفظ تلقائي</span>' +
+        '</div>' +
+        '<div id="qm-main-toggle" onclick="QM_toggle()" title="تشغيل / إيقاف وضع التاجر السريع" role="switch" aria-checked="false"></div>' +
+      '</div>';
+    cb.insertBefore(bar, cb.firstChild);
+
+    /* ── شريط الأدوات السريعة ── */
+    var tb = document.createElement('div');
+    tb.id = 'qm-toolbar';
+    tb.setAttribute('role','toolbar');
+    tb.setAttribute('aria-label','أدوات الوضع السريع');
+    tb.innerHTML =
+      '<button class="qm-btn qm-add" onclick="addItem();QM_focusNewItem()" title="إضافة صنف (Insert)">' +
+        '<span class="qm-bi">＋</span>' +
+        '<span class="qm-bl">صنف جديد</span>' +
+        '<span class="qm-bk">Ins</span>' +
+      '</button>' +
+      '<button class="qm-btn qm-save" onclick="saveInvoice()" title="حفظ الفاتورة (Ctrl+S)">' +
+        '<span class="qm-bi">💾</span>' +
+        '<span class="qm-bl">حفظ</span>' +
+        '<span class="qm-bk">Ctrl+S</span>' +
+      '</button>' +
+      '<button class="qm-btn qm-new" onclick="QM_newInvoice()" title="فاتورة جديدة (F2)">' +
+        '<span class="qm-bi">🆕</span>' +
+        '<span class="qm-bl">جديدة</span>' +
+        '<span class="qm-bk">F2</span>' +
+      '</button>' +
+      '<button class="qm-btn qm-print" onclick="QM_printLast()" title="طباعة آخر فاتورة (Ctrl+P)">' +
+        '<span class="qm-bi">🖨️</span>' +
+        '<span class="qm-bl">طباعة</span>' +
+        '<span class="qm-bk">Ctrl+P</span>' +
+      '</button>' +
+      '<button class="qm-btn qm-clear" onclick="QM_clearForm()" title="مسح الفاتورة (Esc)">' +
+        '<span class="qm-bi">🗑️</span>' +
+        '<span class="qm-bl">مسح</span>' +
+        '<span class="qm-bk">Esc</span>' +
+      '</button>';
+    cb.insertBefore(tb, bar.nextSibling);
+
+    /* ── شريط الاختصارات ── */
+    var sc = document.createElement('div');
+    sc.id = 'qm-shortcuts-bar';
+    sc.innerHTML =
+      '<span class="qm-sc"><kbd>Enter</kbd> حقل تالي</span>' +
+      '<span class="qm-sc"><kbd>Ctrl+S</kbd> حفظ</span>' +
+      '<span class="qm-sc"><kbd>F2</kbd> جديدة</span>' +
+      '<span class="qm-sc"><kbd>Ins</kbd> صنف</span>' +
+      '<span class="qm-sc"><kbd>Esc</kbd> مسح</span>' +
+      '<span class="qm-sc"><kbd>Tab</kbd> تنقل</span>';
+    cb.insertBefore(sc, tb.nextSibling);
+  }
+
+  /* ══ 3. تحميل وتطبيق حالة الوضع ══ */
+  function qmLoadMode(){
+    try { QM.active = localStorage.getItem(QM_MODE_KEY) === '1'; } catch(e){}
+    qmRenderMode();
+  }
+
+  function qmRenderMode(){
+    var tog = $i('qm-main-toggle');
+    var tb  = $i('qm-toolbar');
+    var sc  = $i('qm-shortcuts-bar');
+    var ind = $i('qm-autosave-indicator');
+    if(tog){ tog.classList.toggle('qm-on', QM.active); tog.setAttribute('aria-checked', QM.active?'true':'false'); }
+    if(tb)  tb.classList.toggle('qm-visible', QM.active);
+    if(sc)  sc.classList.toggle('qm-visible', QM.active);
+    if(ind) ind.classList.toggle('qm-visible', QM.active);
+    document.body.classList.toggle('qm-on', QM.active);
+  }
+
+  /* ══ 4. زر التبديل — مُصدَّر عالمياً ══ */
+  window.QM_toggle = function(){
+    QM.active = !QM.active;
+    try { localStorage.setItem(QM_MODE_KEY, QM.active ? '1' : '0'); } catch(e){}
+    qmRenderMode();
+    if(typeof toast === 'function'){
+      toast(QM.active
+        ? '⚡ وضع التاجر السريع — مُفعَّل'
+        : '🔄 وضع التاجر السريع — مُعطَّل');
+    }
+  };
+
+  /* ══ 5. إجراءات الوضع السريع ══ */
+
+  /* فاتورة جديدة سريعة */
+  window.QM_newInvoice = function(){
+    try {
+      if(typeof clearInvForm === 'function') clearInvForm();
+      /* ننتقل لصفحة الفاتورة إن لم نكن فيها */
+      var pgTx = $i('pg-tx');
+      if(pgTx && !pgTx.classList.contains('on')){
+        var txTab = document.querySelector('.tab[onclick*="\'tx\'"]');
+        if(txTab) txTab.click();
+      }
+      /* تركيز على حقل العميل */
+      setTimeout(function(){
+        var cli = $i('f-cli-s');
+        if(cli){ cli.focus(); cli.select(); }
+      }, 100);
+      qmClearDraftStorage();
+      qmSetIndicator('ready');
+      qLog('new invoice');
+    } catch(e){ qLog('newInv err: '+e.message); }
+  };
+
+  /* تركيز على أول حقل في آخر صنف مضاف */
+  window.QM_focusNewItem = function(){
+    setTimeout(function(){
+      try {
+        var items = document.querySelectorAll('#inv-items-list .inv-item');
+        if(!items.length) return;
+        var last = items[items.length - 1];
+        var firstField = last.querySelector('select, input[type="number"]');
+        if(firstField){ firstField.focus(); if(firstField.tagName==='INPUT') firstField.select(); }
+      } catch(e){}
+    }, 80);
+  };
+
+  /* مسح الفورم */
+  window.QM_clearForm = function(){
+    try {
+      if(typeof draftItems !== 'undefined' && draftItems && draftItems.length > 0){
+        if(!confirm('هل تريد مسح الفاتورة الحالية؟')) return;
+      }
+      if(typeof clearInvForm === 'function') clearInvForm();
+      qmClearDraftStorage();
+      qmSetIndicator('ready');
+      if(typeof toast === 'function') toast('🔄 تم مسح الفاتورة');
+    } catch(e){}
+  };
+
+  /* طباعة آخر فاتورة */
+  window.QM_printLast = function(){
+    try {
+      var S = window.S;
+      if(!S || !S.transactions || !S.transactions.length){
+        if(typeof toast === 'function') toast('⚠️ لا توجد فاتورة للطباعة');
+        return;
+      }
+      var invTypes = ['sell','sell-debt','buy','buy-debt'];
+      var last = S.transactions.find(function(t){ return invTypes.indexOf(t.type) >= 0; });
+      if(!last){
+        if(typeof toast === 'function') toast('⚠️ لا توجد فاتورة للطباعة');
+        return;
+      }
+      /* محاولة فتح نافذة تفاصيل الفاتورة */
+      if(typeof openInvModal === 'function') openInvModal(last.id);
+      else if(typeof showTx === 'function') showTx(last.id);
+      else if(typeof openM === 'function') openM('m-inv');
+      else if(typeof toast === 'function') toast('💡 افتح السجل واختر الفاتورة للطباعة');
+    } catch(e){ qLog('printLast err: '+e.message); }
+  };
+
+  /* ══ 6. اختصارات الكيبورد ══ */
+  function qmBindKeyboard(){
+    document.addEventListener('keydown', function(e){
+      try {
+        var inInvPage = (function(){
+          var p = $i('pg-tx');
+          return p && p.classList.contains('on');
+        })();
+
+        /* Ctrl+S — حفظ الفاتورة */
+        if(e.ctrlKey && !e.altKey && (e.key==='s'||e.key==='S'||e.keyCode===83)){
+          if(inInvPage){
+            e.preventDefault(); e.stopPropagation();
+            if(typeof saveInvoice === 'function') saveInvoice();
+            return;
+          }
+        }
+
+        /* F2 — فاتورة جديدة / الانتقال لصفحة الفاتورة */
+        if(e.key==='F2' || e.keyCode===113){
+          e.preventDefault();
+          if(inInvPage){ QM_newInvoice(); }
+          else {
+            var txTab = document.querySelector('.tab[onclick*="\'tx\'"]');
+            if(txTab){ txTab.click(); setTimeout(function(){ var c=$i('f-cli-s'); if(c){c.focus();c.select();} }, 150); }
+          }
+          return;
+        }
+
+        /* Insert — إضافة صنف جديد */
+        if((e.key==='Insert'||e.keyCode===45) && inInvPage){
+          e.preventDefault();
+          if(typeof addItem === 'function'){ addItem(); window.QM_focusNewItem(); }
+          return;
+        }
+
+        /* Esc — مسح الفاتورة إذا كانت فارغة */
+        if((e.key==='Escape'||e.keyCode===27) && inInvPage){
+          /* لا تتدخل إذا كان هناك عنصر تراكبي مفتوح */
+          var hasOverlay = document.querySelector('.modal.open, .sdrop.open');
+          if(hasOverlay) return;
+          var isEmpty = (typeof draftItems === 'undefined' || !draftItems || draftItems.length === 0);
+          if(isEmpty){
+            var cli = $i('f-cli-s');
+            if(cli && cli.value){ clearInvForm && clearInvForm(); }
+          }
+          return;
+        }
+
+        /* Enter — انتقال للحقل التالي في الوضع السريع */
+        if((e.key==='Enter'||e.keyCode===13) && QM.active){
+          var el = document.activeElement;
+          if(el && (el.tagName==='INPUT'||el.tagName==='SELECT') && el.type!=='checkbox'){
+            var invSec = $i('inv-sec');
+            if(invSec && invSec.contains(el)){
+              e.preventDefault();
+              qmFocusNext(el, invSec);
+            }
+          }
+        }
+
+      } catch(err){ qLog('key err: '+err.message); }
+    }, true); /* capture=true لضمان الأسبقية */
+  }
+
+  /* التنقل للحقل التالي */
+  function qmFocusNext(current, container){
+    try {
+      var allFields = Array.from(container.querySelectorAll(
+        'input:not([type="hidden"]):not([type="checkbox"]):not([disabled]),' +
+        'select:not([disabled])'
+      )).filter(function(f){ return f.offsetParent !== null && !f.readOnly; });
+      var idx = allFields.indexOf(current);
+      if(idx >= 0 && idx < allFields.length - 1){
+        var next = allFields[idx + 1];
+        next.focus();
+        if(next.tagName === 'INPUT') next.select();
+      } else if(idx === allFields.length - 1){
+        /* آخر حقل — حفظ تلقائي */
+        if(typeof draftItems !== 'undefined' && draftItems && draftItems.length > 0){
+          if(typeof saveInvoice === 'function') saveInvoice();
+        }
+      }
+    } catch(e){}
+  }
+
+  /* ══ 7. الحفظ التلقائي ══ */
+  function qmStartAutoSave(){
+    if(QM.saveTimer) clearInterval(QM.saveTimer);
+    QM.saveTimer = setInterval(function(){
+      try {
+        var pgTx = $i('pg-tx');
+        if(!pgTx || !pgTx.classList.contains('on')) return;
+        if(typeof draftItems === 'undefined' || !draftItems || !draftItems.length) return;
+        qmDoAutoSave();
+      } catch(e){}
+    }, 2500);
+  }
+
+  function qmDoAutoSave(){
+    try {
+      qmSetIndicator('saving');
+      /* حفظ الأصناف */
+      localStorage.setItem(QM_DRAFT_KEY, JSON.stringify(draftItems));
+      /* حفظ بيانات الفورم */
+      var fd = {
+        cliS:  ($i('f-cli-s')||{}).value||'',
+        cliV:  ($i('f-cli-v')||{}).value||'',
+        date:  ($i('f-date')||{}).value||'',
+        notes: ($i('f-notes')||{}).value||'',
+        disc:  ($i('f-discount')||{}).value||'',
+        ship:  ($i('f-shipping')||{}).value||'',
+        exAmt: ($i('f-extra-amount')||{}).value||'',
+        exDsc: ($i('f-extra-desc')||{}).value||'',
+        vat:   !!($i('vat-check')||{}).checked,
+        sType: typeof selType !== 'undefined' ? selType : 'sell',
+        ts:    Date.now()
+      };
+      localStorage.setItem(QM_FORM_KEY, JSON.stringify(fd));
+      setTimeout(function(){ qmSetIndicator('saved'); }, 350);
+    } catch(e){ qmSetIndicator('ready'); }
+  }
+
+  function qmSetIndicator(state){
+    try {
+      var ind = $i('qm-autosave-indicator');
+      var txt = $i('qm-as-txt');
+      if(!ind || !txt) return;
+      ind.classList.remove('qm-saved', 'qm-saving');
+      if(state === 'saving'){
+        ind.classList.add('qm-saving');
+        txt.textContent = 'جاري الحفظ...';
+      } else if(state === 'saved'){
+        ind.classList.add('qm-saved');
+        var d = new Date();
+        txt.textContent = 'حُفظ ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+        setTimeout(function(){
+          if(ind){ ind.classList.remove('qm-saved'); txt.textContent = 'حفظ تلقائي'; }
+        }, 4000);
+      } else {
+        txt.textContent = 'حفظ تلقائي';
+      }
+    } catch(e){}
+  }
+
+  function qmClearDraftStorage(){
+    try { localStorage.removeItem(QM_DRAFT_KEY); localStorage.removeItem(QM_FORM_KEY); } catch(e){}
+  }
+
+  /* ══ 8. استعادة المسودة المحفوظة ══ */
+  function qmCheckRestore(){
+    try {
+      var rawDraft = localStorage.getItem(QM_DRAFT_KEY);
+      var rawForm  = localStorage.getItem(QM_FORM_KEY);
+      if(!rawDraft) return;
+      var items = JSON.parse(rawDraft);
+      if(!Array.isArray(items) || !items.length) return;
+      var fd = rawForm ? JSON.parse(rawForm) : null;
+      /* تجاهل البيانات القديمة (أكثر من 12 ساعة) */
+      if(fd && fd.ts && (Date.now() - fd.ts) > 43200000){
+        qmClearDraftStorage(); return;
+      }
+      setTimeout(function(){ qmShowRestoreBanner(items, fd); }, 1500);
+    } catch(e){}
+  }
+
+  function qmShowRestoreBanner(items, fd){
+    try {
+      /* لا نستعيد إذا الفاتورة الحالية مشغولة */
+      if(typeof draftItems !== 'undefined' && draftItems && draftItems.length > 0) return;
+      var existing = $i('qm-restore-banner');
+      if(existing) existing.parentNode.removeChild(existing);
+
+      var clientInfo = (fd && fd.cliS) ? ' · ' + fd.cliS : '';
+      var timeInfo   = (fd && fd.ts)   ? ' · ' + new Date(fd.ts).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'}) : '';
+
+      var banner = document.createElement('div');
+      banner.id = 'qm-restore-banner';
+      banner.style.cssText =
+        'position:fixed;bottom:72px;left:50%;transform:translateX(-50%);' +
+        'background:linear-gradient(135deg,#1A1400,#3D2B00);' +
+        'border:1.5px solid rgba(200,150,30,.55);border-radius:16px;' +
+        'padding:13px 16px;box-shadow:0 10px 40px rgba(0,0,0,.50);' +
+        'z-index:1001;min-width:270px;max-width:340px;' +
+        'font-family:Tajawal,sans-serif;direction:rtl;' +
+        'animation:qmBannerIn .3s ease;';
+      banner.innerHTML =
+        '<div style="font-size:12px;font-weight:900;color:#F0C040;margin-bottom:5px">⚡ مسودة فاتورة غير محفوظة</div>' +
+        '<div style="font-size:11px;color:rgba(255,255,255,.50);margin-bottom:11px">' +
+          items.length + ' صنف' + clientInfo + timeInfo +
+        '</div>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button id="qm-restore-yes" style="flex:1;padding:9px;border-radius:10px;border:none;' +
+            'background:linear-gradient(135deg,#7A5C10,#C8961E);color:#0A0600;font-family:Tajawal,sans-serif;' +
+            'font-size:12px;font-weight:900;cursor:pointer">✅ استعادة</button>' +
+          '<button id="qm-restore-no"  style="flex:1;padding:9px;border-radius:10px;' +
+            'border:1.5px solid rgba(229,85,85,.35);background:rgba(229,85,85,.12);color:#FF8888;' +
+            'font-family:Tajawal,sans-serif;font-size:12px;font-weight:700;cursor:pointer">🗑️ تجاهل</button>' +
+        '</div>';
+      document.body.appendChild(banner);
+
+      $i('qm-restore-yes').onclick = function(){ QM_restoreDraft(items, fd); };
+      $i('qm-restore-no').onclick  = function(){ qmClearDraftStorage(); banner.parentNode && banner.parentNode.removeChild(banner); };
+
+      /* إخفاء تلقائي بعد 12 ثانية */
+      setTimeout(function(){ banner.parentNode && banner.parentNode.removeChild(banner); }, 12000);
+    } catch(e){}
+  }
+
+  window.QM_restoreDraft = function(items, fd){
+    try {
+      /* استعادة الأصناف */
+      if(typeof draftItems !== 'undefined'){
+        while(draftItems.length) draftItems.pop();
+        items.forEach(function(it){ draftItems.push(it); });
+        if(typeof itemCounter !== 'undefined'){
+          itemCounter = items.reduce(function(mx,it){ return Math.max(mx, it.id||0); }, 0);
+        }
+        if(typeof renderDraftItems === 'function') renderDraftItems();
+      }
+      /* استعادة الفورم */
+      if(fd){
+        function setV(id,val){ var el=$i(id); if(el&&val) el.value=val; }
+        setV('f-cli-s', fd.cliS); setV('f-cli-v', fd.cliV);
+        setV('f-date',  fd.date);  setV('f-notes', fd.notes);
+        setV('f-discount', fd.disc); setV('f-shipping', fd.ship);
+        setV('f-extra-amount', fd.exAmt); setV('f-extra-desc', fd.exDsc);
+        var vc = $i('vat-check'); if(vc) vc.checked = !!fd.vat;
+        if(typeof renderInvSummary === 'function') renderInvSummary();
+        /* الانتقال لصفحة الفاتورة */
+        var pgTx = $i('pg-tx');
+        if(!pgTx || !pgTx.classList.contains('on')){
+          var txTab = document.querySelector('.tab[onclick*="\'tx\'"]');
+          if(txTab) txTab.click();
+        }
+      }
+      /* إزالة البانر */
+      var banner = $i('qm-restore-banner');
+      if(banner) banner.parentNode.removeChild(banner);
+      if(typeof toast === 'function') toast('✅ تمت استعادة المسودة');
+      qmSetIndicator('saved');
+    } catch(e){ qLog('restore err: '+e.message); }
+  };
+
+  /* ══ 9. Wrapper آمن لـ saveInvoice — يمسح المسودة بعد الحفظ ══ */
+  function qmApplyWrappers(){
+    if(QM.wrapsDone) return;
+    /* نحتاج الدوال تكون معرّفة أولاً */
+    var attempts = 0;
+    var tryWrap = function(){
+      attempts++;
+      if(attempts > 20) return;
+      /* Wrap saveInvoice */
+      if(typeof window.saveInvoice === 'function' && !window.saveInvoice.__qmWrapped){
+        var orig = window.saveInvoice;
+        window.saveInvoice = function(){
+          var r = orig.apply(this, arguments);
+          setTimeout(function(){
+            qmClearDraftStorage();
+            qmSetIndicator('ready');
+          }, 300);
+          return r;
+        };
+        window.saveInvoice.__qmWrapped = true;
+      }
+      /* Wrap clearInvForm */
+      if(typeof window.clearInvForm === 'function' && !window.clearInvForm.__qmWrapped){
+        var origClear = window.clearInvForm;
+        window.clearInvForm = function(){
+          var r = origClear.apply(this, arguments);
+          qmClearDraftStorage();
+          qmSetIndicator('ready');
+          return r;
+        };
+        window.clearInvForm.__qmWrapped = true;
+      }
+      /* تحقق هل تم الـ wrap؟ */
+      if(window.saveInvoice && window.saveInvoice.__qmWrapped &&
+         window.clearInvForm && window.clearInvForm.__qmWrapped){
+        QM.wrapsDone = true;
+        qLog('wrappers applied');
+        return;
+      }
+      setTimeout(tryWrap, 300);
+    };
+    setTimeout(tryWrap, 500);
+  }
+
+  /* ══ 10. بدء التهيئة ══ */
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', qmInit);
+  } else {
+    setTimeout(qmInit, 150);
+  }
+
+})();
+</script>
 </body>
