@@ -2343,32 +2343,107 @@ body{
 ═══════════════════════════════════════════════════ -->
 <div id="pg-dist-opening" class="pg">
 
-  <!-- رأس الصفحة -->
-  <div style="background:linear-gradient(135deg,var(--ok-bg),rgba(34,199,122,.03));border:1.5px solid var(--ok-bd);border-radius:var(--ra);padding:14px 16px;margin-bottom:14px">
+  <!-- رأس الصفحة — نفس تصميم المالك -->
+  <div style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.04));border:1.5px solid var(--g5);border-radius:var(--ra);padding:14px 16px;margin-bottom:14px">
     <div style="display:flex;align-items:flex-start;gap:10px">
-      <div style="font-size:28px;flex-shrink:0">🏁</div>
-      <div style="flex:1">
-        <div style="font-size:15px;font-weight:900;color:var(--tx1);margin-bottom:3px">رصيدي الافتتاحي <span id="dist-ob-username-lbl" style="font-size:11px;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd);border-radius:20px;padding:2px 10px;font-weight:800;margin-right:4px"></span></div>
-        <div style="font-size:11px;color:var(--tx2);line-height:1.7">سجّل هنا أرصدتك الابتدائية قبل بداية العمل على النظام — كل بند بمصدره وملاحظته.</div>
+      <div style="font-size:26px;flex-shrink:0">🏁</div>
+      <div>
+        <div style="font-size:15px;font-weight:900;color:var(--g1);margin-bottom:4px">رصيدي الافتتاحي <span id="dist-ob-username-lbl" style="font-size:11px;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd);border-radius:20px;padding:2px 10px;font-weight:800;margin-right:4px"></span></div>
+        <div style="font-size:12px;color:var(--tx2);line-height:1.7">سجّل هنا أرصدتك الموجودة <b>قبل بداية استخدام النظام</b>. تُعامَل كرصيد ابتدائي ولا تؤثر على حسابات الربح.</div>
       </div>
     </div>
   </div>
 
-  <!-- زر إضافة بند جديد -->
-  <button class="btn btn-gold" onclick="distObAddEntry()" style="width:100%;margin-bottom:14px;font-size:14px;padding:13px">
-    ＋ إضافة بند جديد
-  </button>
+  <!-- ══ كارت الإضافة — مطابق لواجهة المالك ══ -->
+  <div class="card" style="margin-bottom:12px;border:2px solid var(--g5)">
+    <div class="ch" style="background:linear-gradient(135deg,var(--g4),rgba(200,150,30,.08))">
+      <span>🏁 إضافة رصيد افتتاحي جديد</span>
+      <button class="btn-sm btn-outline" onclick="_dObpro_renderList()" style="font-size:11px">🔄 تحديث السجل</button>
+    </div>
+    <div class="cb">
+      <!-- نوع الرصيد -->
+      <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:8px">نوع الرصيد الافتتاحي</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <button type="button" id="dist-obpro-type-cash"
+          onclick="_dObpro_setType('cash')"
+          style="padding:12px 8px;border-radius:12px;border:2px solid var(--ok-bd);background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s">
+          💵 رصيد نقدي (ريال)
+        </button>
+        <button type="button" id="dist-obpro-type-gold"
+          onclick="_dObpro_setType('gold')"
+          style="padding:12px 8px;border-radius:12px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s">
+          🥇 رصيد ذهب (جرام)
+        </button>
+      </div>
 
-  <!-- قائمة البنود -->
-  <div id="dist-ob-entries-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>
+      <!-- حقل العيار (يظهر عند اختيار ذهب) -->
+      <div id="dist-obpro-karat-row" style="display:none;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:6px">العيار</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+          <button type="button" id="dist-obpro-k18" onclick="_dObpro_setKarat('18')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 18</button>
+          <button type="button" id="dist-obpro-k21" onclick="_dObpro_setKarat('21')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 21</button>
+          <button type="button" id="dist-obpro-k22" onclick="_dObpro_setKarat('22')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 22</button>
+          <button type="button" id="dist-obpro-k24" onclick="_dObpro_setKarat('24')"
+            style="padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">عيار 24</button>
+        </div>
+      </div>
 
-  <!-- زر الحفظ -->
-  <button class="btn btn-gold" onclick="distObSave()" id="dist-ob-save-btn" style="width:100%;padding:13px;font-size:14px;display:none">
-    💾 حفظ جميع البنود
-  </button>
+      <!-- المبلغ / الوزن -->
+      <div class="fr">
+        <label id="dist-obpro-amount-lbl">💵 المبلغ (ريال)</label>
+        <input type="number" id="dist-obpro-amount" placeholder="0" inputmode="decimal" step="0.01"
+          style="border:2px solid var(--ok-bd);font-size:18px;font-weight:900;color:var(--ok)">
+      </div>
 
-  <!-- ملخص مرئي بعد الحفظ -->
-  <div id="dist-ob-summary" style="margin-top:12px"></div>
+      <!-- الصندوق -->
+      <div class="fr">
+        <label>🗄️ الصندوق</label>
+        <select id="dist-obpro-safe"></select>
+      </div>
+
+      <!-- الملاحظة / الوصف -->
+      <div class="fr">
+        <label>📝 ملاحظة / وصف</label>
+        <input type="text" id="dist-obpro-note" placeholder="مثال: رصيد أول المشروع، جرد بداية السنة...">
+      </div>
+
+      <!-- التاريخ والمستخدم -->
+      <div class="g2">
+        <div class="fr">
+          <label>📅 التاريخ</label>
+          <input type="date" id="dist-obpro-date">
+        </div>
+        <div class="fr">
+          <label>👤 المستخدم</label>
+          <input type="text" id="dist-obpro-user" placeholder="اسم المستخدم" readonly
+            style="background:var(--c2);color:var(--tx2)">
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="_dObpro_save()" style="margin-top:4px">
+        🏁 إضافة الرصيد الافتتاحي
+      </button>
+    </div>
+  </div>
+
+  <!-- سجل الأرصدة الافتتاحية للموزع -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ch" style="justify-content:space-between">
+      <span>📋 سجل الأرصدة الافتتاحية</span>
+      <span id="dist-obpro-count-badge" style="font-size:10px;background:var(--g4);color:var(--g1);padding:2px 10px;border-radius:20px;border:1px solid var(--g5)">0 إدخال</span>
+    </div>
+    <div class="cb" id="dist-obpro-list">
+      <div class="empty"><div class="ei">🏁</div><p>لا توجد أرصدة افتتاحية مضافة بعد</p></div>
+    </div>
+  </div>
+
+  <!-- عناصر مخفية للتوافقية مع الكود القديم — لا تُحذف -->
+  <div id="dist-ob-entries-list" style="display:none"></div>
+  <div id="dist-ob-summary" style="display:none"></div>
+  <button id="dist-ob-save-btn" style="display:none" onclick="distObSave()">💾</button>
 </div>
 
 <div id="pg-backup" class="pg">
@@ -15188,6 +15263,225 @@ function distObRenderSummary(){
     </div>`:''}
   </div>`;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 🏁 DIST-OBPRO — رصيد الافتتاحي للموزع (واجهة مطابقة لواجهة المالك)
+// يحفظ البيانات تحت حساب الموزع الخاص به — مستقل تماماً عن المالك
+// لا يمس الدوال القديمة distOb* وتبقى سليمة للتوافقية
+// ══════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  let _dCurType  = 'cash';
+  let _dCurKarat = '21';
+
+  function _dSafeLabel(k){
+    const SM = window.getSM ? window.getSM() : {};
+    return SM[k] ? SM[k].label : k;
+  }
+
+  window._dObpro_setType = function(t){
+    _dCurType = t;
+    const cash = document.getElementById('dist-obpro-type-cash');
+    const gold = document.getElementById('dist-obpro-type-gold');
+    const kar  = document.getElementById('dist-obpro-karat-row');
+    const lbl  = document.getElementById('dist-obpro-amount-lbl');
+    const inp  = document.getElementById('dist-obpro-amount');
+    if(!cash||!gold) return;
+    if(t==='cash'){
+      cash.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--ok-bd);background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      gold.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      if(kar) kar.style.display='none';
+      if(lbl) lbl.textContent='💵 المبلغ (ريال)';
+      if(inp){ inp.step='0.01'; inp.style.borderColor='var(--ok-bd)'; inp.style.color='var(--ok)'; inp.placeholder='0.00'; }
+    } else {
+      gold.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--g5);background:var(--g4);color:var(--g1);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      cash.style.cssText='padding:12px 8px;border-radius:12px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s';
+      if(kar) kar.style.display='block';
+      if(lbl) lbl.textContent='🥇 الوزن (جرام)';
+      if(inp){ inp.step='0.001'; inp.style.borderColor='var(--g5)'; inp.style.color='var(--g1)'; inp.placeholder='0.000'; }
+    }
+    _dObpro_fillSafes();
+  };
+
+  window._dObpro_setKarat = function(k){
+    _dCurKarat = k;
+    ['18','21','22','24'].forEach(x=>{
+      const btn = document.getElementById('dist-obpro-k'+x);
+      if(!btn) return;
+      btn.style.cssText = x===k
+        ? 'padding:10px;border-radius:10px;border:2px solid var(--g1);background:var(--g4);color:var(--g1);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer'
+        : 'padding:10px;border-radius:10px;border:2px solid var(--b2);background:var(--c2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer';
+    });
+    _dObpro_fillSafes();
+  };
+
+  function _dObpro_fillSafes(){
+    const sel = document.getElementById('dist-obpro-safe');
+    if(!sel) return;
+    const SM = window.getSM ? window.getSM() : {};
+    const prev = sel.value;
+    sel.innerHTML = '';
+    Object.entries(SM).forEach(([k,v])=>{
+      if(k==='discount'||k.startsWith('debt')) return;
+      const t = v.type||'cash';
+      if(_dCurType==='cash' && t==='gold') return;
+      if(_dCurType==='gold' && t==='cash') return;
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = v.label;
+      sel.appendChild(opt);
+    });
+    if(prev && sel.querySelector(`option[value="${prev}"]`)) sel.value=prev;
+  }
+
+  window._dObpro_save = function(){
+    const amt  = parseFloat(document.getElementById('dist-obpro-amount')?.value)||0;
+    const safe = document.getElementById('dist-obpro-safe')?.value||'cash';
+    const note = document.getElementById('dist-obpro-note')?.value||'';
+    const dv   = document.getElementById('dist-obpro-date')?.value;
+    const user = document.getElementById('dist-obpro-user')?.value||sessionStorage.getItem('auth-user')||'—';
+
+    if(!amt||amt<=0){ if(window.toast) toast('⚠️ أدخل مبلغاً أو وزناً صحيحاً'); return; }
+    if(!safe){ if(window.toast) toast('⚠️ اختر الصندوق'); return; }
+
+    const txDate    = dv ? new Date(dv).toISOString() : new Date().toISOString();
+    const safeLabel = _dSafeLabel(safe);
+    const karatLbl  = _dCurType==='gold' ? (' عيار '+_dCurKarat) : '';
+
+    const tx = {
+      id: Date.now(),
+      date: txDate,
+      type: 'opening-balance',
+      subType: _dCurType==='cash' ? 'opening-balance-cash' : 'opening-balance-gold',
+      balanceType: _dCurType,
+      safeKey: safe,
+      safeLabel,
+      amount:     _dCurType==='cash' ? amt : 0,
+      goldWeight: _dCurType==='gold' ? amt : 0,
+      goldKarat: _dCurKarat,
+      karat: _dCurKarat,
+      notes: note || ('🏁 رصيد افتتاحي'+karatLbl+' — '+safeLabel),
+      user, staff: user,
+      distUser: user,   // علامة تمييز: هذا الرصيد يخص الموزع
+      client:'', items:[], total: _dCurType==='cash' ? amt : 0,
+      isOpeningBalance: true,
+    };
+
+    if(!window.S.openingBalance)        window.S.openingBalance = {safes:{},clients:{}};
+    if(!window.S.openingBalance.safes)  window.S.openingBalance.safes = {};
+    const obSafes = window.S.openingBalance.safes;
+    // نستخدم نفس نمط مفتاح الموزع المعتمد في النظام القائم
+    const _dKey = '_distOB_'+user+'_'+safe;
+    if(_dCurType==='cash'){
+      obSafes[_dKey] = (obSafes[_dKey]||0) + amt;
+    } else {
+      obSafes[_dKey] = (obSafes[_dKey]||0) + amt;
+    }
+
+    if(!window.S.transactions) window.S.transactions = [];
+    window.S.transactions.unshift(tx);
+    if(window.sv) window.sv();
+    if(window.renderAll) window.renderAll();
+    _dObpro_renderList();
+
+    const amtEl = document.getElementById('dist-obpro-amount');
+    const noteEl = document.getElementById('dist-obpro-note');
+    if(amtEl) amtEl.value='';
+    if(noteEl) noteEl.value='';
+
+    const valStr = _dCurType==='cash'
+      ? (window.fmt?fmt(amt):amt)+' ريال'
+      : (window.fmtG?fmtG(amt):amt)+' جرام ع'+_dCurKarat;
+    if(window.toast) toast('✅ تم إضافة رصيد افتتاحي — '+safeLabel+': '+valStr);
+    if(window.logActivity) logActivity('dist-ob-save','إضافة رصيد افتتاحي موزع '+(_dCurType==='cash'?'نقدي':'ذهبي')+' — '+safeLabel);
+  };
+
+  window._dObpro_delete = function(txId){
+    const tx = (window.S?.transactions||[]).find(t=>t.id===txId);
+    if(!tx||!tx.isOpeningBalance||!tx.distUser) return;
+    if(!confirm('⚠️ حذف هذا الرصيد الافتتاحي؟\nسيُعاد حساب الأرصدة تلقائياً.')) return;
+    const obSafes = window.S?.openingBalance?.safes||{};
+    const _dKey = '_distOB_'+(tx.distUser||tx.user)+'_'+tx.safeKey;
+    if(tx.balanceType==='cash'){
+      obSafes[_dKey] = (obSafes[_dKey]||0) - (tx.amount||0);
+    } else {
+      obSafes[_dKey] = (obSafes[_dKey]||0) - (tx.goldWeight||0);
+    }
+    window.S.transactions = (window.S.transactions||[]).filter(t=>t.id!==txId);
+    if(window.sv) window.sv();
+    if(window.renderAll) window.renderAll();
+    _dObpro_renderList();
+    if(window.toast) toast('🗑️ تم حذف الرصيد الافتتاحي');
+  };
+
+  window._dObpro_renderList = function(){
+    const el    = document.getElementById('dist-obpro-list');
+    const badge = document.getElementById('dist-obpro-count-badge');
+    if(!el) return;
+    const curUser = sessionStorage.getItem('auth-user')||'';
+    const txs = (window.S?.transactions||[]).filter(t=>
+      (t.isOpeningBalance||t.type==='opening-balance') && t.distUser===curUser
+    );
+    if(badge) badge.textContent = txs.length+' إدخال';
+    if(!txs.length){
+      el.innerHTML='<div class="empty"><div class="ei">🏁</div><p>لا توجد أرصدة افتتاحية بعد</p></div>';
+      return;
+    }
+    const _f = n => window.fmt?fmt(n||0):(n||0).toLocaleString('ar-SA');
+    const _g = n => window.fmtG?fmtG(n||0):(n||0).toFixed(3);
+    const rows = txs.map(tx=>{
+      const dt     = window.fmtDate?fmtDate(tx.date):{ar:tx.date?.substring(0,10)||''};
+      const isCash = tx.balanceType==='cash'||tx.subType==='opening-balance-cash';
+      const val    = isCash ? _f(tx.amount||0)+' ريال' : _g(tx.goldWeight||tx.amount||0)+' جرام ع'+(tx.goldKarat||tx.karat||'21');
+      const bg     = isCash ? 'var(--ok-bg)' : 'var(--g4)';
+      const bdr    = isCash ? 'var(--ok-bd)' : 'var(--g5)';
+      const clr    = isCash ? 'var(--ok)'    : 'var(--g1)';
+      const icon   = isCash ? '💵'           : '🥇';
+      const noPK   = (tx.notes||'').replace('🏁 رصيد افتتاحي','').trim();
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;background:${bg};border:1px solid ${bdr};margin-bottom:7px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <div style="font-size:20px;flex-shrink:0">${icon}</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:900;color:${clr}">${val}</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">🗄️ ${tx.safeLabel||tx.safeKey||'—'} · 📅 ${dt.ar} · 👤 ${tx.user||tx.staff||'—'}</div>
+            ${noPK?`<div style="font-size:10px;color:var(--tx3);font-style:italic;margin-top:2px">📝 ${noPK}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <span style="background:var(--g4);color:var(--g1);font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;border:1px solid var(--g5)">🏁 افتتاحي</span>
+          <button onclick="_dObpro_delete(${tx.id})"
+            style="background:var(--no-bg);color:var(--no);border:1px solid var(--no-bd);border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:700">🗑️ حذف</button>
+        </div>
+      </div>`;
+    }).join('');
+    el.innerHTML = '<div>'+rows+'</div>';
+  };
+
+  function _dObpro_init(){
+    // تحديث اسم المستخدم في الرأس
+    const lbl = document.getElementById('dist-ob-username-lbl');
+    const curUser = sessionStorage.getItem('auth-user')||'';
+    if(lbl) lbl.textContent = '🚚 '+curUser;
+
+    const dateEl = document.getElementById('dist-obpro-date');
+    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+    const userEl = document.getElementById('dist-obpro-user');
+    if(userEl) userEl.value = curUser;
+
+    _dObpro_fillSafes();
+    _dObpro_renderList();
+    _dObpro_setType('cash');
+    _dObpro_setKarat('21');
+  }
+
+  // ربط آمن مع دالة P الرئيسية — لا يكسر السلاسل السابقة
+  const _P_dObpro = window.P;
+  window.P = function(page, el){
+    if(typeof _P_dObpro==='function') _P_dObpro.apply(this, arguments);
+    if(page==='dist-opening') setTimeout(_dObpro_init, 120);
+  };
+
+})(); // end DIST-OBPRO
 
 function renderObSummary(){
   const el=document.getElementById('ob-summary');
