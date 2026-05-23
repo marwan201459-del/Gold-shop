@@ -1228,24 +1228,25 @@ body{
           <!-- ══ محدد النوع العادي (غير الموزع) ══ -->
           <div id="pay-type-regular-selector">
             <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:6px">
-              💵 قبض / صرف — اختر نوع العملية <span style="color:var(--no)">*</span>
+              💵 سند قبض / صرف عام — اختر النوع <span style="color:var(--no)">*</span>
+              <div style="font-size:10px;color:var(--tx3);font-weight:500;margin-top:2px">الطرف: عميل / مورد / تاجر / موظف / أي جهة</div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               <button type="button" id="pay-type-receipt"
                 onclick="setPayType('receipt')"
                 style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
                 <div style="font-size:20px;margin-bottom:4px">📥</div>
-                <div style="font-size:13px;font-weight:700;color:var(--ok)">📥 قبض — من عميل</div>
-                <div style="font-size:10px;color:var(--tx2)">استلمت من عميل</div>
-                <div style="font-size:10px;color:var(--ok);margin-top:2px">صندوقك يزيد ↑</div>
+                <div style="font-size:13px;font-weight:700;color:var(--ok)">📥 سند قبض — دخل</div>
+                <div style="font-size:10px;color:var(--tx2)">نقد يدخل الصندوق</div>
+                <div style="font-size:10px;color:var(--ok);margin-top:2px">الصندوق يزيد ↑</div>
               </button>
               <button type="button" id="pay-type-payment"
                 onclick="setPayType('payment')"
                 style="padding:12px 8px;border-radius:10px;border:2px solid var(--b1);background:var(--c2);cursor:pointer;font-family:inherit">
                 <div style="font-size:20px;margin-bottom:4px">📤</div>
-                <div style="font-size:13px;font-weight:700;color:var(--no)">📤 صرف — لمورد</div>
-                <div style="font-size:10px;color:var(--tx2)">دفعت لمورد</div>
-                <div style="font-size:10px;color:var(--no);margin-top:2px">صندوقك ينقص ↓</div>
+                <div style="font-size:13px;font-weight:700;color:var(--no)">📤 سند صرف — خروج</div>
+                <div style="font-size:10px;color:var(--tx2)">نقد يخرج من الصندوق</div>
+                <div style="font-size:10px;color:var(--no);margin-top:2px">الصندوق ينقص ↓</div>
               </button>
             </div>
           </div>
@@ -2949,6 +2950,9 @@ body{
   <!-- ══ [F] إحصائية سريعة ══ -->
   <div id="dlpro-stats-section" style="margin-bottom:12px"></div>
 
+  <!-- ══ [G] سجل سندات القبض والصرف ══ -->
+  <div id="voucher-log-section" style="margin-bottom:12px"></div>
+
   <!-- فلاتر الفترة -->
   <div class="card">
     <div class="ch">🔍 اختر فترة للتقرير</div>
@@ -3290,6 +3294,22 @@ function calcSafes(){
     else if(t.type==='cash-receipt'){
       const dest = t.toSafe||t.fromSafe||'cash';
       if(safes[dest]!=null) safes[dest] += (t.amount||0);
+    }
+
+    // ── سند قبض عام (نقد يدخل الصندوق) ──
+    else if(t.type==='general-receipt'){
+      const sf = t.fromSafe||'cash';
+      if(safes[sf]!=null) safes[sf] += (t.amount||t.ajourPaid||0);
+      // فكة تدخل
+      if((t.change||0)>0 && safes[sf]!=null) safes[sf] += (t.change||0);
+    }
+
+    // ── سند صرف عام (نقد يخرج من الصندوق) ──
+    else if(t.type==='general-payment'){
+      const sf = t.fromSafe||'cash';
+      if(safes[sf]!=null) safes[sf] -= (t.amount||t.ajourPaid||0);
+      // فكة تخرج
+      if((t.change||0)>0 && safes[sf]!=null) safes[sf] -= (t.change||0);
     }
 
     // ── قبض الموزع (كفاتورة بيع من ناحية الصناديق) ──
@@ -4325,6 +4345,7 @@ const ACC_RULES = {
       'sell','sell-debt','buy','buy-debt','scrap','transfer',
       'payment','supplier-payment','return','scrap-return',
       'cash-receipt','supplier-return','adjustment','discount-adj',
+      'general-receipt','general-payment',
       'salary-pay','salary-custody','salary-personal','salary-deduction','salary-allowance','sal-collect','sal-advance','sal-personal','sal-payout','sal-allowance','sal-deduction','sal-deposit','sal-withdraw',
       'sales-return','purchase-return','expense','inventory-adj',
     ];
@@ -4360,7 +4381,7 @@ const ACC_RULES = {
 
   // ق4: البيع يتطلب عميل
   requiresClient(tx){
-    const needsClient   = ['sell','sell-debt','payment','return','sales-return','cash-receipt','scrap'];
+    const needsClient   = ['sell','sell-debt','payment','return','sales-return','cash-receipt','scrap','general-receipt','general-payment'];
     const needsSupplier = ['buy','buy-debt','supplier-payment','supplier-return','purchase-return'];
     if(needsClient.includes(tx.type) && !tx.client?.trim())
       return '❌ القاعدة 4: هذه العملية تتطلب تحديد العميل';
@@ -5079,6 +5100,65 @@ function renderInvModal(tx,editing){
 
     const goldItems3 = (tx.items||[]).filter(i=>i.karat!=='gems');
     const gemsItems3 = (tx.items||[]).filter(i=>i.karat==='gems');
+
+    // ── عرض خاص لسندات القبض والصرف العامة ──
+    if(tx.type==='general-receipt' || tx.type==='general-payment'){
+      const _isRec = tx.type==='general-receipt';
+      const _amt   = (tx.amount||tx.ajourPaid||0)+(tx.change||0);
+      const _SM    = getSM();
+      const _safeLbl = _SM[tx.fromSafe||'cash']?.label || (tx.fromSafe||'الصندوق');
+      const _partyBal = tx.client ? getClientBalance(tx.client) : null;
+      const _partyType = tx.partyType || ((S.clients||[]).find(c=>c.name===tx.client)?.type || '');
+      let html = `
+        <div style="background:${_isRec?'var(--ok-bg)':'var(--no-bg)'};border:2px solid ${_isRec?'var(--ok)':'var(--no)'};border-radius:14px;padding:14px;margin-bottom:12px;text-align:center">
+          <div style="font-size:28px;margin-bottom:4px">${_isRec?'📥':'📤'}</div>
+          <div style="font-size:16px;font-weight:900;color:${_isRec?'var(--ok)':'var(--no)'}">${_isRec?'سند قبض':'سند صرف'}</div>
+          ${tx.voucherCode?`<div style="font-size:11px;color:${_isRec?'var(--ok)':'var(--no)'};font-weight:800;margin-top:2px">[${tx.voucherCode}]</div>`:''}
+          <div style="font-size:30px;font-weight:900;color:${_isRec?'var(--ok)':'var(--no)'};margin-top:8px">${_isRec?'+':'−'}${fmt(_amt)} ريال</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:4px">${_isRec?'↑ الصندوق يزيد':'↓ الصندوق ينقص'}</div>
+        </div>
+        <div style="background:var(--c2);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--b1)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--tx2);font-size:11px;font-weight:700">التاريخ</span>
+            <span style="font-weight:700;color:var(--tx1)">${dt.ar} · ${dt.en} · ${dt.time}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--tx2);font-size:11px;font-weight:700">الطرف</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-weight:800;color:var(--g1)">${tx.client||'—'}</span>
+              ${_partyType?`<span style="font-size:9px;background:var(--in-bg);color:var(--in);padding:1px 7px;border-radius:20px;border:1px solid var(--in-bd)">${_partyType}</span>`:''}
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--tx2);font-size:11px;font-weight:700">الصندوق</span>
+            <span style="font-weight:700;color:var(--tx1)">🏦 ${_safeLbl}</span>
+          </div>
+          ${tx.user?`<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--tx2);font-size:11px;font-weight:700">المستخدم</span>
+            <span style="font-weight:700;color:var(--tx1)">👤 ${tx.user}</span>
+          </div>`:''}
+          ${tx.notes&&tx.notes!=='سند قبض'&&tx.notes!=='سند صرف'?`<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="color:var(--tx2);font-size:11px;font-weight:700">ملاحظات</span>
+            <span style="font-weight:700;color:var(--tx1)">📝 ${tx.notes}</span>
+          </div>`:''}
+        </div>
+        ${_partyBal?`<div style="background:var(--c2);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--b1)">
+          <div style="font-size:11px;font-weight:800;color:var(--tx1);margin-bottom:8px">📊 رصيد الطرف الحالي</div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--tx2);font-size:11px">${tx.client}</span>
+            <span style="font-weight:800;font-size:13px;color:${Math.abs(_partyBal.cashOwed)<0.01?'var(--ok)':_partyBal.cashOwed>0?'var(--no)':'var(--ok)'}">
+              ${Math.abs(_partyBal.cashOwed)<0.01?'✅ مسوى':`${_partyBal.cashOwed>0?'عليه':'له'} ${fmt(Math.abs(_partyBal.cashOwed))} ر`}
+            </span>
+          </div>
+        </div>`:''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-gold" onclick="startEditInv(${tx.id})">✏️ تعديل</button>
+          <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️ حذف</button>
+        </div>`;
+      document.getElementById('m-inv-body').innerHTML=html;
+      return;
+    }
+
     const goldWeight = goldItems3.reduce((a,i)=>a+(i.weight||0),0);
     const by21 = goldItems3.filter(i=>i.karat==='21').reduce((a,i)=>a+(i.weight||0),0);
     const by18 = goldItems3.filter(i=>i.karat==='18').reduce((a,i)=>a+(i.weight||0),0);
@@ -6329,16 +6409,16 @@ async function _generateStmtPDF(title, contentEl, shareMode){
 function fmt(n){return(Math.round((n||0)*100)/100).toLocaleString('ar-SA')}
 function fmtG(n){return(+(Math.round((n||0)*1000)/1000)).toLocaleString('ar-SA')}
 
-const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات','payment-transfer':'💳 سداد عبر تحويل','supplier-payment-transfer':'💳 سداد عبر تحويل',
+const TLBL={sell:'بيع آجل','sell-debt':'بيع آجل',buy:'شراء آجل','buy-debt':'شراء آجل',scrap:'قبض كسر',transfer:'تحويل',payment:'📥 قبض من عميل','supplier-payment':'📤 صرف لمورد','general-receipt':'📥 سند قبض عام','general-payment':'📤 سند صرف عام',return:'↩️ مردود جزئي','scrap-return':'↩️ مردود كسر','cash-receipt':'💵 قبض نقد','supplier-return':'↩️ مردود للمورد',adjustment:'📋 تسوية','discount-adj':'⚖️ تصفير/خصم تسوية','sales-return':'↩️ مرتجع مبيعات','purchase-return':'↩️ مرتجع مشتريات','payment-transfer':'💳 سداد عبر تحويل','supplier-payment-transfer':'💳 سداد عبر تحويل',
   'salary-pay':'💸 صرف','salary-custody':'📥 تحصيل','salary-personal':'💰 دفع شخصي','salary-deduction':'✂️ خصم','salary-allowance':'🎁 بدل','sal-deposit':'💰 إيداع','sal-withdraw':'💸 سحب','sal-allowance':'🎁 بدل','sal-deduction':'✂️ خصم','sal-collect':'💰 إيداع','sal-advance':'💸 سحب','sal-personal':'💰 إيداع','sal-payout':'💸 صرف',
   'expense':'💸 مصروف','inventory-adj':'📦 تسوية مخزون','charge':'💵 مبلغ إضافي',
   // ── أنواع الموزع ──
   'dist-receipt':'🚚📥 قبض موزع','dist-payment':'🚚📤 صرف موزع',
   // ── تسكير مقابل نقد ──
   'taskir':'🔐 تسكير مقابل نقد','taskir-settle':'💳 سداد تسكيرة'};
-const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy',
+const TCLS={sell:'sell','sell-debt':'debt',buy:'buy','buy-debt':'buy',scrap:'scrap',transfer:'transfer',payment:'transfer','supplier-payment':'transfer','general-receipt':'sell','general-payment':'buy',return:'debt','scrap-return':'scrap','cash-receipt':'sell','supplier-return':'buy',
   'dist-receipt':'sell','dist-payment':'buy',taskir:'scrap','taskir-settle':'transfer'};
-const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange',charge:'bg-orange',
+const TBDG={sell:'bg-green','sell-debt':'bg-purple',buy:'bg-red','buy-debt':'bg-red',scrap:'bg-gold',transfer:'bg-blue',payment:'bg-teal','supplier-payment':'bg-teal','general-receipt':'bg-green','general-payment':'bg-red',return:'bg-purple','scrap-return':'bg-orange','cash-receipt':'bg-green','supplier-return':'bg-orange',charge:'bg-orange',
   'dist-receipt':'bg-green','dist-payment':'bg-red',taskir:'bg-gold','taskir-settle':'bg-blue'};
 
 function txHtml(t){
@@ -6393,6 +6473,18 @@ function txHtml(t){
         </div>`;
       }
     }
+  }
+  // ── عرض بيانات السند العام ──
+  if(t.type==='general-receipt'||t.type==='general-payment'){
+    const _isRec = t.type==='general-receipt';
+    const _amt   = (t.amount||t.ajourPaid||0)+(t.change||0);
+    const _vc    = t.voucherCode ? `<span style="font-size:9px;background:${_isRec?'var(--ok-bg)':'var(--no-bg)'};color:${_isRec?'var(--ok)':'var(--no)'};padding:1px 7px;border-radius:20px;border:1px solid ${_isRec?'var(--ok-bd)':'var(--no-bd)'};font-weight:800">${t.voucherCode}</span>` : '';
+    const _pt    = t.partyType ? `<span style="font-size:9px;color:var(--in);background:var(--in-bg);padding:1px 6px;border-radius:12px;border:1px solid var(--in-bd)">${t.partyType}</span>` : '';
+    goldValueNote = `
+      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:4px">${_vc}${_pt}</div>
+      <div style="background:${_isRec?'var(--ok-bg)':'var(--no-bg)'};border:1px solid ${_isRec?'var(--ok-bd)':'var(--no-bd)'};border-radius:7px;padding:6px 10px;margin-top:5px;font-size:12px;font-weight:800;color:${_isRec?'var(--ok)':'var(--no)'}">
+        ${_isRec?'📥 الصندوق يزيد':'📤 الصندوق ينقص'} ${_isRec?'+':'−'}${fmt(_amt)} ريال
+      </div>`;
   }
 
   const debtTag=t.isDebt?`<span class="badge bg-purple" style="font-size:9px">دين</span> `:t.isBuyDebt?`<span class="badge bg-red" style="font-size:9px">آجل مورد</span> `:t.type==='supplier-return'?`<span class="badge bg-orange" style="font-size:9px">↩️ مورد</span> `:'';
@@ -7034,12 +7126,12 @@ function setPayType(type){
       hint.style.background = 'var(--ok-bg)';
       hint.style.border     = '1px solid var(--ok)';
       hint.style.color      = 'var(--ok)';
-      hint.textContent      = '📥 قبض من عميل — المبلغ يدخل صندوقك ✅';
+      hint.innerHTML        = '📥 <b>سند قبض عام</b> — نقد يدخل الصندوق · يُنقص مديونية الطرف ✅';
     } else {
       hint.style.background = 'var(--no-bg)';
       hint.style.border     = '1px solid var(--no)';
       hint.style.color      = 'var(--no)';
-      hint.textContent      = '📤 صرف لمورد — المبلغ يخرج من صندوقك ✅';
+      hint.innerHTML        = '📤 <b>سند صرف عام</b> — نقد يخرج من الصندوق · يُعدَّل حساب الطرف ✅';
     }
   }
 
@@ -7052,7 +7144,7 @@ function setPayType(type){
   if(payContent) payContent.style.display = 'block';
   const btn = document.getElementById('pay-submit-btn');
   if(btn){
-    btn.textContent  = isReceipt ? '📥 تسجيل قبض من عميل' : '📤 تسجيل صرف لمورد';
+    btn.textContent  = isReceipt ? '📥 تسجيل سند قبض' : '📤 تسجيل سند صرف';
     btn.style.background = isReceipt ? 'var(--ok)' : 'var(--no)';
   }
 
@@ -7079,7 +7171,7 @@ function setPayType(type){
 
   // تحديث عنوان الملخص
   const sumTitle = document.getElementById('pay-summary-title');
-  if(sumTitle) sumTitle.textContent = isReceipt ? '📥 ملخص القبض' : '📤 ملخص الصرف';
+  if(sumTitle) sumTitle.textContent = isReceipt ? '📥 ملخص سند القبض' : '📤 ملخص سند الصرف';
 
   // تحديث ملخص السداد
   calcPaySummary();
@@ -7494,8 +7586,21 @@ function getClientBalance(cli){
   }
   const totalObCash = obCash + distObCashAdj;
 
+  // ── سندات القبض والصرف العامة ──
+  // general-receipt: نقد دخل من الطرف → ينقص مديونيته (يُخفف ما عليه أو ما علينا)
+  // general-payment: نقد خرج للطرف → يُعدَّل حساب الطرف
+  const genReceiptTotal = txs.filter(t=>t.type==='general-receipt')
+    .reduce((a,t)=>a+(t.amount||t.ajourPaid||0)+(t.change||0),0);
+  const genPaymentTotal = txs.filter(t=>t.type==='general-payment')
+    .reduce((a,t)=>a+(t.amount||t.ajourPaid||0)+(t.change||0),0);
+
+  // المبدأ الموحد (بغض النظر عن نوع الطرف):
+  // قبض → ينقص الرصيد (كأن الطرف سدّد)
+  // صرف → يزيد الرصيد (كأننا دفعنا للطرف)
+  const genCashAdj = genPaymentTotal - genReceiptTotal;
+
   return {
-    cashOwed:     Math.round((cashOwed + totalObCash)*100)/100,
+    cashOwed:     Math.round((cashOwed + totalObCash + genCashAdj)*100)/100,
     goldOwed,
     goldOwedAs24: Math.round((goldOwedAs24 + obGold24)*1000)/1000,
     ajTotal:      sellDebt,
@@ -7820,18 +7925,38 @@ function doPayment(){
 
   // ── تحديد نوع العملية ──
   // للموزع: dist-receipt (كفاتورة بيع) أو dist-payment (كفاتورة شراء)
-  // للبقية: payment (قبض) أو supplier-payment (صرف)
+  // للبقية: general-receipt (سند قبض عام) أو general-payment (سند صرف عام)
   let txType;
   if(isDist){
     txType = isReceipt ? 'dist-receipt' : 'dist-payment';
   } else {
-    txType = isReceipt ? 'payment' : 'supplier-payment';
+    txType = isReceipt ? 'general-receipt' : 'general-payment';
   }
+
+  // ── رقم السند التسلسلي ──
+  if(!S.voucherCounter) S.voucherCounter = 0;
+  S.voucherCounter++;
+  const voucherNum = S.voucherCounter;
+  const voucherPrefix = isReceipt ? 'QBD' : 'SRF';
+  const voucherCode = voucherPrefix + String(voucherNum).padStart(5,'0');
+
+  // ── نوع الطرف ──
+  const partyObj = (S.clients||[]).find(c=>c.name===client);
+  const partyType = partyObj?.type || 'جهة';
+
+  // ── المستخدم الحالي ──
+  const currentUser = (typeof currentRole==='function' ? currentRole() : '') || (S.user||'');
 
   if(!acquireSave()) return;
   const payTx = {
     id:Date.now(), date:payISO,
     type: txType,
+    // ── بيانات السند العام ──
+    voucherNum,
+    voucherCode,
+    partyType,
+    user: currentUser,
+    isGeneralVoucher: !isDist,
     fromSafe:cashSafe, goldDest, goldSafe,
     goldKarat:goldK, goldWeight:goldW, goldAs24,
     goldItems: goldItems.map(i=>({karat:i.karat, weight:i.weight, safe:i.safe, price:i.price||0})),
@@ -7843,7 +7968,7 @@ function doPayment(){
     netDiff: netDiffV.riyal>0||netDiffV.gram>0 ? netDiffV : undefined,
     isReceipt,
     unit:'ريال',
-    notes: note || (isReceipt ? 'قبض' : 'دفع'),
+    notes: note || (isReceipt ? 'سند قبض' : 'سند صرف'),
     items:[], total:ajour+discount+change+distAjour, cash:ajour+change, goldPay:goldW, weight:goldW
   };
   if(!safeSave(payTx)){ releaseSave(); return; }
@@ -7868,9 +7993,10 @@ function doPayment(){
   if(hint) hint.style.display='none';
   currentPayType = null;
 
-  const action = isReceipt ? (isDist?'قبض موزع (كبيع)':'قبض من العميل') : (isDist?'صرف موزع (كشراء)':'صرف للمورد');
+  const action = isReceipt ? (isDist?'قبض موزع (كبيع)':'📥 سند قبض') : (isDist?'صرف موزع (كشراء)':'📤 سند صرف');
   const ajMsg  = distAjour>0 ? ` · أجور: ${fmt(distAjour)} ر` : '';
-  toast(`✅ ${action} — نقد: ${fmt(ajour)} ر · ذهب: ${fmtG(goldW)} ج${ajMsg}`);
+  const vcMsg  = !isDist ? ` [${voucherCode}]` : '';
+  toast(`✅ ${action}${vcMsg} — ${client} · نقد: ${fmt(ajour)} ر${ajMsg}`);
 }
 
 // ── Discount calc ──────────────────────────────────────────────────
@@ -10828,12 +10954,14 @@ function calcCashBalance(){
       case 'sell':      /* دين فقط — لا كاش */ break;
       case 'payment':   cashIn  += (t.ajourPaid||0)+(t.change||0); break;
       case 'cash-receipt': cashIn += t.amount||0; break;
+      case 'general-receipt': cashIn += (t.amount||t.ajourPaid||0)+(t.change||0); break;
       case 'salary-custody': cashIn += t.amount||0; break;
       // مرتجع مشتريات = تُخفِّض الدين فقط — لا حركة كاش
       // case 'purchase-return': cashIn += t.cashRefund||0; break;
       // الشراء = دين فقط، لا يُخصم كاش
       case 'buy':       /* دين فقط — لا كاش */ break;
       case 'supplier-payment': cashOut += (t.ajourPaid||0)+(t.change||0); break;
+      case 'general-payment': cashOut += (t.amount||t.ajourPaid||0)+(t.change||0); break;
       case 'salary-pay': cashOut += t.amount||0; break;
       case 'expense':   cashOut += t.amount||0; break;
       // مرتجع مبيعات = تُخفِّض الدين فقط — لا حركة كاش
@@ -12381,7 +12509,7 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
 
   const sellTxs = txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
   const buyTxs  = txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
-  const payTxs  = txs.filter(t=>t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt');
+  const payTxs  = txs.filter(t=>t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||t.type==='general-receipt'||t.type==='general-payment');
   const allSorted = [...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
 
   const mainTxs = isSupp ? buyTxs : sellTxs;
@@ -12880,7 +13008,7 @@ function renderStmt(){
   ).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sellTxs=txs.filter(t=>t.type==='sell'||t.type==='sell-debt');
   const buyTxs=txs.filter(t=>t.type==='buy'||t.type==='buy-debt');
-  const payTxs=txs.filter(t=>t.type==='payment'||t.type==='supplier-payment');
+  const payTxs=txs.filter(t=>t.type==='payment'||t.type==='supplier-payment'||t.type==='general-receipt'||t.type==='general-payment');
   const scrapTxs=txs.filter(t=>t.type==='scrap');
 
   const isSettled=Math.abs(bal.cashOwed)<0.01&&Math.abs(bal.goldOwedAs24||0)<0.001;
@@ -12954,6 +13082,12 @@ function renderStmt(){
         dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcvSup);
       }
       else if(t.type==='cash-receipt')                                   dCash = -(t.amount||0);
+      else if(t.type==='general-receipt')
+        // سند قبض عام من الطرف → ينقص رصيده (يسدد لنا)
+        dCash = -((t.amount||t.ajourPaid||0)+(t.change||0));
+      else if(t.type==='general-payment')
+        // سند صرف عام للطرف → يزيد رصيده (ندفع له)
+        dCash = +((t.amount||t.ajourPaid||0)+(t.change||0));
       else if(t.type==='purchase-return'||t.type==='supplier-return')
         // إصلاح: أجور المرتجع فقط (مطابقة printStmt)
         dCash = (t.ajTotal||0);
@@ -12978,6 +13112,12 @@ function renderStmt(){
         dCash = -((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_goldCashValCli);
       }
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
+      else if(t.type==='general-receipt')
+        // سند قبض عام من الطرف → ينقص رصيده
+        dCash = -((t.amount||t.ajourPaid||0)+(t.change||0));
+      else if(t.type==='general-payment')
+        // سند صرف عام للطرف → يزيد رصيده
+        dCash = +((t.amount||t.ajourPaid||0)+(t.change||0));
       else if(t.type==='sales-return'||t.type==='return')             dCash = -((t.ajTotal||0)+(t.vatAmt||0));
       else if(t.type==='salary-custody')                               dCash = (t.amount||0);
       else if(t.type==='salary-pay')                                   dCash = -(t.amount||0);
@@ -13155,6 +13295,18 @@ function renderStmt(){
       }
     }
     if(t.type==='cash-receipt')    detail=`قبض نقد: ${fmt(t.amount||0)} ر`;
+    if(t.type==='general-receipt'){
+      const _amt = (t.amount||t.ajourPaid||0)+(t.change||0);
+      const _vc  = t.voucherCode ? `[${t.voucherCode}] ` : '';
+      const _pt  = t.partyType   ? ` · ${t.partyType}` : '';
+      detail=`${_vc}📥 قبض: ${fmt(_amt)} ر${_pt}${t.notes&&t.notes!=='سند قبض'?' · '+t.notes:''}`;
+    }
+    if(t.type==='general-payment'){
+      const _amt = (t.amount||t.ajourPaid||0)+(t.change||0);
+      const _vc  = t.voucherCode ? `[${t.voucherCode}] ` : '';
+      const _pt  = t.partyType   ? ` · ${t.partyType}` : '';
+      detail=`${_vc}📤 صرف: ${fmt(_amt)} ر${_pt}${t.notes&&t.notes!=='سند صرف'?' · '+t.notes:''}`;
+    }
     if(t.type==='charge')          detail=`💵 ${t.desc||t.notes||''} — ${fmt(t.amount||0)} ريال`;
     if(t.type==='transfer'){
       // ── بناء تفاصيل التحويل المحاسبي الواضح ──
@@ -13235,7 +13387,7 @@ function renderStmt(){
     // للمورد:  dCash سالب = يزيد ديننا له | موجب = يقل ديننا له (سداد)
     const isDebit  = (!isSupp && dCash>0.01) || (isSupp && dCash<-0.01);
     const isCredit = (!isSupp && dCash<-0.01)|| (isSupp && dCash>0.01);
-    const isSetRow = t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||(t.settlePurpose==='transfer')
+    const isSetRow = t.type==='payment'||t.type==='supplier-payment'||t.type==='cash-receipt'||t.type==='general-receipt'||t.type==='general-payment'||(t.settlePurpose==='transfer')
       ||(t.type==='transfer' && t.fromSafe===('__cli__'+v) && (t.amount||0)>0); // التحويل الصادر = سداد
     const rowBg    = isDebit  ? 'rgba(220,38,38,.05)' : isSetRow ? 'rgba(22,163,74,.05)' : isCredit ? 'rgba(217,119,6,.05)' : '';
     const debitAmt  = isDebit  ? fmt(Math.abs(dCash)) : '–';
@@ -15522,6 +15674,16 @@ function _dlgCalcDayMovement(dayStr) {
       cashIn += (t.amount || 0);
     }
 
+    // ── سند قبض عام (نقد يدخل) ──
+    else if (type === 'general-receipt') {
+      cashIn += (t.amount || t.ajourPaid || 0) + (t.change || 0);
+    }
+
+    // ── سند صرف عام (نقد يخرج) ──
+    else if (type === 'general-payment') {
+      cashOut += (t.amount || t.ajourPaid || 0) + (t.change || 0);
+    }
+
     // ── مصروف (نقد يخرج) ──
     else if (type === 'expense') {
       cashOut  += (t.amount || 0);
@@ -16496,6 +16658,7 @@ if(typeof _rsOrig==='function'){
   const TL = {
     'sell':'🟢 بيع','sell-debt':'🟢 بيع آجل','buy':'🔴 شراء','buy-debt':'🔴 شراء آجل',
     'payment':'💵 تسوية عميل','supplier-payment':'💳 تسوية مورد',
+    'general-receipt':'📥 سند قبض','general-payment':'📤 سند صرف',
     'cash-receipt':'📥 قبض نقد','expense':'💸 مصروف','transfer':'🔄 تحويل',
     'scrap':'🗃️ قبض كسر','scrap-return':'↩️ مردود كسر',
     'sales-return':'↩️ مردود مبيعات','return':'↩️ مردود',
@@ -16510,6 +16673,7 @@ if(typeof _rsOrig==='function'){
   const BC = {
     'sell':'var(--ok)','sell-debt':'var(--ok)','buy':'var(--no)','buy-debt':'var(--no)',
     'payment':'var(--in)','supplier-payment':'var(--io)','cash-receipt':'var(--ok)',
+    'general-receipt':'var(--ok)','general-payment':'var(--no)',
     'expense':'var(--no)','scrap':'var(--g1)','transfer':'var(--in)',
     'opening-balance':'var(--g1)','opening-balance-cash':'var(--ok)','opening-balance-gold':'var(--g1)',
     'sales-return':'var(--pu)','return':'var(--pu)','supplier-return':'var(--pu)',
@@ -16623,6 +16787,14 @@ if(typeof _rsOrig==='function'){
         (t.goldItems||[]).forEach(gi=>goldOut24+=_to24(gi.weight,gi.karat));
         if(!(t.goldItems?.length)&&(t.goldWeight||0)>0) goldOut24+=_to24(t.goldWeight,t.goldKarat||'21');
         _expTxs.push(t);
+      } else if(tp==='general-receipt'){
+        // سند قبض عام — نقد يدخل الصندوق
+        cashIn+=((t.amount||t.ajourPaid||0)+(t.change||0));
+        _cashTxs.push(t);
+      } else if(tp==='general-payment'){
+        // سند صرف عام — نقد يخرج من الصندوق
+        cashOut+=((t.amount||t.ajourPaid||0)+(t.change||0));
+        _expTxs.push(t);
       } else if(tp==='cash-receipt'){
         cashIn+=(t.amount||0);
         // كشف كسر داخل استلام نقد (إن وُجد ذهب كسر)
@@ -16684,6 +16856,7 @@ if(typeof _rsOrig==='function'){
       // (تجنب الأنواع التي تم تناولها صراحةً أو التحويلات الداخلية)
       if(!['scrap','payment','cash-receipt','transfer','sell','sell-debt','buy','buy-debt',
            'sales-return','return','supplier-return','purchase-return','supplier-payment',
+           'general-receipt','general-payment',
            'expense','opening-balance','sal-deposit','sal-withdraw','salary-custody',
            'salary-pay','sal-payout','scrap-return'].includes(tp)){
         const _scS2=['scrap21','scrap18','pure24'];
@@ -17109,6 +17282,8 @@ if(typeof _rsOrig==='function'){
           let dCash=0;
           if(tp==='payment')         dCash=+(t.ajourPaid||0)+(t.change||0);
           else if(tp==='supplier-payment') dCash=-((t.ajourPaid||0)+(t.change||0));
+          else if(tp==='general-receipt')  dCash=+((t.amount||t.ajourPaid||0)+(t.change||0));
+          else if(tp==='general-payment')  dCash=-((t.amount||t.ajourPaid||0)+(t.change||0));
           else if(tp==='cash-receipt')     dCash=+(t.amount||0);
           else if(tp==='expense')          dCash=-(t.amount||0);
           else if(tp==='sal-deposit'||tp==='salary-custody') dCash=+(t.amount||0);
@@ -17179,6 +17354,9 @@ if(typeof _rsOrig==='function'){
         </div>`;
       }
     }
+
+    // ── [G] سجل سندات القبض والصرف العامة ──
+    _renderVoucherLog(dayStr);
   };
 
   // ── تحديث تلقائي كل 30 ثانية إن كانت الصفحة مفتوحة ──
@@ -17189,6 +17367,105 @@ if(typeof _rsOrig==='function'){
       const pg = document.getElementById('pg-dailylog');
       if(pg && pg.classList.contains('on')) _dlpro_render();
     }, 30000);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // سجل سندات القبض والصرف العامة — يُعرض في حركة اليوم
+  // ══════════════════════════════════════════════════════════════
+  function _renderVoucherLog(dayStr){
+    const el = document.getElementById('voucher-log-section');
+    if(!el) return;
+    const _Sref = (typeof S!=='undefined' ? S : window.S) || {};
+    const allTxs = _Sref.transactions||[];
+
+    // كل السندات (للتاريخ المختار أو كل الأيام)
+    const vTxs = allTxs.filter(t=>{
+      if(t.type!=='general-receipt' && t.type!=='general-payment') return false;
+      if(!dayStr) return true;
+      try{ return new Date(t.date).toISOString().split('T')[0]===dayStr; }
+      catch(e){ return false; }
+    }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+    if(!vTxs.length){
+      el.innerHTML='';
+      return;
+    }
+
+    const totalReceipt = vTxs.filter(t=>t.type==='general-receipt')
+      .reduce((a,t)=>a+(t.amount||t.ajourPaid||0)+(t.change||0),0);
+    const totalPayment = vTxs.filter(t=>t.type==='general-payment')
+      .reduce((a,t)=>a+(t.amount||t.ajourPaid||0)+(t.change||0),0);
+
+    const rows = vTxs.map(t=>{
+      const isRec = t.type==='general-receipt';
+      const amt   = (t.amount||t.ajourPaid||0)+(t.change||0);
+      const dt    = _fmtTime(t.date);
+      const safe  = (_Sref.safes?.()||{});
+      const safeName = (typeof getSM==='function'?getSM():{})[(t.fromSafe||'cash')]?.label || (t.fromSafe||'الصندوق');
+      const partyTypeLbl = t.partyType || '';
+      const vc    = t.voucherCode || (isRec?'قبض':'صرف');
+      return `
+      <div style="display:flex;align-items:stretch;border-right:3px solid ${isRec?'var(--ok)':'var(--no)'};
+        background:var(--c1);border-radius:10px;margin-bottom:6px;
+        border:1px solid var(--b1);border-right:3px solid ${isRec?'var(--ok)':'var(--no)'};overflow:hidden">
+        <!-- رقم السند -->
+        <div style="min-width:52px;background:${isRec?'var(--ok-bg)':'var(--no-bg)'};
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          padding:6px 4px;border-left:1px solid var(--b1);text-align:center;flex-shrink:0">
+          <div style="font-size:7px;font-weight:700;color:${isRec?'var(--ok)':'var(--no)'}">سند</div>
+          <div style="font-size:8px;font-weight:900;color:${isRec?'var(--ok)':'var(--no)'};">${vc}</div>
+        </div>
+        <!-- المحتوى -->
+        <div style="padding:9px 10px;flex:1;min-width:0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                <span style="font-size:12px;font-weight:900;color:${isRec?'var(--ok)':'var(--no)'}">${isRec?'📥 سند قبض':'📤 سند صرف'}</span>
+                ${partyTypeLbl?`<span style="font-size:9px;background:var(--in-bg);color:var(--in);padding:1px 6px;border-radius:20px;border:1px solid var(--in-bd)">${partyTypeLbl}</span>`:''}
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--tx1);margin-top:2px">${t.client||'—'}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap">
+                ${dt?`<span style="font-size:9px;color:var(--tx3)">⏰ ${dt}</span>`:''}
+                ${safeName?`<span style="font-size:9px;color:var(--tx3)">🏦 ${safeName}</span>`:''}
+                ${t.user?`<span style="font-size:9px;color:var(--tx3)">👤 ${t.user}</span>`:''}
+                ${t.notes&&t.notes!=='سند قبض'&&t.notes!=='سند صرف'?`<span style="font-size:9px;color:var(--tx3);font-style:italic">📝 ${t.notes.substring(0,35)}</span>`:''}
+              </div>
+            </div>
+            <div style="text-align:left;flex-shrink:0">
+              <div style="font-size:16px;font-weight:900;color:${isRec?'var(--ok)':'var(--no)'}">
+                ${isRec?'+':'−'}${_fmt(amt)} ر
+              </div>
+              <div style="font-size:9px;color:var(--tx3);text-align:left">${isRec?'↑ صندوق':'↓ صندوق'}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+
+    el.innerHTML = `
+    <div style="background:var(--c1);border:1.5px solid var(--b2);border-radius:var(--ra);overflow:hidden;box-shadow:var(--s1)">
+      <div style="background:linear-gradient(135deg,var(--hd),rgba(34,199,122,.1));padding:11px 14px;border-bottom:1px solid var(--b2);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:3px;height:16px;background:linear-gradient(var(--ok),var(--no));border-radius:2px"></div>
+          <span style="font-size:13px;font-weight:900">🧾 سجل سندات القبض والصرف</span>
+        </div>
+        <span style="font-size:10px;background:var(--g4);color:var(--g1);padding:2px 10px;border-radius:20px;border:1px solid var(--g5)">${vTxs.length} سند</span>
+      </div>
+      <!-- ملخص سريع -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;background:var(--c2);border-bottom:1px solid var(--b1)">
+        <div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:8px 12px;text-align:center">
+          <div style="font-size:10px;color:var(--ok);font-weight:700">📥 إجمالي القبض</div>
+          <div style="font-size:18px;font-weight:900;color:var(--ok)">+${_fmt(totalReceipt)} ر</div>
+          <div style="font-size:9px;color:var(--tx3)">↑ دخل الصندوق</div>
+        </div>
+        <div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:8px 12px;text-align:center">
+          <div style="font-size:10px;color:var(--no);font-weight:700">📤 إجمالي الصرف</div>
+          <div style="font-size:18px;font-weight:900;color:var(--no)">−${_fmt(totalPayment)} ر</div>
+          <div style="font-size:9px;color:var(--tx3)">↓ خرج الصندوق</div>
+        </div>
+      </div>
+      <div style="padding:10px">${rows.join('')}</div>
+    </div>`;
   }
 
   // ── Hook آمن متسلسل على P ──
