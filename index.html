@@ -12896,7 +12896,7 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
 //                + (ذهب ع24 - ذهب مرتجع مرتبط)      ذهباً
 //   حالة = "مسددة بالكامل" فقط عند صفر الوجهين معاً
 // ═══════════════════════════════════════════════════════════════
-function buildInvoicePaymentTracker(v, txs, isSupp){
+function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
   if(isSupp) return ''; // فقط للعملاء حالياً
 
   const invoices = txs
@@ -13076,6 +13076,36 @@ function buildInvoicePaymentTracker(v, txs, isSupp){
   });
 
   // ════════════════════════════════════════════════
+  // الخطوة 4.5: الإغلاق الذكي عند صفر الرصيد الكلي
+  // ════════════════════════════════════════════════
+  // إذا كان رصيد العميل الحقيقي = صفر (نقد وذهب) فكل الفواتير تُعتبر مسددة بالكامل
+  // حتى لو FIFO لم يوزع الكمية بالضبط (سبب: عيارات مختلفة، تقريب، مرتجعات متقاطعة)
+  const _extCashOwed = _extBal ? Math.abs(_extBal.cashOwed||0)      : null;
+  const _extGoldOwed = _extBal ? Math.abs(_extBal.goldOwedAs24||0)  : null;
+  const _clientFullySettled = _extBal
+    ? (_extCashOwed < 0.10 && _extGoldOwed < 0.005)
+    : false;
+
+  if(_clientFullySettled){
+    // ✅ رصيد العميل صفر → نغلق كل الفواتير قسراً
+    invoiceStatus.forEach(s=>{
+      if(s.status !== 'paid'){
+        // اعتبار الفاتورة مسددة: cashAllocated = netCash، goldAllocated = netGold24
+        s.cashAllocated   = s.d.netCash;
+        s.goldAllocated24 = s.d.netGold24;
+        s.cashLeft        = 0;
+        s.goldLeft24      = 0;
+        s.cashPct         = 100;
+        s.goldPct         = 100;
+        s.paidPct         = 100;
+        s.status          = 'paid';
+        s.delayDays       = 0;
+        s._forcedClosed   = true; // علامة للعرض
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════
   // الخطوة 5: بناء HTML
   // ════════════════════════════════════════════════
   const statusConf = {
@@ -13112,7 +13142,10 @@ function buildInvoicePaymentTracker(v, txs, isSupp){
     html += '<div style="padding:9px 14px;background:rgba(22,163,74,.07);'
           + 'border-bottom:1px solid rgba(22,163,74,.15);'
           + 'text-align:center;font-size:12px;font-weight:800;color:#16A34A">'
-          + '✅ جميع الفواتير مسددة بالكامل — الحساب متوازن</div>';
+          + (_clientFullySettled
+            ? '✅ جميع الفواتير مسددة بالكامل — أُغلقت تلقائياً (رصيد العميل الإجمالي = صفر)'
+            : '✅ جميع الفواتير مسددة بالكامل — الحساب متوازن')
+          + '</div>';
   } else {
     html += '<div style="padding:8px 14px;background:rgba(220,38,38,.04);'
           + 'border-bottom:1px solid rgba(220,38,38,.10);'
@@ -13273,6 +13306,13 @@ function buildInvoicePaymentTracker(v, txs, isSupp){
     if(s.status==='paid' && (s.d.lr.retCount>0||(s.d.invDiscount||0)>0.009) && s.cashAllocated<0.009 && s.goldAllocated24<0.0009){
       html += `<div style="padding:4px 12px 8px;font-size:10px;color:var(--ok);font-weight:700">`
              +`✅ مسدد بالكامل — لا دفعة نقدية إضافية مطلوبة</div>`;
+    }
+
+    // مؤشر الإغلاق الذكي (عند صفر الرصيد الكلي)
+    if(s._forcedClosed){
+      html += `<div style="padding:3px 12px 8px;font-size:9px;color:#2563EB;font-weight:700;display:flex;align-items:center;gap:5px">`
+             +`<span style="background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 8px;border-radius:6px">🔵 أُغلقت تلقائياً — رصيد العميل الإجمالي = صفر</span>`
+             +`</div>`;
     }
 
     html += `</div>`; // end card
@@ -14085,7 +14125,7 @@ function renderStmt(){
   // ══════════════════════════════════════════════════════════════
   // ── تتبع السداد الذكي للفواتير ──
   // ══════════════════════════════════════════════════════════════
-  html += buildInvoicePaymentTracker(v, txs, isSupp);
+  html += buildInvoicePaymentTracker(v, txs, isSupp, bal);
 
   // ══════════════════════════════════════════════════════════════
   // ── بيان سريع العيارات (إضافة جديدة) ──
