@@ -12589,20 +12589,40 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
 
   const mainTxs = isSupp ? buyTxs : sellTxs;
 
-  /* إجمالي المشتريات / المبيعات */
-  const totalPurchases = mainTxs.reduce((a,t)=>a+(t.total||t.ajTotal||0),0);
+  /* المرتجعات — لاستبعادها من الإجماليات */
+  const retTxs = isSupp
+    ? txs.filter(t=>t.type==='purchase-return'||t.type==='supplier-return')
+    : txs.filter(t=>t.type==='return'||t.type==='sales-return');
+
+  /* إجمالي المشتريات / المبيعات — صافي بعد استبعاد المرتجعات */
+  const totalReturnsAmt = retTxs.reduce((a,t)=>a+(t.total||t.ajTotal||0),0);
+  const totalPurchases = Math.max(0, mainTxs.reduce((a,t)=>a+(t.total||t.ajTotal||0),0) - totalReturnsAmt);
 
   /* إجمالي المدفوعات */
   const totalPaid = payTxs.reduce((a,t)=>a+(t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0),0);
 
-  /* إجمالي الذهب بالجرام (عيار 24) */
+  /* إجمالي الخصومات (من الفواتير ومن المدفوعات) */
+  const totalCashDiscInvoices = mainTxs.reduce((a,t)=>a+(t.discount||0),0);
+  const totalCashDiscPayments = payTxs.reduce((a,t)=>a+(t.discount||0),0);
+  const totalCashDisc = totalCashDiscInvoices + totalCashDiscPayments;
+  // خصم التسوية (discount-adj)
+  const totalSettleDisc = txs.filter(t=>t.type==='discount-adj').reduce((a,t)=>a+(t.discount||t.amount||0),0);
+  const totalAllDiscounts = totalCashDisc + totalSettleDisc;
+
+  /* إجمالي الذهب بالجرام (عيار 24) — صافي بعد استبعاد المرتجعات */
   let totalGoldGrams = 0;
   mainTxs.forEach(t=>{
     (t.items||[]).forEach(i=>{
       totalGoldGrams += (i.weight||0) * parseFloat(i.karat||'21') / 24;
     });
   });
-  totalGoldGrams = Math.round(totalGoldGrams * 1000) / 1000;
+  // طرح الذهب المرتجع بالكامل
+  retTxs.forEach(t=>{
+    (t.items||[]).forEach(i=>{
+      totalGoldGrams -= (i.weight||0) * parseFloat(i.karat||'21') / 24;
+    });
+  });
+  totalGoldGrams = Math.max(0, Math.round(totalGoldGrams * 1000) / 1000);
 
   /* عدد الفواتير */
   const invoiceCount = mainTxs.length;
@@ -12716,15 +12736,24 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
   </div>`;
 
   /* ── بطاقات الملخص السريع ── */
+  // بناء نص بطاقة الخصومات
+  const _discCardVal = totalAllDiscounts > 0
+    ? fmt(Math.round(totalAllDiscounts)) + ' ر'
+    : '—';
+  const _discCardLbl = totalAllDiscounts > 0
+    ? 'إجمالي الخصومات'
+    : 'لا توجد خصومات';
+
   const sumCards = [
     { icon:'🔄', val: txs.length,                   lbl:'إجمالي التعاملات',  cls:'c-blue'  },
-    { icon:'🛒', val: fmt(totalPurchases)+' ر',       lbl:(isSupp?'إجمالي المشتريات':'إجمالي المبيعات'), cls:'c-gold' },
+    // ملاحظة: تمت إزالة بطاقة "إجمالي المبيعات" بناءً على طلب تحديث النظام (تُحسب بدون مرتجعات الآن)
     { icon:'💳', val: fmt(totalPaid)+' ر',            lbl:'إجمالي المدفوعات', cls:'c-green' },
     { icon:'⚖️', val: absOwed<0.01?'مسدد':fmt(absOwed)+' ر', lbl:'الرصيد الحالي',    cls: absOwed<0.01?'c-green':(cash>0&&!isSupp?'c-red':'c-green') },
-    { icon:'🥇', val: totalGoldGrams>0?fmtG(totalGoldGrams)+'ج':'—', lbl:'إجمالي الذهب',   cls:'c-gold'  },
+    { icon:'🥇', val: totalGoldGrams>0?fmtG(totalGoldGrams)+'ج':'—', lbl:'إجمالي الذهب (صافي)',   cls:'c-gold'  },
     { icon:'📄', val: invoiceCount,                  lbl:'عدد الفواتير',      cls:'c-purple'},
     { icon:'📅', val: lastTxDate ? lastTxDate.ar : '—', lbl:'آخر عملية',      cls:'c-teal'  },
-    { icon:'📈', val: avgPurchase>0?fmt(avgPurchase)+' ر':'—', lbl:'متوسط الشراء',  cls:'c-orange'},
+    // ملاحظة: تمت إزالة بطاقة "متوسط الشراء" بناءً على طلب تحديث النظام
+    { icon:'🏷️', val: _discCardVal,                  lbl:_discCardLbl,        cls:'c-orange'},
   ];
 
   let summaryHTML = `<div class="stmt-analytics-wrap no-print">
@@ -12801,7 +12830,198 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
     </div>
   </div>`;
 
-  return infoBarHTML + summaryHTML + analysisHTML;
+  // إضافة تفاصيل الخصومات إن وجدت
+  let discDetailsHTML = '';
+  if(totalAllDiscounts > 0.01){
+    discDetailsHTML = `<div class="no-print" style="background:linear-gradient(135deg,rgba(240,144,48,.08),rgba(240,144,48,.02));`
+                    + `border:1.5px solid rgba(240,144,48,.25);border-radius:14px;`
+                    + `padding:12px 14px;margin-bottom:10px">`;
+    discDetailsHTML += `<div style="font-size:12px;font-weight:900;color:var(--io);margin-bottom:8px">🏷️ تفصيل الخصومات</div>`;
+    discDetailsHTML += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+    if(totalCashDiscInvoices>0)
+      discDetailsHTML += `<div style="background:rgba(0,0,0,.04);border-radius:9px;padding:8px;text-align:center">`
+                       + `<div style="font-size:11px;color:var(--tx2);font-weight:700">خصم على الفواتير</div>`
+                       + `<div style="font-size:15px;font-weight:900;color:var(--io)">${fmt(Math.round(totalCashDiscInvoices))} ر</div>`
+                       + `</div>`;
+    if(totalCashDiscPayments>0)
+      discDetailsHTML += `<div style="background:rgba(0,0,0,.04);border-radius:9px;padding:8px;text-align:center">`
+                       + `<div style="font-size:11px;color:var(--tx2);font-weight:700">خصم عند السداد</div>`
+                       + `<div style="font-size:15px;font-weight:900;color:var(--io)">${fmt(Math.round(totalCashDiscPayments))} ر</div>`
+                       + `</div>`;
+    if(totalSettleDisc>0)
+      discDetailsHTML += `<div style="background:rgba(0,0,0,.04);border-radius:9px;padding:8px;text-align:center">`
+                       + `<div style="font-size:11px;color:var(--tx2);font-weight:700">خصم تسوية</div>`
+                       + `<div style="font-size:15px;font-weight:900;color:var(--io)">${fmt(Math.round(totalSettleDisc))} ر</div>`
+                       + `</div>`;
+    discDetailsHTML += `</div>`;
+    discDetailsHTML += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(240,144,48,.20);`
+                     + `display:flex;justify-content:space-between;align-items:center">`;
+    discDetailsHTML += `<span style="font-size:11px;color:var(--tx2);font-weight:800">إجمالي الخصومات</span>`;
+    discDetailsHTML += `<span style="font-size:17px;font-weight:900;color:var(--io)">${fmt(Math.round(totalAllDiscounts))} ر</span>`;
+    discDetailsHTML += `</div></div>`;
+  }
+
+  return infoBarHTML + summaryHTML + discDetailsHTML + analysisHTML;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// buildInvoicePaymentTracker — تتبع السداد الذكي للفواتير (FIFO)
+// ═══════════════════════════════════════════════════════════════
+function buildInvoicePaymentTracker(v, txs, isSupp){
+  if(isSupp) return ''; // فقط للعملاء حالياً
+
+  const invoices = txs
+    .filter(t=>t.type==='sell'||t.type==='sell-debt')
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  if(invoices.length===0) return '';
+
+  const today = new Date();
+
+  // جمع كل المدفوعات مرتبة من الأقدم للأحدث
+  const payments = txs
+    .filter(t=>t.type==='payment'||t.type==='cash-receipt'||t.type==='general-receipt')
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  // بناء قائمة المبالغ المدفوعة المتبقية (لتوزيعها على الفواتير)
+  let remainingPayments = payments.map(p=>{
+    const amt = (p.ajourPaid||p.amount||0)
+               +(p.discount||0)
+               +(p.change||0)
+               +(p.netDiff ? (p.netDiff.riyal||0) : 0);
+    return Math.max(0, amt);
+  });
+
+  // توزيع FIFO: أقدم فاتورة أولاً
+  const invoiceStatus = invoices.map(inv=>{
+    const invTotal = Math.max(0, inv.total||inv.ajTotal||0);
+    let allocated = 0;
+
+    for(let i=0;i<remainingPayments.length;i++){
+      if(remainingPayments[i]<=0.009) continue;
+      const needed = invTotal - allocated;
+      if(needed<=0.009) break;
+      if(remainingPayments[i]>=needed){
+        allocated += needed;
+        remainingPayments[i] = Math.round((remainingPayments[i]-needed)*100)/100;
+        break;
+      } else {
+        allocated += remainingPayments[i];
+        remainingPayments[i] = 0;
+      }
+    }
+    allocated = Math.round(allocated*100)/100;
+    const leftover = Math.max(0, Math.round((invTotal-allocated)*100)/100);
+    const paidPct  = invTotal>0 ? Math.min(100,Math.round(allocated/invTotal*100)) : 100;
+    const status   = leftover<0.01 ? 'paid' : (allocated>0.009 ? 'partial' : 'unpaid');
+    const invDate  = inv.date ? new Date(inv.date) : null;
+    const delayDays = (status!=='paid' && invDate) ? Math.max(0,Math.floor((today-invDate)/(1000*60*60*24))) : 0;
+    return {inv, invTotal, allocated, leftover, paidPct, status, delayDays};
+  });
+
+  // ─── بناء HTML ───
+  const statusConf = {
+    paid:    {lbl:'✅ مسددة بالكامل', bg:'rgba(22,163,74,.10)',  bd:'rgba(22,163,74,.30)',  tc:'#16A34A', bar:'#16A34A'},
+    partial: {lbl:'🟡 مسددة جزئياً',  bg:'rgba(240,144,48,.10)', bd:'rgba(240,144,48,.30)', tc:'#D97706', bar:'#F59E0B'},
+    unpaid:  {lbl:'🔴 غير مسددة',     bg:'rgba(220,38,38,.08)',  bd:'rgba(220,38,38,.25)',  tc:'#DC2626', bar:'#DC2626'},
+  };
+
+  const paidCount   = invoiceStatus.filter(s=>s.status==='paid').length;
+  const partialCount= invoiceStatus.filter(s=>s.status==='partial').length;
+  const unpaidCount = invoiceStatus.filter(s=>s.status==='unpaid').length;
+  const totalOwed   = invoiceStatus.reduce((a,s)=>a+s.leftover,0);
+
+  let html = '<div class="no-print" style="background:var(--c1);border:2px solid rgba(80,144,224,.30);'
+           + 'border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 18px rgba(80,144,224,.10)">';
+
+  // عنوان القسم
+  html += '<div style="padding:11px 14px;background:linear-gradient(135deg,rgba(80,144,224,.12),rgba(80,144,224,.04));'
+        + 'border-bottom:1.5px solid rgba(80,144,224,.20);display:flex;align-items:center;justify-content:space-between">';
+  html += '<span style="font-size:13px;font-weight:900;color:var(--tx1)">📑 تتبع السداد الذكي للفواتير</span>';
+  html += '<span style="font-size:10px;color:var(--tx2)">'
+        + `<span style="color:#16A34A;font-weight:700">${paidCount} ✅</span> · `
+        + `<span style="color:#D97706;font-weight:700">${partialCount} 🟡</span> · `
+        + `<span style="color:#DC2626;font-weight:700">${unpaidCount} 🔴</span>`
+        + '</span>';
+  html += '</div>';
+
+  // ملخص سريع
+  if(totalOwed>0.01){
+    html += '<div style="padding:8px 14px;background:rgba(220,38,38,.05);border-bottom:1px solid rgba(220,38,38,.12);'
+          + 'display:flex;justify-content:space-between;align-items:center">';
+    html += '<span style="font-size:11px;color:#DC2626;font-weight:800">💳 إجمالي المتبقي على الفواتير</span>';
+    html += '<span style="font-size:15px;font-weight:900;color:#DC2626">'+fmt(Math.round(totalOwed))+' ر</span>';
+    html += '</div>';
+  } else {
+    html += '<div style="padding:8px 14px;background:rgba(22,163,74,.06);border-bottom:1px solid rgba(22,163,74,.15);'
+          + 'text-align:center;font-size:12px;font-weight:800;color:#16A34A">✅ جميع الفواتير مسددة بالكامل</div>';
+  }
+
+  // قائمة الفواتير
+  html += '<div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">';
+
+  invoiceStatus.forEach((s,idx)=>{
+    const cf = statusConf[s.status];
+    const dt = s.inv.date ? fmtDate(s.inv.date) : null;
+    const invNum = s.inv.id||'—';
+    const invWt  = (s.inv.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+    const delayStr = s.delayDays>0
+      ? `<span style="font-size:9px;background:${s.delayDays>30?'#FEE2E2':s.delayDays>7?'#FEF3C7':'#F0FDF4'};`
+        +`color:${s.delayDays>30?'#DC2626':s.delayDays>7?'#D97706':'#16A34A'};`
+        +`padding:1px 6px;border-radius:6px;font-weight:700;margin-right:4px">⏳ ${s.delayDays} يوم</span>`
+      : '';
+
+    html += `<div style="border:1.5px solid ${cf.bd};border-radius:12px;background:${cf.bg};overflow:hidden">`;
+
+    // رأس الفاتورة
+    html += `<div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">`;
+    html += `<div style="display:flex;align-items:center;gap:7px">`;
+    html += `<span style="font-size:10px;font-weight:900;padding:2px 9px;border-radius:8px;`
+           +`background:rgba(0,0,0,.07);color:var(--tx2)">ف${idx+1}</span>`;
+    html += `<div>`;
+    html += `<div style="font-size:12px;font-weight:800;color:var(--tx1)">${fmt(Math.round(s.invTotal))} ر`;
+    if(invWt>0.001) html += ` · <span style="font-size:10px;color:var(--g1)">🥇 ${fmtG(invWt)}ج</span>`;
+    html += `</div>`;
+    if(dt) html += `<div style="font-size:9px;color:var(--tx3);margin-top:1px">📅 ${dt.ar} ${delayStr}</div>`;
+    html += `</div></div>`;
+    html += `<span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;`
+           +`background:${cf.bd};color:${cf.tc};white-space:nowrap">${cf.lbl}</span>`;
+    html += `</div>`;
+
+    // شريط التقدم
+    html += `<div style="padding:0 12px 4px">`;
+    html += `<div style="background:rgba(0,0,0,.08);border-radius:6px;height:5px;overflow:hidden">`;
+    html += `<div style="width:${s.paidPct}%;height:100%;background:${cf.bar};border-radius:6px;transition:width .4s"></div>`;
+    html += `</div></div>`;
+
+    // تفاصيل المبالغ
+    html += `<div style="padding:4px 12px 10px;display:flex;gap:12px;flex-wrap:wrap">`;
+    if(s.allocated>0.009){
+      html += `<span style="font-size:10px;color:#16A34A;font-weight:700">`
+             +`✅ مدفوع: ${fmt(Math.round(s.allocated))} ر (${s.paidPct}%)</span>`;
+    }
+    if(s.leftover>0.01){
+      html += `<span style="font-size:10px;color:#DC2626;font-weight:700">`
+             +`💳 متبقي: ${fmt(Math.round(s.leftover))} ر</span>`;
+    }
+    if(s.delayDays>0){
+      html += `<span style="font-size:10px;color:${s.delayDays>30?'#DC2626':s.delayDays>7?'#D97706':'#D97706'};font-weight:700">`
+             +`⏳ تأخير: ${s.delayDays} يوم</span>`;
+    }
+    html += `</div>`;
+
+    html += `</div>`;
+  });
+
+  html += '</div>';
+
+  // تلميح
+  html += '<div style="padding:6px 14px 10px;font-size:9px;color:var(--tx3);text-align:center">';
+  html += '💡 يتم توزيع السداد تلقائياً على الفواتير من الأقدم للأحدث (FIFO)';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
 }
 
 function renderStmt(){
@@ -13596,6 +13816,11 @@ function renderStmt(){
   // ── لوحة التحليل الذكي (لا تظهر عند الطباعة) ──
   // ══════════════════════════════════════════════════════════════
   html += buildStmtAnalytics(v, txs, bal, isSupp, clientObj);
+
+  // ══════════════════════════════════════════════════════════════
+  // ── تتبع السداد الذكي للفواتير ──
+  // ══════════════════════════════════════════════════════════════
+  html += buildInvoicePaymentTracker(v, txs, isSupp);
 
   // ══════════════════════════════════════════════════════════════
   // ── بيان سريع العيارات (إضافة جديدة) ──
