@@ -2110,6 +2110,12 @@ body{
           border-radius:var(--rb);border:1px solid var(--b2);background:var(--c1)"></div>
       </div>
 
+      <!-- مؤشر الفاتورة المرتبطة -->
+      <div id="ret-linked-inv-hint" style="display:none;background:rgba(34,199,122,.08);
+        border:1px solid rgba(34,199,122,.25);border-radius:var(--rb);
+        padding:8px 12px;margin-bottom:10px;font-size:11px;
+        display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+
       <!-- ملخص -->
       <div id="return-summary" style="display:none;border-radius:var(--rb);padding:10px;
         margin-bottom:10px;background:var(--g4);border:1px solid var(--g5);font-size:12px">
@@ -11143,6 +11149,7 @@ function runValidationTests(){
 let currentReturnType = null;
 let returnItems = [];
 let returnCounter = 0;
+let currentRetLinkedInvId = null; // ← معرّف الفاتورة الأصلية المرتبطة (لربط المرتجع بفاتورته)
 
 function setReturnType(type){
   currentReturnType = type;
@@ -11232,6 +11239,8 @@ function renderRetCliInvoices(){
 function applyReturnFromInv(txId){
   const tx = (S.transactions||[]).find(t=>t.id===txId);
   if(!tx) return;
+  // ← حفظ معرّف الفاتورة الأصلية لربط المرتجع بها عند الحفظ
+  currentRetLinkedInvId = txId;
   if(tx.items && tx.items.length){
     returnItems = tx.items.map((i,idx)=>({
       id: idx+1,
@@ -11249,8 +11258,17 @@ function applyReturnFromInv(txId){
   const vatCb = document.getElementById('ret-vat');
   if(vatCb) vatCb.checked = (tx.vatAmt||0)>0;
   calcReturnSummary();
+  // إظهار مؤشر الفاتورة المرتبطة في الواجهة
+  const invHint = document.getElementById('ret-linked-inv-hint');
+  if(invHint){
+    const dt = tx.date ? fmtDate(tx.date) : null;
+    invHint.style.display = 'block';
+    invHint.innerHTML = `<span style="font-weight:800;color:var(--ok)">🔗 مرتبط بالفاتورة #${txId}</span>`
+      + (dt ? `<span style="margin-right:6px;color:var(--tx3);font-size:10px">${dt.ar}</span>` : '')
+      + `<span style="margin-right:6px;color:var(--g1);font-size:10px">أجور: ${fmt(tx.ajTotal||0)} ر · ذهب: ${fmtG((tx.total24||0))} ج ع24</span>`;
+  }
   document.getElementById('ret-cli-invoices')?.style && (document.getElementById('ret-cli-invoices').style.display='none');
-  toast('✅ تم تطبيق بيانات الفاتورة — العيار والنوع مقفول تلقائياً · أدخل الوزن المرجوع');
+  toast('✅ تم تطبيق بيانات الفاتورة — مرتبط بفاتورة #'+txId+' · أدخل الوزن المرجوع');
 }
 
 function addReturnItem(){
@@ -11399,6 +11417,8 @@ function saveReturn(){
     id:Date.now(), date:dateISO,
     type:currentReturnType,
     client:cli, notes,
+    // ← ربط المرتجع بالفاتورة الأصلية إذا تم اختيارها
+    origId: currentRetLinkedInvId || undefined,
     items:validItems.map(i=>{
       const ajour = parseFloat(document.getElementById(`ri-ajour-${i.id}`)?.value)||0;
       return {karat:i.karat, weight:i.weight, isWorked:true, ajour}; // مشغول دائماً
@@ -11419,7 +11439,7 @@ function saveReturn(){
   renderAll(); releaseSave();
 
   // تنظيف كامل
-  returnItems=[]; returnCounter=0; currentReturnType=null;
+  returnItems=[]; returnCounter=0; currentReturnType=null; currentRetLinkedInvId=null;
   renderReturnItems();
   ['ret-cli-s','ret-cli-v','ret-cash','ret-notes','ret-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
@@ -11427,6 +11447,7 @@ function saveReturn(){
   const vatCbR=document.getElementById('ret-vat'); if(vatCbR) vatCbR.checked=false;
   const vatRowR=document.getElementById('ret-vat-row'); if(vatRowR) vatRowR.style.display='none';
   const hintR=document.getElementById('return-type-hint'); if(hintR) hintR.style.display='none';
+  const linkedHint=document.getElementById('ret-linked-inv-hint'); if(linkedHint) linkedHint.style.display='none';
   const submR=document.getElementById('ret-submit'); if(submR) submR.style.display='none';
   const invListR=document.getElementById('ret-cli-invoices'); if(invListR) invListR.style.display='none';
   const sumR=document.getElementById('return-summary'); if(sumR) sumR.style.display='none';
@@ -12865,7 +12886,11 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// buildInvoicePaymentTracker — تتبع السداد الذكي للفواتير (FIFO)
+// buildInvoicePaymentTracker — تتبع السداد الذكي للفواتير
+// المعادلة المحاسبية الصحيحة:
+//   صافي الفاتورة = (أجور + ضريبة - مرتجعات مرتبطة) نقداً
+//                + (ذهب ع24 - ذهب مرتجع مرتبط)      ذهباً
+//   حالة = "مسددة بالكامل" فقط عند صفر الوجهين معاً
 // ═══════════════════════════════════════════════════════════════
 function buildInvoicePaymentTracker(v, txs, isSupp){
   if(isSupp) return ''; // فقط للعملاء حالياً
@@ -12878,146 +12903,339 @@ function buildInvoicePaymentTracker(v, txs, isSupp){
 
   const today = new Date();
 
-  // جمع كل المدفوعات مرتبة من الأقدم للأحدث
-  const payments = txs
-    .filter(t=>t.type==='payment'||t.type==='cash-receipt'||t.type==='general-receipt')
-    .sort((a,b)=>new Date(a.date)-new Date(b.date));
-
-  // بناء قائمة المبالغ المدفوعة المتبقية (لتوزيعها على الفواتير)
-  let remainingPayments = payments.map(p=>{
-    const amt = (p.ajourPaid||p.amount||0)
-               +(p.discount||0)
-               +(p.change||0)
-               +(p.netDiff ? (p.netDiff.riyal||0) : 0);
-    return Math.max(0, amt);
+  // ════════════════════════════════════════════════
+  // الخطوة 1: ربط المرتجعات بفواتيرها الأصلية
+  // ════════════════════════════════════════════════
+  const linkedReturnMap = {}; // invId → {cashRet, gold24Ret, retCount}
+  invoices.forEach(inv=>{
+    linkedReturnMap[inv.id] = {cashRet:0, gold24Ret:0, retCount:0};
   });
 
-  // توزيع FIFO: أقدم فاتورة أولاً
-  const invoiceStatus = invoices.map(inv=>{
-    const invTotal = Math.max(0, inv.total||inv.ajTotal||0);
-    let allocated = 0;
+  const allSalesReturns = txs.filter(t=>
+    t.type==='return' || t.type==='sales-return'
+  ).sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    for(let i=0;i<remainingPayments.length;i++){
-      if(remainingPayments[i]<=0.009) continue;
-      const needed = invTotal - allocated;
-      if(needed<=0.009) break;
-      if(remainingPayments[i]>=needed){
-        allocated += needed;
-        remainingPayments[i] = Math.round((remainingPayments[i]-needed)*100)/100;
-        break;
-      } else {
-        allocated += remainingPayments[i];
-        remainingPayments[i] = 0;
-      }
+  // مرتجعات بدون origId → تُضاف لمجمّع المدفوعات العامة (FIFO)
+  const unlinkedReturnsCash   = [];
+  const unlinkedReturnsGold24 = [];
+
+  allSalesReturns.forEach(ret=>{
+    const origId = ret.origId;
+    if(origId && linkedReturnMap[origId]){
+      // مرتبط بفاتورة معينة — يُخصم منها مباشرة
+      linkedReturnMap[origId].cashRet    += (ret.ajTotal||0) + (ret.vatAmt||0);
+      linkedReturnMap[origId].gold24Ret  += (ret.items||[]).reduce(
+        (a,i)=>a+convertTo24(i.weight||0, i.karat||'21'), 0
+      );
+      linkedReturnMap[origId].retCount++;
+    } else {
+      // غير مرتبط — يُوزَّع FIFO على الفواتير مثل أي مدفوع
+      unlinkedReturnsCash.push({
+        amt : (ret.ajTotal||0)+(ret.vatAmt||0),
+        date: ret.date||''
+      });
+      unlinkedReturnsGold24.push({
+        amt : (ret.items||[]).reduce((a,i)=>a+convertTo24(i.weight||0,i.karat||'21'),0),
+        date: ret.date||''
+      });
     }
-    allocated = Math.round(allocated*100)/100;
-    const leftover = Math.max(0, Math.round((invTotal-allocated)*100)/100);
-    const paidPct  = invTotal>0 ? Math.min(100,Math.round(allocated/invTotal*100)) : 100;
-    const status   = leftover<0.01 ? 'paid' : (allocated>0.009 ? 'partial' : 'unpaid');
-    const invDate  = inv.date ? new Date(inv.date) : null;
-    const delayDays = (status!=='paid' && invDate) ? Math.max(0,Math.floor((today-invDate)/(1000*60*60*24))) : 0;
-    return {inv, invTotal, allocated, leftover, paidPct, status, delayDays};
   });
 
-  // ─── بناء HTML ───
+  // ════════════════════════════════════════════════
+  // الخطوة 2: حساب الصافي المطلوب لكل فاتورة
+  // ════════════════════════════════════════════════
+  const invoiceData = invoices.map(inv=>{
+    const lr = linkedReturnMap[inv.id];
+
+    // الجزء النقدي = أجور + ضريبة
+    const origCash = (inv.ajTotal||0) + (inv.vatAmt||0);
+    const netCash  = Math.max(0, Math.round((origCash - lr.cashRet)*100)/100);
+
+    // الجزء الذهبي = مجموع الأوزان محوَّلة لعيار 24
+    const origGold24 = inv.total24
+      || (inv.items||[]).reduce((a,i)=>a+convertTo24(i.weight||0,i.karat||'21'),0);
+    const netGold24  = Math.max(0, Math.round((origGold24 - lr.gold24Ret)*1000)/1000);
+
+    return {inv, origCash, netCash, origGold24, netGold24, lr};
+  });
+
+  // ════════════════════════════════════════════════
+  // الخطوة 3: بناء مجمّع المدفوعات (نقد + ذهب)
+  // ════════════════════════════════════════════════
+  // المدفوعات النقدية: payment, cash-receipt, general-receipt
+  const rawCashPay = txs
+    .filter(t=>t.type==='payment'||t.type==='cash-receipt'||t.type==='general-receipt')
+    .map(p=>{
+      let amt = (p.ajourPaid||p.amount||0)+(p.discount||0)+(p.change||0)
+              + (p.netDiff ? (p.netDiff.riyal||0) : 0);
+      // ذهب بسعر = يُحوَّل لريال ويُضاف للمدفوعات النقدية
+      if(p.goldItems && p.goldItems.length){
+        p.goldItems.forEach(gi=>{ if((gi.price||0)>0) amt += Math.round((gi.weight||0)*(gi.price||0)*100)/100; });
+      } else if((p.goldPrice||0)>0){
+        amt += Math.round((p.goldWeight||0)*(p.goldPrice||0)*100)/100;
+      }
+      return {amt:Math.max(0,amt), date:p.date||''};
+    });
+
+  // المدفوعات الذهبية (بدون سعر) = تسوية ذهبية
+  const rawGoldPay24 = txs
+    .filter(t=>t.type==='payment')
+    .map(p=>{
+      let g24 = 0;
+      if(p.goldItems && p.goldItems.length){
+        p.goldItems.forEach(gi=>{ if(!(gi.price||0)) g24 += convertTo24(gi.weight||0, gi.karat||'21'); });
+      } else if(!(p.goldPrice||0)){
+        g24 = convertTo24(p.goldWeight||0, p.goldKarat||'21');
+      }
+      return {amt:g24, date:p.date||''};
+    });
+
+  // إضافة المرتجعات غير المرتبطة كمدفوعات FIFO
+  unlinkedReturnsCash.forEach(r=>rawCashPay.push(r));
+  unlinkedReturnsGold24.forEach(r=>rawGoldPay24.push(r));
+
+  // ترتيب من الأقدم للأحدث
+  rawCashPay.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  rawGoldPay24.sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  let remainCash   = rawCashPay.map(p=>p.amt);
+  let remainGold24 = rawGoldPay24.map(p=>p.amt);
+
+  // دالة FIFO مساعدة
+  function allocateFIFO(pool, needed){
+    let got = 0;
+    for(let i=0;i<pool.length;i++){
+      if(pool[i]<0.001) continue;
+      const take = Math.min(pool[i], needed-got);
+      got += take;
+      pool[i] = Math.round((pool[i]-take)*1000)/1000;
+      if(Math.abs(got-needed)<0.001) break;
+    }
+    return Math.round(got*1000)/1000;
+  }
+
+  // ════════════════════════════════════════════════
+  // الخطوة 4: توزيع FIFO على كل فاتورة
+  // ════════════════════════════════════════════════
+  const invoiceStatus = invoiceData.map((d,idx)=>{
+    // توزيع الأجور النقدية
+    const cashAllocated = d.netCash > 0.009
+      ? allocateFIFO(remainCash, d.netCash)
+      : d.netCash; // الفاتورة بدون أجور = مسدد تلقائياً
+
+    // توزيع الذهب
+    const goldAllocated24 = d.netGold24 > 0.001
+      ? allocateFIFO(remainGold24, d.netGold24)
+      : d.netGold24;
+
+    const cashLeft   = Math.max(0, Math.round((d.netCash   - cashAllocated)  *100)/100);
+    const goldLeft24 = Math.max(0, Math.round((d.netGold24 - goldAllocated24)*1000)/1000);
+
+    // نسب السداد
+    const cashPct = d.netCash>0.009
+      ? Math.min(100,Math.round(cashAllocated/d.netCash*100)) : 100;
+    const goldPct = d.netGold24>0.001
+      ? Math.min(100,Math.round(goldAllocated24/d.netGold24*100)) : 100;
+    const hasBoth = d.netCash>0.009 && d.netGold24>0.001;
+    const paidPct = hasBoth ? Math.round((cashPct+goldPct)/2)
+                            : (d.netCash>0.009 ? cashPct : goldPct);
+
+    // الحالة الصحيحة: مسددة فقط عند صفر الوجهين
+    const cashOk = cashLeft < 0.01;
+    const goldOk = goldLeft24 < 0.001;
+    const status = (cashOk && goldOk) ? 'paid'
+      : (cashAllocated>0.009||goldAllocated24>0.0009) ? 'partial'
+      : 'unpaid';
+
+    const invDate   = d.inv.date ? new Date(d.inv.date) : null;
+    const delayDays = (status!=='paid' && invDate)
+      ? Math.max(0,Math.floor((today-invDate)/(1000*60*60*24))) : 0;
+
+    return {
+      inv:d.inv, d, idx,
+      cashAllocated, cashLeft, cashPct,
+      goldAllocated24, goldLeft24, goldPct,
+      paidPct, status, delayDays,
+      linkedRetCount: d.lr.retCount
+    };
+  });
+
+  // ════════════════════════════════════════════════
+  // الخطوة 5: بناء HTML
+  // ════════════════════════════════════════════════
   const statusConf = {
     paid:    {lbl:'✅ مسددة بالكامل', bg:'rgba(22,163,74,.10)',  bd:'rgba(22,163,74,.30)',  tc:'#16A34A', bar:'#16A34A'},
     partial: {lbl:'🟡 مسددة جزئياً',  bg:'rgba(240,144,48,.10)', bd:'rgba(240,144,48,.30)', tc:'#D97706', bar:'#F59E0B'},
     unpaid:  {lbl:'🔴 غير مسددة',     bg:'rgba(220,38,38,.08)',  bd:'rgba(220,38,38,.25)',  tc:'#DC2626', bar:'#DC2626'},
   };
 
-  const paidCount   = invoiceStatus.filter(s=>s.status==='paid').length;
-  const partialCount= invoiceStatus.filter(s=>s.status==='partial').length;
-  const unpaidCount = invoiceStatus.filter(s=>s.status==='unpaid').length;
-  const totalOwed   = invoiceStatus.reduce((a,s)=>a+s.leftover,0);
+  const paidCount    = invoiceStatus.filter(s=>s.status==='paid').length;
+  const partialCount = invoiceStatus.filter(s=>s.status==='partial').length;
+  const unpaidCount  = invoiceStatus.filter(s=>s.status==='unpaid').length;
+  const totalCashOwed  = invoiceStatus.reduce((a,s)=>a+s.cashLeft,0);
+  const totalGoldOwed24= invoiceStatus.reduce((a,s)=>a+s.goldLeft24,0);
+  const allPaid = paidCount===invoices.length;
 
   let html = '<div class="no-print" style="background:var(--c1);border:2px solid rgba(80,144,224,.30);'
            + 'border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 18px rgba(80,144,224,.10)">';
 
-  // عنوان القسم
-  html += '<div style="padding:11px 14px;background:linear-gradient(135deg,rgba(80,144,224,.12),rgba(80,144,224,.04));'
-        + 'border-bottom:1.5px solid rgba(80,144,224,.20);display:flex;align-items:center;justify-content:space-between">';
-  html += '<span style="font-size:13px;font-weight:900;color:var(--tx1)">📑 تتبع السداد الذكي للفواتير</span>';
-  html += '<span style="font-size:10px;color:var(--tx2)">'
-        + `<span style="color:#16A34A;font-weight:700">${paidCount} ✅</span> · `
-        + `<span style="color:#D97706;font-weight:700">${partialCount} 🟡</span> · `
-        + `<span style="color:#DC2626;font-weight:700">${unpaidCount} 🔴</span>`
+  // ── عنوان ──
+  html += '<div style="padding:11px 14px;'
+        + 'background:linear-gradient(135deg,rgba(80,144,224,.12),rgba(80,144,224,.04));'
+        + 'border-bottom:1.5px solid rgba(80,144,224,.20);'
+        + 'display:flex;align-items:center;justify-content:space-between">';
+  html += '<span style="font-size:13px;font-weight:900;color:var(--tx1)">📑 تتبع السداد — الفواتير</span>';
+  html += `<span style="font-size:10px;color:var(--tx2)">`
+        + `<span style="color:#16A34A;font-weight:700">${paidCount}✅</span> · `
+        + `<span style="color:#D97706;font-weight:700">${partialCount}🟡</span> · `
+        + `<span style="color:#DC2626;font-weight:700">${unpaidCount}🔴</span>`
         + '</span>';
   html += '</div>';
 
-  // ملخص سريع
-  if(totalOwed>0.01){
-    html += '<div style="padding:8px 14px;background:rgba(220,38,38,.05);border-bottom:1px solid rgba(220,38,38,.12);'
-          + 'display:flex;justify-content:space-between;align-items:center">';
-    html += '<span style="font-size:11px;color:#DC2626;font-weight:800">💳 إجمالي المتبقي على الفواتير</span>';
-    html += '<span style="font-size:15px;font-weight:900;color:#DC2626">'+fmt(Math.round(totalOwed))+' ر</span>';
-    html += '</div>';
+  // ── ملخص المتبقي أو مسدد بالكامل ──
+  if(allPaid){
+    html += '<div style="padding:9px 14px;background:rgba(22,163,74,.07);'
+          + 'border-bottom:1px solid rgba(22,163,74,.15);'
+          + 'text-align:center;font-size:12px;font-weight:800;color:#16A34A">'
+          + '✅ جميع الفواتير مسددة بالكامل — الحساب متوازن</div>';
   } else {
-    html += '<div style="padding:8px 14px;background:rgba(22,163,74,.06);border-bottom:1px solid rgba(22,163,74,.15);'
-          + 'text-align:center;font-size:12px;font-weight:800;color:#16A34A">✅ جميع الفواتير مسددة بالكامل</div>';
+    html += '<div style="padding:8px 14px;background:rgba(220,38,38,.04);'
+          + 'border-bottom:1px solid rgba(220,38,38,.10);'
+          + 'display:flex;flex-wrap:wrap;gap:12px;align-items:center">';
+    if(totalCashOwed>0.01)
+      html += `<span style="font-size:11px;font-weight:800;color:#DC2626">`
+            + `💳 أجور متبقية: ${fmt(Math.round(totalCashOwed))} ر</span>`;
+    if(totalGoldOwed24>0.001)
+      html += `<span style="font-size:11px;font-weight:800;color:var(--g1)">`
+            + `🥇 ذهب متبقي: ${fmtG(totalGoldOwed24)} ج ع24</span>`;
+    html += '</div>';
   }
 
-  // قائمة الفواتير
-  html += '<div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">';
+  // ── قائمة الفواتير ──
+  html += '<div style="padding:10px 12px;display:flex;flex-direction:column;gap:9px">';
 
   invoiceStatus.forEach((s,idx)=>{
-    const cf = statusConf[s.status];
-    const dt = s.inv.date ? fmtDate(s.inv.date) : null;
-    const invNum = s.inv.id||'—';
-    const invWt  = (s.inv.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+    const cf  = statusConf[s.status];
+    const dt  = s.inv.date ? fmtDate(s.inv.date) : null;
+    const invWt = (s.inv.items||[]).reduce((a,i)=>a+(i.weight||0),0);
+    const hasGold = s.d.netGold24 > 0.001;
+    const hasCash = s.d.netCash   > 0.009;
+
     const delayStr = s.delayDays>0
-      ? `<span style="font-size:9px;background:${s.delayDays>30?'#FEE2E2':s.delayDays>7?'#FEF3C7':'#F0FDF4'};`
-        +`color:${s.delayDays>30?'#DC2626':s.delayDays>7?'#D97706':'#16A34A'};`
-        +`padding:1px 6px;border-radius:6px;font-weight:700;margin-right:4px">⏳ ${s.delayDays} يوم</span>`
+      ? `<span style="font-size:9px;padding:1px 6px;border-radius:6px;font-weight:700;`
+        + `background:${s.delayDays>30?'#FEE2E2':s.delayDays>7?'#FEF3C7':'#EFF6FF'};`
+        + `color:${s.delayDays>30?'#DC2626':s.delayDays>7?'#D97706':'#2563EB'}">⏳ ${s.delayDays} يوم</span>`
       : '';
 
-    html += `<div style="border:1.5px solid ${cf.bd};border-radius:12px;background:${cf.bg};overflow:hidden">`;
+    html += `<div style="border:1.5px solid ${cf.bd};border-radius:13px;background:${cf.bg};overflow:hidden">`;
 
-    // رأس الفاتورة
-    html += `<div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">`;
+    // رأس: رقم الفاتورة + التاريخ + الحالة
+    html += `<div style="padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:6px">`;
     html += `<div style="display:flex;align-items:center;gap:7px">`;
-    html += `<span style="font-size:10px;font-weight:900;padding:2px 9px;border-radius:8px;`
+    html += `<span style="font-size:11px;font-weight:900;padding:3px 10px;border-radius:8px;`
            +`background:rgba(0,0,0,.07);color:var(--tx2)">ف${idx+1}</span>`;
     html += `<div>`;
-    html += `<div style="font-size:12px;font-weight:800;color:var(--tx1)">${fmt(Math.round(s.invTotal))} ر`;
-    if(invWt>0.001) html += ` · <span style="font-size:10px;color:var(--g1)">🥇 ${fmtG(invWt)}ج</span>`;
-    html += `</div>`;
+
+    // الأصل والصافي بعد المرتجع
+    if(s.linkedRetCount > 0){
+      // فيها مرتجع مرتبط → اعرض الأصل والصافي
+      if(hasCash)
+        html += `<div style="font-size:10px;color:var(--tx3);text-decoration:line-through">`
+              + `أجور أصلية: ${fmt(Math.round(s.d.origCash))} ر</div>`;
+      html += `<div style="font-size:12px;font-weight:900;color:${cf.tc}">`;
+      if(hasCash)  html += `صافي أجور: ${fmt(Math.round(s.d.netCash))} ر`;
+      if(hasGold && hasCash) html += ` · `;
+      if(hasGold)  html += `🥇 ${fmtG(s.d.netGold24)} ج ع24`;
+      if(!hasCash && !hasGold) html += `مسدد بالمرتجع بالكامل`;
+      html += `</div>`;
+      html += `<div style="font-size:9px;color:var(--ok);margin-top:1px">↩️ ${s.linkedRetCount} مرتجع مرتبط — خُفِّض المطلوب</div>`;
+    } else {
+      html += `<div style="font-size:12px;font-weight:800;color:var(--tx1)">`;
+      if(hasCash)  html += `${fmt(Math.round(s.d.netCash))} ر`;
+      if(hasGold && hasCash) html += ` · `;
+      if(hasGold)  html += `🥇 ${fmtG(s.d.netGold24)} ج ع24`;
+      if(!hasCash && !hasGold) html += `بدون مطالبة`;
+      html += `</div>`;
+    }
     if(dt) html += `<div style="font-size:9px;color:var(--tx3);margin-top:1px">📅 ${dt.ar} ${delayStr}</div>`;
     html += `</div></div>`;
     html += `<span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;`
-           +`background:${cf.bd};color:${cf.tc};white-space:nowrap">${cf.lbl}</span>`;
+           +`background:${cf.bd};color:${cf.tc};white-space:nowrap;flex-shrink:0">${cf.lbl}</span>`;
     html += `</div>`;
 
     // شريط التقدم
-    html += `<div style="padding:0 12px 4px">`;
-    html += `<div style="background:rgba(0,0,0,.08);border-radius:6px;height:5px;overflow:hidden">`;
-    html += `<div style="width:${s.paidPct}%;height:100%;background:${cf.bar};border-radius:6px;transition:width .4s"></div>`;
-    html += `</div></div>`;
+    if(hasCash||hasGold){
+      html += `<div style="padding:0 12px 3px">`;
+      html += `<div style="background:rgba(0,0,0,.08);border-radius:6px;height:5px;overflow:hidden">`;
+      html += `<div style="width:${s.paidPct}%;height:100%;background:${cf.bar};border-radius:6px;transition:width .4s"></div>`;
+      html += `</div></div>`;
+    }
 
-    // تفاصيل المبالغ
-    html += `<div style="padding:4px 12px 10px;display:flex;gap:12px;flex-wrap:wrap">`;
-    if(s.allocated>0.009){
-      html += `<span style="font-size:10px;color:#16A34A;font-weight:700">`
-             +`✅ مدفوع: ${fmt(Math.round(s.allocated))} ر (${s.paidPct}%)</span>`;
+    // ── تفصيل السداد ──
+    html += `<div style="padding:5px 12px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+
+    // عمود: ما تم سداده
+    html += `<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.18);`
+           +`border-radius:9px;padding:7px 9px">`;
+    html += `<div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:4px">✅ تم السداد</div>`;
+    if(s.cashAllocated>0.009)
+      html += `<div style="font-size:11px;font-weight:800;color:#16A34A">`
+             +`💵 نقد: ${fmt(Math.round(s.cashAllocated))} ر`
+             +(hasCash ? ` (${s.cashPct}%)` : '')
+             +`</div>`;
+    if(s.goldAllocated24>0.0009)
+      html += `<div style="font-size:11px;font-weight:800;color:var(--g1)">`
+             +`🥇 ذهب: ${fmtG(s.goldAllocated24)} ج ع24`
+             +(hasGold ? ` (${s.goldPct}%)` : '')
+             +`</div>`;
+    if(s.d.lr.retCount>0){
+      if(s.d.lr.cashRet>0.009)
+        html += `<div style="font-size:10px;color:var(--ok)">`
+               +`↩️ مرتجع أجور: ${fmt(Math.round(s.d.lr.cashRet))} ر</div>`;
+      if(s.d.lr.gold24Ret>0.0009)
+        html += `<div style="font-size:10px;color:var(--ok)">`
+               +`↩️ مرتجع ذهب: ${fmtG(s.d.lr.gold24Ret)} ج</div>`;
     }
-    if(s.leftover>0.01){
-      html += `<span style="font-size:10px;color:#DC2626;font-weight:700">`
-             +`💳 متبقي: ${fmt(Math.round(s.leftover))} ر</span>`;
-    }
-    if(s.delayDays>0){
-      html += `<span style="font-size:10px;color:${s.delayDays>30?'#DC2626':s.delayDays>7?'#D97706':'#D97706'};font-weight:700">`
-             +`⏳ تأخير: ${s.delayDays} يوم</span>`;
-    }
+    if(s.cashAllocated<0.009 && s.goldAllocated24<0.0009 && s.d.lr.retCount===0)
+      html += `<div style="font-size:11px;color:var(--tx3)">— لا يوجد</div>`;
     html += `</div>`;
 
+    // عمود: المتبقي
+    html += `<div style="background:${s.status==='paid'?'rgba(22,163,74,.05)':'rgba(220,38,38,.05)'};`
+           +`border:1px solid ${s.status==='paid'?'rgba(22,163,74,.18)':'rgba(220,38,38,.18)'};`
+           +`border-radius:9px;padding:7px 9px">`;
+    html += `<div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:4px">📋 المتبقي الحقيقي</div>`;
+    if(s.status==='paid'){
+      html += `<div style="font-size:11px;font-weight:800;color:#16A34A">✔ صفر — متوازن</div>`;
+    } else {
+      if(s.cashLeft>0.01)
+        html += `<div style="font-size:11px;font-weight:800;color:#DC2626">`
+               +`💵 ${fmt(Math.round(s.cashLeft))} ر</div>`;
+      if(s.goldLeft24>0.001)
+        html += `<div style="font-size:11px;font-weight:800;color:var(--g1)">`
+               +`🥇 ${fmtG(s.goldLeft24)} ج ع24</div>`;
+    }
+    if(s.delayDays>0)
+      html += `<div style="font-size:9px;color:${s.delayDays>30?'#DC2626':'#D97706'};margin-top:3px">`
+             +`⏳ تأخير: ${s.delayDays} يوم</div>`;
     html += `</div>`;
+
+    html += `</div>`; // end grid
+
+    // مؤشر مدفوع بالكامل عبر مرتجع
+    if(s.status==='paid' && s.d.lr.retCount>0 && s.cashAllocated<0.009 && s.goldAllocated24<0.0009){
+      html += `<div style="padding:4px 12px 8px;font-size:10px;color:var(--ok);font-weight:700">`
+             +`↩️ مسدد بالكامل عبر المرتجع — لا دفعة نقدية مطلوبة</div>`;
+    }
+
+    html += `</div>`; // end card
   });
 
-  html += '</div>';
+  html += '</div>'; // end list
 
-  // تلميح
+  // تذييل
   html += '<div style="padding:6px 14px 10px;font-size:9px;color:var(--tx3);text-align:center">';
-  html += '💡 يتم توزيع السداد تلقائياً على الفواتير من الأقدم للأحدث (FIFO)';
+  html += '💡 المعادلة: صافي الفاتورة = (أجور − مرتجع مرتبط) نقداً + (ذهب − مرتجع ذهبي) · توزيع FIFO من الأقدم للأحدث';
   html += '</div>';
 
   html += '</div>';
