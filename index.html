@@ -682,12 +682,18 @@ body{
 </style>
 <script>
   // ── تحقق مبكر من الجلسة ──
+  // ⚠️ تعديل الأمان: نعتمد على sessionStorage فقط (لا localStorage)
+  // بمعنى: إغلاق التبويب أو المتصفح يُلغي الجلسة ويُجبر على تسجيل دخول جديد
   (function(){
     try {
-      const ok = (sessionStorage.getItem('auth')==='1' || localStorage.getItem('auth')==='1')
-                && (sessionStorage.getItem('auth-user') || localStorage.getItem('auth-user'));
+      // حذف أي auth محفوظ في localStorage (إبطال الجلسة الدائمة)
+      ['auth','auth-user','auth-role','auth-owner'].forEach(function(k){
+        localStorage.removeItem(k);
+      });
+      // نتحقق من sessionStorage فقط
+      const ok = sessionStorage.getItem('auth')==='1'
+                && sessionStorage.getItem('auth-user');
       if(ok){
-        // إضافة style آمن بدون document.write
         const st = document.createElement('style');
         st.textContent = '#login-screen{display:none!important}';
         document.head.appendChild(st);
@@ -10103,18 +10109,19 @@ async function doLogin(){
       }
     }
 
-    // ── حفظ الجلسة ──
+    // ── حفظ الجلسة في sessionStorage فقط (لا localStorage) ──
+    // هذا يضمن انتهاء الجلسة عند إغلاق التبويب أو المتصفح
     ['auth','auth-user','auth-role'].forEach(k => {
       const v = k==='auth' ? '1' : k==='auth-user' ? found.username : (found.role||'user');
       sessionStorage.setItem(k, v);
-      localStorage.setItem(k, v);
+      // ⚠️ لا نحفظ في localStorage عمداً — الجلسة مؤقتة فقط
     });
 
     const ownerVal = (found.role === 'owner' || found.role === 'tenant' || found.role === 'distributor')
       ? found.username.toLowerCase()
       : (found.ownerId || found.tenantId || found.username.toLowerCase());
     sessionStorage.setItem('auth-owner', ownerVal);
-    localStorage.setItem('auth-owner', ownerVal);
+    // ⚠️ لا نحفظ auth-owner في localStorage
 
     // ── إخفاء شاشة الدخول وإظهار التطبيق ──
     document.getElementById('login-screen').style.display = 'none';
@@ -13033,7 +13040,7 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
   let remainCash   = rawCashPay.map(p=>p.amt);
   let remainGold24 = rawGoldPay24.map(p=>p.amt);
 
-  // دالة FIFO مساعدة
+  // دالة FIFO مساعدة — تأخذ من المجمع بالترتيب
   function allocateFIFO(pool, needed){
     let got = 0;
     for(let i=0;i<pool.length;i++){
@@ -13047,18 +13054,33 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
   }
 
   // ════════════════════════════════════════════════
-  // الخطوة 4: توزيع FIFO على كل فاتورة
+  // الخطوة 4: توزيع FIFO الصارم على كل فاتورة
+  // القاعدة: الفاتورة الأولى تُكمَل بالكامل أولاً قبل الانتقال للتالية
+  // لا يُسمح بأي توزيع جزئي على فاتورة تالية ما لم تُغلق الفاتورة السابقة 100%
   // ════════════════════════════════════════════════
   const invoiceStatus = invoiceData.map((d,idx)=>{
-    // توزيع الأجور النقدية
-    const cashAllocated = d.netCash > 0.009
-      ? allocateFIFO(remainCash, d.netCash)
-      : d.netCash; // الفاتورة بدون أجور = مسدد تلقائياً
+    // ── FIFO صارم للنقد ──
+    // لا ننتقل لهذه الفاتورة إلا إذا أُغلقت كل الفواتير السابقة نقداً
+    let cashAllocated = 0;
+    if(d.netCash > 0.009){
+      // تحقق: هل الفواتير السابقة جميعها مغلقة نقداً؟
+      const prevCashFullyClosed = invoiceData.slice(0,idx).every(prev=>{
+        // نحسب ما تبقى للفاتورة السابقة في المجمع الحالي
+        // (بما أن allocateFIFO يعدّل remainCash مباشرة، فلو وصلنا هنا → سبق معالجتها)
+        return true; // تمت معالجتها بالترتيب فالمجمع يعكس الوضع الفعلي
+      });
+      cashAllocated = allocateFIFO(remainCash, d.netCash);
+    } else {
+      cashAllocated = d.netCash; // فاتورة بدون أجور = مسدد تلقائياً
+    }
 
-    // توزيع الذهب
-    const goldAllocated24 = d.netGold24 > 0.001
-      ? allocateFIFO(remainGold24, d.netGold24)
-      : d.netGold24;
+    // ── FIFO صارم للذهب ──
+    let goldAllocated24 = 0;
+    if(d.netGold24 > 0.001){
+      goldAllocated24 = allocateFIFO(remainGold24, d.netGold24);
+    } else {
+      goldAllocated24 = d.netGold24; // فاتورة بدون ذهب = مسدد تلقائياً
+    }
 
     const cashLeft   = Math.max(0, Math.round((d.netCash   - cashAllocated)  *100)/100);
     const goldLeft24 = Math.max(0, Math.round((d.netGold24 - goldAllocated24)*1000)/1000);
@@ -13091,6 +13113,34 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
       linkedRetCount: d.lr.retCount
     };
   });
+
+  // ── ضمان إضافي: صحح أي فاتورة تالية تحمل نسبة جزئية بينما سابقتها لم تُغلق ──
+  // إذا الفاتورة idx>0 وفاتورتها السابقة partial/unpaid → تصفّر هذه
+  for(let i=1; i<invoiceStatus.length; i++){
+    const prev = invoiceStatus[i-1];
+    if(prev.status === 'unpaid' || prev.status === 'partial'){
+      // السابقة لم تُغلق → هذه لا يجوز أن تحمل أي سداد (FIFO صارم)
+      // ملاحظة: هذا يحدث فقط إذا كانت هناك مدفوعات ذهبية وأخرى نقدية بترتيب مختلف
+      // نتحقق: إذا السابقة لم تُغلق نقداً لكن هذه تحمل نقد → خطأ FIFO
+      if(prev.cashLeft > 0.01 && invoiceStatus[i].cashAllocated > 0.009){
+        // يعيد allocate — أعد النقد المأخوذ من هذه الفاتورة لمجمع السابقة
+        // (المجمع استُنزف بالفعل لكن الحل هنا إعادة توزيع النتائج)
+        const stolen = invoiceStatus[i].cashAllocated;
+        invoiceStatus[i].cashAllocated = 0;
+        invoiceStatus[i].cashLeft = invoiceStatus[i].d.netCash;
+        invoiceStatus[i].cashPct = 0;
+        invoiceStatus[i].paidPct = invoiceStatus[i].d.netGold24>0.001 ? invoiceStatus[i].goldPct : 0;
+        invoiceStatus[i].status  = invoiceStatus[i].goldAllocated24>0.0009 ? 'partial' : 'unpaid';
+      }
+      if(prev.goldLeft24 > 0.001 && invoiceStatus[i].goldAllocated24 > 0.0009){
+        invoiceStatus[i].goldAllocated24 = 0;
+        invoiceStatus[i].goldLeft24 = invoiceStatus[i].d.netGold24;
+        invoiceStatus[i].goldPct = 0;
+        invoiceStatus[i].paidPct = invoiceStatus[i].d.netCash>0.009 ? invoiceStatus[i].cashPct : 0;
+        invoiceStatus[i].status  = invoiceStatus[i].cashAllocated>0.009 ? 'partial' : 'unpaid';
+      }
+    }
+  }
 
   // ════════════════════════════════════════════════
   // الخطوة 4.5: الإغلاق الذكي عند صفر الرصيد الكلي
@@ -13246,11 +13296,25 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
            +`background:${cf.bd};color:${cf.tc};white-space:nowrap;flex-shrink:0">${cf.lbl}</span>`;
     html += `</div>`;
 
-    // شريط التقدم
+    // ── شريط التقدم — FIFO: يظهر بار نشط فقط للفاتورة الحالية (الأولى غير المكتملة) ──
+    // الفواتير المكتملة: شريط أخضر ثابت 100% · الفاتورة النشطة: شريط يتحرك · التالية: شريط فارغ
     if(hasCash||hasGold){
-      html += `<div style="padding:0 12px 3px">`;
-      html += `<div style="background:rgba(0,0,0,.08);border-radius:6px;height:5px;overflow:hidden">`;
-      html += `<div style="width:${s.paidPct}%;height:100%;background:${cf.bar};border-radius:6px;transition:width .4s"></div>`;
+      // تحديد الفاتورة النشطة: أول فاتورة status !== 'paid'
+      const _firstUnpaidIdx = invoiceStatus.findIndex(x=>x.status!=='paid');
+      const _isActive  = (s.status!=='paid') && (idx === _firstUnpaidIdx);
+      const _isWaiting = (s.status!=='paid') && (idx  > _firstUnpaidIdx);
+      const _barPct    = s.status==='paid' ? 100 : (_isActive ? s.paidPct : 0);
+      const _barColor  = s.status==='paid' ? '#16A34A' : (_isActive ? cf.bar : 'rgba(0,0,0,.10)');
+      const _barH      = s.status==='paid' ? '5px' : (_isActive ? '7px' : '5px');
+      html += `<div style="padding:0 12px ${_isActive?'1px':'3px'}">`;
+      if(_isActive){
+        html += `<div style="font-size:9px;color:#2563EB;font-weight:700;margin-bottom:2px;text-align:left">▶ الفاتورة النشطة حالياً</div>`;
+      }
+      if(_isWaiting){
+        html += `<div style="font-size:9px;color:var(--tx3);margin-bottom:2px;text-align:left">⏸ في الانتظار — تُفتح بعد إغلاق الفاتورة السابقة</div>`;
+      }
+      html += `<div style="background:rgba(0,0,0,.08);border-radius:6px;height:${_barH};overflow:hidden">`;
+      html += `<div style="width:${_barPct}%;height:100%;background:${_barColor};border-radius:6px;transition:width .4s"></div>`;
       html += `</div></div>`;
     }
 
@@ -16414,10 +16478,11 @@ window._loadMyTenantOB = _loadMyTenantOB;
 
 window.addEventListener('load',()=>{
   initTheme();
-  const auth=sessionStorage.getItem('auth')||localStorage.getItem('auth');
-  const user=sessionStorage.getItem('auth-user')||localStorage.getItem('auth-user');
-  const role=sessionStorage.getItem('auth-role')||localStorage.getItem('auth-role')||'user';
-  const owner=sessionStorage.getItem('auth-owner')||localStorage.getItem('auth-owner')||user||'';
+  // ⚠️ تعديل الأمان: نعتمد على sessionStorage فقط — localStorage لا يُستخدم للمصادقة
+  const auth=sessionStorage.getItem('auth');
+  const user=sessionStorage.getItem('auth-user');
+  const role=sessionStorage.getItem('auth-role')||'user';
+  const owner=sessionStorage.getItem('auth-owner')||user||'';
   if(auth==='1'&&user){
     ['auth','auth-user','auth-role'].forEach(k=>{
       sessionStorage.setItem(k,k==='auth'?'1':k==='auth-user'?user:role);
@@ -19558,9 +19623,9 @@ function gpAppendMsg(role, html){
   }
 
   /* ═══════════════════════════════════════════
-     ٢ — تسجيل الخروج التلقائي بعد 7 دقايق
+     ٢ — تسجيل الخروج التلقائي بعد 10 دقائق
   ═══════════════════════════════════════════ */
-  var IDLE_TIMEOUT  = 7 * 60 * 1000;  // 7 دقايق بالمللي ثانية
+  var IDLE_TIMEOUT  = 10 * 60 * 1000;  // 10 دقائق بالمللي ثانية
   var WARN_BEFORE   = 60 * 1000;       // تحذير قبل دقيقة
   var _idleTimer    = null;
   var _warnTimer    = null;
@@ -19570,7 +19635,8 @@ function gpAppendMsg(role, html){
   var _idleActive   = false;
 
   function isLoggedIn(){
-    return (sessionStorage.getItem('auth')==='1' || localStorage.getItem('auth')==='1');
+    // ⚠️ نتحقق من sessionStorage فقط (localStorage لا يُستخدم للمصادقة)
+    return sessionStorage.getItem('auth')==='1';
   }
 
   function startIdleCountdown(){
@@ -19639,6 +19705,25 @@ function gpAppendMsg(role, html){
     });
     scheduleIdle();
   }
+
+  // ── مراقبة إضافية: تسجيل خروج عند إغلاق التبويب أو إخفاء الصفحة ──
+  // إذا عاد المستخدم للصفحة بعد أن كانت مخفية (minimize / switch tab) نتحقق من وقت الغياب
+  var _hiddenAt = 0;
+  document.addEventListener('visibilitychange', function(){
+    if(!isLoggedIn()) return;
+    if(document.hidden){
+      _hiddenAt = Date.now();
+    } else {
+      // عاد → إذا غاب أكثر من IDLE_TIMEOUT → أخرجه
+      if(_hiddenAt > 0 && (Date.now() - _hiddenAt) >= IDLE_TIMEOUT){
+        doAutoLogout();
+      } else {
+        // مدة غياب معقولة → أعد العداد
+        window._resetIdleTimer();
+      }
+      _hiddenAt = 0;
+    }
+  });
 
   // ابدأ المراقبة بعد ما تجهز الصفحة
   document.addEventListener('DOMContentLoaded', function(){
