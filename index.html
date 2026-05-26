@@ -12769,16 +12769,23 @@ function buildStmtAnalytics(v, txs, bal, isSupp, clientObj){
     ? 'إجمالي الخصومات'
     : 'لا توجد خصومات';
 
+  // إجمالي قيمة الفواتير (الإجمالي الكلي قبل المدفوعات)
+  const totalInvoicesAmt = mainTxs.reduce((a,t)=>a+(t.total||t.ajTotal||0),0);
+
+  // المتبقي ذهب (ع24) من رصيد العميل الحقيقي
+  const goldOwed24 = gold24; // bal.goldOwedAs24
+
   const sumCards = [
-    { icon:'🔄', val: txs.length,                   lbl:'إجمالي التعاملات',  cls:'c-blue'  },
-    // ملاحظة: تمت إزالة بطاقة "إجمالي المبيعات" بناءً على طلب تحديث النظام (تُحسب بدون مرتجعات الآن)
-    { icon:'💳', val: fmt(totalPaid)+' ر',            lbl:'إجمالي المدفوعات', cls:'c-green' },
-    { icon:'⚖️', val: absOwed<0.01?'مسدد':fmt(absOwed)+' ر', lbl:'الرصيد الحالي',    cls: absOwed<0.01?'c-green':(cash>0&&!isSupp?'c-red':'c-green') },
-    { icon:'🥇', val: totalGoldGrams>0?fmtG(totalGoldGrams)+'ج':'—', lbl:'إجمالي الذهب (صافي)',   cls:'c-gold'  },
-    { icon:'📄', val: invoiceCount,                  lbl:'عدد الفواتير',      cls:'c-purple'},
-    { icon:'📅', val: lastTxDate ? lastTxDate.ar : '—', lbl:'آخر عملية',      cls:'c-teal'  },
-    // ملاحظة: تمت إزالة بطاقة "متوسط الشراء" بناءً على طلب تحديث النظام
-    { icon:'🏷️', val: _discCardVal,                  lbl:_discCardLbl,        cls:'c-orange'},
+    // الصف الأول: التعاملات | الفواتير | المدفوعات | الرصيد الحالي
+    { icon:'🔄', val: txs.length,                              lbl:'إجمالي التعاملات',   cls:'c-blue'  },
+    { icon:'🧾', val: fmt(Math.round(totalInvoicesAmt))+' ر',  lbl:'إجمالي الفواتير',    cls:'c-purple'},
+    { icon:'💳', val: fmt(totalPaid)+' ر',                     lbl:'إجمالي المدفوعات',   cls:'c-green' },
+    { icon:'⚖️', val: absOwed<0.01?'مسدد':fmt(absOwed)+' ر',  lbl:'الرصيد الحالي',      cls: absOwed<0.01?'c-green':(cash>0&&!isSupp?'c-red':'c-green') },
+    // الصف الثاني: الذهب صافي | المتبقي ذهب | آخر عملية | الخصومات
+    { icon:'🥇', val: totalGoldGrams>0?fmtG(totalGoldGrams)+'ج':'—', lbl:'إجمالي الذهب (صافي)', cls:'c-gold'  },
+    { icon:'🏅', val: goldOwed24>0.001?fmtG(goldOwed24)+' ج ع24':'صفر', lbl:'المتبقي ذهب',    cls: goldOwed24>0.001?'c-gold':'c-green' },
+    { icon:'📅', val: lastTxDate ? lastTxDate.ar : '—',        lbl:'آخر عملية',          cls:'c-teal'  },
+    { icon:'🏷️', val: _discCardVal,                            lbl:_discCardLbl,          cls:'c-orange'},
   ];
 
   let summaryHTML = `<div class="stmt-analytics-wrap no-print">
@@ -13244,16 +13251,14 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
     html += `<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.18);`
            +`border-radius:9px;padding:7px 9px">`;
     html += `<div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:4px">✅ تم السداد</div>`;
-    if(s.cashAllocated>0.009)
-      html += `<div style="font-size:11px;font-weight:800;color:#16A34A">`
-             +`💵 نقد: ${fmt(Math.round(s.cashAllocated))} ر`
-             +(hasCash ? ` (${s.cashPct}%)` : '')
-             +`</div>`;
-    if(s.goldAllocated24>0.0009)
-      html += `<div style="font-size:11px;font-weight:800;color:var(--g1)">`
-             +`🥇 ذهب: ${fmtG(s.goldAllocated24)} ج ع24`
-             +(hasGold ? ` (${s.goldPct}%)` : '')
-             +`</div>`;
+    // ── نقد ──
+    html += `<div style="font-size:11px;font-weight:800;color:${s.cashAllocated>0.009?'#16A34A':'var(--tx3)'}">`
+           +`💵 نقد: ${s.cashAllocated>0.009 ? fmt(Math.round(s.cashAllocated))+' ر'+(hasCash?` (${s.cashPct}%)`:'') : 'لا يوجد'}`
+           +`</div>`;
+    // ── ذهب ──
+    html += `<div style="font-size:11px;font-weight:800;color:${s.goldAllocated24>0.0009?'var(--g1)':'var(--tx3)'}">`
+           +`🥇 ذهب: ${s.goldAllocated24>0.0009 ? fmtG(s.goldAllocated24)+' ج ع24'+(hasGold?` (${s.goldPct}%)`:'') : 'لا يوجد'}`
+           +`</div>`;
     if(s.d.lr.retCount>0){
       if(s.d.lr.cashRet>0.009)
         html += `<div style="font-size:10px;color:var(--ok)">`
@@ -13266,8 +13271,6 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
     if((s.d.invDiscount||0)>0.009)
       html += `<div style="font-size:10px;font-weight:700;color:#D97706">`
              +`🏷️ خصم: ${fmt(Math.round(s.d.invDiscount))} ر (محسوب كسداد)</div>`;
-    if(s.cashAllocated<0.009 && s.goldAllocated24<0.0009 && s.d.lr.retCount===0 && !(s.d.invDiscount>0.009))
-      html += `<div style="font-size:11px;color:var(--tx3)">— لا يوجد</div>`;
     html += `</div>`;
 
     // عمود: المتبقي
