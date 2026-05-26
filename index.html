@@ -13080,10 +13080,19 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
   // ════════════════════════════════════════════════
   // إذا كان رصيد العميل الحقيقي = صفر (نقد وذهب) فكل الفواتير تُعتبر مسددة بالكامل
   // حتى لو FIFO لم يوزع الكمية بالضبط (سبب: عيارات مختلفة، تقريب، مرتجعات متقاطعة)
-  const _extCashOwed = _extBal ? Math.abs(_extBal.cashOwed||0)      : null;
-  const _extGoldOwed = _extBal ? Math.abs(_extBal.goldOwedAs24||0)  : null;
+  //
+  // ⚠️ الإصلاح المهم: نستخدم Math.max(0, debt) وليس Math.abs(debt)
+  // لأن:
+  //   cashOwed > 0  = العميل مدين لنا (دين حقيقي)
+  //   cashOwed < 0  = نحن مدينون للعميل (له = مسدد أكثر من المطلوب)
+  //   goldOwedAs24 > 0  = العميل مدين ذهب
+  //   goldOwedAs24 < 0  = له ذهب عندنا (مسدد من جهته)
+  //
+  // الحكم: العميل "مسدد بالكامل" إذا لا يوجد ما عليه من جهته (القيم الموجبة فقط)
+  const _extCashOwed = _extBal ? Math.max(0, _extBal.cashOwed||0)      : null;
+  const _extGoldOwed = _extBal ? Math.max(0, _extBal.goldOwedAs24||0)  : null;
   const _clientFullySettled = _extBal
-    ? (_extCashOwed < 0.10 && _extGoldOwed < 0.005)
+    ? (_extCashOwed < 0.50 && _extGoldOwed < 0.050)
     : false;
 
   if(_clientFullySettled){
@@ -13142,9 +13151,14 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
     html += '<div style="padding:9px 14px;background:rgba(22,163,74,.07);'
           + 'border-bottom:1px solid rgba(22,163,74,.15);'
           + 'text-align:center;font-size:12px;font-weight:800;color:#16A34A">'
-          + (_clientFullySettled
-            ? '✅ جميع الفواتير مسددة بالكامل — أُغلقت تلقائياً (رصيد العميل الإجمالي = صفر)'
-            : '✅ جميع الفواتير مسددة بالكامل — الحساب متوازن')
+          + (()=>{
+            if(!_clientFullySettled) return '✅ جميع الفواتير مسددة بالكامل — الحساب متوازن';
+            const _bc = _extBal ? (_extBal.cashOwed||0) : 0;
+            const _bg = _extBal ? (_extBal.goldOwedAs24||0) : 0;
+            if(_bc < -0.01 || _bg < -0.001)
+              return '✅ جميع الفواتير مسددة بالكامل — أُغلقت تلقائياً (الحساب متوازن — له رصيد)';
+            return '✅ جميع الفواتير مسددة بالكامل — أُغلقت تلقائياً (رصيد العميل = صفر)';
+          })()
           + '</div>';
   } else {
     html += '<div style="padding:8px 14px;background:rgba(220,38,38,.04);'
@@ -13310,8 +13324,15 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
 
     // مؤشر الإغلاق الذكي (عند صفر الرصيد الكلي)
     if(s._forcedClosed){
+      // شرح سبب الإغلاق بناءً على قيم الرصيد الحقيقية
+      const _fcCash = _extBal ? (_extBal.cashOwed||0) : 0;
+      const _fcGold = _extBal ? (_extBal.goldOwedAs24||0) : 0;
+      let _fcReason = 'رصيد العميل الإجمالي = صفر';
+      if(_fcCash < -0.01) _fcReason = 'الحساب متوازن — العميل أسدد أكثر من المطلوب (له رصيد)';
+      else if(_fcGold < -0.001) _fcReason = 'الحساب متوازن — له ذهب عندنا (مسدد من جهته)';
+      else if(Math.abs(_fcCash)<0.50 && Math.abs(_fcGold)<0.050) _fcReason = 'الرصيد الحقيقي = صفر تقريباً (فرق تقريب)';
       html += `<div style="padding:3px 12px 8px;font-size:9px;color:#2563EB;font-weight:700;display:flex;align-items:center;gap:5px">`
-             +`<span style="background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 8px;border-radius:6px">🔵 أُغلقت تلقائياً — رصيد العميل الإجمالي = صفر</span>`
+             +`<span style="background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 8px;border-radius:6px">🔵 أُغلقت تلقائياً — ${_fcReason}</span>`
              +`</div>`;
     }
 
