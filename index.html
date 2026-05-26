@@ -12991,6 +12991,11 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
       return {amt:Math.max(0,amt), date:p.date||''};
     });
 
+  // ✅ إصلاح: تحويلات نقدية من حساب العميل إلى صندوق = سداد نقدي حقيقي
+  // (client-to-safe / client-to-supplier / safe-to-safe تظهر في كشف العميل كخصم من رصيده)
+  txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+v) && (t.amount||0)>0.009)
+     .forEach(p=>rawCashPay.push({amt:Math.max(0,Math.round((p.amount||0)*100)/100), date:p.date||''}));
+
   // المدفوعات الذهبية (بدون سعر) = تسوية ذهبية
   const rawGoldPay24 = txs
     .filter(t=>t.type==='payment')
@@ -13003,6 +13008,11 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
       }
       return {amt:g24, date:p.date||''};
     });
+
+  // ✅ إصلاح: تحويلات ذهبية من حساب العميل إلى صندوق = سداد ذهبي حقيقي
+  // (client-to-safe بذهب — يُخصم من رصيد العميل الذهبي فعلياً)
+  txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+v) && (t.goldAmount||0)>0.001)
+     .forEach(p=>rawGoldPay24.push({amt:convertTo24(p.goldAmount||0, p.goldKarat||'21'), date:p.date||''}));
 
   // إضافة المرتجعات غير المرتبطة كمدفوعات FIFO
   unlinkedReturnsCash.forEach(r=>rawCashPay.push(r));
@@ -13251,14 +13261,29 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
     html += `<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.18);`
            +`border-radius:9px;padding:7px 9px">`;
     html += `<div style="font-size:9px;color:var(--tx3);font-weight:700;margin-bottom:4px">✅ تم السداد</div>`;
+    // ── حساب حصة التحويلات لعرضها كمؤشر منفصل ──
+    const _tfCash24 = txs.filter(t=>t.type==='transfer'&&t.fromSafe===('__cli__'+v)&&(t.amount||0)>0.009)
+                        .reduce((a,t)=>a+(t.amount||0),0);
+    const _tfGold24 = txs.filter(t=>t.type==='transfer'&&t.fromSafe===('__cli__'+v)&&(t.goldAmount||0)>0.001)
+                        .reduce((a,t)=>a+convertTo24(t.goldAmount||0,t.goldKarat||'21'),0);
+    const _hasTfCash = _tfCash24 > 0.009;
+    const _hasTfGold = _tfGold24 > 0.001;
     // ── نقد ──
     html += `<div style="font-size:11px;font-weight:800;color:${s.cashAllocated>0.009?'#16A34A':'var(--tx3)'}">`
            +`💵 نقد: ${s.cashAllocated>0.009 ? fmt(Math.round(s.cashAllocated))+' ر'+(hasCash?` (${s.cashPct}%)`:'') : 'لا يوجد'}`
            +`</div>`;
+    // ── مؤشر: جزء من النقد عبر تحويل ──
+    if(_hasTfCash && s.cashAllocated>0.009)
+      html += `<div style="font-size:9px;color:#2563EB;margin-top:1px">`
+             +`🔄 منها تحويل: ${fmt(Math.round(_tfCash24))} ر</div>`;
     // ── ذهب ──
     html += `<div style="font-size:11px;font-weight:800;color:${s.goldAllocated24>0.0009?'var(--g1)':'var(--tx3)'}">`
            +`🥇 ذهب: ${s.goldAllocated24>0.0009 ? fmtG(s.goldAllocated24)+' ج ع24'+(hasGold?` (${s.goldPct}%)`:'') : 'لا يوجد'}`
            +`</div>`;
+    // ── مؤشر: جزء من الذهب عبر تحويل ──
+    if(_hasTfGold && s.goldAllocated24>0.0009)
+      html += `<div style="font-size:9px;color:#2563EB;margin-top:1px">`
+             +`🔄 منها تحويل: ${fmtG(_tfGold24)} ج</div>`;
     if(s.d.lr.retCount>0){
       if(s.d.lr.cashRet>0.009)
         html += `<div style="font-size:10px;color:var(--ok)">`
@@ -13346,7 +13371,7 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
 
   // تذييل
   html += '<div style="padding:6px 14px 10px;font-size:9px;color:var(--tx3);text-align:center">';
-  html += '💡 المعادلة: صافي الفاتورة = (أجور − خصم الفاتورة − مرتجع مرتبط) + (ذهب − مرتجع ذهبي) · توزيع FIFO من الأقدم للأحدث · الخصم يُعتبر سداداً حقيقياً';
+  html += '💡 المعادلة: صافي الفاتورة = (أجور − خصم − مرتجع) + (ذهب − مرتجع ذهبي) · السداد يشمل: دفعات مباشرة + تحويلات من حساب العميل (نقد وذهب) + خصومات · توزيع FIFO من الأقدم للأحدث';
   html += '</div>';
 
   html += '</div>';
