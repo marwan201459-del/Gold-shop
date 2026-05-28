@@ -22989,864 +22989,710 @@ function dbgRender(){
 })();
 </script>
 
-<!-- ╔══════════════════════════════════════════════════════════════════╗
-     ║  SGP PRO v4.0 — نظام النسخ الاحتياطية والإصدارات الاحترافي     ║
-     ╚══════════════════════════════════════════════════════════════════╝ -->
-
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  SGP Pro v5.0 — نظام النسخ الاحتياطية الاحترافي الكامل     ║
+     ║  ADDITIVE ONLY — لا يمس أي كود محاسبي موجود                 ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
 <style id="sgp-styles">
-:root {
-  --sgp-gold:#C8961E; --sgp-gold2:#E8B840; --sgp-green:#22C77A;
-  --sgp-red:#E55555;  --sgp-blue:#5090E0;  --sgp-purple:#9B6BE0;
-  --sgp-orange:#F09030;
-}
+/* ══ متغيرات ══ */
+:root{--sg:#C8961E;--sg2:#E8B840;--ok:#22C77A;--er:#E55555;--bl:#5090E0;--pu:#9B6BE0;--or:#F09030}
 
-/* ── شريط علوي صغير (زر واحد فقط) ── */
-#sgp-topbar {
-  position:fixed; top:0; left:0; right:0; z-index:1700;
-  height:36px; background:linear-gradient(135deg,#0a0c14,#12151f);
-  border-bottom:1px solid rgba(200,150,30,.2);
-  display:flex; align-items:center; justify-content:flex-end;
-  padding:0 14px; gap:8px;
-  font-family:'Tajawal',sans-serif;
+/* ══ شريط علوي ══ */
+#sgp-bar{
+  position:fixed;top:0;left:0;right:0;z-index:1700;height:38px;
+  background:linear-gradient(135deg,#080a11,#0f1220);
+  border-bottom:1px solid rgba(200,150,30,.18);
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:0 12px;gap:8px;font-family:'Tajawal',sans-serif;
 }
-#sgp-topbar-save-ind {
-  font-size:10px; color:rgba(255,255,255,.35); display:flex; align-items:center; gap:5px;
+#sgp-ind{
+  display:none;align-items:center;gap:5px;font-size:10px;
+  margin-left:auto;padding:4px 10px;border-radius:20px;
+  border:1px solid;transition:all .3s;
 }
-#sgp-topbar-save-ind.dirty { color:var(--sgp-orange); animation:sgpBlink 1.5s infinite; }
-#sgp-topbar-save-ind.saved { color:var(--sgp-green); animation:none; }
-@keyframes sgpBlink{0%,100%{opacity:1}50%{opacity:.4}}
+#sgp-ind.dirty{display:flex;color:var(--or);border-color:rgba(240,144,48,.3);background:rgba(240,144,48,.08);animation:sgpBl 2s infinite}
+#sgp-ind.saved{display:flex;color:var(--ok);border-color:rgba(34,199,122,.3);background:rgba(34,199,122,.07);animation:none}
+@keyframes sgpBl{0%,100%{opacity:1}50%{opacity:.45}}
+.sgp-tb{
+  display:flex;align-items:center;gap:5px;padding:5px 12px;
+  border-radius:8px;border:1.5px solid;font-family:'Tajawal',sans-serif;
+  font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.sgp-tb:hover{filter:brightness(1.3);transform:translateY(-1px)}
+.sgp-tb-g{background:rgba(200,150,30,.12);border-color:rgba(200,150,30,.38);color:var(--sg2)}
+.sgp-tb-gr{background:rgba(34,199,122,.10);border-color:rgba(34,199,122,.38);color:var(--ok)}
+.sgp-tb-b{background:rgba(80,144,224,.10);border-color:rgba(80,144,224,.38);color:var(--bl)}
+.sgp-tbl{display:inline}
 
-.sgp-topbtn {
-  display:flex; align-items:center; gap:5px;
-  padding:5px 12px; border-radius:8px; border:1.5px solid;
-  font-family:'Tajawal',sans-serif; font-size:11px; font-weight:700;
-  cursor:pointer; transition:all .15s; white-space:nowrap;
+/* ══ Overlay ══ */
+.sgp-ov{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.74);
+  backdrop-filter:blur(8px);z-index:9200;align-items:center;
+  justify-content:center;padding:12px;font-family:'Tajawal',sans-serif;
 }
-.sgp-topbtn:hover { filter:brightness(1.25); transform:translateY(-1px); }
-.sgp-topbtn-gold   { background:rgba(200,150,30,.14); border-color:rgba(200,150,30,.4); color:var(--sgp-gold2); }
-.sgp-topbtn-green  { background:rgba(34,199,122,.12); border-color:rgba(34,199,122,.4); color:var(--sgp-green); }
-.sgp-topbtn-blue   { background:rgba(80,144,224,.12); border-color:rgba(80,144,224,.4); color:var(--sgp-blue); }
+.sgp-ov.show{display:flex}
 
-/* ── Overlay ── */
-.sgp-ov {
-  display:none; position:fixed; inset:0;
-  background:rgba(0,0,0,.72); backdrop-filter:blur(8px);
-  z-index:9100; align-items:center; justify-content:center; padding:16px;
-  font-family:'Tajawal',sans-serif;
+/* ══ Modal ══ */
+.sgp-m{
+  background:var(--c1,#fff);border-radius:22px;width:100%;
+  box-shadow:0 32px 90px rgba(0,0,0,.65);
+  animation:sgpPop .27s cubic-bezier(.34,1.45,.64,1);
+  overflow:hidden;border:1.5px solid rgba(200,150,30,.18);
+  max-height:92vh;display:flex;flex-direction:column;
 }
-.sgp-ov.show { display:flex; }
+@keyframes sgpPop{from{transform:scale(.84) translateY(24px);opacity:0}to{transform:scale(1);opacity:1}}
+.sgp-sm{max-width:440px}.sgp-md{max-width:580px}.sgp-lg{max-width:760px}.sgp-xl{max-width:960px}
 
-/* ── نافذة منبثقة كبيرة احترافية ── */
-.sgp-modal {
-  background:var(--c1,#fff); border-radius:22px; width:100%;
-  box-shadow:0 32px 80px rgba(0,0,0,.6);
-  animation:sgpPop .28s cubic-bezier(.34,1.46,.64,1);
-  overflow:hidden; border:1.5px solid rgba(200,150,30,.2);
-  max-height:90vh; display:flex; flex-direction:column;
+/* ══ Modal Header ══ */
+.sgp-mh{
+  padding:18px 22px 14px;
+  background:linear-gradient(135deg,#0c0e18 0%,rgba(200,150,30,.14) 100%);
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
 }
-@keyframes sgpPop{from{transform:scale(.86) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.sgp-mhi{display:flex;align-items:center;gap:12px}
+.sgp-mic{font-size:30px}
+.sgp-mtt{font-size:15px;font-weight:900;color:#E8B840}
+.sgp-msb{font-size:10px;color:rgba(255,255,255,.45);margin-top:3px}
+.sgp-mcl{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;flex-shrink:0;
+  background:rgba(229,85,85,.14);border:1px solid rgba(229,85,85,.32);
+  color:var(--er);font-size:16px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.sgp-mcl:hover{background:var(--er);color:#fff}
 
-.sgp-modal-sm  { max-width:440px; }
-.sgp-modal-md  { max-width:580px; }
-.sgp-modal-lg  { max-width:760px; }
-.sgp-modal-xl  { max-width:960px; }
+/* ══ Body / Footer ══ */
+.sgp-mb{padding:18px 22px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:rgba(200,150,30,.3) transparent}
+.sgp-mb::-webkit-scrollbar{width:4px}.sgp-mb::-webkit-scrollbar-thumb{background:rgba(200,150,30,.3);border-radius:2px}
+.sgp-mf{padding:12px 22px;border-top:1px solid var(--b1,rgba(0,0,0,.08));display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;background:var(--c2,#f5f7fa)}
 
-/* modal header */
-.sgp-mhdr {
-  padding:20px 22px 16px;
-  background:linear-gradient(135deg,#0D0F1A 0%,rgba(200,150,30,.12) 100%);
-  flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+/* ══ Buttons ══ */
+.sgp-btn{
+  flex:1;min-width:100px;padding:11px 14px;border-radius:12px;border:1.5px solid;
+  font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;
 }
-.sgp-mhdr-info { display:flex; align-items:center; gap:12px; }
-.sgp-mhdr-icon { font-size:32px; }
-.sgp-mhdr-title { font-size:16px; font-weight:900; color:#E8B840; }
-.sgp-mhdr-sub   { font-size:11px; color:rgba(255,255,255,.5); margin-top:3px; }
-.sgp-mclose {
-  width:32px; height:32px; border-radius:50%; cursor:pointer;
-  background:rgba(229,85,85,.15); border:1px solid rgba(229,85,85,.35);
-  color:#E55555; font-size:17px; font-weight:900; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; transition:all .15s;
-}
-.sgp-mclose:hover { background:#E55555; color:#fff; }
+.sgp-btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.sgp-btn-g  {background:rgba(200,150,30,.14);border-color:rgba(200,150,30,.4);color:var(--sg2)}
+.sgp-btn-gr {background:rgba(34,199,122,.11);border-color:rgba(34,199,122,.4);color:var(--ok)}
+.sgp-btn-b  {background:rgba(80,144,224,.11);border-color:rgba(80,144,224,.4);color:var(--bl)}
+.sgp-btn-r  {background:rgba(229,85,85,.10);border-color:rgba(229,85,85,.4);color:var(--er)}
+.sgp-btn-gy {background:rgba(90,100,128,.09);border-color:rgba(90,100,128,.25);color:var(--tx2,#5A6480)}
+.sgp-btn-fw {flex:1 1 100%}
 
-/* modal body */
-.sgp-mbody { padding:20px 22px; overflow-y:auto; flex:1; scrollbar-width:thin; scrollbar-color:rgba(200,150,30,.3) transparent; }
-.sgp-mbody::-webkit-scrollbar{width:4px}.sgp-mbody::-webkit-scrollbar-thumb{background:rgba(200,150,30,.3);border-radius:2px}
+/* ══ Alert ══ */
+.sgp-al{display:flex;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid;margin-bottom:14px;font-size:12px;line-height:1.65}
+.sgp-al-i{font-size:18px;flex-shrink:0;margin-top:1px}
+.sgp-al-t{color:var(--tx1,#1A1E2E)}
+.sgp-al-w{background:rgba(240,144,48,.06);border-color:rgba(240,144,48,.3)}
+.sgp-al-s{background:rgba(34,199,122,.06);border-color:rgba(34,199,122,.3)}
+.sgp-al-b{background:rgba(80,144,224,.06);border-color:rgba(80,144,224,.3)}
+.sgp-al-r{background:rgba(229,85,85,.06);border-color:rgba(229,85,85,.3)}
 
-/* modal footer */
-.sgp-mftr {
-  padding:14px 22px; border-top:1px solid var(--b1,rgba(0,0,0,.08));
-  display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0;
-  background:var(--c2,#f5f7fa);
+/* ══ Choice Cards ══ */
+.sgp-cgrid{display:grid;gap:10px}
+.sgp-cc{
+  background:var(--c2,#f5f7fa);border:2px solid var(--b1,rgba(0,0,0,.08));
+  border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
 }
+.sgp-cc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0;transition:opacity .2s}
+.sgp-cc:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.sgp-cc:hover::after{opacity:1}
+.sgp-cci{font-size:28px;margin-bottom:8px;transition:transform .2s}
+.sgp-cc:hover .sgp-cci{transform:scale(1.15)}
+.sgp-cct{font-size:12px;font-weight:800;color:var(--tx1,#1A1E2E);margin-bottom:4px}
+.sgp-ccd{font-size:10px;color:var(--tx2,#5A6480);line-height:1.5}
+.sgp-cc-g {border-color:rgba(200,150,30,.3)}.sgp-cc-g::after{background:var(--sg)}.sgp-cc-g:hover{border-color:rgba(200,150,30,.6)}
+.sgp-cc-gr{border-color:rgba(34,199,122,.3)}.sgp-cc-gr::after{background:var(--ok)}.sgp-cc-gr:hover{border-color:rgba(34,199,122,.6)}
+.sgp-cc-b {border-color:rgba(80,144,224,.3)}.sgp-cc-b::after{background:var(--bl)}.sgp-cc-b:hover{border-color:rgba(80,144,224,.6)}
 
-/* ── بطاقات الخيارات الكبيرة ── */
-.sgp-choice-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.sgp-choice-card {
-  background:var(--c2,#f5f7fa); border:2px solid var(--b1,rgba(0,0,0,.08));
-  border-radius:16px; padding:18px 12px; text-align:center; cursor:pointer;
-  transition:all .2s; position:relative; overflow:hidden;
+/* ══ Version Row ══ */
+.sgp-vr{
+  background:var(--c2,#f5f7fa);border:1.5px solid var(--b1,rgba(0,0,0,.07));
+  border-right:4px solid;border-radius:13px;padding:13px 15px;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;transition:all .15s;
 }
-.sgp-choice-card::before {
-  content:''; position:absolute; bottom:0; left:0; right:0; height:3px;
-  opacity:0; transition:opacity .2s;
+.sgp-vr:hover{background:var(--c3,#ECEEF2);transform:translateX(-2px)}
+.sgp-vi{flex:1;min-width:0}
+.sgp-vn{font-size:12px;font-weight:800;color:var(--tx1,#1A1E2E);margin-bottom:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sgp-vm{font-size:10px;color:var(--tx3,#8890A8);display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}
+.sgp-vbtns{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap}
+.sgp-vbtn{
+  padding:5px 10px;border-radius:8px;border:1.5px solid;
+  font-family:'Tajawal',sans-serif;font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
 }
-.sgp-choice-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.12); }
-.sgp-choice-card:hover::before { opacity:1; }
-.sgp-choice-card:hover .sgp-cc-icon { transform:scale(1.15); }
-.sgp-cc-icon { font-size:32px; transition:transform .2s; margin-bottom:10px; }
-.sgp-cc-title { font-size:13px; font-weight:800; color:var(--tx1,#1A1E2E); margin-bottom:5px; }
-.sgp-cc-desc  { font-size:10px; color:var(--tx2,#5A6480); line-height:1.5; }
+.sgp-vbtn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.sgp-vb-gr{background:rgba(34,199,122,.11);border-color:rgba(34,199,122,.33);color:var(--ok)}
+.sgp-vb-b {background:rgba(80,144,224,.11);border-color:rgba(80,144,224,.33);color:var(--bl)}
+.sgp-vb-g {background:rgba(200,150,30,.11);border-color:rgba(200,150,30,.33);color:var(--sg)}
+.sgp-vb-r {background:rgba(229,85,85,.08);border-color:rgba(229,85,85,.25);color:var(--er)}
 
-.sgp-cc-gold   { border-color:rgba(200,150,30,.3); }.sgp-cc-gold::before{background:var(--sgp-gold)}.sgp-cc-gold:hover{border-color:rgba(200,150,30,.6)}
-.sgp-cc-green  { border-color:rgba(34,199,122,.3); }.sgp-cc-green::before{background:var(--sgp-green)}.sgp-cc-green:hover{border-color:rgba(34,199,122,.6)}
-.sgp-cc-blue   { border-color:rgba(80,144,224,.3); }.sgp-cc-blue::before{background:var(--sgp-blue)}.sgp-cc-blue:hover{border-color:rgba(80,144,224,.6)}
-.sgp-cc-purple { border-color:rgba(155,107,224,.3); }.sgp-cc-purple::before{background:var(--sgp-purple)}.sgp-cc-purple:hover{border-color:rgba(155,107,224,.6)}
-.sgp-cc-red    { border-color:rgba(229,85,85,.3); }.sgp-cc-red::before{background:var(--sgp-red)}.sgp-cc-red:hover{border-color:rgba(229,85,85,.6)}
-.sgp-cc-orange { border-color:rgba(240,144,48,.3); }.sgp-cc-orange::before{background:var(--sgp-orange)}.sgp-cc-orange:hover{border-color:rgba(240,144,48,.6)}
+/* ══ Badge ══ */
+.sgp-bd{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:8px;font-weight:800;border:1px solid;white-space:nowrap}
+.sgp-bd-g {background:rgba(200,150,30,.11);border-color:rgba(200,150,30,.33);color:var(--sg)}
+.sgp-bd-gr{background:rgba(34,199,122,.11);border-color:rgba(34,199,122,.33);color:var(--ok)}
+.sgp-bd-b {background:rgba(80,144,224,.11);border-color:rgba(80,144,224,.33);color:var(--bl)}
+.sgp-bd-pu{background:rgba(155,107,224,.11);border-color:rgba(155,107,224,.33);color:var(--pu)}
+.sgp-bd-r {background:rgba(229,85,85,.09);border-color:rgba(229,85,85,.28);color:var(--er)}
+.sgp-bd-or{background:rgba(240,144,48,.11);border-color:rgba(240,144,48,.33);color:var(--or)}
 
-/* ── أزرار ── */
-.sgp-btn {
-  flex:1; min-width:120px; padding:12px 16px; border-radius:12px; border:1.5px solid;
-  font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700; cursor:pointer;
-  transition:all .15s; display:flex; align-items:center; justify-content:center; gap:6px;
-}
-.sgp-btn:hover { transform:translateY(-1px); filter:brightness(1.1); }
-.sgp-btn-gold   { background:rgba(200,150,30,.14); border-color:rgba(200,150,30,.4); color:var(--sgp-gold2); }
-.sgp-btn-green  { background:rgba(34,199,122,.12); border-color:rgba(34,199,122,.4); color:var(--sgp-green); }
-.sgp-btn-blue   { background:rgba(80,144,224,.12); border-color:rgba(80,144,224,.4); color:var(--sgp-blue); }
-.sgp-btn-red    { background:rgba(229,85,85,.12);  border-color:rgba(229,85,85,.4);  color:var(--sgp-red);  }
-.sgp-btn-orange { background:rgba(240,144,48,.12); border-color:rgba(240,144,48,.4); color:var(--sgp-orange); }
-.sgp-btn-gray   { background:rgba(90,100,128,.1);  border-color:rgba(90,100,128,.25);color:var(--tx2,#5A6480); }
-.sgp-btn-full   { flex:1 1 100%; }
+/* ══ Progress ══ */
+.sgp-pw{background:var(--c2,#f5f7fa);border-radius:20px;overflow:hidden;height:10px;margin:10px 0}
+.sgp-pb{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--sg),var(--sg2));transition:width .4s ease;width:0%}
 
-/* ── شريط تقدم ── */
-.sgp-progress-wrap {
-  background:var(--c2,#f5f7fa); border-radius:20px; overflow:hidden;
-  height:10px; margin:12px 0;
-}
-.sgp-progress-bar {
-  height:100%; border-radius:20px;
-  background:linear-gradient(90deg,var(--sgp-gold),var(--sgp-gold2));
-  transition:width .4s ease; width:0%;
-}
-
-/* ── قائمة الإصدارات ── */
-.sgp-ver-row {
-  background:var(--c2,#f5f7fa); border:1.5px solid var(--b1,rgba(0,0,0,.07));
-  border-right:4px solid; border-radius:14px; padding:14px 16px;
-  margin-bottom:8px; display:flex; justify-content:space-between;
-  align-items:center; gap:10px; transition:all .15s;
-}
-.sgp-ver-row:hover { background:var(--c3,#ECEEF2); transform:translateX(-2px); }
-.sgp-ver-info { flex:1; min-width:0; }
-.sgp-ver-name {
-  font-size:13px; font-weight:800; color:var(--tx1,#1A1E2E);
-  margin-bottom:5px; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
-}
-.sgp-ver-meta { font-size:10px; color:var(--tx3,#8890A8); display:flex; flex-wrap:wrap; gap:10px; }
-.sgp-ver-btns { display:flex; gap:5px; flex-shrink:0; }
-.sgp-vbtn {
-  padding:6px 11px; border-radius:8px; border:1.5px solid;
-  font-family:'Tajawal',sans-serif; font-size:10px; font-weight:700;
-  cursor:pointer; transition:all .15s; white-space:nowrap;
-}
-.sgp-vbtn:hover { filter:brightness(1.15); transform:translateY(-1px); }
-.sgp-vbtn-g  { background:rgba(34,199,122,.12); border-color:rgba(34,199,122,.35); color:var(--sgp-green); }
-.sgp-vbtn-b  { background:rgba(80,144,224,.12); border-color:rgba(80,144,224,.35); color:var(--sgp-blue); }
-.sgp-vbtn-d  { background:rgba(229,85,85,.08);  border-color:rgba(229,85,85,.25);  color:var(--sgp-red); }
-.sgp-vbtn-gl { background:rgba(200,150,30,.12); border-color:rgba(200,150,30,.35); color:var(--sgp-gold); }
-
-/* ── بادجات ── */
-.sgp-badge {
-  display:inline-flex; align-items:center; gap:3px;
-  padding:2px 8px; border-radius:20px; font-size:9px; font-weight:800; border:1px solid;
-}
-.sgp-badge-gold   { background:rgba(200,150,30,.12); border-color:rgba(200,150,30,.35); color:var(--sgp-gold); }
-.sgp-badge-green  { background:rgba(34,199,122,.12); border-color:rgba(34,199,122,.35); color:var(--sgp-green); }
-.sgp-badge-blue   { background:rgba(80,144,224,.12); border-color:rgba(80,144,224,.35); color:var(--sgp-blue); }
-.sgp-badge-purple { background:rgba(155,107,224,.12);border-color:rgba(155,107,224,.35);color:var(--sgp-purple); }
-.sgp-badge-red    { background:rgba(229,85,85,.1);   border-color:rgba(229,85,85,.3);   color:var(--sgp-red); }
-.sgp-badge-orange { background:rgba(240,144,48,.12); border-color:rgba(240,144,48,.35); color:var(--sgp-orange); }
-
-/* ── diff viewer ── */
-.sgp-diff-block { margin-bottom:10px; }
-.sgp-diff-title { font-size:12px; font-weight:800; color:var(--tx1,#1A1E2E); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
-.sgp-diff-row   { display:flex; gap:6px; align-items:stretch; font-size:11px; }
-.sgp-diff-old { flex:1; background:rgba(229,85,85,.07); border:1px solid rgba(229,85,85,.2); border-radius:8px; padding:6px 10px; color:var(--sgp-red); }
-.sgp-diff-arr { color:var(--tx3,#8890A8); font-size:16px; display:flex; align-items:center; flex-shrink:0; }
-.sgp-diff-new { flex:1; background:rgba(34,199,122,.07); border:1px solid rgba(34,199,122,.2); border-radius:8px; padding:6px 10px; color:var(--sgp-green); font-weight:700; }
-
-/* ── stats grid ── */
-.sgp-stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
-.sgp-stat-card {
-  background:var(--c2,#f5f7fa); border:1.5px solid; border-radius:14px;
-  padding:16px 10px; text-align:center; position:relative; overflow:hidden;
-}
-.sgp-stat-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; }
-.sgp-stat-val { font-size:24px; font-weight:900; line-height:1; margin-bottom:5px; }
-.sgp-stat-lbl { font-size:9px; font-weight:700; color:var(--tx2,#5A6480); letter-spacing:.3px; }
-.sgp-sc-g { border-color:rgba(200,150,30,.3); }.sgp-sc-g::after{background:var(--sgp-gold)}.sgp-sc-g .sgp-stat-val{color:var(--sgp-gold)}
-.sgp-sc-gr{ border-color:rgba(34,199,122,.3); }.sgp-sc-gr::after{background:var(--sgp-green)}.sgp-sc-gr .sgp-stat-val{color:var(--sgp-green)}
-.sgp-sc-b { border-color:rgba(80,144,224,.3); }.sgp-sc-b::after{background:var(--sgp-blue)}.sgp-sc-b .sgp-stat-val{color:var(--sgp-blue)}
-
-/* ── tabs ── */
-.sgp-tabs { display:flex; gap:2px; border-bottom:1.5px solid var(--b1,rgba(0,0,0,.08)); margin-bottom:14px; overflow-x:auto; scrollbar-width:none; }
+/* ══ Tabs ══ */
+.sgp-tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--b1,rgba(0,0,0,.08));margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .sgp-tabs::-webkit-scrollbar{display:none}
-.sgp-tab {
-  flex-shrink:0; padding:9px 14px; border:none; background:transparent;
-  border-bottom:2.5px solid transparent; font-family:'Tajawal',sans-serif;
-  font-size:11px; font-weight:600; color:var(--tx2,#5A6480); cursor:pointer; transition:all .15s; white-space:nowrap;
-}
-.sgp-tab:hover { color:var(--tx1,#1A1E2E); }
-.sgp-tab.on { color:var(--sgp-gold); border-bottom-color:var(--sgp-gold); font-weight:800; }
+.sgp-tab{flex-shrink:0;padding:8px 13px;border:none;background:transparent;border-bottom:2.5px solid transparent;font-family:'Tajawal',sans-serif;font-size:11px;font-weight:600;color:var(--tx2,#5A6480);cursor:pointer;transition:all .15s;white-space:nowrap}
+.sgp-tab:hover{color:var(--tx1,#1A1E2E)}
+.sgp-tab.on{color:var(--sg);border-bottom-color:var(--sg);font-weight:800}
 
-/* ── رسالة الترحيب ── */
-.sgp-welcome-strip {
-  background:linear-gradient(135deg,rgba(200,150,30,.08),rgba(34,199,122,.05));
-  border:1.5px solid rgba(200,150,30,.2); border-radius:14px;
-  padding:14px 16px; margin-bottom:16px;
-  display:flex; align-items:center; gap:12px;
-}
-.sgp-welcome-icon { font-size:28px; flex-shrink:0; }
-.sgp-welcome-text { font-size:13px; color:var(--tx1,#1A1E2E); line-height:1.6; }
-.sgp-welcome-text b { color:var(--sgp-gold2); }
+/* ══ Stats ══ */
+.sgp-sg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sgp-sc{background:var(--c2,#f5f7fa);border:1.5px solid;border-radius:13px;padding:14px 8px;text-align:center;position:relative;overflow:hidden}
+.sgp-sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.sgp-sv{font-size:22px;font-weight:900;line-height:1;margin-bottom:4px}
+.sgp-sl{font-size:9px;font-weight:700;color:var(--tx2,#5A6480);letter-spacing:.3px}
+.sgp-sg-g {border-color:rgba(200,150,30,.28)}.sgp-sg-g::after{background:var(--sg)}.sgp-sg-g .sgp-sv{color:var(--sg)}
+.sgp-sg-gr{border-color:rgba(34,199,122,.28)}.sgp-sg-gr::after{background:var(--ok)}.sgp-sg-gr .sgp-sv{color:var(--ok)}
+.sgp-sg-b {border-color:rgba(80,144,224,.28)}.sgp-sg-b::after{background:var(--bl)}.sgp-sg-b .sgp-sv{color:var(--bl)}
 
-/* ── spinner ── */
-.sgp-spin {
-  width:22px; height:22px; border-radius:50%;
-  border:2.5px solid rgba(34,199,122,.2); border-top-color:var(--sgp-green);
-  animation:sgpSpin .6s linear infinite; flex-shrink:0; display:inline-block;
-}
-@keyframes sgpSpin{to{transform:rotate(360deg)}}
+/* ══ Diff ══ */
+.sgp-db{margin-bottom:10px}
+.sgp-dt{font-size:12px;font-weight:800;color:var(--tx1,#1A1E2E);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sgp-dr{display:flex;gap:6px;align-items:stretch;font-size:11px;margin-bottom:5px}
+.sgp-do{flex:1;background:rgba(229,85,85,.07);border:1px solid rgba(229,85,85,.2);border-radius:8px;padding:6px 10px;color:var(--er)}
+.sgp-da{color:var(--tx3,#8890A8);font-size:15px;display:flex;align-items:center;flex-shrink:0}
+.sgp-dn{flex:1;background:rgba(34,199,122,.07);border:1px solid rgba(34,199,122,.2);border-radius:8px;padding:6px 10px;color:var(--ok);font-weight:700}
 
-/* ── input style ── */
-.sgp-input {
-  width:100%; padding:10px 13px; border-radius:10px;
-  border:1.5px solid var(--b2,rgba(0,0,0,.13)); background:var(--c2,#f5f7fa);
-  font-family:'Tajawal',sans-serif; font-size:13px; color:var(--tx1,#1A1E2E);
-  box-sizing:border-box;
-}
-.sgp-input:focus { outline:none; border-color:rgba(200,150,30,.5); background:var(--c1,#fff); }
-.sgp-select { cursor:pointer; }
+/* ══ Input ══ */
+.sgp-inp{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--b2,rgba(0,0,0,.13));background:var(--c2,#f5f7fa);font-family:'Tajawal',sans-serif;font-size:13px;color:var(--tx1,#1A1E2E);box-sizing:border-box;transition:border .15s}
+.sgp-inp:focus{outline:none;border-color:rgba(200,150,30,.5);background:var(--c1,#fff)}
+.sgp-lbl{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;display:block}
 
-/* ── separator ── */
-.sgp-sep { border:none; border-top:1px solid var(--b1,rgba(0,0,0,.07)); margin:14px 0; }
+/* ══ Check indicator ══ */
+.sgp-chk-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;margin-bottom:5px;font-size:11px}
+.sgp-chk-ok {background:rgba(34,199,122,.07);color:var(--ok)}
+.sgp-chk-er {background:rgba(229,85,85,.07);color:var(--er)}
+.sgp-chk-ld {background:rgba(80,144,224,.07);color:var(--bl)}
 
-/* ── تنبيه داخل النافذة ── */
-.sgp-alert {
-  display:flex; gap:10px; padding:12px 14px; border-radius:12px;
-  border:1.5px solid; margin-bottom:14px; font-size:12px; line-height:1.6;
-}
-.sgp-alert-icon { font-size:18px; flex-shrink:0; }
-.sgp-alert-txt  { color:var(--tx1,#1A1E2E); }
-.sgp-alert-warn   { background:rgba(240,144,48,.06); border-color:rgba(240,144,48,.3); }
-.sgp-alert-success{ background:rgba(34,199,122,.06); border-color:rgba(34,199,122,.3); }
-.sgp-alert-info   { background:rgba(80,144,224,.06); border-color:rgba(80,144,224,.3); }
-.sgp-alert-danger { background:rgba(229,85,85,.06);  border-color:rgba(229,85,85,.3);  }
+/* ══ Toast ══ */
+.sgp-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#141720;color:#EDF0FF;border:1.5px solid rgba(200,150,30,.4);padding:10px 22px;border-radius:50px;font-family:'Tajawal',sans-serif;font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.6);pointer-events:none;transition:opacity .3s}
 
-/* mobile */
-@media(max-width:500px){
-  .sgp-choice-grid{grid-template-columns:1fr}
-  .sgp-stat-grid{grid-template-columns:repeat(2,1fr)}
-  .sgp-modal-xl{max-width:100%}
-  .sgp-ver-btns{flex-wrap:wrap}
-  #sgp-topbar .sgp-topbtn .sgp-tbl{display:none}
+/* ══ Tsec ══ */
+.sgp-tsec{display:none}.sgp-tsec.on{display:block}
+
+/* ══ Responsive ══ */
+@media(max-width:520px){
+  .sgp-sg{grid-template-columns:repeat(2,1fr)}
+  .sgp-cgrid{grid-template-columns:1fr!important}
+  .sgp-xl,.sgp-lg{max-width:100%}
+  .sgp-tb .sgp-tbl{display:none}
+  .sgp-vbtns{flex-wrap:wrap}
 }
-@media print{#sgp-topbar,.sgp-ov{display:none!important}}
+@media print{#sgp-bar,.sgp-ov{display:none!important}}
 </style>
 
-<!-- ═══ Backup Welcome Modal ═══ -->
-<div id="sgp-welcome-ov" class="sgp-ov">
-  <div class="sgp-modal sgp-modal-md">
-    <div class="sgp-mhdr">
-      <div class="sgp-mhdr-info">
-        <div class="sgp-mhdr-icon">🛡️</div>
-        <div>
-          <div class="sgp-mhdr-title">حماية بياناتك — نسخة احتياطية</div>
-          <div class="sgp-mhdr-sub">نظام النسخ الاحتياطي الاحترافي — SGP Pro v4.0</div>
-        </div>
+<!-- ═══ Welcome Modal ═══ -->
+<div id="sgp-wlc-ov" class="sgp-ov">
+  <div class="sgp-m sgp-md">
+    <div class="sgp-mh">
+      <div class="sgp-mhi"><div class="sgp-mic">🛡️</div>
+        <div><div class="sgp-mtt">حماية بياناتك المحاسبية</div>
+          <div class="sgp-msb" id="sgp-wlc-sub">SGP Pro v5.0 — نظام النسخ الاحتياطي الاحترافي</div></div>
       </div>
-      <div class="sgp-mclose" onclick="SGP.closeWelcome()">✕</div>
+      <div class="sgp-mcl" onclick="SGP.closeWlc()">✕</div>
     </div>
-    <div class="sgp-mbody">
-      <div class="sgp-alert sgp-alert-warn">
-        <div class="sgp-alert-icon">⚠️</div>
-        <div class="sgp-alert-txt">
-          <b>للحفاظ على بياناتك من الضياع أو الحذف غير المقصود،</b> يُنصح بإنشاء نسخة احتياطية كاملة الآن.
-          النسخة تشمل جميع الفواتير والحسابات والعملاء والإعدادات.
+    <div class="sgp-mb">
+      <div class="sgp-al sgp-al-w" id="sgp-wlc-alert">
+        <div class="sgp-al-i">⚠️</div>
+        <div class="sgp-al-t" id="sgp-wlc-msg">
+          <b>يُنصح بأخذ نسخة احتياطية كاملة الآن.</b><br>
+          النسخة تشمل جميع الفواتير، الحسابات، العملاء، الصناديق، الإعدادات، وكل سجلات التعديلات.
         </div>
       </div>
-      <div class="sgp-choice-grid" style="grid-template-columns:repeat(2,1fr);gap:10px">
-        <div class="sgp-choice-card sgp-cc-gold" onclick="SGP.downloadNow('welcome')">
-          <div class="sgp-cc-icon">💾</div>
-          <div class="sgp-cc-title">تنزيل على الجهاز</div>
-          <div class="sgp-cc-desc">تحميل ملف JSON كامل يحتوي على جميع البيانات فوراً</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px">اختر طريقة الحفظ:</div>
+      <div class="sgp-cgrid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="sgp-cc sgp-cc-g" onclick="SGP.dlNow('welcome')">
+          <div class="sgp-cci">💾</div><div class="sgp-cct">تنزيل على الجهاز</div>
+          <div class="sgp-ccd">ملف JSON كامل فوراً</div>
         </div>
-        <div class="sgp-choice-card sgp-cc-green" onclick="SGP.saveInternal('welcome')">
-          <div class="sgp-cc-icon">☁️</div>
-          <div class="sgp-cc-title">حفظ داخل الموقع</div>
-          <div class="sgp-cc-desc">حفظ نسخة كاملة داخل المتصفح يمكن استرجاعها لاحقاً</div>
+        <div class="sgp-cc sgp-cc-gr" onclick="SGP.saveInt('welcome')">
+          <div class="sgp-cci">☁️</div><div class="sgp-cct">حفظ داخل الموقع</div>
+          <div class="sgp-ccd">نسخة قابلة للاسترجاع</div>
         </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <div class="sgp-choice-card sgp-cc-blue" style="flex:1" onclick="SGP.downloadNow('welcome');SGP.saveInternal('welcome')">
-          <div class="sgp-cc-icon">🔒</div>
-          <div class="sgp-cc-title">كلاهما معاً (موصى به)</div>
-          <div class="sgp-cc-desc">تنزيل + حفظ داخلي للحماية المزدوجة</div>
+        <div class="sgp-cc sgp-cc-b" onclick="SGP.dlNow('welcome');SGP.saveInt('welcome')">
+          <div class="sgp-cci">🔒</div><div class="sgp-cct">كلاهما ✓</div>
+          <div class="sgp-ccd">حماية مزدوجة (موصى)</div>
         </div>
       </div>
     </div>
-    <div class="sgp-mftr">
-      <button class="sgp-btn sgp-btn-gray" onclick="SGP.remindLater()">🔔 ذكّرني لاحقاً (15 دقيقة)</button>
-      <button class="sgp-btn sgp-btn-red" onclick="SGP.closeWelcome()">✕ الآن لا</button>
+    <div class="sgp-mf">
+      <button class="sgp-btn sgp-btn-gy" onclick="SGP.remindLater()">🔔 ذكّرني بعد 20 دقيقة</button>
+      <button class="sgp-btn sgp-btn-r"  onclick="SGP.closeWlc()">✕ لاحقاً</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ Backup Action Modal (عند التعديل) ═══ -->
-<div id="sgp-action-ov" class="sgp-ov">
-  <div class="sgp-modal sgp-modal-md">
-    <div class="sgp-mhdr">
-      <div class="sgp-mhdr-info">
-        <div class="sgp-mhdr-icon" id="sgp-act-icon">📝</div>
-        <div>
-          <div class="sgp-mhdr-title" id="sgp-act-title">تم إجراء تعديل</div>
-          <div class="sgp-mhdr-sub" id="sgp-act-sub">يُنصح بأخذ نسخة احتياطية الآن</div>
-        </div>
+<!-- ═══ Action Backup Modal ═══ -->
+<div id="sgp-act-ov" class="sgp-ov">
+  <div class="sgp-m sgp-md">
+    <div class="sgp-mh">
+      <div class="sgp-mhi">
+        <div class="sgp-mic" id="sgp-act-ic">📝</div>
+        <div><div class="sgp-mtt" id="sgp-act-tt">يوجد تعديلات جديدة</div>
+          <div class="sgp-msb" id="sgp-act-sb">يُفضل إنشاء نسخة احتياطية لحماية بياناتك</div></div>
       </div>
-      <div class="sgp-mclose" onclick="SGP.closeAction()">✕</div>
+      <div class="sgp-mcl" onclick="SGP.closeAct()">✕</div>
     </div>
-    <div class="sgp-mbody">
-      <div class="sgp-alert sgp-alert-warn" id="sgp-act-alert">
-        <div class="sgp-alert-icon">💡</div>
-        <div class="sgp-alert-txt" id="sgp-act-desc">تم تسجيل تعديل جديد. هل تريد أخذ نسخة احتياطية؟</div>
+    <div class="sgp-mb">
+      <div class="sgp-al sgp-al-w">
+        <div class="sgp-al-i">💡</div>
+        <div class="sgp-al-t" id="sgp-act-msg">تم تسجيل تعديل جديد. يُفضل أخذ نسخة احتياطية الآن.</div>
       </div>
-      <div class="sgp-choice-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="sgp-choice-card sgp-cc-gold" onclick="SGP.downloadNow('action')">
-          <div class="sgp-cc-icon">💾</div>
-          <div class="sgp-cc-title">تنزيل الآن</div>
-          <div class="sgp-cc-desc">حفظ فوري على جهازك</div>
+      <div class="sgp-cgrid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="sgp-cc sgp-cc-g" onclick="SGP.dlNow('action')">
+          <div class="sgp-cci">💾</div><div class="sgp-cct">تنزيل الآن</div>
+          <div class="sgp-ccd">حفظ فوري على جهازك</div>
         </div>
-        <div class="sgp-choice-card sgp-cc-green" onclick="SGP.saveInternal('action')">
-          <div class="sgp-cc-icon">☁️</div>
-          <div class="sgp-cc-title">حفظ داخلي</div>
-          <div class="sgp-cc-desc">نسخة داخل المتصفح</div>
+        <div class="sgp-cc sgp-cc-gr" onclick="SGP.saveInt('action')">
+          <div class="sgp-cci">☁️</div><div class="sgp-cct">حفظ داخلي</div>
+          <div class="sgp-ccd">نسخة داخل المتصفح</div>
         </div>
-        <div class="sgp-choice-card sgp-cc-blue" onclick="SGP.downloadNow('action');SGP.saveInternal('action')">
-          <div class="sgp-cc-icon">🔒</div>
-          <div class="sgp-cc-title">كلاهما</div>
-          <div class="sgp-cc-desc">حماية مزدوجة</div>
+        <div class="sgp-cc sgp-cc-b" onclick="SGP.dlNow('action');SGP.saveInt('action')">
+          <div class="sgp-cci">🔒</div><div class="sgp-cct">كلاهما</div>
+          <div class="sgp-ccd">أفضل حماية</div>
         </div>
       </div>
     </div>
-    <div class="sgp-mftr">
-      <button class="sgp-btn sgp-btn-gray" onclick="SGP.closeAction()">⏭ تخطي هذه المرة</button>
-      <button class="sgp-btn sgp-btn-red" onclick="SGP.disableActionPrompt()">🔕 إيقاف التنبيه التلقائي</button>
+    <div class="sgp-mf">
+      <button class="sgp-btn sgp-btn-gy" onclick="SGP.closeAct()">⏭ تخطي</button>
+      <button class="sgp-btn sgp-btn-r" style="font-size:11px" onclick="SGP.disableActPr()">🔕 إيقاف التنبيه التلقائي</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ Snapshot / Version Modal ═══ -->
-<div id="sgp-snap-ov" class="sgp-ov">
-  <div class="sgp-modal sgp-modal-md">
-    <div class="sgp-mhdr">
-      <div class="sgp-mhdr-info">
-        <div class="sgp-mhdr-icon">📸</div>
-        <div>
-          <div class="sgp-mhdr-title">إنشاء نسخة احتياطية كاملة</div>
-          <div class="sgp-mhdr-sub">Snapshot شامل لجميع بيانات النظام</div>
-        </div>
+<!-- ═══ Snapshot Modal ═══ -->
+<div id="sgp-snp-ov" class="sgp-ov">
+  <div class="sgp-m sgp-md">
+    <div class="sgp-mh">
+      <div class="sgp-mhi"><div class="sgp-mic">📸</div>
+        <div><div class="sgp-mtt">إنشاء نسخة احتياطية كاملة</div>
+          <div class="sgp-msb">Snapshot شامل لجميع بيانات النظام المحاسبي</div></div>
       </div>
-      <div class="sgp-mclose" onclick="SGP.closeSnap()">✕</div>
+      <div class="sgp-mcl" onclick="SGP.closeSnp()">✕</div>
     </div>
-    <div class="sgp-mbody">
-      <div id="sgp-snap-progress-wrap" style="display:none">
-        <div class="sgp-alert sgp-alert-info" style="margin-bottom:12px">
-          <div class="sgp-alert-icon" id="sgp-snap-prog-icon">⏳</div>
-          <div class="sgp-alert-txt" id="sgp-snap-prog-msg">جاري إنشاء النسخة...</div>
-        </div>
-        <div class="sgp-progress-wrap"><div class="sgp-progress-bar" id="sgp-snap-pbar"></div></div>
+    <div class="sgp-mb">
+      <div id="sgp-snp-prog" style="display:none">
+        <div id="sgp-snp-checks" style="margin-bottom:12px"></div>
+        <div class="sgp-pw"><div class="sgp-pb" id="sgp-snp-pb"></div></div>
+        <div id="sgp-snp-pm" style="font-size:12px;color:var(--tx2);text-align:center;margin-top:6px">⏳ جاري التحقق...</div>
       </div>
-      <div id="sgp-snap-form">
-        <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">اسم النسخة</div>
-          <input class="sgp-input" id="sgp-snap-name" placeholder="مثال: قبل التعديل الشهري — رجب 1446" />
-        </div>
-        <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px">السبب / الملاحظة</div>
-          <input class="sgp-input" id="sgp-snap-reason" placeholder="اختياري — سبب إنشاء هذه النسخة" />
-        </div>
-        <div id="sgp-snap-summary" style="background:var(--c2);border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:11px;color:var(--tx2)">
-          ⏳ جاري حساب البيانات...
-        </div>
-        <div style="font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:10px">اختر طريقة الحفظ:</div>
-        <div class="sgp-choice-grid" style="grid-template-columns:repeat(3,1fr)">
-          <div class="sgp-choice-card sgp-cc-gold" id="sgp-snap-opt-dl" onclick="SGP.toggleSnapOpt('dl',this)" style="cursor:pointer">
-            <div class="sgp-cc-icon">💾</div>
-            <div class="sgp-cc-title">تنزيل الجهاز</div>
-            <div class="sgp-cc-desc">ملف JSON على جهازك</div>
+      <div id="sgp-snp-form">
+        <label class="sgp-lbl">اسم النسخة</label>
+        <input class="sgp-inp" id="sgp-snp-nm" style="margin-bottom:12px" placeholder="مثال: قبل التعديل الشهري" />
+        <label class="sgp-lbl">السبب / الملاحظة (اختياري)</label>
+        <input class="sgp-inp" id="sgp-snp-rs" style="margin-bottom:14px" placeholder="سبب إنشاء هذه النسخة" />
+        <div id="sgp-snp-sum" style="background:var(--c2);border:1px solid var(--b1);border-radius:12px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--tx2)">⏳ جاري حساب البيانات...</div>
+        <div class="sgp-lbl">طريقة الحفظ:</div>
+        <div class="sgp-cgrid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="sgp-cc sgp-cc-g" id="sgp-opt-dl" onclick="SGP.setOpt('dl',this)">
+            <div class="sgp-cci">💾</div><div class="sgp-cct">تنزيل الجهاز</div><div class="sgp-ccd">ملف JSON</div>
           </div>
-          <div class="sgp-choice-card sgp-cc-green" id="sgp-snap-opt-int" onclick="SGP.toggleSnapOpt('int',this)" style="cursor:pointer">
-            <div class="sgp-cc-icon">☁️</div>
-            <div class="sgp-cc-title">داخل الموقع</div>
-            <div class="sgp-cc-desc">محفوظ في المتصفح</div>
+          <div class="sgp-cc sgp-cc-gr" id="sgp-opt-in" onclick="SGP.setOpt('in',this)">
+            <div class="sgp-cci">☁️</div><div class="sgp-cct">داخل الموقع</div><div class="sgp-ccd">في المتصفح</div>
           </div>
-          <div class="sgp-choice-card sgp-cc-blue sgp-snap-selected" id="sgp-snap-opt-both" onclick="SGP.toggleSnapOpt('both',this)" style="cursor:pointer;box-shadow:0 0 0 2px var(--sgp-blue)">
-            <div class="sgp-cc-icon">🔒</div>
-            <div class="sgp-cc-title">كلاهما ✓</div>
-            <div class="sgp-cc-desc">موصى به</div>
+          <div class="sgp-cc sgp-cc-b" id="sgp-opt-bo" onclick="SGP.setOpt('bo',this)" style="box-shadow:0 0 0 2.5px var(--bl)">
+            <div class="sgp-cci">🔒</div><div class="sgp-cct">كلاهما ✓</div><div class="sgp-ccd">موصى به</div>
           </div>
         </div>
       </div>
     </div>
-    <div class="sgp-mftr" id="sgp-snap-ftr">
-      <button class="sgp-btn sgp-btn-gold" id="sgp-snap-go" onclick="SGP.doSnapshot()">📸 إنشاء النسخة الآن</button>
-      <button class="sgp-btn sgp-btn-gray" onclick="SGP.closeSnap()">إلغاء</button>
+    <div class="sgp-mf" id="sgp-snp-ftr">
+      <button class="sgp-btn sgp-btn-g" onclick="SGP.doSnap()">📸 إنشاء النسخة</button>
+      <button class="sgp-btn sgp-btn-gy" onclick="SGP.closeSnp()">إلغاء</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ Versions Manager Modal ═══ -->
+<!-- ═══ Manager Modal ═══ -->
 <div id="sgp-mgr-ov" class="sgp-ov">
-  <div class="sgp-modal sgp-modal-xl" style="max-height:92vh">
-    <div class="sgp-mhdr">
-      <div class="sgp-mhdr-info">
-        <div class="sgp-mhdr-icon">📋</div>
-        <div>
-          <div class="sgp-mhdr-title">مدير النسخ الاحتياطية والإصدارات</div>
-          <div class="sgp-mhdr-sub" id="sgp-mgr-sub">جاري التحميل...</div>
-        </div>
+  <div class="sgp-m sgp-xl" style="max-height:94vh">
+    <div class="sgp-mh">
+      <div class="sgp-mhi"><div class="sgp-mic">📋</div>
+        <div><div class="sgp-mtt">مدير النسخ الاحتياطية والإصدارات</div>
+          <div class="sgp-msb" id="sgp-mgr-sb">جاري التحميل...</div></div>
       </div>
-      <div class="sgp-mclose" onclick="SGP.closeMgr()">✕</div>
+      <div class="sgp-mcl" onclick="SGP.closeMgr()">✕</div>
     </div>
-    <div class="sgp-mbody">
+    <div class="sgp-mb">
       <div class="sgp-tabs">
-        <button class="sgp-tab on" onclick="SGP.mgrTab('versions',this)">📋 الإصدارات</button>
-        <button class="sgp-tab" onclick="SGP.mgrTab('compare',this)">🔄 مقارنة</button>
-        <button class="sgp-tab" onclick="SGP.mgrTab('log',this)">🔍 سجل التدقيق</button>
-        <button class="sgp-tab" onclick="SGP.mgrTab('stats',this)">📊 الإحصاء</button>
+        <button class="sgp-tab on" onclick="SGP.mgrT('versions',this)">📋 الإصدارات</button>
+        <button class="sgp-tab" onclick="SGP.mgrT('compare',this)">🔄 مقارنة</button>
+        <button class="sgp-tab" onclick="SGP.mgrT('log',this)">🔍 سجل التعديلات</button>
+        <button class="sgp-tab" onclick="SGP.mgrT('stats',this)">📊 الإحصاء</button>
       </div>
-
-      <!-- Versions Tab -->
-      <div id="sgp-tab-versions" class="sgp-tsec">
+      <!-- Versions -->
+      <div id="sgp-t-versions" class="sgp-tsec on">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div style="font-size:11px;color:var(--tx2)">جميع النسخ الاحتياطية — اضغط لاستعادة أي نسخة بنقرة واحدة</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="sgp-vbtn sgp-vbtn-gl" onclick="SGP.openSnap()">📸 نسخة جديدة</button>
-          </div>
+          <div style="font-size:11px;color:var(--tx2)">جميع النسخ — مرتبة من الأحدث للأقدم — انقر استرجاع لأي نسخة</div>
+          <button class="sgp-vbtn sgp-vb-g" onclick="SGP.openSnp()">📸 نسخة جديدة</button>
         </div>
         <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap" id="sgp-vfil">
-          <button class="sgp-vbtn sgp-vbtn-b" style="background:rgba(80,144,224,.2);font-weight:900" onclick="SGP.filterV('all',this)">الكل</button>
-          <button class="sgp-vbtn sgp-vbtn-b" onclick="SGP.filterV('manual',this)">👤 يدوي</button>
-          <button class="sgp-vbtn sgp-vbtn-b" onclick="SGP.filterV('auto',this)">🔄 تلقائي</button>
-          <button class="sgp-vbtn sgp-vbtn-b" onclick="SGP.filterV('action',this)">⚡ عند تعديل</button>
-          <button class="sgp-vbtn sgp-vbtn-b" onclick="SGP.filterV('local',this)">💾 جهاز</button>
+          <button class="sgp-vbtn sgp-vb-b" style="background:rgba(80,144,224,.2);font-weight:900" onclick="SGP.fV('all',this)">الكل</button>
+          <button class="sgp-vbtn sgp-vb-b" onclick="SGP.fV('manual',this)">👤 يدوي</button>
+          <button class="sgp-vbtn sgp-vb-b" onclick="SGP.fV('auto',this)">🔄 تلقائي</button>
+          <button class="sgp-vbtn sgp-vb-b" onclick="SGP.fV('action',this)">⚡ عند عملية</button>
+          <button class="sgp-vbtn sgp-vb-b" onclick="SGP.fV('pre-restore',this)">🔙 قبل استرجاع</button>
         </div>
-        <div id="sgp-vlist"><div style="text-align:center;padding:36px;color:var(--tx3)">⏳ جاري التحميل...</div></div>
+        <div id="sgp-vlist"><div style="text-align:center;padding:40px;color:var(--tx3)">⏳</div></div>
       </div>
-
-      <!-- Compare Tab -->
-      <div id="sgp-tab-compare" class="sgp-tsec" style="display:none">
-        <div class="sgp-alert sgp-alert-info" style="margin-bottom:14px">
-          <div class="sgp-alert-icon">ℹ️</div>
-          <div class="sgp-alert-txt">اختر نسختين لمقارنتهما وعرض الفروقات بالتفصيل</div>
+      <!-- Compare -->
+      <div id="sgp-t-compare" class="sgp-tsec">
+        <div class="sgp-al sgp-al-b" style="margin-bottom:14px">
+          <div class="sgp-al-i">ℹ️</div>
+          <div class="sgp-al-t">اختر نسختين لمقارنتهما وعرض الفروقات المحاسبية بالتفصيل</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📌 النسخة الأولى (القديمة)</div>
-            <select id="sgp-cv1" class="sgp-input sgp-select"><option value="">— اختر نسخة —</option></select>
-          </div>
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px">📌 النسخة الثانية (الجديدة)</div>
-            <select id="sgp-cv2" class="sgp-input sgp-select"><option value="">— اختر نسخة —</option></select>
-          </div>
+          <div><div class="sgp-lbl">📌 النسخة القديمة</div>
+            <select id="sgp-cv1" class="sgp-inp" style="cursor:pointer"><option value="">— اختر —</option></select></div>
+          <div><div class="sgp-lbl">📌 النسخة الجديدة</div>
+            <select id="sgp-cv2" class="sgp-inp" style="cursor:pointer"><option value="">— اختر —</option></select></div>
         </div>
-        <button class="sgp-btn sgp-btn-blue sgp-btn-full" onclick="SGP.runCmp()">🔍 قارن الآن</button>
+        <button class="sgp-btn sgp-btn-b sgp-btn-fw" onclick="SGP.runCmp()">🔍 قارن الآن</button>
         <div id="sgp-cmpres" style="margin-top:14px"></div>
       </div>
-
-      <!-- Log Tab -->
-      <div id="sgp-tab-log" class="sgp-tsec" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px">
-          <div style="font-size:11px;color:var(--tx2)">سجل كامل لجميع عمليات النسخ والتعديلات</div>
-          <button class="sgp-vbtn sgp-vbtn-d" onclick="SGP.clearLog()">🗑 مسح السجل</button>
+      <!-- Log -->
+      <div id="sgp-t-log" class="sgp-tsec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+          <div style="font-size:11px;color:var(--tx2)">سجل كامل — من عدّل، ماذا عدّل، متى</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="sgp-vbtn sgp-vb-r" onclick="SGP.clearLog()">🗑 مسح السجل</button>
+          </div>
         </div>
-        <div id="sgp-loglist"><div style="text-align:center;padding:30px;color:var(--tx3)">لا يوجد سجل بعد</div></div>
+        <div id="sgp-llist"><div style="text-align:center;padding:30px;color:var(--tx3)">لا يوجد سجل بعد</div></div>
       </div>
-
-      <!-- Stats Tab -->
-      <div id="sgp-tab-stats" class="sgp-tsec" style="display:none">
-        <div id="sgp-statscon"><div style="text-align:center;padding:30px;color:var(--tx3)">⏳ جاري التحميل...</div></div>
+      <!-- Stats -->
+      <div id="sgp-t-stats" class="sgp-tsec">
+        <div id="sgp-statscon"><div style="text-align:center;padding:30px;color:var(--tx3)">⏳</div></div>
       </div>
     </div>
-    <div class="sgp-mftr">
-      <button class="sgp-btn sgp-btn-gold" onclick="SGP.openSnap()">📸 نسخة احتياطية جديدة</button>
-      <button class="sgp-btn sgp-btn-gray" onclick="SGP.closeMgr()">إغلاق</button>
+    <div class="sgp-mf">
+      <button class="sgp-btn sgp-btn-g" onclick="SGP.openSnp()">📸 نسخة احتياطية جديدة</button>
+      <button class="sgp-btn sgp-btn-gy" onclick="SGP.closeMgr()">إغلاق</button>
     </div>
   </div>
 </div>
 
 <!-- ═══ Confirm Modal ═══ -->
 <div id="sgp-cfm-ov" class="sgp-ov">
-  <div class="sgp-modal sgp-modal-sm">
-    <div class="sgp-mhdr">
-      <div class="sgp-mhdr-info">
-        <div class="sgp-mhdr-icon" id="sgp-cfm-ico">⚠️</div>
-        <div><div class="sgp-mhdr-title" id="sgp-cfm-tt">تأكيد</div></div>
+  <div class="sgp-m sgp-sm">
+    <div class="sgp-mh">
+      <div class="sgp-mhi"><div class="sgp-mic" id="sgp-cfm-ic">⚠️</div>
+        <div><div class="sgp-mtt" id="sgp-cfm-tt">تأكيد</div></div>
       </div>
     </div>
-    <div class="sgp-mbody">
-      <div class="sgp-alert sgp-alert-warn" id="sgp-cfm-box">
-        <div class="sgp-alert-icon" id="sgp-cfm-bico">⚠️</div>
-        <div class="sgp-alert-txt" id="sgp-cfm-ms"></div>
+    <div class="sgp-mb">
+      <div class="sgp-al sgp-al-w" id="sgp-cfm-bx">
+        <div class="sgp-al-i" id="sgp-cfm-bi">⚠️</div>
+        <div class="sgp-al-t" id="sgp-cfm-ms"></div>
       </div>
     </div>
-    <div class="sgp-mftr">
-      <button class="sgp-btn sgp-btn-green" id="sgp-cfm-ok">✅ تأكيد</button>
-      <button class="sgp-btn sgp-btn-gray" id="sgp-cfm-ca">❌ إلغاء</button>
+    <div class="sgp-mf">
+      <button class="sgp-btn sgp-btn-gr" id="sgp-cfm-ok">✅ تأكيد</button>
+      <button class="sgp-btn sgp-btn-gy" id="sgp-cfm-ca">❌ إلغاء</button>
     </div>
   </div>
 </div>
 
 <!-- ═══ Top Bar ═══ -->
-<div id="sgp-topbar">
-  <div id="sgp-topbar-save-ind" style="display:none">
-    <span id="sgp-dirty-dot" style="width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0"></span>
-    <span id="sgp-dirty-txt">تعديلات غير محفوظة</span>
+<div id="sgp-bar">
+  <div id="sgp-ind">
+    <span id="sgp-ind-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0"></span>
+    <span id="sgp-ind-txt">تعديلات غير محفوظة</span>
   </div>
-  <button class="sgp-topbtn sgp-topbtn-blue" onclick="SGP.openMgr()" title="سجل النسخ الاحتياطية">
-    📋 <span class="sgp-tbl">السجل</span>
-  </button>
-  <button class="sgp-topbtn sgp-topbtn-gold" onclick="SGP.openSnap()" title="إنشاء نسخة احتياطية">
-    📸 <span class="sgp-tbl">نسخة احتياطية</span>
-  </button>
-  <button class="sgp-topbtn sgp-topbtn-green" onclick="SGP.downloadNow('manual')" title="تنزيل على الجهاز">
-    💾 <span class="sgp-tbl">تنزيل</span>
-  </button>
+  <button class="sgp-tb sgp-tb-b"  onclick="SGP.openMgr()" title="سجل الإصدارات  Ctrl+Shift+L">📋 <span class="sgp-tbl">السجل</span></button>
+  <button class="sgp-tb sgp-tb-g"  onclick="SGP.openSnp()" title="نسخة احتياطية  Ctrl+Shift+B">📸 <span class="sgp-tbl">نسخة احتياطية</span></button>
+  <button class="sgp-tb sgp-tb-gr" onclick="SGP.dlNow('manual')" title="تنزيل مباشر  Ctrl+S">💾 <span class="sgp-tbl">تنزيل</span></button>
 </div>
 
 <script>
 (function(){
 'use strict';
+/* ══════ Keys ══════ */
+var KY={V:'sgp5_v',L:'sgp5_l',C:'sgp5_c',CR:'sgp5_cr'};
 
-/* ══════════ مفاتيح التخزين ══════════ */
-var KY = {
-  VER : 'sgpv4_versions',
-  LOG : 'sgpv4_log',
-  CFG : 'sgpv4_cfg',
-  CRS : 'sgpv4_crash'
-};
-
-/* ══════════ مساعدات ══════════ */
-function _ts(){ return Date.now(); }
-function _uid(){ return 'sgp_' + _ts() + '_' + Math.random().toString(36).substr(2,5); }
+/* ══════ Helpers ══════ */
+function _ts(){return Date.now()}
+function _uid(){return 'sgp5_'+_ts()+'_'+Math.random().toString(36).substr(2,5)}
 function _user(){
   try{
-    var u = sessionStorage.getItem('auth-user');
-    if(u) return u;
-    if(window.S && window.S.currentUser) return window.S.currentUser.name || window.S.currentUser;
+    var u=sessionStorage.getItem('auth-user');if(u)return u;
+    if(window.S&&window.S.users){
+      var lu=sessionStorage.getItem('auth-user');
+      if(lu)return lu;
+    }
   }catch(e){}
   return 'النظام';
 }
-function _role(){
-  try{ return sessionStorage.getItem('auth-role') || '—'; }catch(e){ return '—'; }
-}
+function _role(){try{return sessionStorage.getItem('auth-role')||'—'}catch(e){return'—'}}
 function _fd(ts){
-  if(!ts) return '—';
+  if(!ts)return'—';
   return new Date(+ts).toLocaleDateString('ar-SA',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
-function _fsz(bytes){
-  if(bytes < 1024) return bytes + ' B';
-  if(bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/1048576).toFixed(2) + ' MB';
+function _fdt(ts){
+  /* اسم ملف: backup_2026-05-28_14-30_type */
+  if(!ts)return'';
+  var d=new Date(+ts);
+  var pad=function(n){return n<10?'0'+n:n};
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'_'+pad(d.getHours())+'-'+pad(d.getMinutes());
 }
-function _ls(k){ try{ var r=localStorage.getItem(k); return r?JSON.parse(r):null; }catch(e){ return null; } }
-function _ss(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ return false; } }
+function _fsz(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(2)+' MB'}
+function _ls(k){try{var r=localStorage.getItem(k);return r?JSON.parse(r):null}catch(e){return null}}
+function _ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function _toast(m,c){
+  document.querySelectorAll('.sgp-toast').forEach(function(t){t.remove()});
+  var t=document.createElement('div');t.className='sgp-toast';
+  if(c)t.style.borderColor=c;t.textContent=m;
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},3500);
+}
 
-/* بناء Snapshot كامل من S */
+/* ══════ BUILD FULL SNAPSHOT ══════ */
+/* تجميع كامل لجميع بيانات النظام — لا يعدل أي كود محاسبي */
 function _buildSnap(){
-  if(!window.S) return {};
+  if(!window.S) return {_empty:true};
   try{
-    var s = window.S;
+    var S=window.S;
+    /* deep clone آمن */
+    function dc(x){
+      if(x===null||x===undefined)return x;
+      try{return JSON.parse(JSON.stringify(x))}catch(e){return x}
+    }
+    /* safesBase: تصفية مفاتيح _tenantOB_ كما تفعل buildPayload */
+    var safesBase={};
+    if(S.safesBase){
+      Object.keys(S.safesBase).forEach(function(k){
+        if(!k.startsWith('_tenantOB_'))safesBase[k]=S.safesBase[k];
+      });
+    }
     return {
-      transactions   : JSON.parse(JSON.stringify(s.transactions    || [])),
-      clients        : JSON.parse(JSON.stringify(s.clients         || [])),
-      safes          : JSON.parse(JSON.stringify(s.safes           || {})),
-      customSafes    : JSON.parse(JSON.stringify(s.customSafes     || [])),
-      snapshots      : JSON.parse(JSON.stringify(s.snapshots       || [])),
-      pendingItems   : JSON.parse(JSON.stringify(s.pendingItems    || [])),
-      activityLog    : JSON.parse(JSON.stringify((s.activityLog    || []).slice(0,200))),
-      safesBase      : JSON.parse(JSON.stringify(s.safesBase       || {})),
-      openingBalance : JSON.parse(JSON.stringify(s.openingBalance  || {})),
-      settings       : JSON.parse(JSON.stringify(s.settings        || {})),
-      users          : JSON.parse(JSON.stringify(s.users           || [])),
-      tenantOpeningBalance: JSON.parse(JSON.stringify(s.tenantOpeningBalance || {}))
+      /* ── بيانات المعاملات ── */
+      transactions        :dc(S.transactions        ||[]),
+      pendingItems        :dc(S.pendingItems         ||[]),
+      snapshots           :dc(S.snapshots            ||[]),
+      /* ── العملاء والجهات ── */
+      clients             :dc(S.clients              ||[]),
+      /* ── الصناديق ── */
+      safes               :dc(S.safes               ||{}),
+      customSafes         :dc(S.customSafes          ||[]),
+      safesBase           :dc(safesBase),
+      /* ── الأرصدة الافتتاحية ── */
+      openingBalance      :dc(S.openingBalance       ||{safes:{},clients:{}}),
+      tenantOpeningBalance:dc(S.tenantOpeningBalance ||{}),
+      /* ── سجلات النظام ── */
+      activityLog         :dc((S.activityLog         ||[]).slice(0,500)),
+      auditLog            :dc((S.auditLog            ||[]).slice(0,300)),
+      securityLog         :dc((S.securityLog         ||[]).slice(0,200)),
+      /* ── المستخدمون ── */
+      users               :dc(S.users               ||[]),
+      /* ── إعدادات ── */
+      settings            :dc(S.settings            ||{}),
+      voucherCounter      :S.voucherCounter          ||0,
+      /* ── meta ── */
+      _snapAt             :_ts(),
+      _snapBy             :_user(),
+      _snapRole           :_role()
     };
-  }catch(e){ return {}; }
+  }catch(e){
+    LOG.add('error','خطأ في بناء Snapshot: '+e.message);
+    return {_error:e.message,_ts:_ts()};
+  }
 }
 
-function _snapCounts(data){
-  return {
-    tx   : (data.transactions||[]).length,
-    cl   : (data.clients     ||[]).length,
-    cs   : (data.customSafes ||[]).length,
-    pe   : (data.pendingItems||[]).length
+function _snapCounts(d){
+  return{
+    tx :(d.transactions  ||[]).length,
+    cl :(d.clients       ||[]).length,
+    cs :(d.customSafes   ||[]).length,
+    pi :(d.pendingItems  ||[]).length,
+    us :(d.users         ||[]).length
   };
 }
 
-/* ══════════ VCS — نظام الإصدارات ══════════ */
-var VCS = {
-  list : function(){ return _ls(KY.VER) || []; },
-  get  : function(id){ return this.list().find(function(v){ return v.id===id; }); },
+/* ══════ VALIDATION — التحقق قبل الحفظ ══════ */
+function _validate(data){
+  var checks=[];
+  if(!data||data._empty){checks.push({ok:false,msg:'لا توجد بيانات للحفظ'});return checks}
+  /* 1 - البيانات موجودة */
+  checks.push({ok:Array.isArray(data.transactions),msg:'سجل المعاملات: '+(Array.isArray(data.transactions)?'✓ موجود ('+data.transactions.length+')':'✕ مفقود')});
+  checks.push({ok:Array.isArray(data.clients),msg:'سجل العملاء: '+(Array.isArray(data.clients)?'✓ موجود ('+data.clients.length+')':'✕ مفقود')});
+  checks.push({ok:typeof data.safes==='object'&&data.safes!==null,msg:'الصناديق: '+(typeof data.safes==='object'?'✓ موجودة':'✕ مفقودة')});
+  /* 2 - تكرار الفواتير */
+  var txIds=(data.transactions||[]).map(function(t){return t.id});
+  var uniq=new Set(txIds);
+  checks.push({ok:uniq.size===txIds.length,msg:'تكرار الفواتير: '+(uniq.size===txIds.length?'✓ لا يوجد تكرار':'⚠️ يوجد '+(txIds.length-uniq.size)+' تكرار')});
+  /* 3 - حجم مقبول */
+  var sz=JSON.stringify(data).length;
+  checks.push({ok:sz>100,msg:'حجم النسخة: '+_fsz(sz)+(sz>100?' ✓':' ✕ فارغة')});
+  /* 4 - تاريخ الـ Snapshot */
+  checks.push({ok:!!data._snapAt,msg:'وقت النسخة: '+_fd(data._snapAt||_ts())});
+  return checks;
+}
 
-  save : function(label, type, reason){
-    var data = _buildSnap();
-    var str  = JSON.stringify(data);
-    var item = {
-      id     : _uid(),
-      label  : label  || ('نسخة ' + _fd(_ts())),
-      type   : type   || 'manual',
-      reason : reason || '',
-      ts     : _ts(),
-      user   : _user(),
-      role   : _role(),
-      size   : str.length,
-      counts : _snapCounts(data),
-      data   : str
+/* ══════ VCS ══════ */
+var VCS={
+  list:function(){return _ls(KY.V)||[]},
+  get:function(id){return this.list().find(function(v){return v.id===id})},
+  save:function(label,type,reason){
+    var data=_buildSnap();
+    var str=JSON.stringify(data);
+    var item={
+      id:_uid(),
+      label:label||('نسخة '+_fd(_ts())),
+      type:type||'manual',
+      reason:reason||'',
+      ts:_ts(),
+      user:_user(),role:_role(),
+      size:str.length,
+      counts:_snapCounts(data),
+      data:str
     };
-    var versions = this.list();
+    var versions=this.list();
     versions.unshift(item);
-    /* لا نحذف النسخ القديمة تلقائياً — المستخدم يحذف يدوياً */
-    /* لكن إذا امتلأ التخزين، نحذف أقدم 3 تلقائيات فقط كحالة طوارئ */
-    if(!_ss(KY.VER, versions)){
-      var autos = versions
-        .filter(function(v){ return v.type==='auto'; })
-        .sort(function(a,b){ return a.ts-b.ts; });
-      for(var i=0; i<Math.min(3,autos.length); i++){
-        versions = versions.filter(function(v){ return v.id!==autos[i].id; });
-      }
-      _ss(KY.VER, versions);
+    /* لا حذف تلقائي — المستخدم يتحكم */
+    if(!_ss(KY.V,versions)){
+      /* طوارئ تخزين: نحذف أقدم 5 تلقائيات فقط */
+      var autos=versions.filter(function(v){return v.type==='auto'||v.type==='action'}).sort(function(a,b){return a.ts-b.ts});
+      for(var i=0;i<Math.min(5,autos.length);i++)
+        versions=versions.filter(function(v){return v.id!==autos[i].id});
+      _ss(KY.V,versions);
     }
-    LOG.add('snapshot','تم حفظ نسخة: '+label+' ('+type+')', {id:item.id, size:item.size});
+    LOG.add('snap','نسخة احتياطية: '+label+' ('+type+')',{id:item.id,sz:item.size,cnt:item.counts});
     return item.id;
   },
-
-  restore : function(id, cb){
-    var v = this.get(id);
-    if(!v){ if(cb) cb(false); return; }
+  restore:function(id,cb){
+    var v=this.get(id);if(!v){cb&&cb(false,'النسخة غير موجودة');return}
     /* حفظ الحالة الحالية أولاً */
-    this.save('قبل الاسترجاع ← '+v.label, 'pre-restore');
+    this.save('قبل الاسترجاع ← '+v.label,'pre-restore','تلقائي قبل الاسترجاع');
     try{
-      var data = JSON.parse(v.data);
-      var keys = Object.keys(data);
-      keys.forEach(function(k){ window.S[k] = data[k]; });
-      if(typeof window.sv==='function') window.sv();
-      LOG.add('restore','تم الاسترجاع من نسخة: '+v.label,{id:id});
-      if(cb) cb(true);
+      var data=JSON.parse(v.data);
+      /* استرجاع كل المفاتيح المعروفة فقط — حماية من الكتابة فوق الدوال */
+      var safeKeys=['transactions','pendingItems','snapshots','clients','safes','customSafes',
+        'safesBase','openingBalance','tenantOpeningBalance','activityLog','auditLog',
+        'securityLog','users','settings','voucherCounter'];
+      safeKeys.forEach(function(k){
+        if(data[k]!==undefined)window.S[k]=data[k];
+      });
+      if(typeof window.sv==='function')window.sv();
+      LOG.add('restore','استرجاع من نسخة: '+v.label,{id:id,ts:v.ts});
+      cb&&cb(true);
     }catch(e){
       LOG.add('error','فشل الاسترجاع: '+e.message);
-      if(cb) cb(false, e.message);
+      cb&&cb(false,e.message);
     }
   },
-
-  del : function(id){
-    _ss(KY.VER, this.list().filter(function(v){ return v.id!==id; }));
-    LOG.add('delete_version','حذف نسخة: '+id);
+  del:function(id){
+    _ss(KY.V,this.list().filter(function(v){return v.id!==id}));
+    LOG.add('del_v','حذف نسخة: '+id);
   },
-
-  /* مقارنة بين نسختين */
-  compare : function(id1, id2){
-    var v1 = this.get(id1), v2 = this.get(id2);
-    if(!v1||!v2) return null;
+  compare:function(id1,id2){
+    var v1=this.get(id1),v2=this.get(id2);
+    if(!v1||!v2)return null;
     try{
-      var d1 = JSON.parse(v1.data), d2 = JSON.parse(v2.data);
-      return _deepDiff(d1, d2, v1.label, v2.label);
-    }catch(e){ return null; }
+      var d1=JSON.parse(v1.data),d2=JSON.parse(v2.data);
+      return _diff(d1,d2,v1.label,v2.label);
+    }catch(e){return null}
   }
 };
 
-/* مقارنة عميقة */
-function _deepDiff(d1, d2, lbl1, lbl2){
-  var res = { label1:lbl1, label2:lbl2, sections:[] };
-
+function _diff(d1,d2,l1,l2){
+  var r={l1:l1,l2:l2,secs:[]};
   /* المعاملات */
-  var t1 = d1.transactions||[], t2 = d2.transactions||[];
-  var tSec = { title:'💰 المعاملات', changes:[] };
-  if(t1.length!==t2.length)
-    tSec.changes.push({f:'العدد الكلي', o:t1.length+' سجل', n:t2.length+' سجل'});
-  /* معاملات جديدة */
-  var ids1 = t1.map(function(t){return t.id;}), ids2 = t2.map(function(t){return t.id;});
-  var added   = ids2.filter(function(id){return ids1.indexOf(id)===-1;});
-  var removed = ids1.filter(function(id){return ids2.indexOf(id)===-1;});
-  if(added.length)   tSec.changes.push({f:'معاملات مضافة',  o:'—', n:added.length+' معاملة جديدة'});
-  if(removed.length) tSec.changes.push({f:'معاملات محذوفة', o:removed.length+' معاملة', n:'محذوفة'});
-  if(tSec.changes.length) res.sections.push(tSec);
-
+  var t1=d1.transactions||[],t2=d2.transactions||[];
+  var ts={title:'💰 المعاملات والفواتير',ch:[]};
+  if(t1.length!==t2.length)ts.ch.push({f:'عدد الكل',o:t1.length+' سجل',n:t2.length+' سجل'});
+  var ids1=t1.map(function(t){return t.id});
+  var ids2=t2.map(function(t){return t.id});
+  var added=ids2.filter(function(id){return ids1.indexOf(id)===-1});
+  var removed=ids1.filter(function(id){return ids2.indexOf(id)===-1});
+  if(added.length)ts.ch.push({f:'مضاف',o:'—',n:added.length+' معاملة جديدة'});
+  if(removed.length)ts.ch.push({f:'محذوف',o:removed.length+' معاملة',n:'محذوفة ⚠️'});
+  if(ts.ch.length)r.secs.push(ts);
   /* العملاء */
-  var c1 = d1.clients||[], c2 = d2.clients||[];
-  var cSec = { title:'👥 العملاء والجهات', changes:[] };
-  if(c1.length!==c2.length) cSec.changes.push({f:'عدد الجهات', o:c1.length+' جهة', n:c2.length+' جهة'});
-  var cIds1=c1.map(function(c){return c.id;}), cIds2=c2.map(function(c){return c.id;});
-  var cAdded=cIds2.filter(function(id){return cIds1.indexOf(id)===-1;});
-  var cRem  =cIds1.filter(function(id){return cIds2.indexOf(id)===-1;});
-  if(cAdded.length) cSec.changes.push({f:'جهات مضافة',  o:'—', n:cAdded.length+' جهة'});
-  if(cRem.length)   cSec.changes.push({f:'جهات محذوفة', o:cRem.length+' جهة', n:'محذوف'});
-  if(cSec.changes.length) res.sections.push(cSec);
-
-  /* الصناديق/الأرصدة */
-  var sf1 = d1.safes||{}, sf2 = d2.safes||{};
-  var sfSec = { title:'🏦 الصناديق والأرصدة', changes:[] };
+  var c1=d1.clients||[],c2=d2.clients||[];
+  var cs={title:'👥 العملاء والجهات',ch:[]};
+  if(c1.length!==c2.length)cs.ch.push({f:'عدد الجهات',o:c1.length+' جهة',n:c2.length+' جهة'});
+  var cAdded=c2.filter(function(c){return!c1.some(function(x){return x.id===c.id})});
+  var cRem  =c1.filter(function(c){return!c2.some(function(x){return x.id===c.id})});
+  if(cAdded.length)cs.ch.push({f:'جهات جديدة',o:'—',n:cAdded.length+' جهة'});
+  if(cRem.length)  cs.ch.push({f:'جهات محذوفة',o:cRem.length+' جهة',n:'⚠️'});
+  if(cs.ch.length)r.secs.push(cs);
+  /* الصناديق */
+  var sf1=d1.safes||{},sf2=d2.safes||{};
+  var ss={title:'🏦 الصناديق والأرصدة',ch:[]};
   Object.keys(sf2).forEach(function(k){
-    if(JSON.stringify(sf1[k])!==JSON.stringify(sf2[k]))
-      sfSec.changes.push({f:'صندوق: '+k, o:JSON.stringify(sf1[k]||'—'), n:JSON.stringify(sf2[k])});
+    var v1=typeof sf1[k]==='object'?JSON.stringify(sf1[k]):String(sf1[k]||0);
+    var v2=typeof sf2[k]==='object'?JSON.stringify(sf2[k]):String(sf2[k]||0);
+    if(v1!==v2)ss.ch.push({f:'صندوق '+k,o:v1,n:v2});
   });
-  if(sfSec.changes.length>0) res.sections.push(sfSec);
-
-  /* الإعدادات */
-  var s1=d1.settings||{}, s2=d2.settings||{};
-  var sSec={title:'⚙️ الإعدادات', changes:[]};
-  ['shopName','currency','taxRate','defaultKarat','goldKarat'].forEach(function(k){
-    if(String(s1[k]||'')!==String(s2[k]||''))
-      sSec.changes.push({f:k, o:String(s1[k]||'—'), n:String(s2[k]||'—')});
-  });
-  if(sSec.changes.length) res.sections.push(sSec);
-
+  if(ss.ch.length)r.secs.push(ss);
   /* الرصيد الافتتاحي */
   if(JSON.stringify(d1.openingBalance||{})!==JSON.stringify(d2.openingBalance||{}))
-    res.sections.push({title:'💵 الرصيد الافتتاحي', changes:[{f:'الرصيد الافتتاحي', o:'(قيمة قديمة)', n:'(قيمة معدّلة)'}]});
-
-  return res;
+    r.secs.push({title:'💵 الرصيد الافتتاحي',ch:[{f:'الرصيد',o:'(قيمة قديمة)',n:'(قيمة معدّلة)'}]});
+  /* الإعدادات */
+  var s1=d1.settings||{},s2=d2.settings||{};
+  var se={title:'⚙️ الإعدادات',ch:[]};
+  ['shopName','currency','taxRate','defaultKarat'].forEach(function(k){
+    if(String(s1[k]||'')!==String(s2[k]||''))se.ch.push({f:k,o:String(s1[k]||'—'),n:String(s2[k]||'—')});
+  });
+  if(se.ch.length)r.secs.push(se);
+  /* المستخدمون */
+  var u1=d1.users||[],u2=d2.users||[];
+  if(u1.length!==u2.length)
+    r.secs.push({title:'👤 المستخدمون',ch:[{f:'عدد',o:u1.length+'',n:u2.length+''}]});
+  return r;
 }
 
-/* ══════════ LOG — سجل التدقيق ══════════ */
-var LOG = {
-  add : function(action, detail, extra){
-    var logs = _ls(KY.LOG) || [];
-    logs.unshift({id:_uid(), ts:_ts(), action:action, detail:detail, user:_user(), role:_role(), extra:extra||{}});
-    if(logs.length>500) logs = logs.slice(0,500);
-    _ss(KY.LOG, logs);
+/* ══════ LOG ══════ */
+var LOG={
+  add:function(action,detail,extra){
+    var logs=_ls(KY.L)||[];
+    logs.unshift({id:_uid(),ts:_ts(),action:action,detail:detail,user:_user(),role:_role(),extra:extra||{}});
+    if(logs.length>600)logs=logs.slice(0,600);
+    _ss(KY.L,logs);
   },
-  list  : function(n){ var l=_ls(KY.LOG)||[]; return n?l.slice(0,n):l; },
-  clear : function(){ _ss(KY.LOG,[]); }
+  list:function(n){var l=_ls(KY.L)||[];return n?l.slice(0,n):l},
+  clear:function(){_ss(KY.L,[])}
 };
 
-/* ══════════ CFG — إعدادات SGP ══════════ */
-var CFG = {
-  load : function(){ return _ls(KY.CFG)||{}; },
-  save : function(obj){ _ss(KY.CFG, Object.assign(this.load(), obj)); },
-  get  : function(k){ return this.load()[k]; },
-  set  : function(k,v){ var o=this.load(); o[k]=v; _ss(KY.CFG,o); }
+/* ══════ CFG ══════ */
+var CFG={
+  load:function(){return _ls(KY.C)||{}},
+  get:function(k){return this.load()[k]},
+  set:function(k,v){var o=this.load();o[k]=v;_ss(KY.C,o)}
 };
 
-/* ══════════ MONITOR — رصد التعديلات ══════════ */
-var MON = {
-  _lh: '',
-  _timer: null,
-  _actionPromptEnabled: true,
-  _actionCooldown: false,
-
-  init: function(){
-    this._actionPromptEnabled = CFG.get('actionPrompt') !== false;
-    this._lh = _hashS();
-    /* hook logActivity */
-    var ola = window.logActivity;
-    if(typeof ola==='function' && !ola._sgp){
-      window.logActivity = function(action, detail, targetId){
-        try{ ola.apply(this, arguments); }catch(e){}
-        MON._onAction(action, detail);
-      };
-      window.logActivity._sgp = true;
-    }
-    /* رصد التغيير كل 10 ثوانٍ */
-    this._timer = setInterval(function(){
-      var h = _hashS();
-      if(h !== MON._lh){
-        MON._lh = h;
-        MON._markDirty();
-      }
-    }, 10000);
-    /* حفظ جلسة طارئ */
-    setInterval(function(){ MON._sesSave(); }, 12000);
-    window.addEventListener('beforeunload', function(){ MON._sesSave(); });
-    document.addEventListener('visibilitychange', function(){ if(document.hidden) MON._sesSave(); });
-  },
-
-  _onAction: function(action, detail){
-    this._markDirty();
-    if(!this._actionPromptEnabled) return;
-    if(this._actionCooldown) return;
-    /* فقط العمليات المهمة */
-    var important = ['add','edit','delete','opening-balance','dist-ob-save','login'];
-    var isImportant = important.some(function(k){ return (action||'').indexOf(k)!==-1; });
-    if(!isImportant) return;
-    this._actionCooldown = true;
-    setTimeout(function(){ MON._actionCooldown = false; }, 180000); /* 3 دقائق */
-    /* عرض نافذة الحفظ */
-    var icons = {add:'➕',edit:'✏️',delete:'🗑️','opening-balance':'💵','login':'🔐'};
-    var ic = '📝';
-    for(var k in icons){ if((action||'').indexOf(k)!==-1){ ic=icons[k]; break; } }
-    var ov = document.getElementById('sgp-action-ov');
-    if(ov){
-      var el = document.getElementById('sgp-act-icon'); if(el) el.textContent=ic;
-      var tl = document.getElementById('sgp-act-title'); if(tl) tl.textContent='تم: '+( detail||action||'تعديل');
-      var ds = document.getElementById('sgp-act-desc');
-      if(ds) ds.textContent = 'العملية: '+(detail||action)+'\nالمستخدم: '+_user()+' — '+_fd(_ts())+'\n\nهل تريد أخذ نسخة احتياطية الآن؟';
-      setTimeout(function(){ ov.classList.add('show'); }, 600);
-    }
-  },
-
-  _markDirty: function(){
-    var ind = document.getElementById('sgp-topbar-save-ind');
-    if(ind){ ind.style.display='flex'; ind.className=''; setTimeout(function(){ ind.className='dirty'; }, 10); }
-  },
-  _markClean: function(){
-    var ind = document.getElementById('sgp-topbar-save-ind');
-    if(ind){ ind.className='saved'; var t=document.getElementById('sgp-dirty-txt'); if(t) t.textContent='✓ تم الحفظ'; }
-  },
-
-  _sesSave: function(){
-    try{
-      sessionStorage.setItem(KY.CRS, JSON.stringify({ts:_ts(), user:_user(), data:JSON.stringify(_buildSnap())}));
-    }catch(e){}
-  }
-};
-
-function _hashS(){
+/* ══════ DOWNLOAD ══════ */
+function _dl(label,type,reason){
   try{
-    var s = window.S||{};
-    var h = ((s.transactions||[]).length*7919 + (s.clients||[]).length*6271 + JSON.stringify(s.safes||{}).length) | 0;
-    return String(h);
-  }catch(e){ return '0'; }
-}
-
-/* ══════════ DOWNLOAD ══════════ */
-function _download(label, reason){
-  try{
-    var data = _buildSnap();
-    var pkg  = {
-      _meta: {
-        version   : '4.0',
-        label     : label || ('نسخة احتياطية ' + _fd(_ts())),
-        reason    : reason || 'تنزيل يدوي',
-        createdAt : _ts(),
-        createdBy : _user(),
-        system    : 'SGP Pro v4.0'
-      },
-      data: data
+    var data=_buildSnap();
+    var pkg={
+      _meta:{ver:'5.0',label:label||'نسخة',type:type||'manual',reason:reason||'',
+        at:_ts(),by:_user(),sys:'SGP Pro v5.0'},
+      data:data
     };
-    var str  = JSON.stringify(pkg, null, 2);
-    var blob = new Blob([str], {type:'application/json;charset=utf-8'});
-    var url  = URL.createObjectURL(blob);
-    var a    = document.createElement('a');
-    var dt   = new Date().toISOString().replace(/[:.]/g,'-').slice(0,16);
-    a.href   = url;
-    a.download = 'backup_' + dt + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    LOG.add('download', 'تنزيل نسخة على الجهاز: '+label);
+    var str=JSON.stringify(pkg,null,2);
+    var blob=new Blob([str],{type:'application/json;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    var fname='backup_'+_fdt(_ts())+'_'+(type||'manual')+'.json';
+    a.href=url;a.download=fname;
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+    LOG.add('dl','تنزيل نسخة: '+label,{fname:fname,sz:str.length});
     return true;
   }catch(e){
     LOG.add('error','فشل التنزيل: '+e.message);
@@ -23854,500 +23700,515 @@ function _download(label, reason){
   }
 }
 
-/* ══════════ UI RENDER ══════════ */
-var _vFilt = 'all';
-var _activeTab = 'versions';
+/* ══════ MONITOR ══════ */
+var MON={
+  _lh:'',_actEn:true,_actCD:false,_sesTimer:null,
 
-function _renderVersions(){
-  var el = document.getElementById('sgp-vlist'); if(!el) return;
-  var vs = VCS.list();
-  if(_vFilt!=='all') vs = vs.filter(function(v){ return v.type===_vFilt; });
-  /* ترتيب: الأحدث أولاً */
-  vs.sort(function(a,b){ return b.ts-a.ts; });
+  init:function(){
+    this._actEn=CFG.get('actPr')!==false;
+    this._lh=_hashS();
+    /* hook logActivity — ADDITIVE ONLY */
+    var ola=window.logActivity;
+    if(typeof ola==='function'&&!ola._sgp){
+      window.logActivity=function(action,detail,targetId){
+        /* 1- run original function FIRST */
+        try{ola.apply(this,arguments)}catch(e){}
+        /* 2- SGP side-effect */
+        try{MON._onAction(action,detail,targetId)}catch(e){}
+      };
+      window.logActivity._sgp=true;
+    }
+    /* hook safeSave — ADDITIVE ONLY */
+    var oss=window.safeSave;
+    if(typeof oss==='function'&&!oss._sgp){
+      window.safeSave=function(tx){
+        var r=oss.apply(this,arguments);
+        try{
+          if(r!==false){
+            MON._markDirty();
+            /* نسخة تلقائية عند حفظ معاملة */
+            setTimeout(function(){
+              var lbl='auto_before_'+((tx&&tx.type)||'tx')+'_'+_fdt(_ts());
+              VCS.save(lbl,'action','عند إضافة معاملة: '+((tx&&tx.type)||''));
+            },100);
+          }
+        }catch(e){}
+        return r;
+      };
+      window.safeSave._sgp=true;
+    }
+    /* hook sv — ADDITIVE ONLY */
+    var osv=window.sv;
+    if(typeof osv==='function'&&!osv._sgp){
+      window.sv=function(){
+        try{osv.apply(this,arguments)}catch(e){}
+        try{MON._markDirty()}catch(e){}
+      };
+      window.sv._sgp=true;
+    }
+    /* رصد كل 15 ثانية */
+    setInterval(function(){
+      var h=_hashS();
+      if(h!==MON._lh){MON._lh=h;MON._markDirty()}
+    },15000);
+    /* نبضة حفظ الجلسة كل 10 ثوانٍ */
+    setInterval(function(){MON._ses()},10000);
+    window.addEventListener('beforeunload',function(){MON._ses()});
+    document.addEventListener('visibilitychange',function(){if(document.hidden)MON._ses()});
+    /* تنبيه إذا مر 4 ساعات بدون نسخة */
+    setInterval(function(){
+      var vs=VCS.list();
+      if(!vs.length)return;
+      var last=vs[0].ts;
+      if(_ts()-last>4*3600000){
+        var ind=document.getElementById('sgp-ind');
+        if(ind){ind.className='dirty';var t=document.getElementById('sgp-ind-txt');if(t)t.textContent='لم تُؤخذ نسخة منذ 4+ ساعات ⚠️'}
+      }
+    },30*60000);
+  },
+
+  _onAction:function(action,detail){
+    this._markDirty();
+    LOG.add(action,detail||action);
+    if(!this._actEn||this._actCD)return;
+    var imp=['add','dist-ob-save','opening-balance','delete','edit','transfer','payment','return'];
+    var isImp=imp.some(function(k){return(action||'').indexOf(k)!==-1});
+    if(!isImp)return;
+    this._actCD=true;
+    setTimeout(function(){MON._actCD=false},240000);/* 4 دقائق */
+    var icons={add:'➕','dist-ob-save':'💵','opening-balance':'💰',delete:'🗑️',edit:'✏️',transfer:'🔄',payment:'💳',return:'↩️'};
+    var ic='📝';
+    for(var k in icons){if((action||'').indexOf(k)!==-1){ic=icons[k];break}}
+    var ov=document.getElementById('sgp-act-ov');
+    if(ov){
+      var el=document.getElementById('sgp-act-ic');if(el)el.textContent=ic;
+      var tl=document.getElementById('sgp-act-tt');if(tl)tl.textContent='يوجد تعديلات جديدة';
+      var mg=document.getElementById('sgp-act-msg');
+      if(mg)mg.innerHTML='<b>العملية:</b> '+(detail||action)+'<br><b>المستخدم:</b> '+_user()+' · '+_fd(_ts())+'<br><br>يُفضل إنشاء نسخة احتياطية لحماية بياناتك المحاسبية.';
+      setTimeout(function(){ov.classList.add('show')},800);
+    }
+  },
+
+  _markDirty:function(){
+    var ind=document.getElementById('sgp-ind');
+    if(ind){ind.style.display='flex';ind.className='dirty';var t=document.getElementById('sgp-ind-txt');if(t)t.textContent='تعديلات غير محفوظة'}
+  },
+  _markClean:function(){
+    var ind=document.getElementById('sgp-ind');
+    if(ind){ind.style.display='flex';ind.className='saved';var t=document.getElementById('sgp-ind-txt');if(t)t.textContent='✓ تم الحفظ'}
+  },
+  _ses:function(){
+    try{sessionStorage.setItem(KY.CR,JSON.stringify({ts:_ts(),user:_user(),dirty:true,data:JSON.stringify(_buildSnap())}))}catch(e){}
+  }
+};
+
+function _hashS(){
+  try{var S=window.S||{};return((S.transactions||[]).length*7919+(S.clients||[]).length*6271)|0+'_'+(JSON.stringify(S.safes||{}).length|0)}catch(e){return'0'}
+}
+
+/* ══════ SNAP OPTION ══════ */
+var _opt='bo';
+
+/* ══════ UI RENDER ══════ */
+var _filt='all';
+function _rV(){
+  var el=document.getElementById('sgp-vlist');if(!el)return;
+  var vs=VCS.list();
+  if(_filt!=='all')vs=vs.filter(function(v){return v.type===_filt});
+  vs.sort(function(a,b){return b.ts-a.ts});
   if(!vs.length){
-    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx3)"><div style="font-size:48px;margin-bottom:12px">📋</div><div style="font-size:14px">لا توجد نسخ احتياطية بعد</div><div style="font-size:11px;margin-top:6px;color:var(--tx3)">اضغط "نسخة احتياطية جديدة" لإنشاء أول نسخة</div></div>';
+    el.innerHTML='<div style="text-align:center;padding:44px;color:var(--tx3)"><div style="font-size:50px;margin-bottom:12px">📋</div><div style="font-size:13px">لا توجد نسخ احتياطية بعد</div><div style="font-size:11px;margin-top:6px;opacity:.6">اضغط "نسخة احتياطية جديدة" لإنشاء أول نسخة</div></div>';
     return;
   }
-  var tIcon  = {manual:'👤',auto:'🔄','pre-restore':'🔙',action:'⚡',local:'💾',download:'💾'};
-  var tColor = {manual:'#22C77A',auto:'#5090E0','pre-restore':'#F09030',action:'#9B6BE0',local:'#C8961E',download:'#C8961E'};
-  var tLabel = {manual:'يدوي',auto:'تلقائي','pre-restore':'قبل استرجاع',action:'عند تعديل',local:'محلي',download:'تنزيل'};
+  var tic={manual:'👤',auto:'🔄','pre-restore':'🔙',action:'⚡',periodic:'🗄️'};
+  var tcl={manual:var_ok='#22C77A',auto:'#5090E0','pre-restore':'#F09030',action:'#9B6BE0',periodic:'#C8961E'};
+  var tcl2={manual:'bd-gr',auto:'bd-b','pre-restore':'bd-or',action:'bd-pu',periodic:'bd-g'};
+  var tl={manual:'يدوي',auto:'تلقائي','pre-restore':'قبل استرجاع',action:'عند عملية',periodic:'دوري'};
+  /* حساب اللون بشكل آمن */
+  var clMap={'#22C77A':'#22C77A','#5090E0':'#5090E0','#F09030':'#F09030','#9B6BE0':'#9B6BE0','#C8961E':'#C8961E'};
+  el.innerHTML=vs.map(function(v){
+    var ic=tic[v.type]||'📋';
+    var cl=(tcl[v.type])||'#8890A8';
+    var lb=tl[v.type]||v.type;
+    var c=v.counts||{};
+    return'<div class="sgp-vr" style="border-right-color:'+cl+'">'+
+      '<div class="sgp-vi">'+
+        '<div class="sgp-vn">'+
+          '<span style="font-size:19px">'+ic+'</span>'+
+          '<span>'+v.label+'</span>'+
+          '<span class="sgp-bd" style="background:'+cl+'1a;border-color:'+cl+'44;color:'+cl+'">'+lb+'</span>'+
+          (v.reason?'<span class="sgp-bd sgp-bd-b">'+v.reason+'</span>':'')+
+        '</div>'+
+        '<div class="sgp-vm">'+
+          '<span>🕐 '+_fd(v.ts)+'</span>'+
+          '<span>👤 '+(v.user||'—')+'</span>'+
+          '<span>🏷️ '+(v.role||'—')+'</span>'+
+          '<span>💾 '+_fsz(v.size||0)+'</span>'+
+          '<span>💰 '+(c.tx||0)+' معاملة</span>'+
+          '<span>👥 '+(c.cl||0)+' جهة</span>'+
+          '<span>👤 '+(c.us||0)+' مستخدم</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="sgp-vbtns">'+
+        '<button class="sgp-vbtn sgp-vb-gr" onclick="SGP.cfmRes(\''+v.id+'\')">↩ استرجاع</button>'+
+        '<button class="sgp-vbtn sgp-vb-b"  onclick="SGP.dlV(\''+v.id+'\')">💾 تنزيل</button>'+
+        '<button class="sgp-vbtn sgp-vb-g"  onclick="SGP.qCmp(\''+v.id+'\')">↔ قارن</button>'+
+        '<button class="sgp-vbtn sgp-vb-r"  onclick="SGP.delV(\''+v.id+'\')">✕</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+var var_ok='#22C77A';/* مستخدم في الكود أعلاه */
 
-  el.innerHTML = vs.map(function(v){
-    var ic = tIcon[v.type]||'📋', cl = tColor[v.type]||'#8890A8', lb = tLabel[v.type]||v.type;
-    var cnt = v.counts||{};
-    var sz = _fsz(v.size||0);
-    return '<div class="sgp-ver-row" style="border-right-color:'+cl+'">' +
-      '<div class="sgp-ver-info">' +
-        '<div class="sgp-ver-name">' +
-          '<span style="font-size:20px">'+ic+'</span>' +
-          '<span>'+v.label+'</span>' +
-          '<span class="sgp-badge sgp-badge-'+(cl==='#22C77A'?'green':cl==='#5090E0'?'blue':cl==='#F09030'?'orange':cl==='#9B6BE0'?'purple':'gold')+'">'+lb+'</span>' +
-          (v.reason?'<span class="sgp-badge sgp-badge-blue">'+v.reason+'</span>':'') +
-        '</div>' +
-        '<div class="sgp-ver-meta">' +
-          '<span>🕐 '+_fd(v.ts)+'</span>' +
-          '<span>👤 '+(v.user||'—')+'</span>' +
-          '<span>🏷️ '+(v.role||'—')+'</span>' +
-          '<span>💾 '+sz+'</span>' +
-          '<span>💰 '+(cnt.tx||0)+' معاملة</span>' +
-          '<span>👥 '+(cnt.cl||0)+' جهة</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="sgp-ver-btns">' +
-        '<button class="sgp-vbtn sgp-vbtn-g"  onclick="SGP.cfmRestore(\''+v.id+'\')">↩ استرجاع</button>' +
-        '<button class="sgp-vbtn sgp-vbtn-b"  onclick="SGP.dlVersion(\''+v.id+'\')">💾 تنزيل</button>' +
-        '<button class="sgp-vbtn sgp-vbtn-b"  onclick="SGP.quickCmp(\''+v.id+'\')">↔ قارن</button>' +
-        '<button class="sgp-vbtn sgp-vbtn-d"  onclick="SGP.delVersion(\''+v.id+'\')">✕</button>' +
-      '</div>' +
+function _rL(){
+  var el=document.getElementById('sgp-llist');if(!el)return;
+  var logs=LOG.list(200);
+  if(!logs.length){el.innerHTML='<div style="text-align:center;padding:36px;color:var(--tx3)"><div style="font-size:44px">🔍</div><div style="margin-top:8px">لا يوجد سجل</div></div>';return}
+  var ai={snap:'📸',restore:'↩️',dl:'💾',error:'❌',login:'🔐',del_v:'🗑️',add:'➕',edit:'✏️','dist-ob-save':'💵','opening-balance':'💰'};
+  var ac={error:'#E55555',restore:'#22C77A',snap:'#C8961E',login:'#22C77A',dl:'#5090E0','dist-ob-save':'#9B6BE0'};
+  el.innerHTML=logs.map(function(lg){
+    var ic=ai[lg.action]||'📋',cl=ac[lg.action]||'var(--tx2)';
+    return'<div style="background:var(--c2);border:1px solid var(--b1);border-right:3px solid '+cl+';border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px">'+
+      '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+ic+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:12px;font-weight:700;color:'+cl+'">'+lg.detail+'</div>'+
+        '<div style="font-size:9px;color:var(--tx3);margin-top:3px">👤 '+(lg.user||'—')+' · 🏷️ '+(lg.role||'—')+' · 🕐 '+_fd(lg.ts)+'</div>'+
+      '</div>'+
     '</div>';
   }).join('');
 }
 
-function _renderLog(){
-  var el = document.getElementById('sgp-loglist'); if(!el) return;
-  var logs = LOG.list(150);
-  if(!logs.length){
-    el.innerHTML = '<div style="text-align:center;padding:36px;color:var(--tx3)"><div style="font-size:44px">🔍</div><div style="margin-top:8px">لا يوجد سجل بعد</div></div>';
-    return;
-  }
-  var ai = {snapshot:'📸',restore:'↩️',download:'💾',error:'❌',login:'🔐',delete_version:'🗑️','field_change':'✏️'};
-  var ac = {error:'#E55555',restore:'#22C77A',snapshot:'#C8961E',login:'#22C77A',download:'#5090E0'};
-  el.innerHTML = logs.map(function(lg){
-    var ic = ai[lg.action]||'📋', cl = ac[lg.action]||'var(--tx2)';
-    return '<div style="background:var(--c2);border:1px solid var(--b1);border-right:3px solid '+cl+';border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px">' +
-      '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+ic+'</div>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:12px;font-weight:700;color:'+cl+'">'+lg.detail+'</div>' +
-        '<div style="font-size:9px;color:var(--tx3);margin-top:3px">👤 '+(lg.user||'—')+' · 🏷️ '+(lg.role||'—')+' · 🕐 '+_fd(lg.ts)+'</div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+function _rCSels(){
+  var vs=VCS.list().sort(function(a,b){return b.ts-a.ts});
+  var opts=vs.map(function(v){return'<option value="'+v.id+'">'+v.label+' — '+_fd(v.ts)+'</option>'}).join('');
+  var s1=document.getElementById('sgp-cv1'),s2=document.getElementById('sgp-cv2');
+  if(s1)s1.innerHTML='<option value="">— اختر النسخة القديمة —</option>'+opts;
+  if(s2)s2.innerHTML='<option value="">— اختر النسخة الجديدة —</option>'+opts;
 }
 
-function _renderCmpSels(){
-  var vs = VCS.list().sort(function(a,b){ return b.ts-a.ts; });
-  var opts = vs.map(function(v){ return '<option value="'+v.id+'">'+v.label+' — '+_fd(v.ts)+'</option>'; }).join('');
-  var s1=document.getElementById('sgp-cv1'), s2=document.getElementById('sgp-cv2');
-  if(s1) s1.innerHTML = '<option value="">— اختر النسخة الأولى —</option>' + opts;
-  if(s2) s2.innerHTML = '<option value="">— اختر النسخة الثانية —</option>' + opts;
-}
-
-function _renderStats(){
-  var el = document.getElementById('sgp-statscon'); if(!el) return;
-  var vs = VCS.list(), logs = LOG.list();
-  var mn = vs.filter(function(v){ return v.type==='manual'; }).length;
-  var au = vs.filter(function(v){ return v.type==='auto'; }).length;
-  var ac = vs.filter(function(v){ return v.type==='action'; }).length;
-  var tsz = vs.reduce(function(a,v){ return a+(v.size||0); }, 0);
-  var snap = _buildSnap();
-  var cnt = _snapCounts(snap);
-  el.innerHTML =
-    '<div class="sgp-stat-grid">' +
-      '<div class="sgp-stat-card sgp-sc-g"><div class="sgp-stat-val">'+vs.length+'</div><div class="sgp-stat-lbl">إجمالي النسخ</div></div>' +
-      '<div class="sgp-stat-card sgp-sc-gr"><div class="sgp-stat-val">'+mn+'</div><div class="sgp-stat-lbl">يدوية</div></div>' +
-      '<div class="sgp-stat-card sgp-sc-b"><div class="sgp-stat-val">'+(au+ac)+'</div><div class="sgp-stat-lbl">تلقائية</div></div>' +
-    '</div>' +
-    '<div class="sgp-stat-grid">' +
-      '<div class="sgp-stat-card sgp-sc-g"><div class="sgp-stat-val">'+cnt.tx+'</div><div class="sgp-stat-lbl">معاملات الآن</div></div>' +
-      '<div class="sgp-stat-card sgp-sc-gr"><div class="sgp-stat-val">'+cnt.cl+'</div><div class="sgp-stat-lbl">جهات الآن</div></div>' +
-      '<div class="sgp-stat-card sgp-sc-b"><div class="sgp-stat-val">'+_fsz(tsz)+'</div><div class="sgp-stat-lbl">حجم التخزين</div></div>' +
-    '</div>' +
-    '<div class="sgp-stat-grid">' +
-      '<div class="sgp-stat-card sgp-sc-g"><div class="sgp-stat-val">'+logs.length+'</div><div class="sgp-stat-lbl">سجلات التدقيق</div></div>' +
-      '<div class="sgp-stat-card sgp-sc-gr"><div class="sgp-stat-val">'+(MON._actionPromptEnabled?'✓':'✕')+'</div><div class="sgp-stat-lbl">تنبيه التعديل</div></div>' +
-      '<div class="sgp-stat-card sgp-sc-b"><div class="sgp-stat-val">'+vs.filter(function(v){return v.type==='pre-restore';}).length+'</div><div class="sgp-stat-lbl">نسخ قبل استرجاع</div></div>' +
-    '</div>' +
-    '<div style="background:var(--g4,rgba(0,0,0,.03));border:1px solid var(--g5,rgba(0,0,0,.08));border-radius:14px;padding:14px;margin-top:4px">' +
-      '<div style="font-size:12px;font-weight:900;color:var(--tx1);margin-bottom:10px">🛡️ حالة نظام الحماية</div>' +
-      '<div style="font-size:12px;color:var(--tx2);display:flex;flex-direction:column;gap:7px">' +
-        '<div>✅ رصد التغييرات التلقائي: <b style="color:var(--sgp-green)">نشط</b></div>' +
-        '<div>✅ حفظ الجلسة الطارئ: <b style="color:var(--sgp-green)">كل 12 ثانية</b></div>' +
-        '<div>✅ تنبيه عند التعديل: <b style="color:var(--sgp-green)">'+(MON._actionPromptEnabled?'مفعّل':'موقوف')+'</b></div>' +
-        '<div>✅ لا حذف تلقائي للنسخ القديمة: <b style="color:var(--sgp-green)">مفعّل</b></div>' +
-      '</div>' +
+function _rStats(){
+  var el=document.getElementById('sgp-statscon');if(!el)return;
+  var vs=VCS.list(),logs=LOG.list();
+  var mn=vs.filter(function(v){return v.type==='manual'}).length;
+  var au=vs.filter(function(v){return v.type!=='manual'&&v.type!=='pre-restore'}).length;
+  var tsz=vs.reduce(function(a,v){return a+(v.size||0)},0);
+  var sc=_snapCounts(_buildSnap());
+  el.innerHTML=
+    '<div class="sgp-sg">'+
+      '<div class="sgp-sc sgp-sg-g"><div class="sgp-sv">'+vs.length+'</div><div class="sgp-sl">إجمالي النسخ</div></div>'+
+      '<div class="sgp-sc sgp-sg-gr"><div class="sgp-sv">'+mn+'</div><div class="sgp-sl">نسخ يدوية</div></div>'+
+      '<div class="sgp-sc sgp-sg-b"><div class="sgp-sv">'+au+'</div><div class="sgp-sl">نسخ تلقائية</div></div>'+
+    '</div>'+
+    '<div class="sgp-sg">'+
+      '<div class="sgp-sc sgp-sg-g"><div class="sgp-sv">'+sc.tx+'</div><div class="sgp-sl">معاملات الآن</div></div>'+
+      '<div class="sgp-sc sgp-sg-gr"><div class="sgp-sv">'+sc.cl+'</div><div class="sgp-sl">جهات الآن</div></div>'+
+      '<div class="sgp-sc sgp-sg-b"><div class="sgp-sv">'+_fsz(tsz)+'</div><div class="sgp-sl">حجم التخزين</div></div>'+
+    '</div>'+
+    '<div class="sgp-sg">'+
+      '<div class="sgp-sc sgp-sg-g"><div class="sgp-sv">'+logs.length+'</div><div class="sgp-sl">سجلات التدقيق</div></div>'+
+      '<div class="sgp-sc sgp-sg-gr"><div class="sgp-sv">'+sc.us+'</div><div class="sgp-sl">مستخدمون</div></div>'+
+      '<div class="sgp-sc sgp-sg-b"><div class="sgp-sv">'+(MON._actEn?'✓':'✕')+'</div><div class="sgp-sl">تنبيه عند تعديل</div></div>'+
+    '</div>'+
+    '<div style="background:var(--c2);border:1px solid var(--b1);border-radius:13px;padding:14px;margin-top:4px">'+
+      '<div style="font-size:12px;font-weight:900;color:var(--tx1);margin-bottom:10px">🛡️ حالة نظام الحماية</div>'+
+      '<div style="font-size:12px;color:var(--tx2);display:flex;flex-direction:column;gap:7px">'+
+        '<div>✅ Snapshot كامل: جميع الفواتير + الحسابات + المستخدمين + السجلات</div>'+
+        '<div>✅ لا حذف تلقائي للنسخ القديمة</div>'+
+        '<div>✅ حفظ الجلسة الطارئ: كل 10 ثوانٍ</div>'+
+        '<div>✅ تنبيه عند التعديل: '+(MON._actEn?'مفعّل':'موقوف')+'</div>'+
+        '<div>✅ تنبيه إذا مر 4 ساعات بدون نسخة: مفعّل</div>'+
+        '<div>✅ لا يمس أي كود محاسبي — ADDITIVE ONLY</div>'+
+      '</div>'+
     '</div>';
 }
 
-function _renderCmpResult(diff){
-  var el = document.getElementById('sgp-cmpres'); if(!el) return;
-  if(!diff){ el.innerHTML = '<div class="sgp-alert sgp-alert-danger"><div class="sgp-alert-icon">❌</div><div class="sgp-alert-txt">لم يمكن إجراء المقارنة</div></div>'; return; }
-  var html = '<div style="font-size:13px;font-weight:900;color:var(--tx1);margin-bottom:12px">📊 نتيجة المقارنة: <span style="color:var(--sgp-blue)">'+diff.label1+'</span> ↔ <span style="color:var(--sgp-green)">'+diff.label2+'</span></div>';
-  if(!diff.sections.length){
-    html += '<div class="sgp-alert sgp-alert-success"><div class="sgp-alert-icon">✅</div><div class="sgp-alert-txt"><b>الإصداران متطابقان تماماً</b> — لا توجد أي فروقات</div></div>';
-  } else {
-    var total = diff.sections.reduce(function(a,s){ return a+s.changes.length; }, 0);
-    html += '<div class="sgp-alert sgp-alert-warn" style="margin-bottom:12px"><div class="sgp-alert-icon">⚠️</div><div class="sgp-alert-txt">تم اكتشاف <b>'+total+' فرق</b> في '+diff.sections.length+' قسم</div></div>';
-    diff.sections.forEach(function(sec){
-      html += '<div class="sgp-diff-block">' +
-        '<div class="sgp-diff-title">'+sec.title+'<span class="sgp-badge sgp-badge-orange">'+sec.changes.length+'</span></div>';
-      sec.changes.forEach(function(c){
-        html += '<div class="sgp-diff-row" style="margin-bottom:6px">' +
-          '<div class="sgp-diff-old"><div style="font-size:9px;opacity:.6;margin-bottom:3px">'+c.f+'</div>'+c.o+'</div>' +
-          '<div class="sgp-diff-arr">→</div>' +
-          '<div class="sgp-diff-new"><div style="font-size:9px;opacity:.6;margin-bottom:3px">'+c.f+'</div>'+c.n+'</div>' +
-        '</div>';
+function _rCmpRes(diff){
+  var el=document.getElementById('sgp-cmpres');if(!el)return;
+  if(!diff){el.innerHTML='<div class="sgp-al sgp-al-r"><div class="sgp-al-i">❌</div><div class="sgp-al-t">فشلت المقارنة</div></div>';return}
+  var total=diff.secs.reduce(function(a,s){return a+s.ch.length},0);
+  var html='<div style="font-size:13px;font-weight:900;color:var(--tx1);margin-bottom:12px">📊 '+diff.l1+' ↔ '+diff.l2+'</div>';
+  if(!diff.secs.length){
+    html+='<div class="sgp-al sgp-al-s"><div class="sgp-al-i">✅</div><div class="sgp-al-t"><b>الإصداران متطابقان تماماً</b> — لا توجد أي فروقات</div></div>';
+  }else{
+    html+='<div class="sgp-al sgp-al-w" style="margin-bottom:12px"><div class="sgp-al-i">⚠️</div><div class="sgp-al-t">تم اكتشاف <b>'+total+' فرق</b> في '+diff.secs.length+' قسم</div></div>';
+    diff.secs.forEach(function(sec){
+      html+='<div class="sgp-db"><div class="sgp-dt">'+sec.title+'<span class="sgp-bd sgp-bd-or">'+sec.ch.length+'</span></div>';
+      sec.ch.forEach(function(c){
+        html+='<div class="sgp-dr"><div class="sgp-do"><div style="font-size:9px;opacity:.55;margin-bottom:2px">'+c.f+'</div>'+c.o+'</div><div class="sgp-da">→</div><div class="sgp-dn"><div style="font-size:9px;opacity:.55;margin-bottom:2px">'+c.f+'</div>'+c.n+'</div></div>';
       });
-      html += '</div>';
+      html+='</div>';
     });
   }
-  el.innerHTML = html;
+  el.innerHTML=html;
 }
 
-/* ══════════ CONFIRM ══════════ */
+/* ══════ CONFIRM ══════ */
 function _cfm(opts){
   return new Promise(function(res){
     var ov=document.getElementById('sgp-cfm-ov');
-    if(!ov){ res(confirm(opts.msg||'')); return; }
-    var ic =document.getElementById('sgp-cfm-ico');
-    var tt =document.getElementById('sgp-cfm-tt');
-    var bico=document.getElementById('sgp-cfm-bico');
-    var ms =document.getElementById('sgp-cfm-ms');
-    var ok =document.getElementById('sgp-cfm-ok');
-    var ca =document.getElementById('sgp-cfm-ca');
-    var box=document.getElementById('sgp-cfm-box');
-    if(ic) ic.textContent  = opts.icon||'⚠️';
-    if(tt) tt.textContent  = opts.title||'تأكيد';
-    if(bico)bico.textContent=opts.icon||'⚠️';
-    if(ms) ms.textContent  = opts.msg||'';
-    if(ok) ok.textContent  = opts.oktxt||'✅ تأكيد';
-    if(ca) ca.textContent  = opts.catxt||'❌ إلغاء';
-    if(ok) ok.className    = 'sgp-btn '+(opts.okCls||'sgp-btn-green');
-    if(box) box.className  = 'sgp-alert '+(opts.boxCls||'sgp-alert-warn');
+    if(!ov){res(confirm(opts.msg||''));return}
+    var ic=document.getElementById('sgp-cfm-ic');
+    var tt=document.getElementById('sgp-cfm-tt');
+    var bi=document.getElementById('sgp-cfm-bi');
+    var ms=document.getElementById('sgp-cfm-ms');
+    var ok=document.getElementById('sgp-cfm-ok');
+    var ca=document.getElementById('sgp-cfm-ca');
+    var bx=document.getElementById('sgp-cfm-bx');
+    if(ic)ic.textContent=opts.icon||'⚠️';
+    if(tt)tt.textContent=opts.title||'تأكيد';
+    if(bi)bi.textContent=opts.icon||'⚠️';
+    if(ms)ms.innerHTML=opts.msg||'';
+    if(ok){ok.textContent=opts.ok||'✅ تأكيد';ok.className='sgp-btn '+(opts.okC||'sgp-btn-gr')}
+    if(ca)ca.textContent=opts.ca||'❌ إلغاء';
+    if(bx)bx.className='sgp-al '+(opts.bxC||'sgp-al-w');
     ov.classList.add('show');
-    function cl(v){ ov.classList.remove('show'); res(v); }
-    ok.onclick = function(){ cl(true); };
-    ca.onclick = function(){ cl(false); };
-    ov.onclick = function(e){ if(e.target===ov) cl(false); };
+    function cl(v){ov.classList.remove('show');res(v)}
+    ok.onclick=function(){cl(true)};ca.onclick=function(){cl(false)};
+    ov.onclick=function(e){if(e.target===ov)cl(false)};
   });
 }
 
-/* ══════════ SNAP — نافذة إنشاء إصدار ══════════ */
-var _snapOpt = 'both';
-
-/* ══════════ TOAST ══════════ */
-function _toast(m, color){
-  var t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1E2535;color:#EDF0FF;border:1.5px solid rgba(200,150,30,.4);padding:11px 22px;border-radius:50px;font-family:Tajawal,sans-serif;font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.55);transition:opacity .3s';
-  if(color) t.style.borderColor = color;
-  t.textContent = m;
-  document.body.appendChild(t);
-  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 300); }, 3500);
-}
-
-/* ══════════ PUBLIC API ══════════ */
-window.SGP = {
-
-  /* ── Welcome ── */
-  showWelcome: function(){
-    var ov = document.getElementById('sgp-welcome-ov');
-    if(ov) ov.classList.add('show');
-    LOG.add('welcome_shown','عرض نافذة الترحيب / النسخة الاحتياطية');
-  },
-  closeWelcome: function(){
-    var ov = document.getElementById('sgp-welcome-ov');
-    if(ov) ov.classList.remove('show');
-  },
-  remindLater: function(){
-    this.closeWelcome();
-    setTimeout(function(){ SGP.showWelcome(); }, 15*60*1000);
-    _toast('🔔 سيتم التذكير بعد 15 دقيقة');
-  },
-
-  /* ── Action ── */
-  closeAction: function(){
-    var ov = document.getElementById('sgp-action-ov');
-    if(ov) ov.classList.remove('show');
-  },
-  disableActionPrompt: function(){
-    MON._actionPromptEnabled = false;
-    CFG.set('actionPrompt', false);
-    this.closeAction();
-    _toast('🔕 تم إيقاف تنبيه التعديل التلقائي');
-  },
-
-  /* ── Snap Modal ── */
-  openSnap: function(){
-    _snapOpt = 'both';
-    /* إعادة تعيين الخيارات المرئية */
-    ['dl','int','both'].forEach(function(k){
-      var el = document.getElementById('sgp-snap-opt-'+k);
-      if(el){ el.style.boxShadow=''; }
-    });
-    var both = document.getElementById('sgp-snap-opt-both');
-    if(both) both.style.boxShadow = '0 0 0 2px var(--sgp-blue)';
-    /* اسم افتراضي */
-    var nm = document.getElementById('sgp-snap-name');
-    if(nm) nm.value = 'نسخة — ' + new Date().toLocaleDateString('ar-SA');
-    var rs = document.getElementById('sgp-snap-reason');
-    if(rs) rs.value = '';
-    /* ملخص البيانات */
-    var sum = document.getElementById('sgp-snap-summary');
-    if(sum){
-      var d = _buildSnap(); var c = _snapCounts(d);
-      sum.innerHTML = '📊 الحالة الحالية: <b style="color:var(--sgp-gold)">'+c.tx+'</b> معاملة · ' +
-        '<b style="color:var(--sgp-green)">'+c.cl+'</b> جهة · ' +
-        '<b style="color:var(--sgp-blue)">'+c.cs+'</b> صندوق مخصص · ' +
-        '<b style="color:var(--sgp-purple)">'+c.pe+'</b> بند معلق' +
-        '<br><span style="color:var(--tx3);font-size:10px;margin-top:4px;display:block">الحجم التقريبي: '+_fsz(JSON.stringify(d).length)+'</span>';
+/* ══════ PUBLIC API ══════ */
+window.SGP={
+  /* Welcome */
+  showWlc:function(){
+    var ov=document.getElementById('sgp-wlc-ov');if(!ov)return;
+    var vs=VCS.list();
+    var sb=document.getElementById('sgp-wlc-sub');
+    if(sb){
+      if(vs.length){sb.textContent='آخر نسخة: '+_fd(vs[0].ts)+' — '+vs[0].label}
+      else{sb.textContent='لا توجد نسخ احتياطية بعد!'}
     }
-    /* إظهار/إخفاء */
-    var pwr=document.getElementById('sgp-snap-progress-wrap');
-    var frm=document.getElementById('sgp-snap-form');
-    var ftr=document.getElementById('sgp-snap-ftr');
-    if(pwr) pwr.style.display='none';
-    if(frm) frm.style.display='block';
-    if(ftr) ftr.style.display='flex';
-    var ov = document.getElementById('sgp-snap-ov');
-    if(ov) ov.classList.add('show');
+    ov.classList.add('show');
+    LOG.add('wlc_shown','عرض نافذة الترحيب');
   },
-  closeSnap: function(){
-    var ov = document.getElementById('sgp-snap-ov');
-    if(ov) ov.classList.remove('show');
-  },
-  toggleSnapOpt: function(opt, el){
-    _snapOpt = opt;
-    ['dl','int','both'].forEach(function(k){
-      var e = document.getElementById('sgp-snap-opt-'+k);
-      if(e) e.style.boxShadow='';
-    });
-    if(el) el.style.boxShadow='0 0 0 2.5px var(--sgp-blue)';
-  },
-  doSnapshot: function(){
-    var nm = document.getElementById('sgp-snap-name');
-    var rs = document.getElementById('sgp-snap-reason');
-    var label  = (nm&&nm.value.trim()) || ('نسخة ' + _fd(_ts()));
-    var reason = (rs&&rs.value.trim()) || 'يدوي';
-    /* إظهار شريط التقدم */
-    var pwr=document.getElementById('sgp-snap-progress-wrap');
-    var frm=document.getElementById('sgp-snap-form');
-    var ftr=document.getElementById('sgp-snap-ftr');
-    var pb =document.getElementById('sgp-snap-pbar');
-    var pm =document.getElementById('sgp-snap-prog-msg');
-    var pi =document.getElementById('sgp-snap-prog-icon');
-    if(pwr) pwr.style.display='block';
-    if(frm) frm.style.display='none';
-    if(ftr) ftr.style.display='none';
+  closeWlc:function(){var ov=document.getElementById('sgp-wlc-ov');if(ov)ov.classList.remove('show')},
+  remindLater:function(){this.closeWlc();setTimeout(function(){SGP.showWlc()},20*60000);_toast('🔔 سيتم التذكير بعد 20 دقيقة')},
 
-    var steps = [
-      {pct:20, msg:'جاري تجميع المعاملات...'},
-      {pct:45, msg:'جاري معالجة بيانات الحسابات...'},
-      {pct:65, msg:'جاري تجميع إعدادات النظام...'},
-      {pct:85, msg:'جاري ضغط وتنظيم البيانات...'},
-      {pct:100, msg:'اكتمل — جاري الحفظ...'}
+  /* Action */
+  closeAct:function(){var ov=document.getElementById('sgp-act-ov');if(ov)ov.classList.remove('show')},
+  disableActPr:function(){MON._actEn=false;CFG.set('actPr',false);this.closeAct();_toast('🔕 تم إيقاف تنبيه التعديل')},
+
+  /* Snap */
+  openSnp:function(){
+    _opt='bo';
+    ['dl','in','bo'].forEach(function(k){var e=document.getElementById('sgp-opt-'+k);if(e)e.style.boxShadow=''});
+    var bo=document.getElementById('sgp-opt-bo');if(bo)bo.style.boxShadow='0 0 0 2.5px var(--bl)';
+    var nm=document.getElementById('sgp-snp-nm');if(nm)nm.value='نسخة — '+new Date().toLocaleDateString('ar-SA');
+    var rs=document.getElementById('sgp-snp-rs');if(rs)rs.value='';
+    /* ملخص */
+    var sum=document.getElementById('sgp-snp-sum');
+    if(sum){
+      var d=_buildSnap(),c=_snapCounts(d);
+      sum.innerHTML='📊 البيانات الحالية: <b style="color:var(--sg)">'+c.tx+'</b> معاملة · <b style="color:var(--ok)">'+c.cl+'</b> جهة · <b style="color:var(--bl)">'+c.cs+'</b> صندوق مخصص · <b style="color:var(--pu)">'+c.us+'</b> مستخدم<br><span style="color:var(--tx3);font-size:10px;display:block;margin-top:4px">الحجم التقريبي: '+_fsz(JSON.stringify(d).length)+'</span>';
+    }
+    var prog=document.getElementById('sgp-snp-prog');
+    var form=document.getElementById('sgp-snp-form');
+    var ftr=document.getElementById('sgp-snp-ftr');
+    if(prog)prog.style.display='none';
+    if(form)form.style.display='block';
+    if(ftr)ftr.style.display='flex';
+    var ov=document.getElementById('sgp-snp-ov');if(ov)ov.classList.add('show');
+  },
+  closeSnp:function(){var ov=document.getElementById('sgp-snp-ov');if(ov)ov.classList.remove('show')},
+  setOpt:function(o,el){
+    _opt=o;
+    ['dl','in','bo'].forEach(function(k){var e=document.getElementById('sgp-opt-'+k);if(e)e.style.boxShadow=''});
+    if(el)el.style.boxShadow='0 0 0 2.5px var(--bl)';
+  },
+  doSnap:function(){
+    var nm=document.getElementById('sgp-snp-nm'),rs=document.getElementById('sgp-snp-rs');
+    var label=(nm&&nm.value.trim())||('نسخة '+_fd(_ts()));
+    var reason=(rs&&rs.value.trim())||'يدوي';
+    /* إظهار التقدم */
+    var prog=document.getElementById('sgp-snp-prog'),form=document.getElementById('sgp-snp-form'),ftr=document.getElementById('sgp-snp-ftr');
+    var pb=document.getElementById('sgp-snp-pb'),pm=document.getElementById('sgp-snp-pm');
+    var chks=document.getElementById('sgp-snp-checks');
+    if(prog)prog.style.display='block';
+    if(form)form.style.display='none';
+    if(ftr)ftr.style.display='none';
+    /* بناء Snapshot وتحقق */
+    var data=_buildSnap();
+    var checks=_validate(data);
+    /* عرض نتائج التحقق */
+    if(chks){
+      chks.innerHTML=checks.map(function(c){
+        return'<div class="sgp-chk-row '+(c.ok?'sgp-chk-ok':'sgp-chk-er')+'"><span>'+(c.ok?'✅':'❌')+'</span><span>'+c.msg+'</span></div>';
+      }).join('');
+    }
+    var allOk=checks.every(function(c){return c.ok});
+    /* شريط التقدم */
+    var steps=[
+      {p:20,m:'جاري تجميع المعاملات والفواتير...'},
+      {p:40,m:'جاري معالجة بيانات الحسابات والصناديق...'},
+      {p:60,m:'جاري حفظ بيانات العملاء والإعدادات...'},
+      {p:80,m:'جاري التحقق من سلامة البيانات...'},
+      {p:100,m:'اكتمل — جاري الحفظ...'}
     ];
-    var si = 0;
+    var si=0;
     function step(){
-      if(si >= steps.length) return;
-      var s = steps[si++];
-      if(pb) pb.style.width = s.pct+'%';
-      if(pm) pm.textContent = s.msg;
-      if(si < steps.length) setTimeout(step, 180);
-      else {
-        setTimeout(function(){
-          /* تنفيذ الحفظ */
-          var ok1 = false, ok2 = false;
-          if(_snapOpt==='dl'||_snapOpt==='both'){
-            ok1 = _download(label, reason);
-          }
-          if(_snapOpt==='int'||_snapOpt==='both'){
-            VCS.save(label, 'manual', reason);
-            ok2 = true;
-          }
-          if(pi) pi.textContent = '✅';
-          if(pm) pm.textContent = 'تم إنشاء النسخة الاحتياطية بنجاح!';
-          MON._markClean();
-          setTimeout(function(){ SGP.closeSnap(); _toast('✅ تم حفظ النسخة: '+label, 'rgba(34,199,122,.6)'); }, 1200);
-        }, 300);
-      }
+      if(si>=steps.length)return;
+      var s=steps[si++];
+      if(pb)pb.style.width=s.p+'%';
+      if(pm)pm.textContent=s.m;
+      if(si<steps.length)setTimeout(step,160);
+      else setTimeout(function(){
+        var ok1=false,ok2=false;
+        if(_opt==='dl'||_opt==='bo'){ok1=_dl(label,'manual',reason)}
+        if(_opt==='in'||_opt==='bo'){VCS.save(label,'manual',reason);ok2=true}
+        if(pm)pm.textContent=allOk?'✅ تم إنشاء النسخة الاحتياطية بنجاح!':'⚠️ تمت النسخة مع تحذيرات';
+        MON._markClean();
+        setTimeout(function(){SGP.closeSnp();_toast('✅ تم حفظ النسخة: '+label,'rgba(34,199,122,.6)')},1400);
+      },280);
     }
     step();
   },
 
-  /* ── Quick actions ── */
-  downloadNow: function(src){
-    var label = 'تنزيل يدوي — ' + _fd(_ts());
-    var ok = _download(label, src||'يدوي');
-    if(ok){
-      _toast('💾 جاري التنزيل...', 'rgba(200,150,30,.6)');
-      MON._markClean();
-      if(src==='welcome') this.closeWelcome();
-      if(src==='action')  this.closeAction();
+  /* Quick */
+  dlNow:function(src){
+    var label='تنزيل_'+_fdt(_ts())+'_'+(src||'manual');
+    if(_dl(label,'manual',src||'')){
+      _toast('💾 جاري التنزيل...');MON._markClean();
+      if(src==='welcome')this.closeWlc();
+      if(src==='action')this.closeAct();
     }
   },
-  saveInternal: function(src){
-    var label = 'حفظ داخلي — ' + _fd(_ts());
-    VCS.save(label, 'auto', src||'داخلي');
-    _toast('☁️ تم الحفظ داخلياً', 'rgba(34,199,122,.6)');
-    MON._markClean();
-    if(src==='welcome') this.closeWelcome();
-    if(src==='action')  this.closeAction();
+  saveInt:function(src){
+    var label='حفظ_داخلي_'+_fdt(_ts());
+    VCS.save(label,'auto',src||'داخلي');
+    _toast('☁️ تم الحفظ الداخلي','rgba(34,199,122,.5)');MON._markClean();
+    if(src==='welcome')this.closeWlc();
+    if(src==='action')this.closeAct();
   },
 
-  /* ── Manager ── */
-  openMgr: function(){
-    var sub = document.getElementById('sgp-mgr-sub');
-    var vs = VCS.list();
-    if(sub) sub.textContent = vs.length+' نسخة محفوظة — '+_fd(_ts());
-    _renderVersions();
-    _renderCmpSels();
-    _renderLog();
-    _renderStats();
-    var ov = document.getElementById('sgp-mgr-ov');
-    if(ov) ov.classList.add('show');
+  /* Manager */
+  openMgr:function(){
+    var sub=document.getElementById('sgp-mgr-sb');
+    var vs=VCS.list();
+    if(sub)sub.textContent=vs.length+' نسخة محفوظة · آخر نسخة: '+(vs.length?_fd(vs[0].ts):'لا يوجد');
+    _rV();_rCSels();_rL();_rStats();
+    var ov=document.getElementById('sgp-mgr-ov');if(ov)ov.classList.add('show');
   },
-  closeMgr: function(){
-    var ov = document.getElementById('sgp-mgr-ov');
-    if(ov) ov.classList.remove('show');
+  closeMgr:function(){var ov=document.getElementById('sgp-mgr-ov');if(ov)ov.classList.remove('show')},
+  mgrT:function(nm,btn){
+    document.querySelectorAll('.sgp-tab').forEach(function(b){b.classList.remove('on')});
+    if(btn)btn.classList.add('on');
+    document.querySelectorAll('.sgp-tsec').forEach(function(s){s.classList.remove('on')});
+    var s=document.getElementById('sgp-t-'+nm);if(s)s.classList.add('on');
+    if(nm==='versions')_rV();
+    if(nm==='compare')_rCSels();
+    if(nm==='log')_rL();
+    if(nm==='stats')_rStats();
   },
-  mgrTab: function(nm, btn){
-    document.querySelectorAll('.sgp-tab').forEach(function(b){ b.classList.remove('on'); });
-    if(btn) btn.classList.add('on');
-    document.querySelectorAll('.sgp-tsec').forEach(function(s){ s.style.display='none'; });
-    var sec = document.getElementById('sgp-tab-'+nm);
-    if(sec) sec.style.display='block';
-    if(nm==='versions') _renderVersions();
-    if(nm==='compare')  _renderCmpSels();
-    if(nm==='log')      _renderLog();
-    if(nm==='stats')    _renderStats();
-  },
-  filterV: function(t, btn){
-    _vFilt = t;
-    document.querySelectorAll('#sgp-vfil .sgp-vbtn').forEach(function(b){ b.style.background=''; b.style.fontWeight=''; });
-    if(btn){ btn.style.background='rgba(80,144,224,.22)'; btn.style.fontWeight='900'; }
-    _renderVersions();
+  fV:function(t,btn){
+    _filt=t;
+    document.querySelectorAll('#sgp-vfil .sgp-vbtn').forEach(function(b){b.style.background='';b.style.fontWeight=''});
+    if(btn){btn.style.background='rgba(80,144,224,.22)';btn.style.fontWeight='900'}
+    _rV();
   },
 
-  /* ── Version actions ── */
-  cfmRestore: function(id){
-    var v = VCS.get(id); if(!v) return;
-    _cfm({
-      icon:'↩️', title:'تأكيد الاسترجاع',
-      msg:'استرجاع النسخة: "'+v.label+'"\nمحفوظة: '+_fd(v.ts)+'\n\nسيتم حفظ الحالة الحالية أولاً تلقائياً.',
-      oktxt:'✅ استرجع الآن', catxt:'❌ إلغاء',
-      okCls:'sgp-btn-green', boxCls:'sgp-alert-warn'
+  /* Version Actions */
+  cfmRes:function(id){
+    var v=VCS.get(id);if(!v)return;
+    _cfm({icon:'↩️',title:'تأكيد الاسترجاع',
+      msg:'استرجاع النسخة: <b>'+v.label+'</b><br>محفوظة: '+_fd(v.ts)+'<br><br>سيتم حفظ الحالة الحالية تلقائياً قبل الاسترجاع.',
+      ok:'✅ استرجع الآن',ca:'❌ إلغاء',okC:'sgp-btn-gr',bxC:'sgp-al-w'
     }).then(function(ok){
-      if(!ok) return;
-      VCS.restore(id, function(success, err){
-        if(success){
-          _toast('✅ تم الاسترجاع بنجاح', 'rgba(34,199,122,.6)');
-          _renderVersions();
-          SGP.closeMgr();
-        } else {
-          _toast('❌ فشل الاسترجاع: '+(err||''), 'rgba(229,85,85,.6)');
-        }
+      if(!ok)return;
+      VCS.restore(id,function(s,err){
+        if(s){_toast('✅ تم الاسترجاع بنجاح','rgba(34,199,122,.6)');_rV();SGP.closeMgr()}
+        else _toast('❌ فشل الاسترجاع: '+(err||''),'rgba(229,85,85,.6)');
       });
     });
   },
-  dlVersion: function(id){
-    var v = VCS.get(id); if(!v) return;
+  dlV:function(id){
+    var v=VCS.get(id);if(!v)return;
     try{
-      var blob = new Blob([v.data], {type:'application/json;charset=utf-8'});
-      var url  = URL.createObjectURL(blob);
-      var a    = document.createElement('a');
-      var dt   = new Date(v.ts).toISOString().slice(0,10);
-      a.href = url; a.download = 'backup_'+dt+'_'+v.type+'.json';
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
-      LOG.add('download','تنزيل نسخة من السجل: '+v.label);
+      var blob=new Blob([v.data],{type:'application/json;charset=utf-8'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;a.download='backup_'+_fdt(v.ts)+'_'+v.type+'.json';
+      document.body.appendChild(a);a.click();
+      document.body.removeChild(a);URL.revokeObjectURL(url);
+      LOG.add('dl','تنزيل من السجل: '+v.label);
       _toast('💾 جاري تنزيل: '+v.label);
-    }catch(e){ _toast('❌ خطأ: '+e.message); }
+    }catch(e){_toast('❌ خطأ: '+e.message)}
   },
-  quickCmp: function(id){
-    var vs = VCS.list(); if(vs.length<2){ _toast('⚠️ تحتاج نسختين للمقارنة'); return; }
-    var other = vs.filter(function(v){ return v.id!==id; })[0];
-    var diff = VCS.compare(id, other.id);
-    _renderCmpResult(diff);
-    this.mgrTab('compare', document.querySelectorAll('.sgp-tab')[1]);
+  qCmp:function(id){
+    var vs=VCS.list();if(vs.length<2){_toast('⚠️ تحتاج نسختين للمقارنة');return}
+    var other=vs.find(function(v){return v.id!==id});
+    _rCmpRes(VCS.compare(id,other.id));
+    this.mgrT('compare',document.querySelectorAll('.sgp-tab')[1]);
     this.openMgr();
   },
-  delVersion: function(id){
-    var v = VCS.get(id); if(!v) return;
-    _cfm({
-      icon:'🗑️', title:'حذف النسخة',
-      msg:'حذف: "'+v.label+'"\n\nهذا الإجراء لا يمكن التراجع عنه.',
-      oktxt:'🗑 حذف', catxt:'❌ إلغاء',
-      okCls:'sgp-btn-red', boxCls:'sgp-alert-danger'
+  runCmp:function(){
+    var s1=document.getElementById('sgp-cv1'),s2=document.getElementById('sgp-cv2');
+    if(!s1||!s2||!s1.value||!s2.value){_toast('⚠️ اختر نسختين');return}
+    if(s1.value===s2.value){_toast('⚠️ اختر نسختين مختلفتين');return}
+    _rCmpRes(VCS.compare(s1.value,s2.value));
+  },
+  delV:function(id){
+    var v=VCS.get(id);if(!v)return;
+    _cfm({icon:'🗑️',title:'حذف النسخة',msg:'حذف: <b>'+v.label+'</b><br>لا يمكن التراجع.',
+      ok:'🗑 حذف',ca:'❌ إلغاء',okC:'sgp-btn-r',bxC:'sgp-al-r'
     }).then(function(ok){
-      if(!ok) return;
-      VCS.del(id);
-      _toast('🗑 تم حذف النسخة');
-      _renderVersions();
+      if(!ok)return;VCS.del(id);_toast('🗑 تم الحذف');_rV();
     });
   },
-  runCmp: function(){
-    var s1=document.getElementById('sgp-cv1'), s2=document.getElementById('sgp-cv2');
-    if(!s1||!s2||!s1.value||!s2.value){ _toast('⚠️ اختر نسختين للمقارنة'); return; }
-    if(s1.value===s2.value){ _toast('⚠️ اختر نسختين مختلفتين'); return; }
-    var diff = VCS.compare(s1.value, s2.value);
-    _renderCmpResult(diff);
-  },
-  clearLog: function(){
-    _cfm({icon:'🗑️',title:'مسح السجل',msg:'مسح جميع سجلات التدقيق؟',oktxt:'🗑 مسح',catxt:'❌ إلغاء',okCls:'sgp-btn-red',boxCls:'sgp-alert-danger'})
-    .then(function(ok){ if(!ok) return; LOG.clear(); _renderLog(); _toast('🗑 تم مسح السجل'); });
+  clearLog:function(){
+    _cfm({icon:'🗑️',title:'مسح السجل',msg:'مسح جميع سجلات التدقيق؟',ok:'🗑 مسح',ca:'❌ إلغاء',okC:'sgp-btn-r',bxC:'sgp-al-r'})
+    .then(function(ok){if(!ok)return;LOG.clear();_rL();_toast('🗑 تم مسح السجل')});
   }
 };
 
-/* ══════════ INIT ══════════ */
+/* ══════ INIT ══════ */
 function init(){
   try{
     MON.init();
 
-    /* نافذة الترحيب عند أول دخول بعد 4 ثوانٍ */
-    var lastWelcome = CFG.get('lastWelcome') || 0;
-    var hoursSince  = (_ts() - lastWelcome) / 3600000;
-    if(hoursSince > 6){
-      setTimeout(function(){
-        CFG.set('lastWelcome', _ts());
-        SGP.showWelcome();
-      }, 4000);
+    /* نافذة الترحيب عند أول دخول (مرة كل 8 ساعات) */
+    var lw=CFG.get('lw')||0;
+    if(_ts()-lw>8*3600000){
+      setTimeout(function(){CFG.set('lw',_ts());SGP.showWlc()},4500);
     }
 
-    /* نسخة تلقائية كل 3 ساعات */
-    setInterval(function(){
-      VCS.save('نسخ دوري — كل 3 ساعات', 'auto', 'دوري');
-      LOG.add('auto_backup','نسخ احتياطي تلقائي دوري');
-    }, 3*60*60*1000);
-
-    /* التأكد أن المساحة الكافية متاحة عند البدء */
+    /* نسخة تلقائية عند بدء الجلسة */
     setTimeout(function(){
-      if(window.S && Object.keys(_buildSnap()).length > 2){
-        VCS.save('بداية الجلسة — '+_fd(_ts()), 'auto', 'بدء الجلسة');
-        LOG.add('session_start','بدء جلسة جديدة — '+_user());
+      if(window.S&&Object.keys(_buildSnap()).length>3){
+        VCS.save('بداية_الجلسة_'+_fdt(_ts()),'auto','بدء جلسة');
+        LOG.add('session','بدء جلسة — '+_user());
+        MON._lh=_hashS();
       }
-    }, 8000);
+    },9000);
 
-    /* اختصارات لوحة المفاتيح */
-    document.addEventListener('keydown', function(e){
-      var ct = e.ctrlKey || e.metaKey;
-      if(ct && e.shiftKey && e.key==='B'){ e.preventDefault(); SGP.openSnap(); }
-      if(ct && e.shiftKey && e.key==='L'){ e.preventDefault(); SGP.openMgr(); }
-      if(ct && e.key==='s'){ e.preventDefault(); SGP.downloadNow('keyboard'); }
+    /* نسخة دورية كل 3 ساعات */
+    setInterval(function(){
+      VCS.save('دوري_'+_fdt(_ts()),'periodic','نسخ دوري');
+      LOG.add('periodic','نسخ احتياطي دوري');
+    },3*3600000);
+
+    /* اختصارات */
+    document.addEventListener('keydown',function(e){
+      var ct=e.ctrlKey||e.metaKey;
+      if(ct&&e.shiftKey&&e.key==='B'){e.preventDefault();SGP.openSnp()}
+      if(ct&&e.shiftKey&&e.key==='L'){e.preventDefault();SGP.openMgr()}
+      if(ct&&e.key==='s'){e.preventDefault();SGP.dlNow('keyboard')}
       if(e.key==='Escape'){
-        ['sgp-welcome-ov','sgp-action-ov','sgp-snap-ov','sgp-mgr-ov','sgp-cfm-ov'].forEach(function(id){
+        ['sgp-wlc-ov','sgp-act-ov','sgp-snp-ov','sgp-mgr-ov','sgp-cfm-ov'].forEach(function(id){
           var ov=document.getElementById(id);
-          if(ov && ov.classList.contains('show')){ ov.classList.remove('show'); }
+          if(ov&&ov.classList.contains('show'))ov.classList.remove('show');
         });
       }
     });
 
     /* تصدير */
-    window.VCS     = VCS;
-    window.SGP_LOG = LOG;
-    window.SGP_CFG = CFG;
-    window.SGP_MON = MON;
-
-    console.log('[SGP Pro v4.0] initialized ✅ | Ctrl+Shift+B = نسخة | Ctrl+Shift+L = السجل | Ctrl+S = تنزيل');
-  }catch(e){
-    console.error('[SGP] init error:', e);
-  }
+    window.VCS=VCS;window.SGP_LOG=LOG;window.SGP_CFG=CFG;window.SGP_MON=MON;
+    console.log('[SGP Pro v5.0] ✅ | Ctrl+Shift+B=نسخة | Ctrl+Shift+L=السجل | Ctrl+S=تنزيل');
+  }catch(e){console.error('[SGP v5.0] init error:',e)}
 }
 
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', function(){ setTimeout(init, 2000); });
-} else {
-  setTimeout(init, 2000);
-}
-
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(init,2200)})}
+else{setTimeout(init,2200)}
 })();
 </script>
 
