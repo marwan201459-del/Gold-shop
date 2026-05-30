@@ -19574,25 +19574,13 @@ function gpAppendMsg(role, html){
   window._backupReminderYes = function(){
     _brShown = false;
     if(_brOverlay) _brOverlay.classList.remove('show');
-    // تنزيل النسخة الاحتياطية
+    /* تنزيل نسخة كاملة باستخدام SGP6 _dl */
     try{
-      var dataStr = JSON.stringify(window.S || {}, null, 2);
-      var blob = new Blob([dataStr], {type:'application/json'});
-      var url  = URL.createObjectURL(blob);
-      var a    = document.createElement('a');
-      var now  = new Date();
-      var stamp = now.getFullYear()+'-'
-        +String(now.getMonth()+1).padStart(2,'0')+'-'
-        +String(now.getDate()).padStart(2,'0')+'_'
-        +String(now.getHours()).padStart(2,'0')
-        +String(now.getMinutes()).padStart(2,'0');
-      a.href     = url;
-      a.download = 'backup_karat_' + stamp + '.json';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 2000);
-      if(typeof window.toast === 'function') window.toast('✅ تم تنزيل النسخة الاحتياطية');
-      if(typeof window._doAutoBackup === 'function') window._doAutoBackup('بعد العملية — يدوي');
+      if(typeof window.SGP === 'object' && window.SGP.dlNowFull){
+        window.SGP.dlNowFull();
+      } else if(typeof window.exportBackup === 'function'){
+        window.exportBackup();
+      }
     } catch(e){ console.error('Backup error:', e); }
   };
 
@@ -19601,19 +19589,9 @@ function gpAppendMsg(role, html){
     if(_brOverlay) _brOverlay.classList.remove('show');
   };
 
-  // ربط التذكير بـ safeSave — ننتظر حتى تجهز الدوال
+  // ربط التذكير بـ safeSave — معطّل: تم الاستبدال بـ sgp-act-ov الجديدة
   function hookSafeSave(){
-    var origSafeSave = window.safeSave;
-    if(typeof origSafeSave !== 'function') return false;
-    window.safeSave = function(tx){
-      var result = origSafeSave.apply(this, arguments);
-      if(result === true){
-        // تأخير بسيط عشان تظهر الـ toast أولاً
-        setTimeout(function(){ window._showBackupReminder(); }, 1200);
-      }
-      return result;
-    };
-    return true;
+    return true; /* لا hook مكرر — يتولى SGP6 المهمة */
   }
 
   if(!hookSafeSave()){
@@ -23250,64 +23228,35 @@ function dbgRender(){
         </div>
       </div>
       <div id="sgp-wlc-stats" style="background:var(--c2,#f5f7fa);border:1px solid var(--b1,rgba(0,0,0,.07));border-radius:12px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--tx2)">⏳ جاري حساب بيانات النظام...</div>
-      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px">اختر طريقة الحفظ:</div>
-      <div class="sgp-cgrid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="sgp-cc sgp-cc-g" onclick="SGP.dlNow('welcome')">
-          <div class="sgp-cci">💾</div><div class="sgp-cct">تنزيل على الجهاز</div>
-          <div class="sgp-ccd">ملف JSON كامل فوراً</div>
-        </div>
-        <div class="sgp-cc sgp-cc-gr" onclick="SGP.saveInt('welcome')">
-          <div class="sgp-cci">☁️</div><div class="sgp-cct">حفظ داخل الموقع</div>
-          <div class="sgp-ccd">نسخة قابلة للاسترجاع</div>
-        </div>
-        <div class="sgp-cc sgp-cc-b" onclick="SGP.dlNow('welcome');SGP.saveInt('welcome')">
-          <div class="sgp-cci">🔒</div><div class="sgp-cct">كلاهما ✓</div>
-          <div class="sgp-ccd">حماية مزدوجة (موصى)</div>
-        </div>
-      </div>
     </div>
-    <div class="sgp-mf">
-      <button class="sgp-btn sgp-btn-gy" onclick="SGP.remindLater()">🔔 ذكّرني بعد 20 دقيقة</button>
-      <button class="sgp-btn sgp-btn-r"  onclick="SGP.closeWlc()">✕ تخطي الآن</button>
+    <div class="sgp-mf" style="flex-direction:column;gap:10px;padding:2px 2px 8px">
+      <button class="sgp-btn sgp-btn-g" style="width:100%;font-size:14px;font-weight:900;padding:14px 0;letter-spacing:.4px" onclick="SGP.dlNowFull();SGP.closeWlc()">📥 تنزيل النسخة الآن</button>
+      <button class="sgp-btn sgp-btn-gy" style="width:100%;padding:12px 0;font-size:13px;font-weight:700" onclick="SGP.remindLater()">🔔 ذكرني لاحقاً</button>
+      <button class="sgp-btn" style="width:100%;padding:12px 0;font-size:13px;background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);border-radius:var(--rc);font-family:inherit;cursor:pointer" onclick="SGP.closeWlc()">✕ إلغاء</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ Action Backup Modal (عند تعديل مهم) ═══ -->
+<!-- ═══ Action Backup Modal (عند أي تعديل على البيانات) ═══ -->
 <div id="sgp-act-ov" class="sgp-ov">
   <div class="sgp-m sgp-md">
     <div class="sgp-mh">
       <div class="sgp-mhi">
-        <div class="sgp-mic" id="sgp-act-ic">📝</div>
-        <div><div class="sgp-mtt" id="sgp-act-tt">يوجد تعديلات جديدة</div>
-          <div class="sgp-msb">يُفضل إنشاء نسخة احتياطية لحماية بياناتك المحاسبية</div></div>
+        <div class="sgp-mic" id="sgp-act-ic">💾</div>
+        <div>
+          <div class="sgp-mtt" id="sgp-act-tt">نسخة احتياطية</div>
+          <div class="sgp-msb" id="sgp-act-msg">تم تسجيل تعديل جديد على البيانات</div>
+        </div>
       </div>
       <div class="sgp-mcl" onclick="SGP.closeAct()">✕</div>
     </div>
-    <div class="sgp-mb">
-      <div class="sgp-al sgp-al-w">
-        <div class="sgp-al-i">💡</div>
-        <div class="sgp-al-t" id="sgp-act-msg">تم تسجيل تعديل جديد. يُفضل أخذ نسخة احتياطية الآن.</div>
-      </div>
-      <div id="sgp-act-lastbk" style="font-size:10px;color:var(--tx3);margin-bottom:12px;text-align:center"></div>
-      <div class="sgp-cgrid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="sgp-cc sgp-cc-g" onclick="SGP.dlNow('action')">
-          <div class="sgp-cci">💾</div><div class="sgp-cct">تنزيل الآن</div>
-          <div class="sgp-ccd">حفظ فوري على جهازك</div>
-        </div>
-        <div class="sgp-cc sgp-cc-gr" onclick="SGP.saveInt('action')">
-          <div class="sgp-cci">☁️</div><div class="sgp-cct">حفظ داخلي</div>
-          <div class="sgp-ccd">نسخة داخل المتصفح</div>
-        </div>
-        <div class="sgp-cc sgp-cc-b" onclick="SGP.dlNow('action');SGP.saveInt('action')">
-          <div class="sgp-cci">🔒</div><div class="sgp-cct">كلاهما</div>
-          <div class="sgp-ccd">أفضل حماية</div>
-        </div>
-      </div>
+    <div class="sgp-mb" style="padding-bottom:4px">
+      <div id="sgp-act-lastbk" style="font-size:11px;color:var(--tx3);text-align:center;padding:8px 0 4px"></div>
     </div>
-    <div class="sgp-mf">
-      <button class="sgp-btn sgp-btn-gy" onclick="SGP.closeAct()">⏭ تخطي</button>
-      <button class="sgp-btn sgp-btn-r" style="font-size:11px" onclick="SGP.disableActPr()">🔕 إيقاف هذا التنبيه</button>
+    <div class="sgp-mf" style="flex-direction:column;gap:10px;padding:2px 2px 8px">
+      <button class="sgp-btn sgp-btn-g" style="width:100%;font-size:14px;font-weight:900;padding:14px 0;letter-spacing:.4px" onclick="SGP.dlNowFull()">📥 تنزيل النسخة الآن</button>
+      <button class="sgp-btn sgp-btn-gy" style="width:100%;padding:12px 0;font-size:13px;font-weight:700" onclick="SGP.remindLaterAct()">🔔 ذكرني لاحقاً</button>
+      <button class="sgp-btn" style="width:100%;padding:12px 0;font-size:13px;background:var(--no-bg);border:1px solid var(--no-bd);color:var(--no);border-radius:var(--rc);font-family:inherit;cursor:pointer" onclick="SGP.closeAct()">✕ إلغاء</button>
     </div>
   </div>
 </div>
@@ -23699,6 +23648,8 @@ var VCS={
       };
       var versions=this.list();
       versions.unshift(item);
+      /* الاحتفاظ بآخر 10 نسخ فقط — تدوير تلقائي (حذف الأقدم) */
+      if(versions.length>10)versions=versions.slice(0,10);
       /* طوارئ تخزين: نحذف أقدم auto/action فقط */
       if(!_ss(KY.V,versions)){
         var autos=versions.filter(function(v){return v.type==='auto'||v.type==='action'||v.type==='periodic'})
@@ -23934,7 +23885,7 @@ var MON={
   _lh:'',_actEn:true,_actCD:false,
 
   init:function(){
-    this._actEn=CFG.get('actPr')!==false;
+    this._actEn=true;/* دائماً مفعّل — لا يمكن إيقافه */
     this._lh=_hashS();
 
     /* ── Hook: logActivity — ADDITIVE ONLY ── */
@@ -23975,10 +23926,16 @@ var MON={
 
     /* ── Hook: sv — ADDITIVE ONLY ── */
     var osv=window.sv;
+    var _svActTimer=null;
     if(typeof osv==='function'&&!osv._sgp6){
       window.sv=function(){
         try{osv.apply(this,arguments)}catch(e){}
         try{MON._markDirty()}catch(e){}
+        /* تشغيل النافذة بعد debounce 1.2 ثانية — لجميع العمليات */
+        clearTimeout(_svActTimer);
+        _svActTimer=setTimeout(function(){
+          try{MON._onAction('save','حفظ البيانات','')}catch(e){}
+        },1200);
       };
       window.sv._sgp6=true;
     }
@@ -24030,25 +23987,23 @@ var MON={
     }
     /* نافذة التنبيه */
     if(!this._actEn||this._actCD)return;
-    var imp=['add','dist-ob-save','opening-balance','delete','edit','transfer','payment','return','invoice'];
+    var imp=['add','dist-ob-save','opening-balance','delete','edit','transfer','payment','return','invoice','save'];
     var isImp=imp.some(function(k){return(action||'').indexOf(k)!==-1});
     if(!isImp)return;
     this._actCD=true;
-    setTimeout(function(){MON._actCD=false},240000);
-    var icons={add:'➕','dist-ob-save':'💵','opening-balance':'💰',delete:'🗑️',edit:'✏️',transfer:'🔄',payment:'💳',return:'↩️',invoice:'🧾'};
-    var ic='📝';
+    setTimeout(function(){MON._actCD=false},3000);/* كل 3 ثوانٍ بعد كل عملية */
+    var icons={add:'➕','dist-ob-save':'💵','opening-balance':'💰',delete:'🗑️',edit:'✏️',transfer:'🔄',payment:'💳',return:'↩️',invoice:'🧾','save':'💾'};
+    var ic='💾';
     for(var k in icons){if((action||'').indexOf(k)!==-1){ic=icons[k];break}}
     var ov=document.getElementById('sgp-act-ov');
     if(ov){
       var el=document.getElementById('sgp-act-ic');if(el)el.textContent=ic;
-      var tl=document.getElementById('sgp-act-tt');if(tl)tl.textContent='يوجد تعديلات جديدة';
+      var tl=document.getElementById('sgp-act-tt');if(tl)tl.textContent='نسخة احتياطية';
       var mg=document.getElementById('sgp-act-msg');
       if(mg){
         var vs=VCS.list();
         var lastBkTxt=vs.length?('آخر نسخة: '+_fd(vs[0].ts)):'لا توجد نسخ بعد!';
-        mg.innerHTML='<b>العملية:</b> '+(detail||action)+
-          '<br><b>المستخدم:</b> '+_user()+' ('+_role()+')'+'<br><b>الوقت:</b> '+_fd(_ts())+
-          '<br><br>يُفضل إنشاء نسخة احتياطية لحماية بياناتك المحاسبية.';
+        mg.textContent='العملية: '+(detail||action||'تعديل بيانات');
         var lbEl=document.getElementById('sgp-act-lastbk');
         if(lbEl)lbEl.textContent='🕐 '+lastBkTxt;
       }
@@ -24301,7 +24256,44 @@ window.SGP={
 
   /* Action */
   closeAct:function(){var ov=document.getElementById('sgp-act-ov');if(ov)ov.classList.remove('show')},
-  disableActPr:function(){MON._actEn=false;CFG.set('actPr',false);this.closeAct();_toast('🔕 تم إيقاف تنبيه التعديل')},
+  disableActPr:function(){this.closeAct()},/* لا يمكن إيقاف التنبيه */
+
+  /* ══ تنزيل النسخة الآن — نسخة كاملة 100% مطابقة لزر النسخ الاحتياطي ══ */
+  dlNowFull:function(){
+    clearTimeout(this._remindTimer);
+    this.closeAct();
+    /* ══ تنزيل مطابق تماماً لزر النسخ الاحتياطي اليدوي ══ */
+    try{
+      if(typeof window.exportBackup === 'function'){
+        window.exportBackup();
+      } else {
+        /* بديل احتياطي: _dl الكاملة */
+        var label='backup_'+_fdt(_ts())+'_manual';
+        _dl(label,'manual','تنزيل من النافذة');
+      }
+    }catch(e){ console.error('[SGP6] dlNowFull error:',e); }
+    /* ══ حفظ سحابي في الخلفية تلقائياً ══ */
+    try{
+      var bg='auto_cloud_'+_fdt(_ts());
+      VCS.save(bg,'auto','نسخة سحابية تلقائية بعد تعديل');
+    }catch(e){}
+    MON._markClean();
+    _toast('✅ تم تنزيل نسخة احتياطية كاملة');
+  },
+
+  /* ══ ذكرني لاحقاً — 5 دقائق ══ */
+  remindLaterAct:function(){
+    clearTimeout(this._remindTimer);
+    this.closeAct();
+    /* حفظ سحابي في الخلفية فوراً */
+    try{VCS.save('auto_bg_'+_fdt(_ts()),'auto','حفظ سحابي تلقائي في الخلفية')}catch(e){}
+    _toast('🔔 سيتم التذكير بعد 5 دقائق');
+    this._remindTimer=setTimeout(function(){
+      var ov=document.getElementById('sgp-act-ov');
+      if(ov)ov.classList.add('show');
+    },5*60*1000);
+  },
+  _remindTimer:null,
 
   /* Snap */
   openSnp:function(){
