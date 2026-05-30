@@ -19472,38 +19472,86 @@ function gpAppendMsg(role, html){
 </script>
 <!-- ══ نظام التذكير بالحفظ + تسجيل الخروج التلقائي ══ -->
 <style>
-/* ── مودال تذكير الحفظ ── */
+/* ── مودال تذكير النسخ الاحتياطي الذكي v2 ── */
 #backup-reminder-overlay{
   display:none;position:fixed;inset:0;z-index:9999;
-  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
-  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.58);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:16px;
 }
 #backup-reminder-overlay.show{display:flex;}
 #backup-reminder-box{
   background:var(--c1);border:1.5px solid var(--g5);
-  border-radius:var(--ra);padding:28px 24px 20px;
-  max-width:360px;width:92%;text-align:center;
-  box-shadow:0 20px 60px rgba(0,0,0,.35),0 0 0 1px var(--g4);
+  border-radius:var(--ra);padding:0;
+  max-width:380px;width:100%;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.40),0 0 0 1px var(--g4);
   animation:brPop .22s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;
 }
 @keyframes brPop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
-#backup-reminder-box .br-icon{font-size:40px;margin-bottom:10px}
-#backup-reminder-box .br-title{font-size:17px;font-weight:800;color:var(--tx1);margin-bottom:6px}
-#backup-reminder-box .br-sub{font-size:13px;color:var(--tx2);margin-bottom:18px;line-height:1.6}
-#backup-reminder-box .br-btns{display:flex;gap:10px;justify-content:center}
+/* شريط ذهبي علوي */
+#backup-reminder-box::before{
+  content:'';display:block;height:4px;
+  background:linear-gradient(90deg,var(--g3),var(--g1),var(--g2),var(--g1),var(--g3));
+}
+/* محتوى النافذة */
+#backup-reminder-box .br-body{padding:22px 22px 20px;}
+/* زر X الإغلاق أعلى اليمين */
+#backup-reminder-box .br-close-x{
+  position:absolute;top:12px;left:12px;
+  width:28px;height:28px;border-radius:50%;
+  background:var(--c3);border:1px solid var(--b2);
+  color:var(--tx2);font-size:15px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;
+  transition:var(--tr);line-height:1;
+}
+#backup-reminder-box .br-close-x:hover{background:var(--no-bg);color:var(--no);border-color:var(--no-bd);}
+#backup-reminder-box .br-icon{font-size:38px;margin-bottom:8px;display:block;}
+#backup-reminder-box .br-title{font-size:16px;font-weight:900;color:var(--tx1);margin-bottom:6px;}
+#backup-reminder-box .br-sub{font-size:12px;color:var(--tx2);margin-bottom:18px;line-height:1.7;}
+/* أزرار: عمود في الجوال، صف في الكمبيوتر */
+#backup-reminder-box .br-btns{
+  display:flex;flex-direction:column;gap:8px;
+}
+/* زر التنزيل الرئيسي */
 #backup-reminder-box .br-yes{
-  background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;
-  border:none;border-radius:10px;padding:10px 22px;font-size:14px;
-  font-weight:700;cursor:pointer;font-family:inherit;
+  background:linear-gradient(135deg,var(--g3),var(--g1) 50%,var(--g2));
+  color:#060300;border:none;border-radius:10px;
+  padding:12px 18px;font-size:14px;font-weight:800;
+  cursor:pointer;font-family:inherit;
   box-shadow:var(--sg);transition:var(--tr);
+  display:flex;align-items:center;justify-content:center;gap:7px;
 }
-#backup-reminder-box .br-yes:hover{filter:brightness(1.1)}
+#backup-reminder-box .br-yes:hover{filter:brightness(1.08);transform:translateY(-1px);}
+#backup-reminder-box .br-yes:active{transform:scale(.97);}
+/* صف الأزرار الثانوية */
+#backup-reminder-box .br-secondary-row{
+  display:flex;gap:8px;
+}
+/* زر "ذكرني بعد 20 دقيقة" */
+#backup-reminder-box .br-later{
+  flex:1;background:var(--in-bg);color:var(--in);
+  border:1.5px solid var(--in-bd);border-radius:10px;
+  padding:9px 10px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:var(--tr);
+}
+#backup-reminder-box .br-later:hover{background:var(--in);color:#fff;}
+/* زر "إغلاق" الثانوي */
 #backup-reminder-box .br-no{
-  background:var(--c3);color:var(--tx2);border:1px solid var(--b2);
-  border-radius:10px;padding:10px 18px;font-size:13px;
-  font-weight:600;cursor:pointer;font-family:inherit;transition:var(--tr);
+  flex:1;background:var(--c3);color:var(--tx2);
+  border:1px solid var(--b2);border-radius:10px;
+  padding:9px 10px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:var(--tr);
 }
-#backup-reminder-box .br-no:hover{background:var(--c4)}
+#backup-reminder-box .br-no:hover{background:var(--c4);color:var(--tx1);}
+/* نص حالة التذكير */
+#backup-reminder-box .br-hint{
+  font-size:10px;color:var(--tx3);margin-top:10px;
+  padding-top:10px;border-top:1px solid var(--b1);
+}
+@media(max-width:400px){
+  #backup-reminder-box .br-secondary-row{flex-direction:column;}
+}
 
 /* ── شريط العد التنازلي للخروج التلقائي ── */
 #auto-logout-bar{
@@ -19528,15 +19576,28 @@ function gpAppendMsg(role, html){
 }
 </style>
 
-<!-- مودال تذكير الحفظ -->
+<!-- مودال تذكير النسخ الاحتياطي الذكي -->
 <div id="backup-reminder-overlay">
   <div id="backup-reminder-box">
-    <div class="br-icon">💾</div>
-    <div class="br-title">هل تريد حفظ نسخة احتياطية؟</div>
-    <div class="br-sub">تم تسجيل العملية بنجاح ✅<br>يُنصح بحفظ نسخة خارجية لضمان سلامة بياناتك</div>
-    <div class="br-btns">
-      <button class="br-yes" onclick="window._backupReminderYes()">📥 حفظ نسخة الآن</button>
-      <button class="br-no"  onclick="window._backupReminderNo()">لاحقاً</button>
+    <!-- زر X للإغلاق أعلى اليمين -->
+    <button class="br-close-x" onclick="window._backupReminderClose()" title="إغلاق">✕</button>
+    <div class="br-body">
+      <span class="br-icon">🛡️</span>
+      <div class="br-title">حماية بياناتك مهمة</div>
+      <div class="br-sub">
+        بياناتك قيّمة ولا يمكن استعادتها بدون نسخة احتياطية.<br>
+        يُنصح بتنزيل نسخة خارجية بانتظام لحماية عملك.
+      </div>
+      <div class="br-btns">
+        <button class="br-yes" onclick="window._backupReminderDownload()">
+          ⬇️ تنزيل نسخة احتياطية الآن
+        </button>
+        <div class="br-secondary-row">
+          <button class="br-later" onclick="window._backupReminderLater()">⏰ ذكّرني بعد 20 دقيقة</button>
+          <button class="br-no"   onclick="window._backupReminderClose()">✕ إغلاق</button>
+        </div>
+      </div>
+      <div class="br-hint">💡 سيُفتح قسم النسخ الاحتياطي تلقائياً عند الضغط على تنزيل</div>
     </div>
   </div>
 </div>
@@ -19553,74 +19614,248 @@ function gpAppendMsg(role, html){
 
 <script>
 (function(){
-  /* ═══════════════════════════════════════════
-     ١ — نظام التذكير بالحفظ بعد كل عملية
-  ═══════════════════════════════════════════ */
-  var _brOverlay   = null;
-  var _brShown     = false;
-  var _brLastShown = 0;
-  var BR_COOLDOWN  = 3 * 60 * 1000; // لا تكرر التذكير أقل من 3 دقايق
+  /* ═══════════════════════════════════════════════════════
+     ١ — نظام التذكير الذكي بالنسخ الاحتياطي v2
+         - تأجيل 20 دقيقة عند الإغلاق أو التأجيل
+         - إظهار عند أول دخول في الجلسة
+         - إظهار بعد أي عملية تغيير (فاتورة / عميل / تحويل)
+         - مرة واحدة فقط في نفس الجلسة عند الدخول
+  ═══════════════════════════════════════════════════════ */
 
-  window._showBackupReminder = function(){
-    if(!_brOverlay) _brOverlay = document.getElementById('backup-reminder-overlay');
-    if(!_brOverlay) return;
+  /* ── الثوابت ── */
+  var BR_COOLDOWN      = 20 * 60 * 1000;   /* 20 دقيقة مدة التأجيل */
+  var BR_SESSION_DELAY = 4  * 1000;        /* 4 ثوانٍ بعد الدخول   */
+  var BR_OP_DELAY      = 1400;             /* 1.4 ث بعد العملية    */
+
+  /* ── الحالة ── */
+  var _brOverlay       = null;
+  var _brVisible       = false;   /* النافذة مرئية الآن؟          */
+  var _brLastDismissed = 0;       /* وقت آخر إغلاق/تأجيل          */
+  var _brHasChanges    = false;   /* هل توجد تغييرات منذ آخر إغلاق */
+  var _brSessionShown  = false;   /* أُظهرت مرة عند الدخول؟        */
+  var _brHookedSv      = false;   /* هل تم ربط sv() بالفعل؟        */
+  var _brHookedSafe    = false;   /* هل تم ربط safeSave؟           */
+
+  /* ── مساعد: هل المستخدم مسجّل دخول؟ ── */
+  function _isLoggedIn(){
+    return sessionStorage.getItem('auth') === '1';
+  }
+
+  /* ── هل يمكن إظهار النافذة الآن؟ ── */
+  function _canShow(){
+    if(_brVisible) return false;
+    if(!_isLoggedIn()) return false;
     var now = Date.now();
-    if(_brShown || now - _brLastShown < BR_COOLDOWN) return;
-    _brShown = true;
-    _brLastShown = now;
-    _brOverlay.classList.add('show');
-  };
-
-  window._backupReminderYes = function(){
-    _brShown = false;
-    if(_brOverlay) _brOverlay.classList.remove('show');
-    // تنزيل النسخة الاحتياطية
-    try{
-      var dataStr = JSON.stringify(window.S || {}, null, 2);
-      var blob = new Blob([dataStr], {type:'application/json'});
-      var url  = URL.createObjectURL(blob);
-      var a    = document.createElement('a');
-      var now  = new Date();
-      var stamp = now.getFullYear()+'-'
-        +String(now.getMonth()+1).padStart(2,'0')+'-'
-        +String(now.getDate()).padStart(2,'0')+'_'
-        +String(now.getHours()).padStart(2,'0')
-        +String(now.getMinutes()).padStart(2,'0');
-      a.href     = url;
-      a.download = 'backup_karat_' + stamp + '.json';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 2000);
-      if(typeof window.toast === 'function') window.toast('✅ تم تنزيل النسخة الاحتياطية');
-      if(typeof window._doAutoBackup === 'function') window._doAutoBackup('بعد العملية — يدوي');
-    } catch(e){ console.error('Backup error:', e); }
-  };
-
-  window._backupReminderNo = function(){
-    _brShown = false;
-    if(_brOverlay) _brOverlay.classList.remove('show');
-  };
-
-  // ربط التذكير بـ safeSave — ننتظر حتى تجهز الدوال
-  function hookSafeSave(){
-    var origSafeSave = window.safeSave;
-    if(typeof origSafeSave !== 'function') return false;
-    window.safeSave = function(tx){
-      var result = origSafeSave.apply(this, arguments);
-      if(result === true){
-        // تأخير بسيط عشان تظهر الـ toast أولاً
-        setTimeout(function(){ window._showBackupReminder(); }, 1200);
-      }
-      return result;
-    };
+    if(_brLastDismissed > 0 && (now - _brLastDismissed) < BR_COOLDOWN) return false;
     return true;
   }
 
-  if(!hookSafeSave()){
-    document.addEventListener('DOMContentLoaded', function(){
-      setTimeout(hookSafeSave, 500);
-    });
+  /* ── إظهار النافذة ── */
+  /* reason: 'session' = دخول الجلسة | 'operation' = بعد عملية بيانات */
+  window._showBackupReminder = function(reason){
+    if(!_canShow()) return;
+
+    /* عمليات البيانات: لا تُظهر ما لم تكن هناك تغييرات فعلية */
+    if(reason === 'operation' && !_brHasChanges) return;
+
+    if(!_brOverlay) _brOverlay = document.getElementById('backup-reminder-overlay');
+    if(!_brOverlay) return;
+
+    _brVisible    = true;
+    _brHasChanges = false;   /* إعادة ضبط — ستتراكم تغييرات جديدة بعد الإغلاق */
+    _brOverlay.classList.add('show');
+  };
+
+  /* ── تسجيل وجود تغييرات جديدة ── */
+  window._brMarkChanges = function(){
+    _brHasChanges = true;
+  };
+
+  /* ── إغلاق النافذة داخلياً ── */
+  function _dismiss(){
+    _brVisible       = false;
+    _brLastDismissed = Date.now();
+    if(!_brOverlay) _brOverlay = document.getElementById('backup-reminder-overlay');
+    if(_brOverlay)  _brOverlay.classList.remove('show');
   }
+
+  /* ══════════════════════════════════════════════════
+     معالجات الأزرار الثلاثة
+  ══════════════════════════════════════════════════ */
+
+  /* زر "تنزيل نسخة احتياطية الآن"
+     التسلسل: إغلاق النافذة ← فتح صفحة النسخ الاحتياطي
+             ← التمرير إلى قسم "تصدير يدوي"
+             ← استدعاء exportBackup() الموجودة في النظام */
+  window._backupReminderDownload = function(){
+    _dismiss();
+
+    /* 1 ← فتح صفحة النسخ الاحتياطي */
+    try{
+      var backupTab = document.querySelector('.tab[onclick*="\'backup\'"]') ||
+                      document.querySelector('.tab[onclick*="backup"]');
+      if(typeof window.P === 'function'){
+        window.P('backup', backupTab || null);
+      }
+    }catch(e){}
+
+    /* 2 ← التمرير إلى زر "تنزيل نسخة احتياطية" في قسم التصدير اليدوي */
+    setTimeout(function(){
+      try{
+        /* البحث عن زر exportBackup داخل صفحة النسخ الاحتياطي */
+        var exportBtn = document.querySelector(
+          '#pg-backup button[onclick*="exportBackup"]'
+        );
+        if(exportBtn){
+          exportBtn.scrollIntoView({behavior:'smooth', block:'center'});
+          exportBtn.focus();
+        }
+      }catch(e){}
+    }, 380);
+
+    /* 3 ← استدعاء exportBackup() الموجودة مباشرةً — بدون إعادة بناء */
+    setTimeout(function(){
+      try{
+        if(typeof window.exportBackup === 'function'){
+          window.exportBackup();
+        }
+      }catch(e){ console.error('[BR] exportBackup error:', e); }
+    }, 750);
+  };
+
+  /* زر "ذكّرني بعد 20 دقيقة" */
+  window._backupReminderLater = function(){
+    _dismiss();
+    /* لا تُظهر مجدداً إلا بعد BR_COOLDOWN */
+  };
+
+  /* زر "إغلاق" (زر X + الزر النصي) */
+  window._backupReminderClose = function(){
+    _dismiss();
+  };
+
+  /* ── التوافق مع الدوال القديمة (في حال استُدعيت من مكان آخر) ── */
+  window._backupReminderYes = window._backupReminderDownload;
+  window._backupReminderNo  = window._backupReminderLater;
+
+  /* ══════════════════════════════════════════════════
+     ربط العمليات — لا تعديل على الدوال الأصلية
+  ══════════════════════════════════════════════════ */
+
+  /* ── ربط safeSave: يغطي حفظ الفواتير + التحويلات + المدفوعات + الخ ── */
+  function hookSafeSave(){
+    if(_brHookedSafe) return true;
+    var orig = window.safeSave;
+    if(typeof orig !== 'function') return false;
+    window.safeSave = function(tx){
+      var result = orig.apply(this, arguments);
+      if(result === true){
+        window._brMarkChanges();
+        setTimeout(function(){ window._showBackupReminder('operation'); }, BR_OP_DELAY);
+      }
+      return result;
+    };
+    _brHookedSafe = true;
+    return true;
+  }
+
+  /* ── ربط sv(): يغطي حذف الفواتير، إضافة/تعديل/حذف العملاء والموردين ──
+     الربط من الخارج فقط — لا تعديل على منطق sv() الأصلي              */
+  function hookSv(){
+    if(_brHookedSv) return true;
+    var origSv = window.sv;
+    if(typeof origSv !== 'function') return false;
+
+    /* نتتبع عدد المعاملات والعملاء لكشف التغيير الحقيقي */
+    var _prevTxCount  = -1;
+    var _prevCliCount = -1;
+
+    window.sv = function(){
+      /* ← تنفيذ sv() الأصلية أولاً دون أي تعديل */
+      origSv.apply(this, arguments);
+
+      /* بعدها نتحقق من وجود تغيير فعلي في البيانات */
+      try{
+        var currTx  = window.S && window.S.transactions ? window.S.transactions.length : 0;
+        var currCli = window.S && window.S.clients      ? window.S.clients.length      : 0;
+
+        if(_prevTxCount === -1){
+          /* التهيئة الأولى فقط — لا نُشغّل التذكير */
+          _prevTxCount  = currTx;
+          _prevCliCount = currCli;
+          return;
+        }
+
+        var changed = (currTx !== _prevTxCount) || (currCli !== _prevCliCount);
+        if(changed){
+          _prevTxCount  = currTx;
+          _prevCliCount = currCli;
+          window._brMarkChanges();
+          setTimeout(function(){ window._showBackupReminder('operation'); }, BR_OP_DELAY);
+        }
+      }catch(e){}
+    };
+    _brHookedSv = true;
+    return true;
+  }
+
+  /* ══════════════════════════════════════════════════
+     إظهار النافذة عند أول دخول في الجلسة
+  ══════════════════════════════════════════════════ */
+  function showOnSessionStart(){
+    if(_brSessionShown) return;
+    if(!_isLoggedIn()) return;
+
+    /* تحقق من اليوم: في يوم جديد يمكن الإظهار مجدداً */
+    var todayStr = new Date().toISOString().split('T')[0];
+    var lastDay  = '';
+    try{ lastDay = sessionStorage.getItem('_br_last_day') || ''; }catch(e){}
+
+    /* إذا تغير اليوم — أعد ضبط العداد */
+    if(lastDay !== todayStr){
+      try{ sessionStorage.setItem('_br_last_day', todayStr); }catch(e){}
+      _brLastDismissed = 0;  /* رفع الحظر للسماح بإظهار النافذة */
+    }
+
+    _brSessionShown = true;
+    setTimeout(function(){
+      window._showBackupReminder('session');
+    }, BR_SESSION_DELAY);
+  }
+
+  /* ══════════════════════════════════════════════════
+     التهيئة: ننتظر جاهزية الصفحة والدوال
+  ══════════════════════════════════════════════════ */
+  function _init(){
+    _brOverlay = document.getElementById('backup-reminder-overlay');
+    if(!hookSafeSave()) setTimeout(hookSafeSave, 1000);
+    if(!hookSv())       setTimeout(hookSv,       1000);
+    showOnSessionStart();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(_init, 1500);
+    });
+  } else {
+    setTimeout(_init, 1500);
+  }
+
+  /* مراقب دوري: يلتقط تسجيل الدخول بعد تحميل الصفحة
+     (نفس نمط نظام الخروج التلقائي الموجود)              */
+  var _loginWatcher = setInterval(function(){
+    if(_isLoggedIn()){
+      /* تأكد من الربط عند أول دخول */
+      if(!_brHookedSafe) hookSafeSave();
+      if(!_brHookedSv)   hookSv();
+      showOnSessionStart();
+    }
+  }, 2500);
+
+  /* إيقاف مراقب الدخول بعد دقيقتين توفيراً للموارد
+     (الجلسة تكون قد بدأت بالتأكيد في هذه المرحلة) */
+  setTimeout(function(){ clearInterval(_loginWatcher); }, 2 * 60 * 1000);
+
 
   /* ═══════════════════════════════════════════
      ٢ — تسجيل الخروج التلقائي بعد 10 دقائق
