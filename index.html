@@ -21827,17 +21827,85 @@ function dbgRender(){
   .ep-kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .ep-tab { font-size: 10px; padding: 7px 4px; }
 }
+
+/* ── مؤشر التعديلات ── */
+.ep-mod-entry {
+  border-radius: 11px;
+  padding: 11px 13px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: transform .12s;
+}
+.ep-mod-entry:hover { transform: translateX(-2px); }
+.ep-mod-before-after {
+  margin-top: 7px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.ep-mod-before, .ep-mod-after {
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 10px;
+}
+.ep-mod-before { background: var(--no-bg); border: 1px solid var(--no-bd); }
+.ep-mod-after  { background: var(--ok-bg); border: 1px solid var(--ok-bd); }
+.ep-mod-label  { font-size: 9px; font-weight: 800; margin-bottom: 2px; }
+
+/* ── تقارير النظام ── */
+.sr-period-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+.sr-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sr-kpi-card {
+  background: var(--c2);
+  border: 1px solid var(--b1);
+  border-radius: 11px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.sr-kpi-icon { font-size: 20px; }
+.sr-kpi-val  { font-size: 18px; font-weight: 900; line-height: 1.1; }
+.sr-kpi-lbl  { font-size: 9px; color: var(--tx2); margin-top: 2px; }
+
+/* ── مركز المراجعة ── */
+.review-confirm-btn {
+  background: var(--ok-bg);
+  border: 1.5px solid var(--ok-bd);
+  color: var(--ok);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  font-weight: 700;
+  transition: all .15s;
+}
+.review-confirm-btn:hover { background: var(--ok); color: #fff; }
+.review-edit-btn {
+  background: var(--in-bg);
+  border: 1.5px solid var(--in-bd);
+  color: var(--in);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  font-weight: 700;
+  transition: all .15s;
+}
+.review-edit-btn:hover { background: var(--in); color: #fff; }
 </style>
 
 <!-- صفحة المراجعة المتكاملة -->
 <div id="pg-enterprise" class="pg">
 
   <!-- شريط التبويبات -->
-  <div class="ep-tab-bar">
+  <div class="ep-tab-bar" style="flex-wrap:wrap">
     <button class="ep-tab on" onclick="EPtab('health', this)">🏥 صحة النظام</button>
-    <button class="ep-tab" onclick="EPtab('audit', this)">📋 سجل التدقيق</button>
-    <button class="ep-tab" onclick="EPtab('backup2', this)">💾 النسخ الاحتياطي</button>
-    <button class="ep-tab" onclick="EPtab('analytics2', this)">📊 التحليلات</button>
+    <button class="ep-tab" onclick="EPtab('audit', this)">🔍 سجل التدقيق</button>
+    <button class="ep-tab" onclick="EPtab('modifications', this)">🔄 مؤشر التعديلات</button>
+    <button class="ep-tab" onclick="EPtab('sysreports', this)">📊 تقارير النظام</button>
     <button class="ep-tab" onclick="EPtab('security', this)">🔒 الأمان</button>
   </div>
 
@@ -21851,31 +21919,33 @@ function dbgRender(){
     </div>
   </div>
 
-  <!-- [2] سجل التدقيق -->
+  <!-- [2] سجل التدقيق الذكي — مركز المراجعة -->
   <div id="ep-audit" class="ep-sec">
     <div class="ep-card">
       <div class="ep-ch">
-        📋 سجل التدقيق الكامل
-        <div style="display:flex;gap:6px">
+        🔍 مركز المراجعة الذكي
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="ep-btn ep-btn-sm ep-btn-blue" onclick="EP.exportAuditCSV()">📤 تصدير</button>
           <button class="ep-btn ep-btn-sm ep-btn-gold" onclick="EP.renderAudit()">🔄 تحديث</button>
         </div>
       </div>
       <div class="ep-cb">
+        <!-- شريط الإحصاء السريع -->
+        <div id="ep-audit-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px"></div>
+        <!-- فلاتر -->
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <input type="text" id="ep-audit-search" placeholder="🔍 بحث في السجل..."
+          <input type="text" id="ep-audit-search" placeholder="🔍 بحث..."
             oninput="EP.renderAudit()"
-            style="flex:1;min-width:120px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
+            style="flex:1;min-width:100px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
           <select id="ep-audit-type" onchange="EP.renderAudit()"
             style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px">
             <option value="">كل الأنواع</option>
-            <option value="add">➕ إضافة</option>
-            <option value="edit">✏️ تعديل</option>
-            <option value="delete">🗑️ حذف</option>
-            <option value="login">🔐 دخول</option>
-            <option value="logout">🔓 خروج</option>
-            <option value="backup">💾 نسخ</option>
-            <option value="restore">🔄 استرجاع</option>
+            <option value="duplicate">🔁 تكرار</option>
+            <option value="missing">⚠️ بيانات ناقصة</option>
+            <option value="unusual">💡 قيم غير معتادة</option>
+            <option value="multi_edit">✏️ تعديل متعدد</option>
+            <option value="negative">🔴 رصيد سالب</option>
+            <option value="orphan">🔗 غير مرتبط</option>
           </select>
         </div>
         <div id="ep-audit-count" style="font-size:11px;color:var(--tx3);margin-bottom:8px"></div>
@@ -21884,48 +21954,59 @@ function dbgRender(){
     </div>
   </div>
 
-  <!-- [3] النسخ الاحتياطي المتقدم -->
-  <div id="ep-backup2" class="ep-sec">
+  <!-- [3] مؤشر التعديلات الجديد -->
+  <div id="ep-modifications" class="ep-sec">
     <div class="ep-card">
-      <div class="ep-ch">💾 النسخ الاحتياطي الذكي</div>
+      <div class="ep-ch">
+        🔄 مؤشر التعديلات
+        <div style="display:flex;gap:6px">
+          <button class="ep-btn ep-btn-sm ep-btn-blue" onclick="EP.exportModificationsCSV()">📤 تصدير</button>
+          <button class="ep-btn ep-btn-sm ep-btn-gold" onclick="EP.renderModifications()">🔄 تحديث</button>
+        </div>
+      </div>
       <div class="ep-cb">
-        <div id="ep-bk-status" style="margin-bottom:14px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-          <button class="ep-btn ep-btn-gold" style="padding:13px;font-size:13px" onclick="EP.backupNow()">
-            📥 نسخة احتياطية الآن
-          </button>
-          <button class="ep-btn ep-btn-blue" style="padding:13px;font-size:13px" onclick="EP.downloadBackup()">
-            ⬇️ تنزيل نسخة كاملة
-          </button>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <input type="text" id="ep-mod-search" placeholder="🔍 بحث في التعديلات..."
+            oninput="EP.renderModifications()"
+            style="flex:1;min-width:100px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
+          <select id="ep-mod-type" onchange="EP.renderModifications()"
+            style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px">
+            <option value="">كل العمليات</option>
+            <option value="add">➕ إضافة</option>
+            <option value="edit">✏️ تعديل</option>
+            <option value="delete">🗑️ حذف</option>
+            <option value="restore">🔄 استرجاع</option>
+          </select>
         </div>
-
-        <!-- استرجاع من ملف -->
-        <div style="background:var(--no-bg);border:1.5px solid var(--no-bd);border-radius:12px;padding:14px;margin-bottom:14px">
-          <div style="font-size:12px;font-weight:800;color:var(--no);margin-bottom:8px">⚠️ استرجاع من ملف JSON</div>
-          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;line-height:1.6">
-            تحذير: سيتم استبدال كافة البيانات الحالية بمحتوى الملف المحدد. هذه العملية لا يمكن التراجع عنها!
-          </div>
-          <input type="file" id="ep-restore-file" accept=".json" onchange="EP.restoreFromFile(this)" style="display:none">
-          <button class="ep-btn ep-btn-red" onclick="document.getElementById('ep-restore-file').click()">
-            📂 اختر ملف الاسترجاع
-          </button>
-        </div>
-
-        <!-- قائمة النسخ المحفوظة -->
-        <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--b1)">
-          📚 النسخ المحفوظة محلياً
-        </div>
-        <div id="ep-bk-list"></div>
+        <div id="ep-mod-count" style="font-size:11px;color:var(--tx3);margin-bottom:8px"></div>
+        <div id="ep-mod-list"></div>
       </div>
     </div>
   </div>
 
-  <!-- [4] التحليلات المتقدمة -->
-  <div id="ep-analytics2" class="ep-sec">
-    <div id="ep-analytics-content">
-      <div style="text-align:center;padding:30px;color:var(--tx2)">
-        <div style="font-size:32px;margin-bottom:8px">📊</div>
-        <div>انتقل لهذا التاب لتحميل التحليلات</div>
+  <!-- [4] تقارير النظام الجديد -->
+  <div id="ep-sysreports" class="ep-sec">
+    <div class="ep-card">
+      <div class="ep-ch">
+        📊 تقارير النظام
+        <button class="ep-btn ep-btn-sm ep-btn-gold" onclick="EP.renderSysReports()">🔄 تحديث</button>
+      </div>
+      <div class="ep-cb">
+        <!-- تبويبات التقارير -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+          <button id="sr-tab-daily" class="ep-btn ep-btn-gold" style="font-size:12px;padding:9px 6px"
+            onclick="EP.showReportPeriod('daily')">📅 يومي</button>
+          <button id="sr-tab-weekly" class="ep-btn ep-btn-sm ep-btn-blue" style="font-size:12px;padding:9px 6px;width:100%"
+            onclick="EP.showReportPeriod('weekly')">📆 أسبوعي</button>
+          <button id="sr-tab-monthly" class="ep-btn ep-btn-sm ep-btn-blue" style="font-size:12px;padding:9px 6px;width:100%"
+            onclick="EP.showReportPeriod('monthly')">🗓️ شهري</button>
+        </div>
+        <div id="ep-sysreport-content">
+          <div style="text-align:center;padding:24px;color:var(--tx2)">
+            <div style="font-size:28px;margin-bottom:8px">📊</div>
+            <div>جارٍ تحميل تقارير النظام...</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -22167,6 +22248,272 @@ function dbgRender(){
     if (DUP._pendingResolve && DUP._pendingResolve.onCancel) DUP._pendingResolve.onCancel();
     DUP._pendingResolve = null;
   };
+
+
+  /* ══════════════════════════════════════════════════════════════
+     SMART_DUP — محرك الكشف الذكي عن التكرار (بالتشابه لا التطابق)
+     يدعم: نفس العميل أو عملاء مختلفين
+  ══════════════════════════════════════════════════════════════ */
+  var SMART_DUP = {
+
+    /* حساب نسبة تشابه رقمين (0..1) */
+    _numSim: function (a, b) {
+      a = parseFloat(a) || 0;
+      b = parseFloat(b) || 0;
+      if (a === 0 && b === 0) return 1;
+      if (a === 0 || b === 0) return 0;
+      var diff = Math.abs(a - b) / Math.max(Math.abs(a), Math.abs(b));
+      return Math.max(0, 1 - diff);
+    },
+
+    /* حساب تشابه التاريخ (1 = نفس اليوم، 0.8 = فرق يوم، 0 = أكثر من 7 أيام) */
+    _dateSim: function (d1, d2) {
+      if (!d1 || !d2) return 0;
+      var t1 = new Date(d1).getTime();
+      var t2 = new Date(d2).getTime();
+      if (isNaN(t1) || isNaN(t2)) return 0;
+      var daysDiff = Math.abs(t1 - t2) / 86400000;
+      if (daysDiff === 0) return 1;
+      if (daysDiff <= 1) return 0.85;
+      if (daysDiff <= 3) return 0.60;
+      if (daysDiff <= 7) return 0.30;
+      return 0;
+    },
+
+    /* جمع أوزان الفاتورة */
+    _totalWeight: function (tx) {
+      if ((tx.items || []).length > 0) {
+        return tx.items.reduce(function (s, it) { return s + (parseFloat(it.weight) || 0); }, 0);
+      }
+      return parseFloat(tx.weight) || 0;
+    },
+
+    /* جمع أجور الفاتورة */
+    _totalAjour: function (tx) {
+      if ((tx.items || []).length > 0) {
+        return tx.items.reduce(function (s, it) { return s + (parseFloat(it.ajour) || 0); }, 0);
+      }
+      return parseFloat(tx.ajour) || 0;
+    },
+
+    /* عيار سائد في الفاتورة */
+    _dominantKarat: function (tx) {
+      if ((tx.items || []).length > 0) {
+        var map = {};
+        tx.items.forEach(function (it) {
+          var k = String(it.karat || '21');
+          map[k] = (map[k] || 0) + (parseFloat(it.weight) || 1);
+        });
+        return Object.keys(map).sort(function (a, b) { return map[b] - map[a]; })[0];
+      }
+      return String(tx.karat || tx.karat21 || tx.karat18 || '?');
+    },
+
+    /* القيمة الإجمالية */
+    _amount: function (tx) {
+      return parseFloat(tx.ajTotal || tx.total || tx.amount || 0);
+    },
+
+    /* الدالة الرئيسية: حساب نسبة التشابه بين فاتورتين (0..1) */
+    similarity: function (a, b) {
+      if (!a || !b) return 0;
+
+      var scores = [];
+      var reasons = [];
+
+      /* ١. نوع العملية (شرط أساسي — إذا مختلف نزيد وزن) */
+      var sameType = (a.type === b.type) ? 1 : 0.4;
+
+      /* ٢. نفس الوزن */
+      var wA = this._totalWeight(a);
+      var wB = this._totalWeight(b);
+      var wSim = this._numSim(wA, wB);
+      scores.push({ w: 0.28, v: wSim });
+      if (wSim >= 0.95) reasons.push('نفس الوزن (' + wA.toFixed(2) + 'ج)');
+      else if (wSim >= 0.80) reasons.push('وزن متقارب');
+
+      /* ٣. نفس الأجرة */
+      var aA = this._totalAjour(a);
+      var aB = this._totalAjour(b);
+      var aSim = this._numSim(aA, aB);
+      scores.push({ w: 0.22, v: aSim });
+      if (aSim >= 0.95) reasons.push('نفس الأجرة (' + Math.round(aA) + 'ر)');
+      else if (aSim >= 0.80) reasons.push('أجرة متقاربة');
+
+      /* ٤. نفس القيمة الإجمالية */
+      var vA = this._amount(a);
+      var vB = this._amount(b);
+      var vSim = this._numSim(vA, vB);
+      scores.push({ w: 0.22, v: vSim });
+      if (vSim >= 0.95) reasons.push('نفس القيمة (' + Math.round(vA) + 'ر)');
+      else if (vSim >= 0.80) reasons.push('قيمة متقاربة');
+
+      /* ٥. نفس التاريخ أو قريب */
+      var dSim = this._dateSim(a.date, b.date);
+      scores.push({ w: 0.18, v: dSim });
+      if (dSim === 1) reasons.push('نفس التاريخ');
+      else if (dSim >= 0.80) reasons.push('تاريخ قريب');
+
+      /* ٦. نفس العيار */
+      var kA = this._dominantKarat(a);
+      var kB = this._dominantKarat(b);
+      var kSim = (kA === kB && kA !== '?') ? 1 : 0;
+      scores.push({ w: 0.10, v: kSim });
+      if (kSim === 1) reasons.push('نفس العيار ' + kA);
+
+      /* الدرجة الإجمالية المرجحة */
+      var total = scores.reduce(function (s, sc) { return s + sc.w * sc.v; }, 0);
+      total *= sameType;
+
+      /* مكافأة: إذا كان نفس العميل */
+      if (a.client && b.client && a.client === b.client) {
+        total = Math.min(1, total * 1.12);
+      }
+
+      return total;
+    },
+
+    /* بناء نص تفصيلي للاشتباه */
+    buildDetail: function (a, b, sim) {
+      var pct = Math.round(sim * 100);
+      var wA = this._totalWeight(a).toFixed(2);
+      var wB = this._totalWeight(b).toFixed(2);
+      var aA = Math.round(this._totalAjour(a));
+      var aB = Math.round(this._totalAjour(b));
+      var vA = Math.round(this._amount(a));
+      var vB = Math.round(this._amount(b));
+      var kA = this._dominantKarat(a);
+      var kB = this._dominantKarat(b);
+
+      var parts = [];
+      if (a.client && b.client) {
+        parts.push('العميل الأول: ' + a.client + (a.client === b.client ? ' = ' : ' ≠ ') + 'العميل الثاني: ' + b.client);
+      }
+      parts.push('الوزن: ' + wA + 'ج / ' + wB + 'ج');
+      parts.push('الأجرة: ' + aA + 'ر / ' + aB + 'ر');
+      parts.push('القيمة: ' + vA + 'ر / ' + vB + 'ر');
+      parts.push('العيار: ' + kA + ' / ' + kB);
+      if (a.date || b.date) {
+        var d1 = a.date ? new Date(a.date).toLocaleDateString('ar-SA') : '—';
+        var d2 = b.date ? new Date(b.date).toLocaleDateString('ar-SA') : '—';
+        parts.push('التاريخ: ' + d1 + ' / ' + d2);
+      }
+      parts.push('نسبة التشابه: ' + pct + '%');
+      return parts.join(' · ');
+    },
+
+    /* كشف التكرار بالتشابه عند الحفظ (يُستخدم من DUP.check المحسّن) */
+    checkAll: function (newTx, existingTxs) {
+      var self = this;
+      var THRESHOLD = 0.82;
+      return (existingTxs || []).filter(function (tx) {
+        if (tx.id === newTx.id) return false;
+        return self.similarity(tx, newTx) >= THRESHOLD;
+      }).map(function (tx) {
+        return { tx: tx, sim: self.similarity(tx, newTx), detail: self.buildDetail(tx, newTx, self.similarity(tx, newTx)) };
+      }).sort(function (a, b) { return b.sim - a.sim; });
+    },
+  };
+
+  window.SMART_DUP = SMART_DUP;
+
+  /* ══════════════════════════════════════════════════════════════
+     MODLOG — مدير تسجيل التعديلات (مستقل عن سجل التدقيق)
+     يسجل: إضافة · تعديل · حذف · استرجاع  مع قبل/بعد
+  ══════════════════════════════════════════════════════════════ */
+  var MODLOG = {
+    MAX: 800,
+    LS_KEY: 'mzm_modlog_v1',
+    _confirmed_LS_KEY: 'mzm_review_confirmed_v1',
+
+    /* ── تهيئة السجل (يقرأ من localStorage للاستمرارية) ── */
+    init: function () {
+      try {
+        /* تهيئة modificationLog في S */
+        if (window.S && !Array.isArray(window.S.modificationLog)) {
+          window.S.modificationLog = [];
+        }
+        /* استرجاع العناصر المعتمدة من localStorage */
+        this.loadConfirmed();
+      } catch (e) {}
+    },
+
+    /* تسجيل عملية جديدة */
+    log: function (type, details, beforeVal, afterVal, extra) {
+      if (!window.S) return;
+      if (!Array.isArray(window.S.modificationLog)) window.S.modificationLog = [];
+
+      var entry = Object.assign({
+        id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        ts: _now(),
+        user: _user(),
+        role: _role(),
+        device: _device(),
+        type: type,      /* add | edit | delete | restore | review_confirm */
+        details: details,
+        before: beforeVal ? String(beforeVal).slice(0, 300) : '',
+        after:  afterVal  ? String(afterVal).slice(0, 300) : '',
+      }, extra || {});
+
+      window.S.modificationLog.unshift(entry);
+      if (window.S.modificationLog.length > this.MAX) {
+        window.S.modificationLog = window.S.modificationLog.slice(0, this.MAX);
+      }
+
+      /* حفظ في localStorage للاستمرارية */
+      try {
+        var stored = [];
+        try { stored = JSON.parse(localStorage.getItem(this.LS_KEY) || '[]'); } catch (e2) {}
+        stored.unshift(entry);
+        if (stored.length > this.MAX) stored = stored.slice(0, this.MAX);
+        localStorage.setItem(this.LS_KEY, JSON.stringify(stored));
+      } catch (e) {}
+    },
+
+    /* جلب السجل (من window.S + localStorage مدمجان) */
+    getAll: function () {
+      var inMem = (window.S && Array.isArray(window.S.modificationLog)) ? window.S.modificationLog : [];
+      var stored = [];
+      try { stored = JSON.parse(localStorage.getItem(this.LS_KEY) || '[]'); } catch (e) {}
+
+      /* دمج وإزالة المكرر */
+      var merged = inMem.slice();
+      var ids = {};
+      merged.forEach(function (e) { ids[e.id] = true; });
+      stored.forEach(function (e) { if (!ids[e.id]) { merged.push(e); ids[e.id] = true; } });
+      merged.sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
+      return merged.slice(0, this.MAX);
+    },
+
+    /* ── حفظ العناصر المعتمدة في localStorage (للاستمرارية عبر الجلسات) ── */
+    saveConfirmed: function () {
+      try {
+        var confirmed = (window.S && window.S._reviewConfirmed) ? window.S._reviewConfirmed : {};
+        localStorage.setItem(this._confirmed_LS_KEY, JSON.stringify(confirmed));
+      } catch (e) {}
+    },
+
+    /* ── تحميل العناصر المعتمدة من localStorage ── */
+    loadConfirmed: function () {
+      try {
+        var raw = localStorage.getItem(this._confirmed_LS_KEY);
+        if (raw) {
+          var stored = JSON.parse(raw);
+          if (window.S) {
+            if (!window.S._reviewConfirmed) window.S._reviewConfirmed = {};
+            /* دمج بدون تجاوز */
+            Object.keys(stored).forEach(function (k) {
+              if (!window.S._reviewConfirmed[k]) {
+                window.S._reviewConfirmed[k] = stored[k];
+              }
+            });
+          }
+        }
+      } catch (e) {}
+    },
+  };
+
+  window.MODLOG = MODLOG;
 
   /* ══════════════════════════════════════════════════════════════
      ٣. محرك التدقيق المحاسبي (Accounting Auditor)
@@ -22658,11 +23005,11 @@ function dbgRender(){
     if (btn) btn.classList.add('on');
 
     var renders = {
-      health: function () { EP.renderHealth(); },
-      audit: function () { EP.renderAudit(); },
-      backup2: function () { EP.renderBackup(); },
-      analytics2: function () { EP.renderAnalytics(); },
-      security: function () { EP.renderSecurity(); },
+      health:        function () { EP.renderHealth(); },
+      audit:         function () { EP.renderAudit(); },
+      modifications: function () { EP.renderModifications(); },
+      sysreports:    function () { EP.renderSysReports(); },
+      security:      function () { EP.renderSecurity(); },
     };
     if (renders[tab]) renders[tab]();
   };
@@ -22748,65 +23095,298 @@ function dbgRender(){
       el.innerHTML = html;
     },
 
-    /* ─────── سجل التدقيق ─────── */
+    /* ─────── سجل التدقيق الذكي ─────── */
     renderAudit: function () {
       var listEl = document.getElementById('ep-audit-list');
       var countEl = document.getElementById('ep-audit-count');
+      var statsEl = document.getElementById('ep-audit-stats');
       if (!listEl) return;
 
       _ensureArrays();
-      var entries = (window.S && window.S.auditLog) ? window.S.auditLog : [];
-
-      if (entries.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center;padding:28px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:8px">📋</div><div>لا يوجد سجل تدقيق بعد — سيُملأ عند الحفظ التالي</div></div>';
-        if (countEl) countEl.textContent = '';
+      if (!window.S) {
+        listEl.innerHTML = '<div style="text-align:center;padding:28px;color:var(--tx2)">لا توجد بيانات</div>';
         return;
       }
 
-      var search = (document.getElementById('ep-audit-search') || {}).value || '';
+      /* ── بناء قائمة العناصر المشبوهة ── */
+      var suspects = [];
+      var txs = window.S.transactions || [];
+      var confirmed = window.S._reviewConfirmed || {};
+
+      /* ١. فحص الفواتير المكررة بين جميع العملاء */
+      var sellTxs = txs.filter(function (t) {
+        return ['sell','sell-debt','buy','buy-debt'].indexOf(t.type) > -1;
+      });
+
+      for (var i = 0; i < sellTxs.length; i++) {
+        for (var j = i + 1; j < sellTxs.length; j++) {
+          var a = sellTxs[i], b = sellTxs[j];
+          var pairKey = [a.id, b.id].sort().join('|');
+          if (confirmed[pairKey]) continue;
+
+          var sim = SMART_DUP.similarity(a, b);
+          if (sim >= 0.82) {
+            suspects.push({
+              id: pairKey,
+              type: 'duplicate',
+              severity: sim >= 0.95 ? 'high' : 'medium',
+              icon: '🔁',
+              title: 'تكرار محتمل — نسبة التشابه: ' + Math.round(sim * 100) + '%',
+              detail: SMART_DUP.buildDetail(a, b, sim),
+              txA: a, txB: b,
+              fix: 'راجع الفاتورتين وتأكد من أنهما عمليتان مختلفتان أو أن إحداهما مكررة بالخطأ.',
+            });
+          }
+        }
+      }
+
+      /* ٢. فحص سندات القبض والصرف المكررة */
+      var payTxs = txs.filter(function (t) {
+        return ['payment','supplier-payment','general-receipt','general-payment'].indexOf(t.type) > -1;
+      });
+      for (var pi = 0; pi < payTxs.length; pi++) {
+        for (var pj = pi + 1; pj < payTxs.length; pj++) {
+          var pa = payTxs[pi], pb = payTxs[pj];
+          var payKey = [pa.id, pb.id].sort().join('|');
+          if (confirmed[payKey]) continue;
+          if (pa.type !== pb.type) continue;
+          if (pa.client !== pb.client) continue;
+          var amtA = pa.amount || pa.total || 0;
+          var amtB = pb.amount || pb.total || 0;
+          if (amtA > 0 && Math.abs(amtA - amtB) / Math.max(amtA, amtB) < 0.01) {
+            var dateA = pa.date ? new Date(pa.date).toDateString() : '';
+            var dateB = pb.date ? new Date(pb.date).toDateString() : '';
+            if (dateA === dateB && dateA !== '') {
+              suspects.push({
+                id: payKey,
+                type: 'duplicate',
+                severity: 'high',
+                icon: '🔁',
+                title: 'سند مكرر: ' + _typeLabel(pa.type),
+                detail: 'العميل: ' + (pa.client || '—') + ' · المبلغ: ' + _fmt(amtA) + ' ريال · التاريخ: ' + _fmtDate(pa.date),
+                txA: pa, txB: pb,
+                fix: 'تحقق إذا كان السند أُدخل مرتين بالخطأ.',
+              });
+            }
+          }
+        }
+      }
+
+      /* ٣. فواتير بدون بيانات كاملة */
+      txs.forEach(function (t) {
+        if (confirmed[t.id + '_missing']) return;
+        var issues = [];
+        if (!t.date) issues.push('بدون تاريخ');
+        var needsClient = ['sell','sell-debt','buy','buy-debt','payment','supplier-payment'];
+        if (needsClient.indexOf(t.type) > -1 && !(t.client || '').trim()) issues.push('بدون جهة');
+        var val = (t.ajTotal || 0) + (t.total || 0) + (t.amount || 0);
+        if (['sell','sell-debt','buy','buy-debt'].indexOf(t.type) > -1 && val < 0.01) issues.push('بدون قيمة');
+        if (issues.length > 0) {
+          suspects.push({
+            id: t.id + '_missing',
+            type: 'missing',
+            severity: 'medium',
+            icon: '⚠️',
+            title: 'بيانات ناقصة: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
+            detail: 'المشكلة: ' + issues.join('، ') + ' · ' + _fmtDate(t.date),
+            txRef: t,
+            fix: 'افتح العملية وأكمل البيانات الناقصة.',
+          });
+        }
+      });
+
+      /* ٤. قيم غير معتادة (أجرة مرتفعة جداً أو منخفضة جداً) */
+      var ajourVals = [];
+      txs.forEach(function (t) {
+        (t.items || []).forEach(function (it) {
+          if ((it.ajour || 0) > 0 && (it.weight || 0) > 0) {
+            ajourVals.push((it.ajour || 0) / (it.weight || 1));
+          }
+        });
+      });
+      if (ajourVals.length >= 5) {
+        var avg = ajourVals.reduce(function (s, v) { return s + v; }, 0) / ajourVals.length;
+        var std = Math.sqrt(ajourVals.reduce(function (s, v) { return s + Math.pow(v - avg, 2); }, 0) / ajourVals.length);
+        txs.forEach(function (t) {
+          if (confirmed[t.id + '_unusual']) return;
+          (t.items || []).forEach(function (it) {
+            if ((it.ajour || 0) > 0 && (it.weight || 0) > 0) {
+              var rate = (it.ajour || 0) / (it.weight || 1);
+              if (Math.abs(rate - avg) > 3 * std && std > 0) {
+                suspects.push({
+                  id: t.id + '_unusual',
+                  type: 'unusual',
+                  severity: 'medium',
+                  icon: '💡',
+                  title: 'أجرة غير معتادة: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
+                  detail: 'أجرة الجرام: ' + rate.toFixed(0) + ' ريال · المتوسط: ' + avg.toFixed(0) + ' ريال · ' + _fmtDate(t.date),
+                  txRef: t,
+                  fix: 'راجع قيمة الأجرة وتأكد من صحتها.',
+                });
+              }
+            }
+          });
+        });
+      }
+
+      /* ٥. عمليات تم تعديلها أكثر من مرة */
+      var editCounts = {};
+      (window.S.auditLog || []).forEach(function (e) {
+        if (e.type === 'edit' && e.txId) {
+          editCounts[e.txId] = (editCounts[e.txId] || 0) + 1;
+        }
+      });
+      Object.keys(editCounts).forEach(function (txId) {
+        if (editCounts[txId] >= 3) {
+          if (confirmed[txId + '_multi_edit']) return;
+          var tx = txs.find(function (t) { return t.id === txId; });
+          suspects.push({
+            id: txId + '_multi_edit',
+            type: 'multi_edit',
+            severity: 'low',
+            icon: '✏️',
+            title: 'تعديل متعدد (' + editCounts[txId] + ' مرات): ' + (tx ? _typeLabel(tx.type) : 'معاملة') + (tx && tx.client ? ' — ' + tx.client : ''),
+            detail: 'تم تعديل هذه العملية ' + editCounts[txId] + ' مرات' + (tx ? ' · ' + _fmtDate(tx.date) : ''),
+            txRef: tx,
+            fix: 'راجع سجل التعديلات في مؤشر التعديلات للتحقق.',
+          });
+        }
+      });
+
+      /* ٦. أرصدة سالبة */
+      try {
+        var safes = typeof window.calcSafes === 'function' ? window.calcSafes() : {};
+        var safeChecks = [
+          ['cash','الصندوق النقدي','ريال'],['worked21','مشغول 21','جرام'],
+          ['worked18','مشغول 18','جرام'],['scrap21','كسر 21','جرام'],
+        ];
+        safeChecks.forEach(function (ck) {
+          if (confirmed['neg_' + ck[0]]) return;
+          var val = safes[ck[0]] || 0;
+          if (val < -0.01) {
+            suspects.push({
+              id: 'neg_' + ck[0],
+              type: 'negative',
+              severity: 'high',
+              icon: '🔴',
+              title: 'رصيد سالب: ' + ck[1],
+              detail: 'الرصيد: ' + val.toFixed(3) + ' ' + ck[2] + ' — قد يدل على إدخال خاطئ.',
+              fix: 'راجع حركات الإدخال والإخراج لهذا الصندوق.',
+            });
+          }
+        });
+      } catch (e) {}
+
+      /* ── تخزين العناصر للعرض ── */
+      window._reviewSuspects = suspects;
+
+      /* ── إحصاء ── */
+      var highC = suspects.filter(function (s) { return s.severity === 'high'; }).length;
+      var medC  = suspects.filter(function (s) { return s.severity === 'medium'; }).length;
+      var lowC  = suspects.filter(function (s) { return s.severity === 'low'; }).length;
+      var dupC  = suspects.filter(function (s) { return s.type === 'duplicate'; }).length;
+
+      if (statsEl) {
+        statsEl.innerHTML = [
+          ['🔴', String(highC), 'حرجة', 'var(--no)', 'var(--no-bg)', 'var(--no-bd)'],
+          ['🟡', String(medC),  'تنبيه', 'var(--io)', 'var(--io-bg)', 'var(--io-bd)'],
+          ['🔵', String(lowC),  'ملاحظة', 'var(--in)', 'var(--in-bg)', 'var(--in-bd)'],
+          ['🔁', String(dupC),  'تكرار', 'var(--pu)', 'var(--pu-bg)', 'var(--pu-bd)'],
+        ].map(function (r) {
+          return '<div style="background:' + r[4] + ';border:1px solid ' + r[5] + ';border-radius:10px;padding:10px 8px;text-align:center">' +
+            '<div style="font-size:18px">' + r[0] + '</div>' +
+            '<div style="font-size:18px;font-weight:900;color:' + r[3] + '">' + r[1] + '</div>' +
+            '<div style="font-size:9px;color:var(--tx2);font-weight:700">' + r[2] + '</div></div>';
+        }).join('');
+      }
+
+      /* ── تطبيق الفلاتر ── */
+      var search = ((document.getElementById('ep-audit-search') || {}).value || '').toLowerCase();
       var typeFilter = (document.getElementById('ep-audit-type') || {}).value || '';
-      search = search.toLowerCase();
 
-      var typeIcons = {
-        add: '➕', edit: '✏️', delete: '🗑️',
-        login: '🔐', logout: '🔓',
-        backup: '💾', restore: '🔄',
-        error: '❌', security: '🛡️',
-      };
-      var typeColors = {
-        add: 'var(--ok)', edit: 'var(--in)', delete: 'var(--no)',
-        login: 'var(--g1)', logout: 'var(--io)',
-        backup: 'var(--pu)', restore: 'var(--in)',
-      };
-
-      var filtered = entries.filter(function (e) {
-        if (typeFilter && (e.type || '').indexOf(typeFilter) === -1) return false;
+      var filtered = suspects.filter(function (s) {
+        if (typeFilter && s.type !== typeFilter) return false;
         if (search) {
-          var hay = ((e.user || '') + ' ' + (e.details || '') + ' ' + (e.type || '') + ' ' + (e.client || '')).toLowerCase();
+          var hay = (s.title + ' ' + s.detail).toLowerCase();
           if (hay.indexOf(search) === -1) return false;
         }
         return true;
       });
 
-      if (countEl) countEl.textContent = 'إجمالي: ' + entries.length + ' سجل · مُعروض: ' + Math.min(filtered.length, 150);
+      if (countEl) countEl.textContent = 'إجمالي الحالات: ' + suspects.length + ' · مُعروض: ' + filtered.length;
 
-      if (filtered.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx2)">لا توجد نتائج تطابق البحث</div>';
+      if (filtered.length === 0 && suspects.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--tx2)">' +
+          '<div style="font-size:44px;margin-bottom:12px">✅</div>' +
+          '<div style="font-size:15px;font-weight:800;color:var(--ok)">ممتاز — لا توجد حالات تحتاج مراجعة</div>' +
+          '<div style="font-size:11px;margin-top:6px">النظام سليم ولا يوجد تكرار أو أخطاء مكتشفة</div></div>';
         return;
       }
 
-      listEl.innerHTML = filtered.slice(0, 150).map(function (e) {
-        var icon = typeIcons[e.type] || '📝';
-        var color = typeColors[e.type] || 'var(--tx2)';
-        return '<div class="ep-log-row">' +
-          '<div class="ep-log-icon">' + icon + '</div>' +
-          '<div class="ep-log-body">' +
-            '<div class="ep-log-title" style="color:' + color + '">' + (e.details || e.type || '—') + '</div>' +
-            '<div class="ep-log-meta">👤 ' + (e.user || '—') + ' · 🏷️ ' + (e.role || '—') + ' · ' + (e.device || '—') + ' · 🕐 ' + _fmtDate(e.ts) + '</div>' +
-          '</div>' +
-          '<div class="ep-log-hash">#' + (e.hash || '').slice(0, 8) + '</div>' +
-          '</div>';
-      }).join('') + (filtered.length > 150 ? '<div style="text-align:center;font-size:11px;color:var(--tx3);padding:10px">... و ' + (filtered.length - 150) + ' سجل آخر</div>' : '');
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx2)">لا توجد نتائج تطابق الفلتر</div>';
+        return;
+      }
+
+      /* ── عرض العناصر مع أزرار ── */
+      var sevOrder = { high: 0, medium: 1, low: 2 };
+      filtered.sort(function (a, b) { return (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9); });
+
+      listEl.innerHTML = filtered.map(function (s) {
+        var sevCls = s.severity === 'high' ? 'ep-issue-high' : s.severity === 'medium' ? 'ep-issue-medium' : 'ep-issue-low';
+        return '<div class="ep-issue ' + sevCls + '" id="suspect-' + encodeURIComponent(s.id) + '">' +
+          '<div class="ep-issue-icon">' + s.icon + '</div>' +
+          '<div class="ep-issue-body">' +
+            '<div class="ep-issue-title">' + s.title + '</div>' +
+            '<div class="ep-issue-detail">' + s.detail + '</div>' +
+            '<div class="ep-issue-fix">💡 ' + s.fix + '</div>' +
+            '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">' +
+              '<button class="ep-btn ep-btn-sm" style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);color:var(--ok);font-size:11px;padding:5px 12px" ' +
+                'onclick="EP.confirmReviewItem(\'' + encodeURIComponent(s.id) + '\')">✓ صحيح — اعتماد</button>' +
+              (s.txRef || s.txA ? '<button class="ep-btn ep-btn-sm" style="background:var(--in-bg);border:1.5px solid var(--in-bd);color:var(--in);font-size:11px;padding:5px 12px" ' +
+                'onclick="EP.openForEdit(\'' + encodeURIComponent(s.id) + '\')">✏️ تعديل</button>' : '') +
+            '</div>' +
+          '</div></div>';
+      }).join('');
+    },
+
+    /* اعتماد عنصر كصحيح — مع حفظ دائم في localStorage */
+    confirmReviewItem: function (encodedId) {
+      var id = decodeURIComponent(encodedId);
+      _ensureArrays();
+      if (!window.S._reviewConfirmed) window.S._reviewConfirmed = {};
+      window.S._reviewConfirmed[id] = { ts: _now(), user: _user() };
+      /* حفظ في localStorage للاستمرارية عبر الجلسات */
+      MODLOG.saveConfirmed();
+      /* تسجيل في مؤشر التعديلات */
+      MODLOG.log('review_confirm', 'اعتماد عنصر مراجعة: ' + id.slice(0, 40), null, 'معتمد كصحيح');
+      if (typeof window.sv === 'function') try { window.sv(); } catch (e) {}
+      window.toast && window.toast('✅ تم اعتماد العنصر — لن يظهر مرة أخرى إلا عند تعديله');
+      this.renderAudit();
+    },
+
+    /* فتح عنصر للتعديل */
+    openForEdit: function (encodedId) {
+      var suspects = window._reviewSuspects || [];
+      var id = decodeURIComponent(encodedId);
+      var suspect = suspects.find(function (s) { return s.id === id; });
+      if (!suspect) { window.toast && window.toast('⚠️ لم يُعثر على العنصر'); return; }
+      var tx = suspect.txRef || suspect.txA;
+      if (!tx) { window.toast && window.toast('⚠️ لا يمكن فتح هذا النوع مباشرة'); return; }
+      /* الانتقال لصفحة السجل مع فتح العملية */
+      window.toast && window.toast('⏳ جارٍ فتح العملية...');
+      setTimeout(function () {
+        var logTab = document.querySelector('[onclick*="pg-log"]') || document.querySelector('[onclick*="log"]');
+        if (typeof window.P === 'function') {
+          var logBtn = document.getElementById('tab-log');
+          if (logBtn) window.P('log', logBtn);
+        }
+        if (typeof window.openTxDetail === 'function') {
+          try { window.openTxDetail(tx.id || tx); } catch (e) {}
+        } else if (typeof window.showTx === 'function') {
+          try { window.showTx(tx); } catch (e) {}
+        }
+      }, 300);
     },
 
     exportAuditCSV: function () {
@@ -23071,7 +23651,304 @@ function dbgRender(){
           '</div></div>';
       }).join('');
     },
-  };
+
+    /* ─────── مؤشر التعديلات ─────── */
+    renderModifications: function () {
+      var listEl = document.getElementById('ep-mod-list');
+      var countEl = document.getElementById('ep-mod-count');
+      if (!listEl) return;
+
+      _ensureArrays();
+
+      /* جمع كل التعديلات من MODLOG (localStorage + window.S) */
+      var allEntries = MODLOG.getAll();
+
+      /* إضافة سجلات add/edit/delete/restore من auditLog القديم للتوافق */
+      var auditEntries = ((window.S && window.S.auditLog) ? window.S.auditLog : [])
+        .filter(function (e) { return ['add','edit','delete','restore'].indexOf(e.type) > -1; });
+      var ids = {};
+      allEntries.forEach(function (e) { ids[e.id] = true; });
+      auditEntries.forEach(function (e) {
+        if (!ids[e.id]) { allEntries.push(e); ids[e.id] = true; }
+      });
+      allEntries.sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
+
+      var search = ((document.getElementById('ep-mod-search') || {}).value || '').toLowerCase();
+      var typeFilter = (document.getElementById('ep-mod-type') || {}).value || '';
+
+      var filtered = allEntries.filter(function (e) {
+        if (typeFilter && e.type !== typeFilter) return false;
+        if (search) {
+          var hay = ((e.user || '') + ' ' + (e.details || '') + ' ' + (e.type || '') + ' ' + (e.client || '')).toLowerCase();
+          if (hay.indexOf(search) === -1) return false;
+        }
+        return true;
+      });
+
+      if (countEl) countEl.textContent = 'إجمالي التعديلات: ' + allEntries.length + ' · مُعروض: ' + Math.min(filtered.length, 200);
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;padding:28px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:8px">🔄</div><div>لا يوجد سجل تعديلات بعد</div></div>';
+        return;
+      }
+
+      var typeConfig = {
+        add:            { icon:'➕', color:'var(--ok)',  bg:'var(--ok-bg)',  bd:'var(--ok-bd)',  lbl:'إضافة' },
+        edit:           { icon:'✏️', color:'var(--in)',  bg:'var(--in-bg)',  bd:'var(--in-bd)',  lbl:'تعديل' },
+        delete:         { icon:'🗑️', color:'var(--no)',  bg:'var(--no-bg)',  bd:'var(--no-bd)',  lbl:'حذف' },
+        restore:        { icon:'🔄', color:'var(--pu)',  bg:'var(--pu-bg)',  bd:'var(--pu-bd)',  lbl:'استرجاع' },
+        review_confirm: { icon:'✅', color:'var(--ok)',  bg:'var(--ok-bg)',  bd:'var(--ok-bd)',  lbl:'اعتماد مراجعة' },
+      };
+
+      listEl.innerHTML = filtered.slice(0, 200).map(function (e) {
+        var cfg = typeConfig[e.type] || { icon:'📝', color:'var(--tx2)', bg:'var(--c2)', bd:'var(--b1)', lbl: (e.type || '—') };
+        var beforeAfter = '';
+        if (e.before || e.after) {
+          beforeAfter = '<div style="margin-top:7px;display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+          if (e.before) beforeAfter += '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:8px;padding:7px 9px"><div style="font-size:9px;color:var(--no);font-weight:800;margin-bottom:2px">قبل التعديل</div><div style="font-size:11px;color:var(--tx1)">' + e.before + '</div></div>';
+          if (e.after)  beforeAfter += '<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:8px;padding:7px 9px"><div style="font-size:9px;color:var(--ok);font-weight:800;margin-bottom:2px">بعد التعديل</div><div style="font-size:11px;color:var(--tx1)">' + e.after + '</div></div>';
+          beforeAfter += '</div>';
+        }
+        return '<div style="background:' + cfg.bg + ';border:1.5px solid ' + cfg.bd + ';border-radius:11px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">' +
+          '<div style="font-size:20px;flex-shrink:0;margin-top:1px">' + cfg.icon + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' +
+              '<div style="font-size:12px;font-weight:800;color:' + cfg.color + '">' + (e.details || e.type || '—') + '</div>' +
+              '<span style="background:' + cfg.bg + ';border:1px solid ' + cfg.bd + ';color:' + cfg.color + ';padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800">' + cfg.lbl + '</span>' +
+            '</div>' +
+            '<div style="font-size:10px;color:var(--tx3);margin-top:3px">👤 ' + (e.user || '—') + ' · 🏷️ ' + (e.role || '—') + ' · ' + (e.device || '—') + ' · 🕐 ' + _fmtDate(e.ts) + '</div>' +
+            beforeAfter +
+          '</div></div>';
+      }).join('') + (filtered.length > 200 ? '<div style="text-align:center;font-size:11px;color:var(--tx3);padding:10px">... و ' + (filtered.length - 200) + ' سجل آخر</div>' : '');
+    },
+
+    exportModificationsCSV: function () {
+      try {
+        _ensureArrays();
+        var entries = (window.S && window.S.modificationLog) ? window.S.modificationLog : [];
+        var auditEntries = ((window.S && window.S.auditLog) ? window.S.auditLog : [])
+          .filter(function (e) { return ['add','edit','delete','restore'].indexOf(e.type) > -1; });
+        var all = entries.concat(auditEntries).sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
+        if (all.length === 0) { window.toast && window.toast('❌ لا يوجد سجل تعديلات'); return; }
+
+        var rows = [['التاريخ','المستخدم','الدور','الجهاز','نوع العملية','التفاصيل','قبل','بعد']];
+        all.forEach(function (e) {
+          rows.push([
+            _fmtDate(e.ts), e.user||'', e.role||'', e.device||'',
+            e.type||'', (e.details||'').replace(/,/g,'،'),
+            (e.before||'').replace(/,/g,'،'),
+            (e.after||'').replace(/,/g,'،'),
+          ]);
+        });
+        var csv = rows.map(function (r) { return r.join(','); }).join('\n');
+        var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'مؤشر_التعديلات_' + new Date().toLocaleDateString('ar-SA').replace(/\//g,'-') + '.csv';
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 2000);
+        window.toast && window.toast('✅ تم تصدير مؤشر التعديلات');
+      } catch (e) {
+        window.toast && window.toast('❌ خطأ في التصدير: ' + (e.message || e));
+      }
+    },
+
+    /* ─────── تقارير النظام ─────── */
+    _reportPeriod: 'daily',
+    showReportPeriod: function (period) {
+      this._reportPeriod = period;
+      ['daily','weekly','monthly'].forEach(function (p) {
+        var btn = document.getElementById('sr-tab-' + p);
+        if (btn) {
+          btn.className = p === period
+            ? 'ep-btn ep-btn-gold'
+            : 'ep-btn ep-btn-sm ep-btn-blue';
+          btn.style.cssText = 'font-size:12px;padding:9px 6px;width:100%';
+        }
+      });
+      this.renderSysReports();
+    },
+
+    renderSysReports: function () {
+      var el = document.getElementById('ep-sysreport-content');
+      if (!el) return;
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx2)"><div style="font-size:28px">⏳</div><div>جارٍ حساب التقرير...</div></div>';
+
+      var period = this._reportPeriod || 'daily';
+      var self = this;
+
+      setTimeout(function () {
+        try {
+          var txs = (window.S && window.S.transactions) ? window.S.transactions : [];
+          var clients = (window.S && window.S.clients) ? window.S.clients : [];
+          var auditLog = (window.S && window.S.auditLog) ? window.S.auditLog : [];
+          var modLog = (window.S && window.S.modificationLog) ? window.S.modificationLog : [];
+          var now = new Date();
+
+          var from;
+          var periodLabel;
+          if (period === 'daily') {
+            from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            periodLabel = 'اليوم — ' + now.toLocaleDateString('ar-SA');
+          } else if (period === 'weekly') {
+            from = new Date(now.getTime() - 7 * 86400000);
+            periodLabel = 'آخر 7 أيام';
+          } else {
+            from = new Date(now.getFullYear(), now.getMonth(), 1);
+            periodLabel = 'الشهر الحالي — ' + now.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+          }
+
+          var inRange = function (dateStr) {
+            if (!dateStr) return false;
+            return new Date(dateStr) >= from;
+          };
+
+          var periodTxs = txs.filter(function (t) { return inRange(t.date); });
+          var invoices   = periodTxs.filter(function (t) { return ['sell','sell-debt','buy','buy-debt'].indexOf(t.type) > -1; });
+          var receipts   = periodTxs.filter(function (t) { return ['payment','general-receipt','cash-receipt'].indexOf(t.type) > -1; });
+          var payments   = periodTxs.filter(function (t) { return ['supplier-payment','general-payment'].indexOf(t.type) > -1; });
+          var returns_   = periodTxs.filter(function (t) { return ['sales-return','purchase-return','return'].indexOf(t.type) > -1; });
+
+          var allLogs = auditLog.concat(modLog);
+          var periodEdits  = allLogs.filter(function (e) { return e.type === 'edit'   && inRange(e.ts); });
+          var periodAdds   = allLogs.filter(function (e) { return e.type === 'add'    && inRange(e.ts); });
+          var periodDels   = allLogs.filter(function (e) { return e.type === 'delete' && inRange(e.ts); });
+
+          /* حساب التكرارات المكتشفة في الفترة */
+          var confirmed = window.S._reviewConfirmed || {};
+          var confirmedCount = Object.keys(confirmed).filter(function (k) {
+            return confirmed[k] && inRange(confirmed[k].ts);
+          }).length;
+
+          /* حساب الإيرادات */
+          var totalRevenue = invoices.filter(function (t) { return ['sell','sell-debt'].indexOf(t.type) > -1; })
+            .reduce(function (s, t) { return s + (t.ajTotal || t.total || 0); }, 0);
+          var totalBuy = invoices.filter(function (t) { return ['buy','buy-debt'].indexOf(t.type) > -1; })
+            .reduce(function (s, t) { return s + (t.ajTotal || t.total || 0); }, 0);
+
+          /* كلاينتس النشطين في الفترة */
+          var activeClients = {};
+          periodTxs.forEach(function (t) { if (t.client) activeClients[t.client] = 1; });
+
+          /* بناء HTML */
+          var html = '';
+
+          /* عنوان الفترة */
+          html += '<div style="background:linear-gradient(135deg,var(--hd),rgba(200,150,30,.15));border:1px solid var(--g5);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">' +
+            '<div><div style="font-size:14px;font-weight:900;color:var(--g2)">📊 ' + periodLabel + '</div>' +
+            '<div style="font-size:11px;color:var(--tx3);margin-top:3px">من: ' + from.toLocaleDateString('ar-SA') + ' — حتى: ' + now.toLocaleDateString('ar-SA') + '</div></div>' +
+            '<div style="font-size:32px">📋</div></div>';
+
+          /* الأقسام حسب الفترة */
+          if (period === 'daily') {
+            html += self._reportSection('📋 ملخص اليوم', [
+              ['🧾','عدد الفواتير',invoices.length,'var(--g1)'],
+              ['💵','سندات القبض',receipts.length,'var(--ok)'],
+              ['💸','سندات الصرف',payments.length,'var(--no)'],
+              ['✏️','عدد التعديلات',periodEdits.length,'var(--in)'],
+              ['➕','الإضافات',periodAdds.length,'var(--pu)'],
+              ['🗑️','الحذف',periodDels.length,'var(--io)'],
+            ]);
+            html += self._reportFinancial(totalRevenue, totalBuy, receipts, payments);
+          } else if (period === 'weekly') {
+            html += self._reportSection('📆 ملخص الأسبوع', [
+              ['🧾','إجمالي العمليات',periodTxs.length,'var(--g1)'],
+              ['🧾','الفواتير',invoices.length,'var(--ok)'],
+              ['↩️','المرتجعات',returns_.length,'var(--io)'],
+              ['✏️','التعديلات',periodEdits.length,'var(--in)'],
+              ['✅','المراجعات المعتمدة',confirmedCount,'var(--pu)'],
+              ['👥','العملاء النشطين',Object.keys(activeClients).length,'var(--no)'],
+            ]);
+            html += self._reportFinancial(totalRevenue, totalBuy, receipts, payments);
+            /* الأخطاء المكتشفة في الأسبوع */
+            var weekIssues = AUDITOR.run();
+            html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">🔍 حالة التدقيق</div><div class="ep-cb">';
+            html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+            html += '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--no)">' + weekIssues.filter(function(i){return i.severity==='high';}).length + '</div><div style="font-size:9px;color:var(--tx2)">حرجة</div></div>';
+            html += '<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--io)">' + weekIssues.filter(function(i){return i.severity==='medium';}).length + '</div><div style="font-size:9px;color:var(--tx2)">تنبيه</div></div>';
+            html += '<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">' + confirmedCount + '</div><div style="font-size:9px;color:var(--tx2)">معتمدة</div></div>';
+            html += '</div></div></div>';
+          } else {
+            /* شهري */
+            var supplierClients = clients.filter(function (c) { return c.type === 'مورد'; }).length;
+            var regularClients  = clients.filter(function (c) { return c.type !== 'مورد'; }).length;
+
+            /* حساب التكرارات الكلية */
+            var allDups = 0;
+            var sellAll = txs.filter(function (t) { return ['sell','sell-debt','buy','buy-debt'].indexOf(t.type) > -1 && inRange(t.date); });
+            for (var di = 0; di < sellAll.length; di++) {
+              for (var dj = di+1; dj < sellAll.length; dj++) {
+                if (SMART_DUP.similarity(sellAll[di], sellAll[dj]) >= 0.82) allDups++;
+              }
+            }
+
+            html += self._reportSection('🗓️ ملخص الشهر', [
+              ['🧾','عدد الفواتير',invoices.length,'var(--g1)'],
+              ['👥','عملاء نشطون',regularClients,'var(--ok)'],
+              ['🏭','موردون',supplierClients,'var(--in)'],
+              ['🔔','التنبيهات',AUDITOR._issues.length,'var(--io)'],
+              ['🔁','تكرارات مكتشفة',allDups,'var(--no)'],
+              ['✅','تكرارات معتمدة',confirmedCount,'var(--pu)'],
+            ]);
+            html += self._reportFinancial(totalRevenue, totalBuy, receipts, payments);
+            html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">📋 تفاصيل العمليات</div><div class="ep-cb">';
+            html += '<table class="ep-table"><thead><tr><th>النوع</th><th>العدد</th><th>الإجمالي (ريال)</th></tr></thead><tbody>';
+            var typeSummary = {};
+            periodTxs.forEach(function (t) {
+              var lbl = _typeLabel(t.type);
+              if (!typeSummary[lbl]) typeSummary[lbl] = { count: 0, total: 0 };
+              typeSummary[lbl].count++;
+              typeSummary[lbl].total += (t.ajTotal || t.total || t.amount || 0);
+            });
+            Object.keys(typeSummary).forEach(function (lbl) {
+              var s = typeSummary[lbl];
+              html += '<tr><td>' + lbl + '</td><td style="font-weight:800">' + s.count + '</td><td style="color:var(--g1);font-weight:800">' + _fmt(s.total) + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+          }
+
+          el.innerHTML = html || '<div style="text-align:center;padding:20px;color:var(--tx2)">لا توجد بيانات للفترة المحددة</div>';
+        } catch (ex) {
+          el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--no)">❌ خطأ: ' + (ex.message || ex) + '</div>';
+        }
+      }, 60);
+    },
+
+    _reportSection: function (title, rows) {
+      var html = '<div class="ep-card"><div class="ep-ch">' + title + '</div><div class="ep-cb">';
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+      rows.forEach(function (r) {
+        html += '<div style="background:var(--c2);border:1px solid var(--b1);border-radius:11px;padding:12px 8px;text-align:center">' +
+          '<div style="font-size:20px">' + r[0] + '</div>' +
+          '<div style="font-size:18px;font-weight:900;color:' + r[3] + ';line-height:1.1">' + r[2] + '</div>' +
+          '<div style="font-size:9px;color:var(--tx2);margin-top:2px">' + r[1] + '</div></div>';
+      });
+      html += '</div></div></div>';
+      return html;
+    },
+
+    _reportFinancial: function (revenue, buyTotal, receipts, payments) {
+      var receiptTotal = receipts.reduce(function (s, t) { return s + (t.amount || t.total || 0); }, 0);
+      var paymentTotal = payments.reduce(function (s, t) { return s + (t.amount || t.total || 0); }, 0);
+      return '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">💰 الحركة المالية</div><div class="ep-cb">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+          '<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:11px;padding:12px;text-align:center">' +
+            '<div style="font-size:11px;color:var(--ok);font-weight:800;margin-bottom:4px">💵 إجمالي المبيعات</div>' +
+            '<div style="font-size:17px;font-weight:900;color:var(--ok)">' + _fmt(revenue) + ' ر</div></div>' +
+          '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:11px;padding:12px;text-align:center">' +
+            '<div style="font-size:11px;color:var(--no);font-weight:800;margin-bottom:4px">🛒 إجمالي المشتريات</div>' +
+            '<div style="font-size:17px;font-weight:900;color:var(--no)">' + _fmt(buyTotal) + ' ر</div></div>' +
+          '<div style="background:var(--in-bg);border:1px solid var(--in-bd);border-radius:11px;padding:12px;text-align:center">' +
+            '<div style="font-size:11px;color:var(--in);font-weight:800;margin-bottom:4px">📥 سندات القبض</div>' +
+            '<div style="font-size:17px;font-weight:900;color:var(--in)">' + _fmt(receiptTotal) + ' ر</div></div>' +
+          '<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:11px;padding:12px;text-align:center">' +
+            '<div style="font-size:11px;color:var(--io);font-weight:800;margin-bottom:4px">📤 سندات الصرف</div>' +
+            '<div style="font-size:17px;font-weight:900;color:var(--io)">' + _fmt(paymentTotal) + ' ر</div></div>' +
+        '</div></div></div>';
+    },
+
+  }; /* نهاية كائن EP */
 
   window.EP = EP;
 
@@ -23085,18 +23962,51 @@ function dbgRender(){
     if (typeof orig !== 'function') return false;
 
     var _lastCount = -1;
-    var _bkLastTs = 0;
+    var _lastSnap  = null;
+    var _bkLastTs  = 0;
 
     window.sv_save = function () {
+      /* لقطة سريعة قبل الحفظ */
+      var snapBefore = null;
+      try {
+        if (window.S && window.S.transactions) {
+          snapBefore = window.S.transactions.length;
+        }
+      } catch (e) {}
+
       try { orig.apply(this, arguments); } catch (e) {}
 
-      /* كشف تغيير المعاملات وتسجيله */
+      /* كشف تغيير المعاملات وتسجيله في MODLOG */
       try {
         var curr = (window.S && window.S.transactions) ? window.S.transactions.length : 0;
-        if (_lastCount !== curr) {
+        if (_lastCount >= 0 && _lastCount !== curr) {
+          var diff = curr - _lastCount;
+          if (diff > 0) {
+            /* إضافة جديدة */
+            var newTxs = window.S.transactions.slice(0, Math.min(diff, 5));
+            newTxs.forEach(function (tx) {
+              MODLOG.log('add',
+                'إضافة ' + _typeLabel(tx.type) + (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
+                null,
+                _typeLabel(tx.type) + (tx.client ? ' / ' + tx.client : '') + ' / ' + _txAmount(tx),
+                { txId: tx.id, txType: tx.type, client: tx.client || '' }
+              );
+              AL.log('add', 'إضافة ' + _typeLabel(tx.type) + (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
+                { txId: tx.id, txType: tx.type, client: tx.client || '', amount: tx.total || tx.amount || 0 });
+            });
+          } else if (diff < 0) {
+            /* حذف */
+            MODLOG.log('delete', 'حذف ' + Math.abs(diff) + ' معاملة', 'عدد المعاملات: ' + _lastCount, 'عدد المعاملات: ' + curr);
+            AL.log('delete', 'حذف ' + Math.abs(diff) + ' معاملة');
+          }
           setTimeout(function () { try { AL.detectDebounced(); } catch (e) {} }, 300);
+        } else if (_lastCount < 0 && curr >= 0) {
           _lastCount = curr;
         }
+        _lastCount = curr;
+
+        /* إعادة تحميل الاعتمادات المحفوظة */
+        MODLOG.loadConfirmed();
       } catch (e) {}
 
       /* نسخ احتياطي تلقائي عند كل حفظ (مع debounce 3 دقائق) */
@@ -23162,6 +24072,9 @@ function dbgRender(){
     try {
       _ensureArrays();
 
+      /* تهيئة MODLOG وتحميل الاعتمادات المحفوظة */
+      MODLOG.init();
+
       /* تسجيل الجلسة الحالية */
       var u = _user();
       if (u && u !== 'غير معروف') {
@@ -23187,7 +24100,7 @@ function dbgRender(){
         }
       }, 6 * 60 * 60 * 1000);
 
-      console.log('[منظوم ENTERPRISE PRO v2.0] تم التحميل بنجاح ✅');
+      console.log('[منظوم ENTERPRISE PRO v3.0] تم التحميل بنجاح ✅ — SMART_DUP + MODLOG + مركز المراجعة');
     } catch (e) {
       console.error('[ENPRO] init error:', e);
     }
@@ -23220,6 +24133,8 @@ function dbgRender(){
   window.AL = AL;
   window.SEC = SEC;
   window.ANALYTICS = ANALYTICS;
+  window.SMART_DUP = SMART_DUP;
+  window.MODLOG = MODLOG;
 
 })();
 </script>
