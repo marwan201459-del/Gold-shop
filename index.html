@@ -3112,7 +3112,7 @@ function scrapTo24(tx) {
 }
 
 // ── State ─────────────────────────────────────────────────────────
-const DEF={transactions:[],clients:[],pendingItems:[],activityLog:[],auditLog:[],securityLog:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}],openingBalance:{safes:{},clients:{}}};
+const DEF={transactions:[],clients:[],pendingItems:[],activityLog:[],auditLog:[],securityLog:[],_reviewConfirmed:{},modificationLog:[],safes:{cash:0,cashGold:0,khazina:0,khazinaGold:0,discount:0,scrap21:0,scrap18:0,pure24:0,worked21:0,worked18:0,madan:0,madan21:0,madan18:0,madanGold:0,lava:0,lava21:0,lava18:0,lavaGold:0,debt21:0,debt18:0,debt24:0},customSafes:[],snapshots:[],users:[{username:'Marwan',password:'2139989681',role:'admin',label:'مروان'}],openingBalance:{safes:{},clients:{}}};
 let S={...DEF};
 
 // ── منع التكرار (Anti-Duplicate) ──
@@ -21719,6 +21719,24 @@ function dbgRender(){
 .ep-alert-medium { background: var(--io-bg); border-color: var(--io-bd); color: var(--io); }
 .ep-alert-low { background: var(--in-bg); border-color: var(--in-bd); color: var(--in); }
 
+/* ─── مستويات سجل الأحداث (Audit Trail) ─── */
+.ep-trail-row { padding:9px 12px; border-radius:9px; margin-bottom:5px; border:1.5px solid; display:flex; align-items:flex-start; gap:9px; transition:transform .1s; }
+.ep-trail-row:hover { transform:translateX(-2px); }
+.ep-trail-info    { background:var(--c2);    border-color:var(--b2); }
+.ep-trail-warning { background:var(--io-bg); border-color:var(--io-bd); }
+.ep-trail-error   { background:var(--no-bg); border-color:var(--no-bd); }
+.ep-tl-icon  { font-size:17px; flex-shrink:0; margin-top:1px; }
+.ep-tl-body  { flex:1; min-width:0; }
+.ep-tl-title { font-size:12px; font-weight:800; color:var(--tx1); margin-bottom:2px; }
+.ep-tl-meta  { font-size:10px; color:var(--tx3); line-height:1.5; }
+.ep-tl-before-after { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:6px; }
+.ep-tl-before { background:var(--no-bg); border:1px solid var(--no-bd); border-radius:7px; padding:5px 8px; }
+.ep-tl-after  { background:var(--ok-bg); border:1px solid var(--ok-bd); border-radius:7px; padding:5px 8px; }
+.ep-tl-lvl    { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:20px; border:1px solid; font-size:9px; font-weight:800; flex-shrink:0; }
+.ep-audit-subtab     { padding:7px 14px; border-radius:8px; border:1.5px solid; font-family:'Tajawal',sans-serif; font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; }
+.ep-audit-subtab-on  { background:var(--g4); border-color:var(--g5); color:var(--g1); }
+.ep-audit-subtab-off { background:var(--c2); border-color:var(--b2); color:var(--tx2); }
+
 /* الرسوم البيانية */
 .ep-chart-wrap { display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-bottom: 6px; }
 .ep-chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; }
@@ -21923,21 +21941,55 @@ function dbgRender(){
   <div id="ep-audit" class="ep-sec">
     <div class="ep-card">
       <div class="ep-ch">
-        🔍 مركز المراجعة الذكي
+        🔍 مركز المراجعة
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="ep-btn ep-btn-sm ep-btn-blue" onclick="EP.exportAuditCSV()">📤 تصدير</button>
+          <button class="ep-btn ep-btn-sm ep-btn-blue" onclick="EP.exportAuditCSV()">📤 تصدير CSV</button>
           <button class="ep-btn ep-btn-sm ep-btn-gold" onclick="EP.renderAudit()">🔄 تحديث</button>
         </div>
       </div>
       <div class="ep-cb">
-        <!-- شريط الإحصاء السريع -->
+        <!-- إحصاء سريع من سجل الأحداث الحقيقي -->
         <div id="ep-audit-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px"></div>
-        <!-- فلاتر -->
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <input type="text" id="ep-audit-search" placeholder="🔍 بحث..."
-            oninput="EP.renderAudit()"
+        <!-- تبويبات التدقيق الداخلية -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;padding-bottom:10px;border-bottom:1.5px solid var(--b1)">
+          <button id="ep-asubtab-trail"   class="ep-audit-subtab ep-audit-subtab-on"  onclick="EP.switchAuditTab('trail')">📋 سجل الأحداث</button>
+          <button id="ep-asubtab-suspects" class="ep-audit-subtab ep-audit-subtab-off" onclick="EP.switchAuditTab('suspects')">🔍 مراجعة الشذوذات</button>
+        </div>
+        <!-- فلاتر سجل الأحداث -->
+        <div id="ep-trail-filters" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <input type="text" id="ep-trail-search" placeholder="🔍 بحث في الأحداث..."
+            oninput="EP._renderAuditTrail()"
             style="flex:1;min-width:100px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
-          <select id="ep-audit-type" onchange="EP.renderAudit()"
+          <select id="ep-trail-type" onchange="EP._renderAuditTrail()"
+            style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px">
+            <option value="">كل الأنواع</option>
+            <option value="add">➕ إضافة</option>
+            <option value="edit">✏️ تعديل</option>
+            <option value="delete">🗑️ حذف</option>
+            <option value="restore">🔄 استرجاع</option>
+            <option value="backup">💾 نسخ احتياطي</option>
+            <option value="login">🔐 دخول</option>
+            <option value="logout">🔓 خروج</option>
+            <option value="error">❌ خطأ</option>
+            <option value="js_error">🐛 خطأ JS</option>
+            <option value="storage_error">💾 خطأ تخزين</option>
+            <option value="duplicate">🔁 تكرار</option>
+            <option value="settings">⚙️ إعدادات</option>
+          </select>
+          <select id="ep-trail-level" onchange="EP._renderAuditTrail()"
+            style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px">
+            <option value="">كل المستويات</option>
+            <option value="info">🟢 INFO</option>
+            <option value="warning">🟡 WARNING</option>
+            <option value="error">🔴 ERROR</option>
+          </select>
+        </div>
+        <!-- فلاتر الشذوذات (مخفية افتراضياً) -->
+        <div id="ep-suspects-filters" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <input type="text" id="ep-audit-search" placeholder="🔍 بحث في الشذوذات..."
+            oninput="EP._renderAuditSuspects()"
+            style="flex:1;min-width:100px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
+          <select id="ep-audit-type" onchange="EP._renderAuditSuspects()"
             style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:'Tajawal',sans-serif;font-size:12px">
             <option value="">كل الأنواع</option>
             <option value="duplicate">🔁 تكرار</option>
@@ -21945,7 +21997,6 @@ function dbgRender(){
             <option value="unusual">💡 قيم غير معتادة</option>
             <option value="multi_edit">✏️ تعديل متعدد</option>
             <option value="negative">🔴 رصيد سالب</option>
-            <option value="orphan">🔗 غير مرتبط</option>
           </select>
         </div>
         <div id="ep-audit-count" style="font-size:11px;color:var(--tx3);margin-bottom:8px"></div>
@@ -22126,31 +22177,74 @@ function dbgRender(){
   }
   function _ensureArrays() {
     if (!window.S) return;
-    if (!Array.isArray(window.S.auditLog)) window.S.auditLog = [];
-    if (!Array.isArray(window.S.securityLog)) window.S.securityLog = [];
+    /* تهيئة المصفوفات الأساسية */
+    if (!Array.isArray(window.S.auditLog))        window.S.auditLog        = [];
+    if (!Array.isArray(window.S.securityLog))     window.S.securityLog     = [];
+    if (!Array.isArray(window.S.modificationLog)) window.S.modificationLog = [];
+
+    /* ════ إصلاح جذري لـ window.S._reviewConfirmed ════
+       السبب الحقيقي للخطأ "undefined is not an object":
+       ١) window.S يمكن أن يكون null/undefined في حالات التحميل
+       ٢) النسخ القديمة المخزنة في localStorage لا تحتوي على _reviewConfirmed
+       ٣) عند استرجاع نسخة احتياطية قديمة يُعيَّن window.S من جديد ويفقد المتغير
+       ٤) بعض الدوال تصل إليه قبل أي تهيئة في دورة حياة الصفحة
+       الحل: تهيئة دفاعية شاملة تقاوم كل هذه السيناريوهات */
+    var rc = window.S._reviewConfirmed;
+    if (rc === null || rc === undefined || typeof rc !== 'object' || Array.isArray(rc)) {
+      var _rcStored = {};
+      try {
+        var _rcRaw = localStorage.getItem('mzm_review_confirmed_v1');
+        if (_rcRaw) {
+          var _rcParsed = JSON.parse(_rcRaw);
+          if (_rcParsed && typeof _rcParsed === 'object' && !Array.isArray(_rcParsed)) {
+            _rcStored = _rcParsed;
+          }
+        }
+      } catch (_rcErr) { /* تجاهل أخطاء localStorage */ }
+      window.S._reviewConfirmed = _rcStored;
+    }
   }
 
   /* ══════════════════════════════════════════════════════════════
      ١. سجل المراجعة (Audit Log)
   ══════════════════════════════════════════════════════════════ */
   var AL = {
-    _lastCount: 0,
+    _lastCount: -1,
     _lastHash: '',
     _debounceTimer: null,
+    _lastTxSnap: null,   /* لقطة للكشف عن التعديلات */
 
+    /* ════ الدالة الرئيسية للتسجيل مع مستوى الخطورة ════ */
     log: function (type, details, extra) {
       _ensureArrays();
       if (!window.S) return;
-      var entry = Object.assign({
-        id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        ts: _now(),
-        user: _user(),
-        role: _role(),
-        device: _device(),
-        type: type,
-        details: details,
-        hash: _hash(type + '|' + details + '|' + _user() + '|' + _now()),
-      }, extra || {});
+
+      /* تحديد المستوى تلقائياً إذا لم يُحدد صراحةً */
+      var autoLevel = (['error','js_error','storage_error','db_error'].indexOf(type) > -1) ? 'error' :
+                      (['warning','duplicate','missing','unusual','negative'].indexOf(type) > -1) ? 'warning' : 'info';
+
+      var entry = {
+        id:       Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        ts:       _now(),
+        user:     _user(),
+        role:     _role(),
+        device:   _device(),
+        type:     type,
+        level:    (extra && extra.level) ? extra.level : autoLevel,
+        details:  details,
+        affected: (extra && extra.affected) ? extra.affected :
+                  (extra && extra.client)   ? extra.client   :
+                  (extra && extra.txId)     ? extra.txId     : '',
+        before:   (extra && extra.before) ? String(extra.before).slice(0, 300) : '',
+        after:    (extra && extra.after)  ? String(extra.after).slice(0, 300)  : '',
+        hash:     _hash(type + '|' + details + '|' + _user() + '|' + _now()),
+      };
+      if (extra) {
+        /* ضم الحقول الإضافية (txId, txType, simPct …) */
+        ['txId','txType','txIdA','txIdB','simPct','amount'].forEach(function (k) {
+          if (extra[k] !== undefined) entry[k] = extra[k];
+        });
+      }
 
       window.S.auditLog.unshift(entry);
       if (window.S.auditLog.length > CFG.MAX_AUDIT) {
@@ -22158,27 +22252,114 @@ function dbgRender(){
       }
     },
 
+    /* ─── اختصارات المستويات الثلاثة ─── */
+    info: function (type, details, extra) {
+      this.log(type, details, Object.assign({}, extra || {}, { level: 'info' }));
+    },
+    warning: function (type, details, extra) {
+      this.log(type, details, Object.assign({}, extra || {}, { level: 'warning' }));
+    },
+    error: function (type, details, extra) {
+      this.log(type, details, Object.assign({}, extra || {}, { level: 'error' }));
+    },
+
+    /* ─── تسجيل تكرار دائم في سجل التدقيق ─── */
+    logDuplicate: function (txA, txB, simPct, detail) {
+      this.log('duplicate',
+        'تكرار مكتشف — ' + _typeLabel(txA.type) + ' — نسبة التشابه: ' + simPct + '%',
+        {
+          level:    simPct >= 95 ? 'error' : 'warning',
+          affected: (txA.client || '—') + ' / ' + (txB.client || '—'),
+          before:   detail,
+          after:    'بانتظار المراجعة',
+          txIdA:    txA.id,
+          txIdB:    txB.id,
+          simPct:   simPct,
+        }
+      );
+    },
+
+    /* ─── كشف التغيير التلقائي بالمقارنة ─── */
     detect: function () {
       if (!window.S) return;
       _ensureArrays();
-      var txs = window.S.transactions || [];
+      var txs   = window.S.transactions || [];
       var count = txs.length;
-      if (count === this._lastCount) return;
 
-      var diff = count - this._lastCount;
-      if (diff > 0 && this._lastCount > 0) {
-        var newTxs = txs.slice(-Math.min(diff, 5));
+      /* إذا لم يتغير العدد — تحقق من التعديلات بالمقارنة مع اللقطة */
+      if (count === this._lastCount && this._lastCount >= 0 && this._lastTxSnap) {
+        try {
+          var snapMap = {};
+          this._lastTxSnap.forEach(function (t) { snapMap[t.id] = t; });
+          txs.slice(0, 30).forEach(function (t) {
+            var old = snapMap[t.id];
+            if (!old) return;
+            /* كشف تغيير المبلغ */
+            var oldAmt = old.ajTotal || old.total || old.amount || 0;
+            var newAmt = t.ajTotal || t.total || t.amount || 0;
+            if (Math.abs(oldAmt - newAmt) > 0.5 && newAmt > 0) {
+              AL.log('edit',
+                'تعديل مبلغ: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : '') +
+                ' — ' + _fmt(oldAmt) + ' ← ' + _fmt(newAmt) + ' ريال',
+                { level:'info', txId:t.id, txType:t.type, client:t.client||'',
+                  affected: t.client || t.id,
+                  before: _fmt(oldAmt) + ' ريال', after: _fmt(newAmt) + ' ريال' }
+              );
+            /* كشف تغيير العميل */
+            } else if ((old.client||'') !== (t.client||'') && (t.client||old.client)) {
+              AL.log('edit',
+                'تعديل العميل: ' + _typeLabel(t.type) +
+                ' — ' + (old.client||'—') + ' ← ' + (t.client||'—'),
+                { level:'info', txId:t.id, txType:t.type,
+                  affected: t.client || old.client,
+                  before: old.client||'—', after: t.client||'—' }
+              );
+            /* كشف تغيير التاريخ */
+            } else if ((old.date||'') !== (t.date||'')) {
+              AL.log('edit',
+                'تعديل التاريخ: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : '') +
+                ' — ' + _fmtDate(old.date) + ' ← ' + _fmtDate(t.date),
+                { level:'info', txId:t.id, txType:t.type, client:t.client||'',
+                  affected: t.client || t.id,
+                  before: _fmtDate(old.date), after: _fmtDate(t.date) }
+              );
+            }
+          });
+        } catch (e) {}
+        /* تحديث اللقطة */
+        this._lastTxSnap = txs.slice(0, 50).map(function (t) {
+          return { id:t.id, type:t.type, client:t.client||'', date:t.date||'',
+                   ajTotal:t.ajTotal||0, total:t.total||0, amount:t.amount||0 };
+        });
+        return;
+      }
+
+      /* تغير العدد — إضافة أو حذف */
+      var diff = count - (this._lastCount < 0 ? count : this._lastCount);
+      if (diff > 0 && this._lastCount >= 0) {
+        var newTxs = txs.slice(0, Math.min(diff, 5));
         newTxs.forEach(function (tx) {
-          AL.log('add',
-            'إضافة ' + _typeLabel(tx.type) +
-            (tx.client ? ' — ' + tx.client : '') +
-            ' — ' + _txAmount(tx),
-            { txId: tx.id, txType: tx.type, client: tx.client || '', amount: tx.total || tx.amount || 0 }
+          var isReturn = ['sales-return','purchase-return','return'].indexOf(tx.type) > -1;
+          AL.log(isReturn ? 'restore' : 'add',
+            (isReturn ? 'استرجاع ' : 'إضافة ') + _typeLabel(tx.type) +
+            (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
+            { level:'info', txId:tx.id, txType:tx.type, client:tx.client||'',
+              affected: tx.client || tx.id,
+              amount: tx.total || tx.amount || 0 }
           );
         });
       } else if (diff < 0) {
-        AL.log('delete', 'حذف ' + Math.abs(diff) + ' معاملة');
+        AL.log('delete',
+          'حذف ' + Math.abs(diff) + ' معاملة',
+          { level: Math.abs(diff) > 2 ? 'warning' : 'info' }
+        );
       }
+
+      /* تحديث اللقطة والعداد */
+      this._lastTxSnap = txs.slice(0, 50).map(function (t) {
+        return { id:t.id, type:t.type, client:t.client||'', date:t.date||'',
+                 ajTotal:t.ajTotal||0, total:t.total||0, amount:t.amount||0 };
+      });
       this._lastCount = count;
     },
 
@@ -23095,11 +23276,151 @@ function dbgRender(){
       el.innerHTML = html;
     },
 
-    /* ─────── سجل التدقيق الذكي ─────── */
-    renderAudit: function () {
-      var listEl = document.getElementById('ep-audit-list');
-      var countEl = document.getElementById('ep-audit-count');
+    /* ═══════════════════════════════════════════════════════════
+       سجل التدقيق — تبويب نشط (trail | suspects)
+    ═══════════════════════════════════════════════════════════ */
+    _auditActiveTab: 'suspects',   /* الافتراضي: مراجعة الشذوذات */
+
+    switchAuditTab: function (tab) {
+      this._auditActiveTab = tab;
+      /* تحديث مظهر التبويبات الفرعية */
+      ['trail','suspects'].forEach(function (t) {
+        var btn = document.getElementById('ep-asubtab-' + t);
+        if (!btn) return;
+        btn.className = 'ep-audit-subtab ' + (t === tab ? 'ep-audit-subtab-on' : 'ep-audit-subtab-off');
+      });
+      /* إظهار/إخفاء الفلاتر */
+      var trailFil   = document.getElementById('ep-trail-filters');
+      var suspFil    = document.getElementById('ep-suspects-filters');
+      if (trailFil) trailFil.style.display  = (tab === 'trail')    ? 'flex' : 'none';
+      if (suspFil)  suspFil.style.display   = (tab === 'suspects') ? 'flex' : 'none';
+      /* تحديث شريط الإحصاء ثم العرض */
+      this._updateAuditStats();
+      if (tab === 'trail')    this._renderAuditTrail();
+      else                    this._renderAuditSuspects();
+    },
+
+    /* ── شريط الإحصاء المشترك ── */
+    _updateAuditStats: function () {
       var statsEl = document.getElementById('ep-audit-stats');
+      if (!statsEl) return;
+      _ensureArrays();
+      var log     = (window.S && window.S.auditLog) ? window.S.auditLog : [];
+      var infoC   = log.filter(function (e) { return e.level === 'info'; }).length;
+      var warnC   = log.filter(function (e) { return e.level === 'warning'; }).length;
+      var errC    = log.filter(function (e) { return e.level === 'error'; }).length;
+      var confirmed = (window.S && window.S._reviewConfirmed) ? window.S._reviewConfirmed : {};
+      var suspects  = window._reviewSuspects || [];
+      var pendingC  = suspects.filter(function (s) { return !confirmed[s.id]; }).length;
+      statsEl.innerHTML = [
+        ['🟢', String(infoC),    'أحداث عادية', 'var(--ok)', 'var(--ok-bg)', 'var(--ok-bd)'],
+        ['🟡', String(warnC),    'تحذيرات',     'var(--io)', 'var(--io-bg)', 'var(--io-bd)'],
+        ['🔴', String(errC),     'أخطاء',       'var(--no)', 'var(--no-bg)', 'var(--no-bd)'],
+        ['🔍', String(pendingC), 'تحتاج مراجعة','var(--pu)', 'var(--pu-bg)', 'var(--pu-bd)'],
+      ].map(function (r) {
+        return '<div style="background:' + r[4] + ';border:1px solid ' + r[5] + ';border-radius:10px;padding:10px 8px;text-align:center">' +
+          '<div style="font-size:16px">' + r[0] + '</div>' +
+          '<div style="font-size:18px;font-weight:900;color:' + r[3] + '">' + r[1] + '</div>' +
+          '<div style="font-size:9px;color:var(--tx2);font-weight:700">' + r[2] + '</div></div>';
+      }).join('');
+    },
+
+    /* ═══════════════════════════════════════════════════════════
+       القسم الثاني: سجل الأحداث الكامل (Audit Trail)
+    ═══════════════════════════════════════════════════════════ */
+    _renderAuditTrail: function () {
+      var listEl  = document.getElementById('ep-audit-list');
+      var countEl = document.getElementById('ep-audit-count');
+      if (!listEl) return;
+      _ensureArrays();
+
+      var log = (window.S && window.S.auditLog) ? window.S.auditLog.slice() : [];
+
+      /* فلاتر */
+      var search     = ((document.getElementById('ep-trail-search')  || {}).value || '').toLowerCase();
+      var typeFilter = ((document.getElementById('ep-trail-type')    || {}).value || '');
+      var lvlFilter  = ((document.getElementById('ep-trail-level')   || {}).value || '');
+
+      var filtered = log.filter(function (e) {
+        if (typeFilter && e.type !== typeFilter) return false;
+        if (lvlFilter  && e.level !== lvlFilter)  return false;
+        if (search) {
+          var hay = ((e.details || '') + ' ' + (e.type || '') + ' ' + (e.user || '') + ' ' + (e.affected || '')).toLowerCase();
+          if (hay.indexOf(search) === -1) return false;
+        }
+        return true;
+      });
+
+      if (countEl) countEl.textContent = 'إجمالي الأحداث: ' + log.length + ' · مُعروض: ' + Math.min(filtered.length, 300);
+
+      if (log.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--tx2)">' +
+          '<div style="font-size:40px;margin-bottom:10px">📋</div>' +
+          '<div style="font-size:14px;font-weight:800">سجل الأحداث فارغ بعد</div>' +
+          '<div style="font-size:11px;margin-top:6px">ستُسجَّل جميع العمليات هنا تلقائياً</div></div>';
+        return;
+      }
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx2)">لا توجد نتائج تطابق الفلتر</div>';
+        return;
+      }
+
+      /* إعدادات الأنواع */
+      var typeIcon = {
+        add:'➕', edit:'✏️', delete:'🗑️', restore:'🔄', backup:'💾',
+        login:'🔐', logout:'🔓', settings:'⚙️', error:'❌',
+        js_error:'🐛', storage_error:'💾', db_error:'🗄️',
+        duplicate:'🔁', warning:'⚠️', review_confirm:'✅',
+        'supplier-payment':'💸', payment:'💵',
+      };
+      var levelCfg = {
+        info:    { label:'INFO',    cls:'ep-trail-info',    lbl_color:'var(--ok)', bg:'var(--ok-bg)', bd:'var(--ok-bd)' },
+        warning: { label:'WARNING', cls:'ep-trail-warning', lbl_color:'var(--io)', bg:'var(--io-bg)', bd:'var(--io-bd)' },
+        error:   { label:'ERROR',   cls:'ep-trail-error',   lbl_color:'var(--no)', bg:'var(--no-bg)', bd:'var(--no-bd)' },
+      };
+
+      listEl.innerHTML = filtered.slice(0, 300).map(function (e) {
+        var lv  = levelCfg[e.level] || levelCfg.info;
+        var icon = typeIcon[e.type] || '📝';
+        var beforeAfter = '';
+        if (e.before || e.after) {
+          beforeAfter = '<div class="ep-tl-before-after">';
+          if (e.before) beforeAfter += '<div class="ep-tl-before"><div style="font-size:9px;color:var(--no);font-weight:800;margin-bottom:2px">قبل</div><div style="font-size:10px;color:var(--tx1)">' + e.before + '</div></div>';
+          if (e.after)  beforeAfter += '<div class="ep-tl-after"><div style="font-size:9px;color:var(--ok);font-weight:800;margin-bottom:2px">بعد</div><div style="font-size:10px;color:var(--tx1)">' + e.after + '</div></div>';
+          beforeAfter += '</div>';
+        }
+        var affectedStr = e.affected ? '<span style="color:var(--g1);font-weight:800"> — ' + e.affected + '</span>' : '';
+        return '<div class="ep-trail-row ' + lv.cls + '">' +
+          '<div class="ep-tl-icon">' + icon + '</div>' +
+          '<div class="ep-tl-body">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;flex-wrap:wrap">' +
+              '<div class="ep-tl-title">' + (e.details || e.type || '—') + affectedStr + '</div>' +
+              '<span class="ep-tl-lvl" style="background:' + lv.bg + ';border-color:' + lv.bd + ';color:' + lv_color(lv) + '">' +
+                (lv.label) + '</span>' +
+            '</div>' +
+            '<div class="ep-tl-meta">👤 ' + (e.user||'—') + ' · 🏷️ ' + (e.role||'—') + ' · ' + (e.device||'—') + ' · 🕐 ' + _fmtDate(e.ts) +
+              (e.hash ? ' · <span style="font-family:monospace;font-size:9px;opacity:.6">' + e.hash.slice(0,8) + '</span>' : '') +
+            '</div>' +
+            beforeAfter +
+          '</div></div>';
+
+        function lv_color(lv) { return lv.lbl_color; }
+      }).join('') + (filtered.length > 300 ? '<div style="text-align:center;font-size:11px;color:var(--tx3);padding:10px">... و ' + (filtered.length - 300) + ' حدث آخر</div>' : '');
+    },
+
+    /* ═══════════════════════════════════════════════════════════
+       القسم الأول: التنبيهات والمراجعة الذكية
+    ═══════════════════════════════════════════════════════════ */
+    renderAudit: function () {
+      /* تطبيق التبويب النشط الحالي */
+      this._updateAuditStats();
+      if (this._auditActiveTab === 'trail') this._renderAuditTrail();
+      else                                  this._renderAuditSuspects();
+    },
+
+    _renderAuditSuspects: function () {
+      var listEl  = document.getElementById('ep-audit-list');
+      var countEl = document.getElementById('ep-audit-count');
       if (!listEl) return;
 
       _ensureArrays();
@@ -23108,46 +23429,64 @@ function dbgRender(){
         return;
       }
 
-      /* ── بناء قائمة العناصر المشبوهة ── */
       var suspects = [];
-      var txs = window.S.transactions || [];
+      var txs      = window.S.transactions || [];
       var confirmed = window.S._reviewConfirmed || {};
 
-      /* ١. فحص الفواتير المكررة بين جميع العملاء */
+      /* ── دالة مساعدة: بصمة بيانات المعاملة للكشف عن التغيير ── */
+      function _txFingerprint(tx) {
+        var w  = (tx.items || []).reduce(function (s, it) { return s + (parseFloat(it.weight)||0); }, parseFloat(tx.weight)||0);
+        var aj = (tx.items || []).reduce(function (s, it) { return s + (parseFloat(it.ajour)||0);  }, parseFloat(tx.ajour)||0);
+        var v  = parseFloat(tx.ajTotal || tx.total || tx.amount || 0);
+        return tx.type + '|' + (tx.client||'') + '|' + (tx.date||'').slice(0,10) + '|' + Math.round(w*100) + '|' + Math.round(aj) + '|' + Math.round(v);
+      }
+
+      /* ─ بصمة الزوج: تتغير إذا تغيرت بيانات أي من العمليتين ─ */
+      function _pairKey(a, b) {
+        return [a.id, b.id].sort().join('|') + '__fp:' + _hash(_txFingerprint(a) + '|' + _txFingerprint(b));
+      }
+
+      /* ١. فواتير المبيعات والمشتريات المكررة (SMART_DUP) */
       var sellTxs = txs.filter(function (t) {
         return ['sell','sell-debt','buy','buy-debt'].indexOf(t.type) > -1;
       });
-
       for (var i = 0; i < sellTxs.length; i++) {
         for (var j = i + 1; j < sellTxs.length; j++) {
           var a = sellTxs[i], b = sellTxs[j];
-          var pairKey = [a.id, b.id].sort().join('|');
+          var pairKey = _pairKey(a, b);
           if (confirmed[pairKey]) continue;
-
           var sim = SMART_DUP.similarity(a, b);
           if (sim >= 0.82) {
+            var simPct = Math.round(sim * 100);
+            /* تسجيل دائم في سجل التدقيق (مرة واحدة فقط) */
+            var dupTrailKey = 'dupLogged_' + [a.id, b.id].sort().join('|');
+            if (!window._dupLogged) window._dupLogged = {};
+            if (!window._dupLogged[dupTrailKey]) {
+              window._dupLogged[dupTrailKey] = true;
+              AL.logDuplicate(a, b, simPct, SMART_DUP.buildDetail(a, b, sim));
+            }
             suspects.push({
-              id: pairKey,
-              type: 'duplicate',
+              id:       pairKey,
+              type:     'duplicate',
               severity: sim >= 0.95 ? 'high' : 'medium',
-              icon: '🔁',
-              title: 'تكرار محتمل — نسبة التشابه: ' + Math.round(sim * 100) + '%',
-              detail: SMART_DUP.buildDetail(a, b, sim),
+              icon:     '🔁',
+              title:    'تكرار محتمل — ' + _typeLabel(a.type) + ' — نسبة التشابه: ' + simPct + '%',
+              detail:   SMART_DUP.buildDetail(a, b, sim),
               txA: a, txB: b,
-              fix: 'راجع الفاتورتين وتأكد من أنهما عمليتان مختلفتان أو أن إحداهما مكررة بالخطأ.',
+              fix: 'راجع الفاتورتين — نفس الوزن/الأجرة/القيمة بتاريخ متقارب.',
             });
           }
         }
       }
 
-      /* ٢. فحص سندات القبض والصرف المكررة */
+      /* ٢. سندات القبض والصرف المكررة */
       var payTxs = txs.filter(function (t) {
         return ['payment','supplier-payment','general-receipt','general-payment'].indexOf(t.type) > -1;
       });
       for (var pi = 0; pi < payTxs.length; pi++) {
         for (var pj = pi + 1; pj < payTxs.length; pj++) {
           var pa = payTxs[pi], pb = payTxs[pj];
-          var payKey = [pa.id, pb.id].sort().join('|');
+          var payKey = _pairKey(pa, pb);
           if (confirmed[payKey]) continue;
           if (pa.type !== pb.type) continue;
           if (pa.client !== pb.client) continue;
@@ -23158,12 +23497,12 @@ function dbgRender(){
             var dateB = pb.date ? new Date(pb.date).toDateString() : '';
             if (dateA === dateB && dateA !== '') {
               suspects.push({
-                id: payKey,
-                type: 'duplicate',
+                id:       payKey,
+                type:     'duplicate',
                 severity: 'high',
-                icon: '🔁',
-                title: 'سند مكرر: ' + _typeLabel(pa.type),
-                detail: 'العميل: ' + (pa.client || '—') + ' · المبلغ: ' + _fmt(amtA) + ' ريال · التاريخ: ' + _fmtDate(pa.date),
+                icon:     '🔁',
+                title:    'سند مكرر: ' + _typeLabel(pa.type),
+                detail:   'العميل: ' + (pa.client || '—') + ' · المبلغ: ' + _fmt(amtA) + ' ريال · التاريخ: ' + _fmtDate(pa.date),
                 txA: pa, txB: pb,
                 fix: 'تحقق إذا كان السند أُدخل مرتين بالخطأ.',
               });
@@ -23172,9 +23511,10 @@ function dbgRender(){
         }
       }
 
-      /* ٣. فواتير بدون بيانات كاملة */
+      /* ٣. بيانات ناقصة */
       txs.forEach(function (t) {
-        if (confirmed[t.id + '_missing']) return;
+        var issKey = t.id + '_missing';
+        if (confirmed[issKey]) return;
         var issues = [];
         if (!t.date) issues.push('بدون تاريخ');
         var needsClient = ['sell','sell-debt','buy','buy-debt','payment','supplier-payment'];
@@ -23183,45 +23523,36 @@ function dbgRender(){
         if (['sell','sell-debt','buy','buy-debt'].indexOf(t.type) > -1 && val < 0.01) issues.push('بدون قيمة');
         if (issues.length > 0) {
           suspects.push({
-            id: t.id + '_missing',
-            type: 'missing',
-            severity: 'medium',
-            icon: '⚠️',
-            title: 'بيانات ناقصة: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
+            id: issKey, type: 'missing', severity: 'medium', icon: '⚠️',
+            title:  'بيانات ناقصة: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
             detail: 'المشكلة: ' + issues.join('، ') + ' · ' + _fmtDate(t.date),
-            txRef: t,
-            fix: 'افتح العملية وأكمل البيانات الناقصة.',
+            txRef: t, fix: 'افتح العملية وأكمل البيانات الناقصة.',
           });
         }
       });
 
-      /* ٤. قيم غير معتادة (أجرة مرتفعة جداً أو منخفضة جداً) */
+      /* ٤. قيم أجرة غير معتادة (إحصائية) */
       var ajourVals = [];
       txs.forEach(function (t) {
         (t.items || []).forEach(function (it) {
-          if ((it.ajour || 0) > 0 && (it.weight || 0) > 0) {
-            ajourVals.push((it.ajour || 0) / (it.weight || 1));
-          }
+          if ((it.ajour || 0) > 0 && (it.weight || 0) > 0) ajourVals.push((it.ajour||0)/(it.weight||1));
         });
       });
       if (ajourVals.length >= 5) {
         var avg = ajourVals.reduce(function (s, v) { return s + v; }, 0) / ajourVals.length;
         var std = Math.sqrt(ajourVals.reduce(function (s, v) { return s + Math.pow(v - avg, 2); }, 0) / ajourVals.length);
         txs.forEach(function (t) {
-          if (confirmed[t.id + '_unusual']) return;
+          var unusKey = t.id + '_unusual';
+          if (confirmed[unusKey]) return;
           (t.items || []).forEach(function (it) {
-            if ((it.ajour || 0) > 0 && (it.weight || 0) > 0) {
-              var rate = (it.ajour || 0) / (it.weight || 1);
+            if ((it.ajour||0) > 0 && (it.weight||0) > 0) {
+              var rate = (it.ajour||0)/(it.weight||1);
               if (Math.abs(rate - avg) > 3 * std && std > 0) {
                 suspects.push({
-                  id: t.id + '_unusual',
-                  type: 'unusual',
-                  severity: 'medium',
-                  icon: '💡',
-                  title: 'أجرة غير معتادة: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
-                  detail: 'أجرة الجرام: ' + rate.toFixed(0) + ' ريال · المتوسط: ' + avg.toFixed(0) + ' ريال · ' + _fmtDate(t.date),
-                  txRef: t,
-                  fix: 'راجع قيمة الأجرة وتأكد من صحتها.',
+                  id: unusKey, type: 'unusual', severity: 'medium', icon: '💡',
+                  title:  'أجرة غير معتادة: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
+                  detail: 'أجرة/جرام: ' + rate.toFixed(0) + ' ريال · المتوسط: ' + avg.toFixed(0) + ' · ' + _fmtDate(t.date),
+                  txRef: t, fix: 'راجع قيمة الأجرة وتأكد من صحتها.',
                 });
               }
             }
@@ -23229,26 +23560,21 @@ function dbgRender(){
         });
       }
 
-      /* ٥. عمليات تم تعديلها أكثر من مرة */
+      /* ٥. تعديلات متعددة (≥3) */
       var editCounts = {};
       (window.S.auditLog || []).forEach(function (e) {
-        if (e.type === 'edit' && e.txId) {
-          editCounts[e.txId] = (editCounts[e.txId] || 0) + 1;
-        }
+        if (e.type === 'edit' && e.txId) editCounts[e.txId] = (editCounts[e.txId] || 0) + 1;
       });
       Object.keys(editCounts).forEach(function (txId) {
         if (editCounts[txId] >= 3) {
-          if (confirmed[txId + '_multi_edit']) return;
+          var meKey = txId + '_multi_edit';
+          if (confirmed[meKey]) return;
           var tx = txs.find(function (t) { return t.id === txId; });
           suspects.push({
-            id: txId + '_multi_edit',
-            type: 'multi_edit',
-            severity: 'low',
-            icon: '✏️',
+            id: meKey, type: 'multi_edit', severity: 'low', icon: '✏️',
             title: 'تعديل متعدد (' + editCounts[txId] + ' مرات): ' + (tx ? _typeLabel(tx.type) : 'معاملة') + (tx && tx.client ? ' — ' + tx.client : ''),
             detail: 'تم تعديل هذه العملية ' + editCounts[txId] + ' مرات' + (tx ? ' · ' + _fmtDate(tx.date) : ''),
-            txRef: tx,
-            fix: 'راجع سجل التعديلات في مؤشر التعديلات للتحقق.',
+            txRef: tx, fix: 'راجع مؤشر التعديلات للتحقق.',
           });
         }
       });
@@ -23256,20 +23582,15 @@ function dbgRender(){
       /* ٦. أرصدة سالبة */
       try {
         var safes = typeof window.calcSafes === 'function' ? window.calcSafes() : {};
-        var safeChecks = [
-          ['cash','الصندوق النقدي','ريال'],['worked21','مشغول 21','جرام'],
-          ['worked18','مشغول 18','جرام'],['scrap21','كسر 21','جرام'],
-        ];
-        safeChecks.forEach(function (ck) {
-          if (confirmed['neg_' + ck[0]]) return;
+        [['cash','الصندوق النقدي','ريال'],['worked21','مشغول 21','جرام'],
+         ['worked18','مشغول 18','جرام'],['scrap21','كسر 21','جرام']].forEach(function (ck) {
+          var negKey = 'neg_' + ck[0];
+          if (confirmed[negKey]) return;
           var val = safes[ck[0]] || 0;
           if (val < -0.01) {
             suspects.push({
-              id: 'neg_' + ck[0],
-              type: 'negative',
-              severity: 'high',
-              icon: '🔴',
-              title: 'رصيد سالب: ' + ck[1],
+              id: negKey, type: 'negative', severity: 'high', icon: '🔴',
+              title:  'رصيد سالب: ' + ck[1],
               detail: 'الرصيد: ' + val.toFixed(3) + ' ' + ck[2] + ' — قد يدل على إدخال خاطئ.',
               fix: 'راجع حركات الإدخال والإخراج لهذا الصندوق.',
             });
@@ -23277,7 +23598,7 @@ function dbgRender(){
         });
       } catch (e) {}
 
-      /* ── تخزين العناصر للعرض ── */
+      /* حفظ للمشاركة مع openForEdit */
       window._reviewSuspects = suspects;
 
       /* ── إحصاء ── */
@@ -23285,13 +23606,13 @@ function dbgRender(){
       var medC  = suspects.filter(function (s) { return s.severity === 'medium'; }).length;
       var lowC  = suspects.filter(function (s) { return s.severity === 'low'; }).length;
       var dupC  = suspects.filter(function (s) { return s.type === 'duplicate'; }).length;
-
+      var statsEl = document.getElementById('ep-audit-stats');
       if (statsEl) {
         statsEl.innerHTML = [
-          ['🔴', String(highC), 'حرجة', 'var(--no)', 'var(--no-bg)', 'var(--no-bd)'],
-          ['🟡', String(medC),  'تنبيه', 'var(--io)', 'var(--io-bg)', 'var(--io-bd)'],
+          ['🔴', String(highC), 'حرجة',   'var(--no)', 'var(--no-bg)', 'var(--no-bd)'],
+          ['🟡', String(medC),  'تنبيه',  'var(--io)', 'var(--io-bg)', 'var(--io-bd)'],
           ['🔵', String(lowC),  'ملاحظة', 'var(--in)', 'var(--in-bg)', 'var(--in-bd)'],
-          ['🔁', String(dupC),  'تكرار', 'var(--pu)', 'var(--pu-bg)', 'var(--pu-bd)'],
+          ['🔁', String(dupC),  'تكرار',  'var(--pu)', 'var(--pu-bg)', 'var(--pu-bd)'],
         ].map(function (r) {
           return '<div style="background:' + r[4] + ';border:1px solid ' + r[5] + ';border-radius:10px;padding:10px 8px;text-align:center">' +
             '<div style="font-size:18px">' + r[0] + '</div>' +
@@ -23300,11 +23621,10 @@ function dbgRender(){
         }).join('');
       }
 
-      /* ── تطبيق الفلاتر ── */
-      var search = ((document.getElementById('ep-audit-search') || {}).value || '').toLowerCase();
-      var typeFilter = (document.getElementById('ep-audit-type') || {}).value || '';
-
-      var filtered = suspects.filter(function (s) {
+      /* ── فلاتر ── */
+      var search     = ((document.getElementById('ep-audit-search') || {}).value || '').toLowerCase();
+      var typeFilter = ((document.getElementById('ep-audit-type')   || {}).value || '');
+      var filtered   = suspects.filter(function (s) {
         if (typeFilter && s.type !== typeFilter) return false;
         if (search) {
           var hay = (s.title + ' ' + s.detail).toLowerCase();
@@ -23319,18 +23639,17 @@ function dbgRender(){
         listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--tx2)">' +
           '<div style="font-size:44px;margin-bottom:12px">✅</div>' +
           '<div style="font-size:15px;font-weight:800;color:var(--ok)">ممتاز — لا توجد حالات تحتاج مراجعة</div>' +
-          '<div style="font-size:11px;margin-top:6px">النظام سليم ولا يوجد تكرار أو أخطاء مكتشفة</div></div>';
+          '<div style="font-size:11px;margin-top:6px">النظام سليم ولا يوجد تكرار أو بيانات ناقصة أو أخطاء مكتشفة</div></div>';
         return;
       }
-
       if (filtered.length === 0) {
         listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx2)">لا توجد نتائج تطابق الفلتر</div>';
         return;
       }
 
-      /* ── عرض العناصر مع أزرار ── */
-      var sevOrder = { high: 0, medium: 1, low: 2 };
-      filtered.sort(function (a, b) { return (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9); });
+      /* ── عرض الحالات مع الأزرار ── */
+      var sevOrder = { high:0, medium:1, low:2 };
+      filtered.sort(function (a, b) { return (sevOrder[a.severity]||9) - (sevOrder[b.severity]||9); });
 
       listEl.innerHTML = filtered.map(function (s) {
         var sevCls = s.severity === 'high' ? 'ep-issue-high' : s.severity === 'medium' ? 'ep-issue-medium' : 'ep-issue-low';
@@ -23350,19 +23669,24 @@ function dbgRender(){
       }).join('');
     },
 
-    /* اعتماد عنصر كصحيح — مع حفظ دائم في localStorage */
+    /* ── اعتماد عنصر كصحيح — يستخدم البصمة للكشف عن التغيير مستقبلاً ── */
     confirmReviewItem: function (encodedId) {
       var id = decodeURIComponent(encodedId);
       _ensureArrays();
       if (!window.S._reviewConfirmed) window.S._reviewConfirmed = {};
       window.S._reviewConfirmed[id] = { ts: _now(), user: _user() };
-      /* حفظ في localStorage للاستمرارية عبر الجلسات */
+      /* حفظ دائم في localStorage */
       MODLOG.saveConfirmed();
       /* تسجيل في مؤشر التعديلات */
-      MODLOG.log('review_confirm', 'اعتماد عنصر مراجعة: ' + id.slice(0, 40), null, 'معتمد كصحيح');
+      MODLOG.log('review_confirm', 'اعتماد مراجعة: ' + id.slice(0, 40), null, 'معتمد كصحيح');
+      /* تسجيل في سجل الأحداث أيضاً */
+      AL.info('review_confirm', 'اعتماد عنصر مراجعة: ' + id.slice(0, 40), {
+        affected: id.slice(0, 40),
+        after: 'معتمد كصحيح بواسطة ' + _user(),
+      });
       if (typeof window.sv === 'function') try { window.sv(); } catch (e) {}
-      window.toast && window.toast('✅ تم اعتماد العنصر — لن يظهر مرة أخرى إلا عند تعديله');
-      this.renderAudit();
+      window.toast && window.toast('✅ تم الاعتماد — لن يظهر مجدداً إلا عند تغيير بيانات العملية');
+      this._renderAuditSuspects();
     },
 
     /* فتح عنصر للتعديل */
@@ -23373,10 +23697,8 @@ function dbgRender(){
       if (!suspect) { window.toast && window.toast('⚠️ لم يُعثر على العنصر'); return; }
       var tx = suspect.txRef || suspect.txA;
       if (!tx) { window.toast && window.toast('⚠️ لا يمكن فتح هذا النوع مباشرة'); return; }
-      /* الانتقال لصفحة السجل مع فتح العملية */
       window.toast && window.toast('⏳ جارٍ فتح العملية...');
       setTimeout(function () {
-        var logTab = document.querySelector('[onclick*="pg-log"]') || document.querySelector('[onclick*="log"]');
         if (typeof window.P === 'function') {
           var logBtn = document.getElementById('tab-log');
           if (logBtn) window.P('log', logBtn);
@@ -23394,28 +23716,28 @@ function dbgRender(){
         _ensureArrays();
         var entries = (window.S && window.S.auditLog) ? window.S.auditLog : [];
         if (entries.length === 0) { window.toast && window.toast('❌ السجل فارغ'); return; }
-
-        var rows = [['التاريخ', 'المستخدم', 'الدور', 'الجهاز', 'النوع', 'التفاصيل', 'البصمة']];
+        var rows = [['التاريخ','المستخدم','الدور','الجهاز','المستوى','النوع','التفاصيل','المتأثر','قبل','بعد','البصمة']];
         entries.forEach(function (e) {
           rows.push([
-            _fmtDate(e.ts), e.user || '', e.role || '', e.device || '',
-            e.type || '', (e.details || '').replace(/,/g, '،'),
-            e.hash || ''
+            _fmtDate(e.ts), e.user||'', e.role||'', e.device||'',
+            e.level||'info', e.type||'',
+            (e.details||'').replace(/,/g,'،'),
+            (e.affected||'').replace(/,/g,'،'),
+            (e.before||'').replace(/,/g,'،'),
+            (e.after||'').replace(/,/g,'،'),
+            e.hash||'',
           ]);
         });
-
         var csv = rows.map(function (r) { return r.join(','); }).join('\n');
-        var BOM = '\uFEFF';
-        var blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'سجل_التدقيق_' + new Date().toLocaleDateString('ar-SA').replace(/\//g, '-') + '.csv';
+        var blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href = url; a.download = 'سجل_التدقيق_' + new Date().toLocaleDateString('ar-SA').replace(/\//g,'-') + '.csv';
         document.body.appendChild(a); a.click();
         setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 2000);
         window.toast && window.toast('✅ تم تصدير سجل التدقيق');
       } catch (e) {
-        window.toast && window.toast('❌ خطأ في التصدير: ' + (e.message || e));
+        window.toast && window.toast('❌ خطأ في التصدير: ' + (e.message||e));
       }
     },
 
@@ -23821,6 +24143,14 @@ function dbgRender(){
             return confirmed[k] && inRange(confirmed[k].ts);
           }).length;
 
+          /* إحصاءات من سجل الأحداث الحقيقي (مفصّلة لكل فترة) */
+          var periodAudit  = auditLog.filter(function (e) { return inRange(e.ts); });
+          var periodErrors = periodAudit.filter(function (e) { return e.level === 'error'   || ['error','js_error','storage_error','db_error'].indexOf(e.type) > -1; }).length;
+          var periodWarn   = periodAudit.filter(function (e) { return e.level === 'warning'  || e.type === 'warning'; }).length;
+          var periodDups   = periodAudit.filter(function (e) { return e.type === 'duplicate'; }).length;
+          var periodBkps   = periodAudit.filter(function (e) { return e.type === 'backup'; }).length;
+          var periodRestores = periodAudit.filter(function (e) { return e.type === 'restore'; }).length;
+
           /* حساب الإيرادات */
           var totalRevenue = invoices.filter(function (t) { return ['sell','sell-debt'].indexOf(t.type) > -1; })
             .reduce(function (s, t) { return s + (t.ajTotal || t.total || 0); }, 0);
@@ -23846,10 +24176,17 @@ function dbgRender(){
               ['🧾','عدد الفواتير',invoices.length,'var(--g1)'],
               ['💵','سندات القبض',receipts.length,'var(--ok)'],
               ['💸','سندات الصرف',payments.length,'var(--no)'],
-              ['✏️','عدد التعديلات',periodEdits.length,'var(--in)'],
-              ['➕','الإضافات',periodAdds.length,'var(--pu)'],
-              ['🗑️','الحذف',periodDels.length,'var(--io)'],
+              ['✏️','تعديلات',periodEdits.length,'var(--in)'],
+              ['🗑️','محذوف',periodDels.length,'var(--io)'],
+              ['🔁','تكرارات مكتشفة',periodDups,'var(--pu)'],
             ]);
+            /* شريط الصحة اليومي من سجل الأحداث الحقيقي */
+            html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">🩺 صحة النظام اليوم</div><div class="ep-cb">';
+            html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+            html += '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--no)">' + periodErrors + '</div><div style="font-size:9px;color:var(--tx2)">❌ أخطاء</div></div>';
+            html += '<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--io)">' + periodWarn  + '</div><div style="font-size:9px;color:var(--tx2)">⚠️ تحذيرات</div></div>';
+            html += '<div style="background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--pu)">' + periodDups  + '</div><div style="font-size:9px;color:var(--tx2)">🔁 تكرارات</div></div>';
+            html += '</div></div></div>';
             html += self._reportFinancial(totalRevenue, totalBuy, receipts, payments);
           } else if (period === 'weekly') {
             html += self._reportSection('📆 ملخص الأسبوع', [
@@ -23857,17 +24194,17 @@ function dbgRender(){
               ['🧾','الفواتير',invoices.length,'var(--ok)'],
               ['↩️','المرتجعات',returns_.length,'var(--io)'],
               ['✏️','التعديلات',periodEdits.length,'var(--in)'],
-              ['✅','المراجعات المعتمدة',confirmedCount,'var(--pu)'],
-              ['👥','العملاء النشطين',Object.keys(activeClients).length,'var(--no)'],
+              ['🔁','تكرارات مكتشفة',periodDups,'var(--no)'],
+              ['👥','العملاء النشطين',Object.keys(activeClients).length,'var(--pu)'],
             ]);
             html += self._reportFinancial(totalRevenue, totalBuy, receipts, payments);
-            /* الأخطاء المكتشفة في الأسبوع */
-            var weekIssues = AUDITOR.run();
-            html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">🔍 حالة التدقيق</div><div class="ep-cb">';
-            html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
-            html += '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--no)">' + weekIssues.filter(function(i){return i.severity==='high';}).length + '</div><div style="font-size:9px;color:var(--tx2)">حرجة</div></div>';
-            html += '<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--io)">' + weekIssues.filter(function(i){return i.severity==='medium';}).length + '</div><div style="font-size:9px;color:var(--tx2)">تنبيه</div></div>';
-            html += '<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">' + confirmedCount + '</div><div style="font-size:9px;color:var(--tx2)">معتمدة</div></div>';
+            /* إحصاءات من سجل الأحداث الحقيقي */
+            html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">🔍 إحصاءات سجل الأحداث — الأسبوع</div><div class="ep-cb">';
+            html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+            html += '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--no)">'  + periodErrors   + '</div><div style="font-size:9px;color:var(--tx2)">❌ أخطاء</div></div>';
+            html += '<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--io)">'  + periodWarn     + '</div><div style="font-size:9px;color:var(--tx2)">⚠️ تحذيرات</div></div>';
+            html += '<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">'  + confirmedCount + '</div><div style="font-size:9px;color:var(--tx2)">✅ معتمدة</div></div>';
+            html += '<div style="background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--pu)">'  + periodBkps     + '</div><div style="font-size:9px;color:var(--tx2)">💾 نسخ</div></div>';
             html += '</div></div></div>';
           } else {
             /* شهري */
@@ -23885,12 +24222,20 @@ function dbgRender(){
 
             html += self._reportSection('🗓️ ملخص الشهر', [
               ['🧾','عدد الفواتير',invoices.length,'var(--g1)'],
-              ['👥','عملاء نشطون',regularClients,'var(--ok)'],
-              ['🏭','موردون',supplierClients,'var(--in)'],
-              ['🔔','التنبيهات',AUDITOR._issues.length,'var(--io)'],
-              ['🔁','تكرارات مكتشفة',allDups,'var(--no)'],
-              ['✅','تكرارات معتمدة',confirmedCount,'var(--pu)'],
+              ['👥','عملاء نشطون',Object.keys(activeClients).length,'var(--ok)'],
+              ['💵','سندات القبض',receipts.length,'var(--in)'],
+              ['💸','سندات الصرف',payments.length,'var(--io)'],
+              ['🔁','تكرارات مكتشفة',Math.max(allDups, periodDups),'var(--no)'],
+              ['✅','مراجعات معتمدة',confirmedCount,'var(--pu)'],
             ]);
+            /* شريط الأخطاء الشهري */
+            html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">🩺 صحة النظام — الشهر</div><div class="ep-cb">';
+            html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+            html += '<div style="background:var(--no-bg);border:1px solid var(--no-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--no)">'  + periodErrors   + '</div><div style="font-size:9px;color:var(--tx2)">❌ أخطاء</div></div>';
+            html += '<div style="background:var(--io-bg);border:1px solid var(--io-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--io)">'  + periodWarn     + '</div><div style="font-size:9px;color:var(--tx2)">⚠️ تحذيرات</div></div>';
+            html += '<div style="background:var(--ok-bg);border:1px solid var(--ok-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">'  + periodBkps     + '</div><div style="font-size:9px;color:var(--tx2)">💾 نسخ</div></div>';
+            html += '<div style="background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--pu)">'  + periodRestores + '</div><div style="font-size:9px;color:var(--tx2)">↩️ استعادة</div></div>';
+            html += '</div></div></div>';
             html += self._reportFinancial(totalRevenue, totalBuy, receipts, payments);
             html += '<div class="ep-card" style="margin-top:10px"><div class="ep-ch">📋 تفاصيل العمليات</div><div class="ep-cb">';
             html += '<table class="ep-table"><thead><tr><th>النوع</th><th>العدد</th><th>الإجمالي (ريال)</th></tr></thead><tbody>';
@@ -23966,46 +24311,104 @@ function dbgRender(){
     var _bkLastTs  = 0;
 
     window.sv_save = function () {
-      /* لقطة سريعة قبل الحفظ */
-      var snapBefore = null;
+      /* لقطة قبل الحفظ */
+      var beforeCount = -1;
+      var beforeSnap  = {};
       try {
         if (window.S && window.S.transactions) {
-          snapBefore = window.S.transactions.length;
+          beforeCount = window.S.transactions.length;
+          window.S.transactions.slice(0, 30).forEach(function (t) {
+            beforeSnap[t.id] = { type:t.type, client:t.client||'', date:t.date||'',
+              ajTotal:t.ajTotal||0, total:t.total||0, amount:t.amount||0 };
+          });
         }
       } catch (e) {}
 
-      try { orig.apply(this, arguments); } catch (e) {}
+      try { orig.apply(this, arguments); } catch (svErr) {
+        /* تسجيل خطأ الحفظ في سجل التدقيق */
+        try {
+          AL.error('storage_error', 'خطأ في sv_save: ' + (svErr.message || svErr).slice(0,120),
+            { before: String(svErr.message || svErr).slice(0, 200) });
+        } catch (e2) {}
+      }
 
-      /* كشف تغيير المعاملات وتسجيله في MODLOG */
       try {
         var curr = (window.S && window.S.transactions) ? window.S.transactions.length : 0;
         if (_lastCount >= 0 && _lastCount !== curr) {
           var diff = curr - _lastCount;
-          if (diff > 0) {
-            /* إضافة جديدة */
+          if (diff > 0 && curr > 0) {
             var newTxs = window.S.transactions.slice(0, Math.min(diff, 5));
             newTxs.forEach(function (tx) {
+              var txType = tx.type || '';
+              var isReceipt  = ['payment','general-receipt','cash-receipt'].indexOf(txType) > -1;
+              var isPayment  = ['supplier-payment','general-payment'].indexOf(txType) > -1;
+              var isReturn   = ['sales-return','purchase-return','return'].indexOf(txType) > -1;
+              var evType = isReturn ? 'restore' : 'add';
+              var label  = isReceipt ? 'سند قبض' : isPayment ? 'سند صرف' : isReturn ? 'مرتجع' : 'إضافة ' + _typeLabel(txType);
               MODLOG.log('add',
-                'إضافة ' + _typeLabel(tx.type) + (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
+                label + (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
                 null,
-                _typeLabel(tx.type) + (tx.client ? ' / ' + tx.client : '') + ' / ' + _txAmount(tx),
-                { txId: tx.id, txType: tx.type, client: tx.client || '' }
+                _typeLabel(txType) + (tx.client ? ' / ' + tx.client : '') + ' / ' + _txAmount(tx),
+                { txId: tx.id, txType: txType, client: tx.client || '' }
               );
-              AL.log('add', 'إضافة ' + _typeLabel(tx.type) + (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
-                { txId: tx.id, txType: tx.type, client: tx.client || '', amount: tx.total || tx.amount || 0 });
+              AL.info(evType, label + (tx.client ? ' — ' + tx.client : '') + ' — ' + _txAmount(tx),
+                { txId: tx.id, txType: txType, client: tx.client||'', affected: tx.client||tx.id,
+                  after: _typeLabel(txType) + ' / ' + _txAmount(tx) });
             });
           } else if (diff < 0) {
-            /* حذف */
-            MODLOG.log('delete', 'حذف ' + Math.abs(diff) + ' معاملة', 'عدد المعاملات: ' + _lastCount, 'عدد المعاملات: ' + curr);
-            AL.log('delete', 'حذف ' + Math.abs(diff) + ' معاملة');
+            MODLOG.log('delete', 'حذف ' + Math.abs(diff) + ' معاملة',
+              'عدد المعاملات: ' + _lastCount, 'عدد المعاملات: ' + curr);
+            AL.warning('delete', 'حذف ' + Math.abs(diff) + ' معاملة',
+              { before: 'العدد قبل: ' + _lastCount, after: 'العدد بعد: ' + curr });
           }
-          setTimeout(function () { try { AL.detectDebounced(); } catch (e) {} }, 300);
-        } else if (_lastCount < 0 && curr >= 0) {
-          _lastCount = curr;
+          setTimeout(function () { try { AL.detectDebounced(); } catch (e) {} }, 400);
+        } else if (_lastCount >= 0 && curr === _lastCount && curr > 0) {
+          /* ربما تعديل — كشف الفرق بالمقارنة */
+          try {
+            var txsNow = window.S.transactions || [];
+            txsNow.slice(0, 30).forEach(function (t) {
+              var old = beforeSnap[t.id];
+              if (!old) return;
+              var oldAmt = old.ajTotal || old.total || old.amount || 0;
+              var newAmt = t.ajTotal || t.total || t.amount || 0;
+              if (Math.abs(oldAmt - newAmt) > 0.5 && newAmt > 0 && oldAmt > 0) {
+                MODLOG.log('edit',
+                  'تعديل مبلغ: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
+                  _fmt(oldAmt) + ' ريال', _fmt(newAmt) + ' ريال',
+                  { txId: t.id, txType: t.type, client: t.client || '' }
+                );
+                AL.info('edit',
+                  'تعديل مبلغ: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : '') +
+                  ' — ' + _fmt(oldAmt) + ' ← ' + _fmt(newAmt) + ' ريال',
+                  { txId: t.id, txType: t.type, client: t.client||'', affected: t.client||t.id,
+                    before: _fmt(oldAmt) + ' ريال', after: _fmt(newAmt) + ' ريال' }
+                );
+              } else if ((old.client||'') !== (t.client||'')) {
+                MODLOG.log('edit',
+                  'تعديل عميل: ' + _typeLabel(t.type),
+                  old.client||'—', t.client||'—',
+                  { txId: t.id, txType: t.type, client: t.client || '' }
+                );
+                AL.info('edit', 'تعديل اسم العميل: ' + _typeLabel(t.type) +
+                  ' — ' + (old.client||'—') + ' ← ' + (t.client||'—'),
+                  { txId: t.id, txType: t.type, affected: t.client||old.client,
+                    before: old.client||'—', after: t.client||'—' });
+              } else if ((old.date||'') !== (t.date||'')) {
+                MODLOG.log('edit',
+                  'تعديل تاريخ: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : ''),
+                  _fmtDate(old.date), _fmtDate(t.date),
+                  { txId: t.id, txType: t.type, client: t.client || '' }
+                );
+                AL.info('edit', 'تعديل التاريخ: ' + _typeLabel(t.type) + (t.client ? ' — ' + t.client : '') +
+                  ' — ' + _fmtDate(old.date) + ' ← ' + _fmtDate(t.date),
+                  { txId: t.id, txType: t.type, affected: t.client||t.id,
+                    before: _fmtDate(old.date), after: _fmtDate(t.date) });
+              }
+            });
+          } catch (e) {}
         }
+        if (_lastCount < 0 && curr >= 0) _lastCount = curr;
         _lastCount = curr;
-
-        /* إعادة تحميل الاعتمادات المحفوظة */
         MODLOG.loadConfirmed();
       } catch (e) {}
 
@@ -24067,17 +24470,124 @@ function dbgRender(){
     tabs.appendChild(btn);
   }
 
+  /* ── ربط تغيير الإعدادات ── */
+  function hookSettings() {
+    var origSave = window.saveSettings || window.sv_settings;
+    if (typeof origSave !== 'function') return false;
+    var fn = window.saveSettings ? 'saveSettings' : 'sv_settings';
+    window[fn] = function () {
+      var res = origSave.apply(this, arguments);
+      try {
+        AL.info('settings', 'تغيير إعدادات النظام', { affected: _user() });
+        SEC.log('settings', 'تغيير إعدادات بواسطة: ' + _user());
+        if (typeof window.sv === 'function') { try { window.sv(); } catch (e2) {} }
+      } catch (e) {}
+      return res;
+    };
+    return true;
+  }
+
+  /* ── ربط نسخ/استعادة احتياطية من BK ── */
+  function hookBK() {
+    /* ربط BK.save */
+    var origBkSave = BK.save;
+    BK.save = function (trigger) {
+      var result = origBkSave.apply(this, arguments);
+      if (result) {
+        try {
+          AL.info('backup', 'نسخة احتياطية: ' + (trigger || 'يدوي'), { affected: trigger });
+        } catch (e) {}
+      }
+      return result;
+    };
+    /* ربط BK.restore */
+    var origBkRestore = BK.restore;
+    BK.restore = function (key) {
+      var result = origBkRestore.apply(this, arguments);
+      try {
+        if (result && result.success) {
+          AL.info('restore', 'استعادة نسخة احتياطية (' + (result.txCount||0) + ' معاملة)', { affected: key });
+          SEC.log('restore', 'استعادة نسخة: ' + key);
+        } else {
+          AL.error('restore', 'فشل استعادة النسخة: ' + (result && result.error ? result.error : key), { affected: key });
+        }
+      } catch (e) {}
+      return result;
+    };
+    /* ربط BK.restoreFromFile */
+    var origBkRestoreFile = BK.restoreFromFile;
+    BK.restoreFromFile = function (file, cb) {
+      var wrappedCb = function (result) {
+        try {
+          if (result && result.success) {
+            AL.info('restore', 'استعادة من ملف: ' + file.name + ' (' + (result.txCount||0) + ' معاملة)');
+            SEC.log('restore', 'استعادة من ملف: ' + file.name);
+          } else {
+            AL.error('restore', 'فشل استعادة من ملف: ' + file.name);
+          }
+        } catch (e) {}
+        if (typeof cb === 'function') cb(result);
+      };
+      return origBkRestoreFile.apply(this, [file, wrappedCb]);
+    };
+  }
+
   /* ═══ التهيئة الرئيسية ═══ */
   function initEnPro() {
     try {
       _ensureArrays();
 
+      /* ── إصلاح جذري: التقاط أخطاء JavaScript تلقائياً ── */
+      var _prevOnerror = window.onerror;
+      window.onerror = function (msg, src, line, col, err) {
+        try {
+          var srcShort = (src || '').split('/').pop().slice(0, 40);
+          AL.error('js_error',
+            'خطأ JS: ' + String(msg || '').slice(0, 120) + ' — ' + srcShort + ':' + line,
+            { affected: srcShort + ':' + line, before: String(err && err.stack ? err.stack.slice(0,200) : msg) }
+          );
+          if (typeof window.sv === 'function') { try { window.sv(); } catch (e2) {} }
+        } catch (e) {}
+        if (typeof _prevOnerror === 'function') return _prevOnerror.apply(this, arguments);
+        return false;
+      };
+
+      /* ── التقاط أخطاء Promise غير المعالجة ── */
+      window.addEventListener('unhandledrejection', function (ev) {
+        try {
+          AL.error('js_error',
+            'Promise غير معالج: ' + String(ev.reason && ev.reason.message ? ev.reason.message : ev.reason).slice(0, 120),
+            { affected: 'Promise', before: String(ev.reason).slice(0, 200) }
+          );
+        } catch (e) {}
+      });
+
+      /* ── محاولة اكتشاف أخطاء localStorage ── */
+      (function () {
+        var origSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key, value) {
+          try {
+            origSetItem.apply(this, arguments);
+          } catch (e) {
+            AL.error('storage_error',
+              'خطأ تخزين localStorage: ' + (e.message || e).slice(0, 120),
+              { affected: String(key).slice(0, 40), before: String(e.message || e).slice(0, 200) }
+            );
+            throw e; /* أعد رمي الخطأ لمنع تعطل الحفظ بصمت */
+          }
+        };
+      })();
+
       /* تهيئة MODLOG وتحميل الاعتمادات المحفوظة */
       MODLOG.init();
+
+      /* ربط BK مبكراً */
+      hookBK();
 
       /* تسجيل الجلسة الحالية */
       var u = _user();
       if (u && u !== 'غير معروف') {
+        AL.info('login', 'جلسة نشطة عند التحميل: ' + u, { affected: u });
         SEC.log('login', 'جلسة نشطة عند التحميل: ' + u);
       }
 
@@ -24100,9 +24610,12 @@ function dbgRender(){
         }
       }, 6 * 60 * 60 * 1000);
 
-      console.log('[منظوم ENTERPRISE PRO v3.0] تم التحميل بنجاح ✅ — SMART_DUP + MODLOG + مركز المراجعة');
+      console.log('[منظوم ENTERPRISE PRO v3.1] تم التحميل بنجاح ✅ — SMART_DUP + MODLOG + Audit Trail + مركز المراجعة');
     } catch (e) {
       console.error('[ENPRO] init error:', e);
+      try {
+        AL.error('error', 'خطأ في تهيئة ENTERPRISE PRO: ' + (e.message || e));
+      } catch (e2) {}
     }
   }
 
@@ -24115,6 +24628,7 @@ function dbgRender(){
         if (!hookSvSave()) setTimeout(hookSvSave, 2000);
         if (!hookLogin()) setTimeout(hookLogin, 2000);
         if (!hookLogout()) setTimeout(hookLogout, 2000);
+        if (!hookSettings()) setTimeout(hookSettings, 2000);
       }, 1200);
     });
   } else {
@@ -24125,6 +24639,7 @@ function dbgRender(){
       if (!hookSvSave()) setTimeout(hookSvSave, 2000);
       if (!hookLogin()) setTimeout(hookLogin, 2000);
       if (!hookLogout()) setTimeout(hookLogout, 2000);
+      if (!hookSettings()) setTimeout(hookSettings, 2000);
     }, 1200);
   }
 
