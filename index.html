@@ -3426,20 +3426,48 @@ function calcSafes(){
       if(safes[dest]!=null) safes[dest] += (t.amount||0);
     }
 
-    // ── سند قبض عام (نقد يدخل الصندوق) ──
+    // ── سند قبض عام (نقد + ذهب يدخل الصندوق) ──
     else if(t.type==='general-receipt'){
       const sf = t.fromSafe||'cash';
+      // نقد يدخل
       if(safes[sf]!=null) safes[sf] += (t.amount||t.ajourPaid||0);
       // فكة تدخل
       if((t.change||0)>0 && safes[sf]!=null) safes[sf] += (t.change||0);
+      // ── ذهب يدخل صناديقنا — يدعم أكثر من صنف ──
+      const _grItems = t.goldItems||[];
+      if(_grItems.length>0){
+        _grItems.forEach(gi=>{
+          const w=gi.weight||0, gk=gi.karat||'21';
+          const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+          if(w>0 && safes[dest]!=null) safes[dest] += w;
+        });
+      } else if((t.goldWeight||0)>0){
+        const w=t.goldWeight, gk=t.goldKarat||'21';
+        const dest=t.goldSafe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+        if(safes[dest]!=null) safes[dest] += w;
+      }
     }
 
-    // ── سند صرف عام (نقد يخرج من الصندوق) ──
+    // ── سند صرف عام (نقد + ذهب يخرج من الصندوق) ──
     else if(t.type==='general-payment'){
       const sf = t.fromSafe||'cash';
+      // نقد يخرج
       if(safes[sf]!=null) safes[sf] -= (t.amount||t.ajourPaid||0);
       // فكة تخرج
       if((t.change||0)>0 && safes[sf]!=null) safes[sf] -= (t.change||0);
+      // ── ذهب يخرج من صناديقنا — يدعم أكثر من صنف ──
+      const _gpItems = t.goldItems||[];
+      if(_gpItems.length>0){
+        _gpItems.forEach(gi=>{
+          const w=gi.weight||0, gk=gi.karat||'21';
+          const dest=gi.safe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+          if(w>0 && safes[dest]!=null) safes[dest] -= w;
+        });
+      } else if((t.goldWeight||0)>0){
+        const w=t.goldWeight, gk=t.goldKarat||'21';
+        const dest=t.goldSafe||(k21(gk)?'scrap21':k24(gk)?'pure24':'scrap18');
+        if(safes[dest]!=null) safes[dest] -= w;
+      }
     }
 
     // ── قبض الموزع (كفاتورة بيع من ناحية الصناديق) ──
@@ -6612,10 +6640,24 @@ function txHtml(t){
     const _amt   = (t.amount||t.ajourPaid||0)+(t.change||0);
     const _vc    = t.voucherCode ? `<span style="font-size:9px;background:${_isRec?'var(--ok-bg)':'var(--no-bg)'};color:${_isRec?'var(--ok)':'var(--no)'};padding:1px 7px;border-radius:20px;border:1px solid ${_isRec?'var(--ok-bd)':'var(--no-bd)'};font-weight:800">${t.voucherCode}</span>` : '';
     const _pt    = t.partyType ? `<span style="font-size:9px;color:var(--in);background:var(--in-bg);padding:1px 6px;border-radius:12px;border:1px solid var(--in-bd)">${t.partyType}</span>` : '';
+    // بناء تفصيل المبالغ
+    let _amtLines = '';
+    if(_amt>0) _amtLines += `<div>${_isRec?'📥 نقد يدخل':'📤 نقد يخرج'}: <b>${_isRec?'+':'−'}${fmt(_amt)} ريال</b></div>`;
+    // ذهب في السند العام
+    const _gItems = (t.goldItems||[]).filter(gi=>(gi.weight||0)>0);
+    if(_gItems.length>0){
+      _gItems.forEach(gi=>{
+        const _gVal = (gi.price||0)>0 ? ` = ${fmt(Math.round(gi.weight*gi.price*100)/100)} ر` : '';
+        _amtLines += `<div>🥇 ${_isRec?'ذهب يدخل':'ذهب يخرج'}: <b>${fmtG(gi.weight)}ج عيار ${gi.karat}${_gVal}</b></div>`;
+      });
+    } else if((t.goldWeight||0)>0){
+      const _gVal = (t.goldPrice||0)>0 ? ` = ${fmt(Math.round(t.goldWeight*t.goldPrice*100)/100)} ر` : '';
+      _amtLines += `<div>🥇 ${_isRec?'ذهب يدخل':'ذهب يخرج'}: <b>${fmtG(t.goldWeight)}ج عيار ${t.goldKarat||'21'}${_gVal}</b></div>`;
+    }
     goldValueNote = `
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:4px">${_vc}${_pt}</div>
       <div style="background:${_isRec?'var(--ok-bg)':'var(--no-bg)'};border:1px solid ${_isRec?'var(--ok-bd)':'var(--no-bd)'};border-radius:7px;padding:6px 10px;margin-top:5px;font-size:12px;font-weight:800;color:${_isRec?'var(--ok)':'var(--no)'}">
-        ${_isRec?'📥 الصندوق يزيد':'📤 الصندوق ينقص'} ${_isRec?'+':'−'}${fmt(_amt)} ريال
+        ${_amtLines||(_isRec?'📥 سند قبض':'📤 سند صرف')}
       </div>`;
   }
 
@@ -7692,9 +7734,24 @@ function getClientBalance(cli){
       }
       return a + w;
     }, 0);
+    // ── ذهب بدون سعر في السندات العامة: قبض يُنقص دين العميل، صرف يزيده ──
+    const genPayGin = txs.filter(t=>t.type==='general-receipt').reduce((a,t)=>{
+      let w=0;
+      if(t.goldItems&&t.goldItems.length){
+        t.goldItems.forEach(gi=>{ if((gi.karat||'21')===k && !(gi.price||0)) w+=(gi.weight||0); });
+      } else if(!(t.goldPrice||0)){ if((t.goldKarat||'21')===k) w+=(t.goldWeight||0); }
+      return a+w;
+    },0);
+    const genPayGout = txs.filter(t=>t.type==='general-payment').reduce((a,t)=>{
+      let w=0;
+      if(t.goldItems&&t.goldItems.length){
+        t.goldItems.forEach(gi=>{ if((gi.karat||'21')===k && !(gi.price||0)) w+=(gi.weight||0); });
+      } else if(!(t.goldPrice||0)){ if((t.goldKarat||'21')===k) w+=(t.goldWeight||0); }
+      return a+w;
+    },0);
     const ret    = txs.filter(t=>t.type==='return')
                       .reduce((a,t)=>(t.items||[]).filter(i=>i.karat===k).reduce((s,i)=>s+(i.weight||0),a),0);
-    goldOwed[k] = sold - sret - bought + pret - scr - payG - ret;
+    goldOwed[k] = sold - sret - bought + pret - scr - payG - genPayGin + genPayGout - ret;
   });
 
   // للموظفين
@@ -7722,23 +7779,44 @@ function getClientBalance(cli){
   }
   const totalObCash = obCash + distObCashAdj;
 
-  // ── سندات القبض والصرف العامة ──
-  // general-receipt: نقد دخل من الطرف → ينقص مديونيته (يُخفف ما عليه أو ما علينا)
-  // general-payment: نقد خرج للطرف → يُعدَّل حساب الطرف
-  const genReceiptTotal = txs.filter(t=>t.type==='general-receipt')
-    .reduce((a,t)=>a+(t.amount||t.ajourPaid||0)+(t.change||0),0);
-  const genPaymentTotal = txs.filter(t=>t.type==='general-payment')
-    .reduce((a,t)=>a+(t.amount||t.ajourPaid||0)+(t.change||0),0);
-
-  // المبدأ الموحد (بغض النظر عن نوع الطرف):
-  // قبض → ينقص الرصيد (كأن الطرف سدّد)
-  // صرف → يزيد الرصيد (كأننا دفعنا للطرف)
-  const genCashAdj = genPaymentTotal - genReceiptTotal;
+  // ── سندات القبض والصرف العامة (نقد + ذهب) ──
+  // general-receipt: ما دخل منه (نقد أو ذهب) → يُنقص ما عليه
+  // general-payment: ما خرج إليه (نقد أو ذهب) → يزيد ما له علينا
+  let genReceiptCash = 0, genReceiptGold24 = 0;
+  txs.filter(t=>t.type==='general-receipt').forEach(t=>{
+    genReceiptCash += (t.amount||t.ajourPaid||0)+(t.change||0);
+    if(t.goldItems&&t.goldItems.length>0){
+      t.goldItems.forEach(gi=>{
+        if((gi.price||0)>0) genReceiptCash += Math.round((gi.weight||0)*(gi.price||0)*100)/100;
+        else genReceiptGold24 += convertTo24(gi.weight||0, gi.karat||'21');
+      });
+    } else if((t.goldWeight||0)>0){
+      if((t.goldPrice||0)>0) genReceiptCash += Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100;
+      else genReceiptGold24 += convertTo24(t.goldWeight||0, t.goldKarat||'21');
+    }
+  });
+  let genPaymentCash = 0, genPaymentGold24 = 0;
+  txs.filter(t=>t.type==='general-payment').forEach(t=>{
+    genPaymentCash += (t.amount||t.ajourPaid||0)+(t.change||0);
+    if(t.goldItems&&t.goldItems.length>0){
+      t.goldItems.forEach(gi=>{
+        if((gi.price||0)>0) genPaymentCash += Math.round((gi.weight||0)*(gi.price||0)*100)/100;
+        else genPaymentGold24 += convertTo24(gi.weight||0, gi.karat||'21');
+      });
+    } else if((t.goldWeight||0)>0){
+      if((t.goldPrice||0)>0) genPaymentCash += Math.round((t.goldWeight||0)*(t.goldPrice||0)*100)/100;
+      else genPaymentGold24 += convertTo24(t.goldWeight||0, t.goldKarat||'21');
+    }
+  });
+  // نقد: قبض يُنقص الرصيد، صرف يزيده
+  const genCashAdj = genPaymentCash - genReceiptCash;
+  // ذهب: قبض يُنقص رصيد الذهب، صرف يزيده
+  const genGoldAdj24 = Math.round((genPaymentGold24 - genReceiptGold24)*1000)/1000;
 
   return {
     cashOwed:     Math.round((cashOwed + totalObCash + genCashAdj)*100)/100,
     goldOwed,
-    goldOwedAs24: Math.round((goldOwedAs24 + obGold24)*1000)/1000,
+    goldOwedAs24: Math.round((goldOwedAs24 + obGold24 + genGoldAdj24)*1000)/1000,
     ajTotal:      sellDebt,
     totalNaqd:    clientSettled + cashTransferIn,
     clientSettled: Math.round(clientSettled*100)/100,
@@ -8132,7 +8210,9 @@ function doPayment(){
   const action = isReceipt ? (isDist?'قبض موزع (كبيع)':'📥 سند قبض') : (isDist?'صرف موزع (كشراء)':'📤 سند صرف');
   const ajMsg  = distAjour>0 ? ` · أجور: ${fmt(distAjour)} ر` : '';
   const vcMsg  = !isDist ? ` [${voucherCode}]` : '';
-  toast(`✅ ${action}${vcMsg} — ${client} · نقد: ${fmt(ajour)} ر${ajMsg}`);
+  const _cashPart = ajour>0 ? ` · نقد: ${fmt(ajour)} ر` : '';
+  const _goldPart = goldItems.length>0 ? ` · ذهب: ${fmtG(goldW)} ج` : '';
+  toast(`✅ ${action}${vcMsg} — ${client}${_cashPart}${_goldPart}${ajMsg}`);
 }
 
 // ── Discount calc ──────────────────────────────────────────────────
@@ -13066,6 +13146,17 @@ function buildInvoicePaymentTracker(v, txs, isSupp, _extBal){
   txs.filter(t=>t.type==='transfer' && t.fromSafe===('__cli__'+v) && (t.goldAmount||0)>0.001)
      .forEach(p=>rawGoldPay24.push({amt:convertTo24(p.goldAmount||0, p.goldKarat||'21'), date:p.date||''}));
 
+  // ✅ ذهب بدون سعر في سند القبض العام (general-receipt) = تسوية ذهبية حقيقية
+  txs.filter(t=>t.type==='general-receipt').forEach(p=>{
+    let g24=0;
+    if(p.goldItems&&p.goldItems.length){
+      p.goldItems.forEach(gi=>{ if(!(gi.price||0)) g24+=convertTo24(gi.weight||0, gi.karat||'21'); });
+    } else if(!(p.goldPrice||0)){
+      g24+=convertTo24(p.goldWeight||0, p.goldKarat||'21');
+    }
+    if(g24>0.001) rawGoldPay24.push({amt:g24, date:p.date||''});
+  });
+
   // إضافة المرتجعات غير المرتبطة كمدفوعات FIFO
   unlinkedReturnsCash.forEach(r=>rawCashPay.push(r));
   unlinkedReturnsGold24.forEach(r=>rawGoldPay24.push(r));
@@ -13591,9 +13682,30 @@ function renderStmt(){
         if(t.type==='expense')          return t.fromSafe===k;
         if(t.type==='salary-pay')       return t.fromSafe===k;
         if(t.type==='addsafe')          return t.toSafe===k;
-        // [FIX-1] إضافة السندات العامة: كلا النوعين يستخدمان fromSafe كصندوق التأثير
-        if(t.type==='general-receipt')  return t.fromSafe===k;
-        if(t.type==='general-payment')  return t.fromSafe===k;
+        // [FIX-1] إضافة السندات العامة: كلا النوعين يستخدمان fromSafe كصندوق النقدي
+        // وكذلك صناديق الذهب عند وجود goldItems
+        if(t.type==='general-receipt'){
+          if(t.fromSafe===k) return true;
+          const _gri=t.goldItems||[];
+          if(_gri.some(gi=>(gi.safe||'')=== k)) return true;
+          if(_gri.length===0 && (t.goldWeight||0)>0){
+            const _gk=t.goldKarat||'21';
+            const _gd=t.goldSafe||(_gk==='21'?'scrap21':_gk==='24'?'pure24':'scrap18');
+            if(_gd===k) return true;
+          }
+          return false;
+        }
+        if(t.type==='general-payment'){
+          if(t.fromSafe===k) return true;
+          const _gpi=t.goldItems||[];
+          if(_gpi.some(gi=>(gi.safe||'')=== k)) return true;
+          if(_gpi.length===0 && (t.goldWeight||0)>0){
+            const _gk=t.goldKarat||'21';
+            const _gd=t.goldSafe||(_gk==='21'?'scrap21':_gk==='24'?'pure24':'scrap18');
+            if(_gd===k) return true;
+          }
+          return false;
+        }
         return false;
       })
       .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
@@ -13606,9 +13718,32 @@ function renderStmt(){
         else if(t.type==='expense')          delta = -(t.amount||0);
         else if(t.type==='salary-pay')       delta = -(t.amount||0);
         else if(t.type==='addsafe')          delta = (t.amount||0);
-        // [FIX-1] delta للسندات العامة — general-receipt يدخل للصندوق، general-payment يخرج منه
-        else if(t.type==='general-receipt')  delta = +((t.amount||t.ajourPaid||0)+(t.change||0));
-        else if(t.type==='general-payment')  delta = -((t.amount||t.ajourPaid||0)+(t.change||0));
+        // [FIX-1] delta للسندات العامة — نقد + ذهب
+        else if(t.type==='general-receipt'){
+          const _gri=t.goldItems||[];
+          const _safeIsGold = (SM[k]&&SM[k].type==='gold') || ['scrap21','scrap18','pure24','worked21','worked18'].includes(k);
+          if(_safeIsGold){
+            // صندوق ذهب: نحسب الذهب الداخل
+            let _w=0;
+            if(_gri.length>0){ const _gi=_gri.find(gi=>(gi.safe||'')=== k); _w=_gi?(_gi.weight||0):0; }
+            else if((t.goldWeight||0)>0){ const _gk=t.goldKarat||'21'; const _gd=t.goldSafe||(_gk==='21'?'scrap21':_gk==='24'?'pure24':'scrap18'); if(_gd===k) _w=t.goldWeight; }
+            delta = +_w;
+          } else {
+            delta = +((t.amount||t.ajourPaid||0)+(t.change||0));
+          }
+        }
+        else if(t.type==='general-payment'){
+          const _gpi=t.goldItems||[];
+          const _safeIsGold2 = (SM[k]&&SM[k].type==='gold') || ['scrap21','scrap18','pure24','worked21','worked18'].includes(k);
+          if(_safeIsGold2){
+            let _w=0;
+            if(_gpi.length>0){ const _gi=_gpi.find(gi=>(gi.safe||'')=== k); _w=_gi?(_gi.weight||0):0; }
+            else if((t.goldWeight||0)>0){ const _gk=t.goldKarat||'21'; const _gd=t.goldSafe||(_gk==='21'?'scrap21':_gk==='24'?'pure24':'scrap18'); if(_gd===k) _w=t.goldWeight; }
+            delta = -_w;
+          } else {
+            delta = -((t.amount||t.ajourPaid||0)+(t.change||0));
+          }
+        }
         if(delta > 0) totalIn  += delta;
         if(delta < 0) totalOut += Math.abs(delta);
         movements.push({t: t, delta: delta});
@@ -18289,6 +18424,18 @@ if(typeof _rsOrig==='function'){
           else if(tp==='scrap') dGold=+_scrapTo24(t);
           else if(tp==='payment') (t.goldItems||[]).forEach(gi=>dGold+=_to24(gi.weight,gi.karat));
           else if(tp==='supplier-payment') (t.goldItems||[]).forEach(gi=>dGold-=_to24(gi.weight,gi.karat));
+          else if(tp==='general-receipt'){
+            // ذهب يدخل صناديقنا من سند قبض عام
+            const _gri = t.goldItems||[];
+            if(_gri.length>0) _gri.forEach(gi=>dGold+=_to24(gi.weight||0,gi.karat||'21'));
+            else if((t.goldWeight||0)>0) dGold+=_to24(t.goldWeight,t.goldKarat||'21');
+          }
+          else if(tp==='general-payment'){
+            // ذهب يخرج من صناديقنا لسند صرف عام
+            const _gpi = t.goldItems||[];
+            if(_gpi.length>0) _gpi.forEach(gi=>dGold-=_to24(gi.weight||0,gi.karat||'21'));
+            else if((t.goldWeight||0)>0) dGold-=_to24(t.goldWeight,t.goldKarat||'21');
+          }
           else if(tp==='sales-return'||tp==='return') (t.items||[]).forEach(i=>dGold+=_to24(i.weight,i.karat));
           else if(isOB&&t.balanceType==='gold') dGold=+_to24(t.goldWeight||t.amount||0,t.karat||'21');
 
