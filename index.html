@@ -13591,18 +13591,24 @@ function renderStmt(){
         if(t.type==='expense')          return t.fromSafe===k;
         if(t.type==='salary-pay')       return t.fromSafe===k;
         if(t.type==='addsafe')          return t.toSafe===k;
+        // [FIX-1] إضافة السندات العامة: كلا النوعين يستخدمان fromSafe كصندوق التأثير
+        if(t.type==='general-receipt')  return t.fromSafe===k;
+        if(t.type==='general-payment')  return t.fromSafe===k;
         return false;
       })
       .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
       .forEach(function(t){
         var delta = 0;
         if(t.type==='transfer')              delta = (t.fromSafe===k) ? -(t.amount||0) : (t.amount||0);
-        else if(t.type==='payment')          delta = (t.ajourPaid||t.amount||0);
+        else if(t.type==='payment')          delta = (t.ajourPaid||t.amount||0)+(t.change||0);
         else if(t.type==='supplier-payment') delta = -(t.ajourPaid||t.amount||0);
         else if(t.type==='cash-receipt')     delta = (t.amount||0);
         else if(t.type==='expense')          delta = -(t.amount||0);
         else if(t.type==='salary-pay')       delta = -(t.amount||0);
         else if(t.type==='addsafe')          delta = (t.amount||0);
+        // [FIX-1] delta للسندات العامة — general-receipt يدخل للصندوق، general-payment يخرج منه
+        else if(t.type==='general-receipt')  delta = +((t.amount||t.ajourPaid||0)+(t.change||0));
+        else if(t.type==='general-payment')  delta = -((t.amount||t.ajourPaid||0)+(t.change||0));
         if(delta > 0) totalIn  += delta;
         if(delta < 0) totalOut += Math.abs(delta);
         movements.push({t: t, delta: delta});
@@ -13895,8 +13901,11 @@ function renderStmt(){
     else if(t.type==='scrap'){
       dGold24 = -scrapTo24(t); // دالة موحدة: scrapItems → total24 → fallback آمن
     }
-    else if(t.type==='payment')             dGold24 = -convertTo24(t.goldWeight,t.goldKarat||'21');
-    else if(t.type==='supplier-payment')    dGold24 = convertTo24(t.goldWeight,t.goldKarat||'21');
+    // [FIX-2] استخدام goldAs24 عند توفره (يضمن صحة الحساب عند عيارات متعددة)
+    // goldAs24 يُحسب ويُخزَّن في doPayment() كمجموع الأصناف المحوَّل لعيار 24
+    // الرجوع لـ convertTo24 فقط عند غياب goldAs24 (حالة عيار واحد قديم)
+    else if(t.type==='payment')             dGold24 = -(t.goldAs24!=null ? t.goldAs24 : convertTo24(t.goldWeight||0,t.goldKarat||'21'));
+    else if(t.type==='supplier-payment')    dGold24 =  (t.goldAs24!=null ? t.goldAs24 : convertTo24(t.goldWeight||0,t.goldKarat||'21'));
     else if(t.type==='return'||t.type==='sales-return')
       (t.items||[]).forEach(i=>{ dGold24 -= convertTo24(i.weight,i.karat); });
     else if(t.type==='supplier-return'||t.type==='purchase-return')
