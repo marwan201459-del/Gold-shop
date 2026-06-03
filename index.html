@@ -6074,6 +6074,10 @@ function _printStmtCore(v){
           dCash=-((t.ajourPaid||t.amount||0)+(t.discount||0)+(t.change||0)+(t.netDiff?.riyal||0)+_gcv);
         }
         else if(t.type==='cash-receipt') dCash=-(t.amount||0);
+        else if(t.type==='general-receipt')
+          dCash=-((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
+        else if(t.type==='general-payment')
+          dCash=+((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
         else if(t.type==='sales-return'||t.type==='return')
           dCash=-((t.ajTotal||0)+(t.vatAmt||0));
         else if(t.type==='charge')       dCash=-(t.amount||0);
@@ -6096,6 +6100,10 @@ function _printStmtCore(v){
         }
         else if(t.type==='cash-receipt')
           dCash=-(t.amount||0);
+        else if(t.type==='general-receipt')
+          dCash=-((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
+        else if(t.type==='general-payment')
+          dCash=+((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
         else if(t.type==='sales-return'||t.type==='return')
           dCash=-((t.ajTotal||0)+(t.vatAmt||0));  // أجور المرتجع فقط
         else if(t.type==='charge')
@@ -7784,7 +7792,7 @@ function getClientBalance(cli){
   // general-payment: ما خرج إليه (نقد أو ذهب) → يزيد ما له علينا
   let genReceiptCash = 0, genReceiptGold24 = 0;
   txs.filter(t=>t.type==='general-receipt').forEach(t=>{
-    genReceiptCash += (t.amount||t.ajourPaid||0)+(t.change||0);
+    genReceiptCash += (t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0);
     if(t.goldItems&&t.goldItems.length>0){
       t.goldItems.forEach(gi=>{
         if((gi.price||0)>0) genReceiptCash += Math.round((gi.weight||0)*(gi.price||0)*100)/100;
@@ -7797,7 +7805,7 @@ function getClientBalance(cli){
   });
   let genPaymentCash = 0, genPaymentGold24 = 0;
   txs.filter(t=>t.type==='general-payment').forEach(t=>{
-    genPaymentCash += (t.amount||t.ajourPaid||0)+(t.change||0);
+    genPaymentCash += (t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0);
     if(t.goldItems&&t.goldItems.length>0){
       t.goldItems.forEach(gi=>{
         if((gi.price||0)>0) genPaymentCash += Math.round((gi.weight||0)*(gi.price||0)*100)/100;
@@ -13983,10 +13991,10 @@ function renderStmt(){
       else if(t.type==='cash-receipt')                                   dCash = -(t.amount||0);
       else if(t.type==='general-receipt')
         // سند قبض عام من الطرف → ينقص رصيده (يسدد لنا)
-        dCash = -((t.amount||t.ajourPaid||0)+(t.change||0));
+        dCash = -((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
       else if(t.type==='general-payment')
         // سند صرف عام للطرف → يزيد رصيده (ندفع له)
-        dCash = +((t.amount||t.ajourPaid||0)+(t.change||0));
+        dCash = +((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
       else if(t.type==='purchase-return'||t.type==='supplier-return')
         // إصلاح: أجور المرتجع فقط (مطابقة printStmt)
         dCash = (t.ajTotal||0);
@@ -14013,10 +14021,10 @@ function renderStmt(){
       else if(t.type==='cash-receipt')                                 dCash = -(t.amount||0);
       else if(t.type==='general-receipt')
         // سند قبض عام من الطرف → ينقص رصيده
-        dCash = -((t.amount||t.ajourPaid||0)+(t.change||0));
+        dCash = -((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
       else if(t.type==='general-payment')
         // سند صرف عام للطرف → يزيد رصيده
-        dCash = +((t.amount||t.ajourPaid||0)+(t.change||0));
+        dCash = +((t.amount||t.ajourPaid||0)+(t.change||0)+(t.netDiff?.riyal||0));
       else if(t.type==='sales-return'||t.type==='return')             dCash = -((t.ajTotal||0)+(t.vatAmt||0));
       else if(t.type==='salary-custody')                               dCash = (t.amount||0);
       else if(t.type==='salary-pay')                                   dCash = -(t.amount||0);
