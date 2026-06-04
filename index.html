@@ -16425,6 +16425,9 @@ import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, deleteF
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getDatabase, ref as dbRef, set as dbSet, onValue, onDisconnect, serverTimestamp as rtServerTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+// [FIX] إضافة Firebase Auth لتوفير توكن صحيح لـ Firestore Security Rules
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
 const FB_CFG = {
   apiKey:           "AIzaSyAGtAcxxUcbiV3TjFggsNaN9mYn8PkrnT0",
@@ -16440,6 +16443,44 @@ const db  = getFirestore(app);
 // ── Realtime Database للحضور الفوري (Presence) ──
 let _rtdb = null;
 try { _rtdb = getDatabase(app); } catch(e) { console.warn('RTDB not available'); }
+
+// ══════════════════════════════════════════════════════════════════════════
+// [FIX] Firebase Anonymous Auth — السبب الجذري لأخطاء permission-denied
+// ══════════════════════════════════════════════════════════════════════════
+// المشكلة: التطبيق يستخدم مصادقة مخصصة (sessionStorage) بدون Firebase Auth
+//          لذا request.auth == null دائماً في قواعد Firestore → permission-denied
+// الحل:   تسجيل دخول مجهول anonymous لتوليد توكن Firebase Auth حقيقي
+//         هذا لا يؤثر على نظام المصادقة المخصص — فقط يتيح لـ Firestore Rules العمل
+// ══════════════════════════════════════════════════════════════════════════
+const _fbAuth = getAuth(app);
+let _fbAuthReady = false;
+let _fbAuthResolvers = [];
+const _fbAuthPromise = new Promise(resolve => _fbAuthResolvers.push(resolve));
+
+// راقب حالة المصادقة (يتحقق فور عند وجود جلسة سابقة)
+onAuthStateChanged(_fbAuth, (user) => {
+  if(user && !_fbAuthReady){
+    _fbAuthReady = true;
+    _fbAuthResolvers.forEach(fn => fn());
+    console.log('[Firebase Auth] ✅ مصادق —', user.isAnonymous ? 'مجهول (anonymous)' : user.uid);
+  }
+});
+
+// سجّل دخولاً مجهولاً فوراً لتوفير توكن Auth لـ Firestore Security Rules
+signInAnonymously(_fbAuth).catch(e => {
+  console.warn('[Firebase Auth] ⚠️ تسجيل المجهول فشل:', e.code);
+  // fallback: نكمل بدون auth (يعمل إذا كانت القواعد if true)
+  if(!_fbAuthReady){
+    _fbAuthReady = true;
+    _fbAuthResolvers.forEach(fn => fn());
+  }
+});
+window._fbAuthPromise = _fbAuthPromise;
+// [FIX] نُصدِّر _fbAuthReady للـ window حتى يصل إليه الكود خارج النطاق
+Object.defineProperty(window, '_fbAuthReady', {
+  get: () => _fbAuthReady,
+  set: (v) => { _fbAuthReady = v; }
+});
 
 // doc المستخدمين (المالك فقط يكتب عليه)
 const USERS_DOC = doc(db,'system','users');
@@ -16550,6 +16591,8 @@ function buildPayload(){
 async function _doSave(n){
   n=n||1;
   if(!_userRef)return;
+  // [FIX-AUTH] ضمان وجود توكن قبل أي كتابة (يكون جاهزاً في الغالب)
+  if(!_fbAuthReady) await _fbAuthPromise;
   const p=buildPayload();
   // [FIX] تحديث _lastSave فوراً قبل العملية الغير متزامنة لضمان حجب onSnapshot
   _lastSave=p.updatedAt;
@@ -16598,7 +16641,9 @@ window.sv_save=function(){
 };
 
 // ── بدء جلسة المستخدم (يُستدعى بعد تسجيل الدخول) ──
-function startSession(uid){
+async function startSession(uid){
+  // [FIX] انتظر حتى تكتمل مصادقة Firebase قبل أي عملية Firestore
+  await _fbAuthPromise;
   if(_unsub){_unsub();_unsub=null;}
   _userRef   = doc(db,'userData',uid);
   _firstLoad = true;
@@ -16724,6 +16769,8 @@ async function _initPresence(username) {
     window._presenceRef = _presenceRef;
     // حفظ آخر وقت دخول في Firestore أيضاً
     try {
+      // [FIX-AUTH] انتظر توكن قبل الكتابة (للاستدعاء الأول عند تسجيل الدخول)
+      if(!_fbAuthReady) await _fbAuthPromise;
       const uDoc = doc(db, 'presence', lowerUser);
       await setDoc(uDoc, { username: lowerUser, lastLogin: Date.now(), lastSeen: Date.now() }, { merge: true });
     } catch(e) { /* تجاهل أخطاء Firestore للحضور */ }
@@ -16771,6 +16818,8 @@ window._fmtLastSeen = _fmtLastSeen;
 
 
 async function _loadUsersInternal(){
+  // [FIX] انتظر توكن Firebase Auth قبل القراءة
+  await _fbAuthPromise;
   try{const s=await getDoc(USERS_DOC);return s.exists()?(s.data().list||[]):[];}
   catch(e){return [];}
 }
@@ -16790,6 +16839,8 @@ async function saveUsers(list){
     console.warn('⛔ محاولة وصول غير مصرح: saveUsers');
     return;
   }
+  // [FIX] انتظر توكن Firebase Auth قبل الكتابة
+  await _fbAuthPromise;
   await setDoc(USERS_DOC,{list,updatedAt:Date.now()});
 }
 window._loadUsersInternal=_loadUsersInternal;
@@ -16799,6 +16850,7 @@ window._saveUsers=saveUsers;
 // ── Tenant Opening Balance — Firestore helpers ──
 // Collection: tenantOpeningBalance/{lowerUsername}
 async function _getTenantOBDoc(lowerUser){
+  await _fbAuthPromise; // [FIX]
   try {
     const d = doc(db, 'tenantOpeningBalance', lowerUser);
     const s = await getDoc(d);
@@ -16806,6 +16858,7 @@ async function _getTenantOBDoc(lowerUser){
   } catch(e){ return null; }
 }
 async function _setTenantOBDoc(lowerUser, data){
+  await _fbAuthPromise; // [FIX]
   const d = doc(db, 'tenantOpeningBalance', lowerUser);
   await setDoc(d, data, { merge: true });
 }
@@ -17413,6 +17466,8 @@ function _dlgStartActivityPing(username) {
       const lowerUser = username.toLowerCase();
       if (typeof setDoc !== 'undefined' && typeof doc !== 'undefined' && typeof db !== 'undefined') {
         try {
+          // [FIX-AUTH] ضمان توكن قبل الكتابة
+          if(window._fbAuthPromise && !window._fbAuthReady) await window._fbAuthPromise;
           await setDoc(
             doc(db, 'presence', lowerUser),
             { username: lowerUser, lastSeen: Date.now(), online: true },
@@ -17459,6 +17514,8 @@ function _dlgStartActivityPing(username) {
   async function _fetchFirestoreLastLogins(usernames, onDone) {
     try {
       if (typeof getDoc === 'undefined' || typeof doc === 'undefined' || typeof db === 'undefined') return;
+      // [FIX-AUTH] ضمان توكن قبل القراءة
+      if(window._fbAuthPromise && !window._fbAuthReady) await window._fbAuthPromise;
       for (const username of (usernames || [])) {
         try {
           const snap = await getDoc(doc(db, 'presence', username.toLowerCase()));
