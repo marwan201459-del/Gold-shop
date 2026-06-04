@@ -4635,6 +4635,8 @@ function safeSave(tx){
     toast(err);
     return false;
   }
+  // [FIX] حجب onSnapshot فوراً قبل بدء الحفظ
+  if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
   S.transactions.unshift(tx);
   logActivity('add',
     `[${TLBL[tx.type]||tx.type}] ${tx.client||''} — ${
@@ -5074,7 +5076,15 @@ function doTransfer(){
 function delTx(id){
   const tx=S.transactions.find(t=>t.id===id);
   if(!tx)return;
-  _lastSaveTime=Date.now(); // منع onSnapshot من إرجاع البيانات
+  // [FIX] استخدام الدالة الصحيحة لمنع onSnapshot من إرجاع البيانات القديمة
+  if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
+  // تسجيل عملية الحذف في سجل النشاط قبل الحذف
+  logActivity('delete',
+    '[حذف معاملة] ' + (tx.type||'') + ' — ' + (tx.client||'') +
+    (tx.total ? ' — المبلغ: ' + tx.total.toLocaleString('ar-SA') + ' ر' : '') +
+    (tx.weight ? ' — الوزن: ' + tx.weight + ' ج' : ''),
+    String(tx.id)
+  );
   revSafe(tx);
   S.transactions=S.transactions.filter(t=>t.id!==id);
   sv(); renderAll(); toast('🗑️ تم الحذف');
@@ -5798,6 +5808,9 @@ function renderEditGoldPayItems(){
 function saveEditInv(oldId){
   const oldTx=S.transactions.find(t=>t.id===oldId);
   if(!oldTx) return;
+
+  // [FIX] حجب onSnapshot قبل تعديل البيانات
+  if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
 
   // التحقق من الأصناف فقط لأنواع الفواتير الفعلية
   const invTypes=['sell','sell-debt','buy','buy-debt'];
@@ -8982,6 +8995,9 @@ function importBackup(input){
     try{
       const data = JSON.parse(e.target.result);
       if(!data.transactions) throw new Error('ملف غير صالح');
+      // [FIX] حجب onSnapshot أثناء الاستيراد لمنع إرجاع البيانات القديمة
+      if(typeof window._fbBlockSnapshot==='function') window._fbBlockSnapshot(25000);
+      if(typeof window._fbMarkSaving==='function') window._fbMarkSaving(20000);
       S.transactions  = data.transactions || [];
       S.clients       = data.clients      || [];
       S.customSafes   = data.customSafes  || [];
@@ -8994,6 +9010,8 @@ function importBackup(input){
       sv(); renderAll();
       toast('✅ تم استيراد البيانات — '+S.transactions.length+' معاملة');
     } catch(err){
+      // [FIX] رفع الحجب عند الخطأ
+      if(typeof window._fbUnblockSnapshot==='function') window._fbUnblockSnapshot();
       toast('❌ خطأ في الملف: '+err.message);
     }
   };
@@ -10898,11 +10916,14 @@ function logActivity(action, details, targetId=''){
     action,
     details,
     targetId,
+    // [FIX] إضافة source لتسهيل التتبع
+    source:  typeof arguments.callee !== 'undefined' ? 'logActivity' : 'unknown',
   };
   S.activityLog.unshift(entry);
   // احتفظ بآخر 500 فقط
   if(S.activityLog.length > 500) S.activityLog = S.activityLog.slice(0,500);
-  sv();
+  // [FIX] حذف sv() من هنا — العملية الأم تقوم بالحفظ بنفسها لمنع الحفظ المزدوج
+  // sv(); ← محذوف عمداً: logActivity تُستدعى دائماً قبل sv() في safeSave/delTx/delCli
 }
 
 function renderActivityLog(filterUser='', filterDate=''){
@@ -14945,6 +14966,8 @@ function saveCli(){
   const notes=document.getElementById('nc-notes').value;
   const baseSalary=type==='موظف'?(parseFloat(document.getElementById('nc-salary').value)||0):0;
   const eid=document.getElementById('edit-cli-id').value;
+  // [FIX] حجب onSnapshot قبل أي تعديل
+  if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
   if(eid){
     const c=S.clients.find(x=>x.id===parseInt(eid));
     if(c){
@@ -14990,7 +15013,14 @@ function editCli(id){
 }
 function delCli(id){
   appConfirm('حذف هذه الجهة؟', ()=>{
-    _lastSaveTime=Date.now();
+    const cli = S.clients.find(c=>c.id===id);
+    // [FIX] استخدام الدالة الصحيحة لمنع onSnapshot من إرجاع البيانات القديمة
+    if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
+    // تسجيل عملية الحذف في سجل النشاط
+    logActivity('delete-client',
+      '[حذف جهة] ' + (cli ? cli.name + ' (' + cli.type + ')' : 'id='+id),
+      String(id)
+    );
     S.clients=S.clients.filter(c=>c.id!==id);
     sv();renderAll();toast('🗑️ تم الحذف');
   });
@@ -16420,6 +16450,36 @@ let _unsub      = null;
 let _lastSave   = 0;
 let _firstLoad  = true;
 let _saveQueue  = Promise.resolve();
+// [FIX] علم لمنع onSnapshot أثناء عمليات الاستعادة أو الاستيراد
+let _blockSnapshot = false;
+let _blockSnapshotTimer = null;
+
+// [FIX] دالة مُصدَّرة لتحديث _lastSave فوراً من النطاق العام
+// تُستدعى من delTx / delCli / safeSave قبل بدء الحفظ
+window._fbMarkSaving = function(durationMs) {
+  _lastSave = Date.now();
+  // نافذة حماية افتراضية 15 ثانية (قابلة للتخصيص)
+  const dur = durationMs || 15000;
+  // تحديث مستمر طوال مدة الحماية لضمان عدم انتهاء النافذة مبكراً
+  clearTimeout(window._fbMarkSavingTimer);
+  window._fbMarkSavingTimer = setTimeout(function(){
+    // لا نُصفّر _lastSave هنا — يكفي انتهاء فترة الحماية طبيعياً
+  }, dur);
+};
+
+// [FIX] حجب onSnapshot بالكامل لمدة محددة (للاستعادة والاستيراد)
+window._fbBlockSnapshot = function(durationMs) {
+  _blockSnapshot = true;
+  _lastSave = Date.now();
+  clearTimeout(_blockSnapshotTimer);
+  _blockSnapshotTimer = setTimeout(function(){
+    _blockSnapshot = false;
+  }, durationMs || 20000);
+};
+window._fbUnblockSnapshot = function() {
+  _blockSnapshot = false;
+  clearTimeout(_blockSnapshotTimer);
+};
 
 // ── مؤشر المزامنة ──
 const _sy = document.createElement('div');
@@ -16438,12 +16498,41 @@ function clean(o){
   return null;
 }
 
+// ── بناء الـ Payload مع حماية الحدود ──
 function buildPayload(){
+  const txAll = S.transactions||[];
+  const TX_LIMIT = 3000;
+  const TX_WARN  = 2500;
+
+  // [FIX] تحذير واضح عند الاقتراب من الحد
+  if(txAll.length >= TX_WARN && txAll.length < TX_LIMIT){
+    const remaining = TX_LIMIT - txAll.length;
+    console.warn(`[Firebase] ⚠️ المعاملات ${txAll.length}/${TX_LIMIT} — تبقى ${remaining} معاملة قبل الحد`);
+    // إظهار تحذير في الواجهة مرة واحدة (لا تكرار)
+    if(!window._txLimitWarnShown){
+      window._txLimitWarnShown = true;
+      setTimeout(()=>{
+        if(typeof window.toast==='function')
+          window.toast(`⚠️ تحذير: ${txAll.length} معاملة محفوظة — الحد الأقصى ${TX_LIMIT}. يُنصح بأرشفة البيانات القديمة.`);
+      }, 2000);
+    }
+  } else if(txAll.length >= TX_LIMIT){
+    // [FIX] تحذير حرج عند بلوغ الحد
+    console.error(`[Firebase] 🚨 تجاوز حد المعاملات! ${txAll.length}/${TX_LIMIT} — سيتم حفظ أحدث ${TX_LIMIT} معاملة فقط`);
+    if(!window._txLimitCritShown){
+      window._txLimitCritShown = true;
+      setTimeout(()=>{
+        if(typeof window.toast==='function')
+          window.toast(`🚨 تحذير حرج: تجاوز ${TX_LIMIT} معاملة! المعاملات الأقدم لن تُحفظ في السحابة. نزّل نسخة احتياطية فوراً.`);
+      }, 1000);
+    }
+  }
+
   // تصفية مفاتيح _tenantOB_ من safesBase — هي تُخزن في tenantOpeningBalance منفصلة
   const _safesBase = {};
   Object.keys(S.safesBase||{}).forEach(k=>{ if(!k.startsWith('_tenantOB_')) _safesBase[k]=S.safesBase[k]; });
   return clean({
-    transactions: (S.transactions||[]).slice(0,3000),
+    transactions: txAll.slice(0,TX_LIMIT),
     clients:       S.clients       ||[],
     safes:         S.safes         ||{},
     customSafes:   S.customSafes   ||[],
@@ -16461,7 +16550,9 @@ function buildPayload(){
 async function _doSave(n){
   n=n||1;
   if(!_userRef)return;
-  const p=buildPayload();_lastSave=p.updatedAt;
+  const p=buildPayload();
+  // [FIX] تحديث _lastSave فوراً قبل العملية الغير متزامنة لضمان حجب onSnapshot
+  _lastSave=p.updatedAt;
   try{await setDoc(_userRef,p);}
   catch(e){
     if(n<3){await new Promise(r=>setTimeout(r,2000));return _doSave(n+1);}
@@ -16469,12 +16560,39 @@ async function _doSave(n){
   }
 }
 window.sv_save=function(){
+  // [FIX] تحديث _lastSave فوراً عند بدء الحفظ (قبل العملية الغير متزامنة)
+  _lastSave = Date.now();
   showSync('⟳ جاري الحفظ...');
   _saveQueue=_saveQueue.then(async()=>{
-    try{await _doSave();showSync('☁️ محفوظ',2000);}
+    try{
+      await _doSave();
+      showSync('☁️ محفوظ',2000);
+    }
     catch(e){
-      const m=e.code==='permission-denied'?'خطأ صلاحيات':e.code==='unavailable'?'لا اتصال':'خطأ حفظ';
-      showSync('⚠️ '+m,7000);
+      // [FIX] رسائل خطأ دقيقة تعكس نوع الخطأ الفعلي
+      let m;
+      switch(e.code){
+        case 'permission-denied':
+          m='⛔ خطأ صلاحيات Firebase — تحقق من القواعد';
+          console.error('[Firebase] permission-denied:', e);
+          break;
+        case 'unavailable':
+          m='📴 Firebase غير متاح مؤقتاً — سيُعاد المحاولة';
+          break;
+        case 'resource-exhausted':
+          m='⚠️ تجاوز حصة Firebase اليومية';
+          console.error('[Firebase] resource-exhausted:', e);
+          break;
+        case 'unauthenticated':
+          m='🔐 انتهت جلسة تسجيل الدخول';
+          break;
+        case 'not-found':
+          m='⚠️ مسار Firebase غير موجود';
+          break;
+        default:
+          m='⚠️ خطأ حفظ: ' + (e.code || e.message || 'غير معروف');
+      }
+      showSync(m, 8000);
     }
   });
 };
@@ -16497,9 +16615,32 @@ function startSession(uid){
   }, 8000);
 
   _unsub = onSnapshot(_userRef,(snap)=>{
-    if(Date.now()-_lastSave<3000)return;
+    // [FIX 1] حجب onSnapshot أثناء عمليات الاستعادة/الاستيراد
+    if(_blockSnapshot){
+      console.log('[onSnapshot] محجوب مؤقتاً أثناء عملية استعادة/استيراد');
+      return;
+    }
+    // [FIX 2] نافذة الحماية مرفوعة من 3000ms إلى 15000ms
+    if(Date.now()-_lastSave<15000){
+      console.log('[onSnapshot] تجاهُل — تم الحفظ منذ', Math.round((Date.now()-_lastSave)/1000), 'ث');
+      return;
+    }
     if(snap.exists()){
       const d=snap.data();
+      // [FIX 3] التحقق من صحة البيانات قبل الكتابة — لا نستبدل بيانات موجودة ببيانات فارغة/ناقصة
+      const cloudTxCount = (d.transactions||[]).length;
+      const localTxCount = (S.transactions||[]).length;
+      // حماية: لا نستبدل بيانات كثيرة ببيانات أقل بكثير (تراجع > 50%)
+      if(localTxCount > 10 && cloudTxCount < localTxCount * 0.5){
+        console.warn('[onSnapshot] ⚠️ رُفض: السحابة', cloudTxCount, 'معاملة < 50% من المحلي', localTxCount);
+        showSync('⚠️ تحذير: بيانات السحابة أقل من المحلية — تم الحفاظ على البيانات المحلية', 5000);
+        return;
+      }
+      // [FIX 4] لا نستبدل بيانات موجودة ببيانات فارغة/null تماماً
+      if(cloudTxCount === 0 && localTxCount > 5){
+        console.warn('[onSnapshot] ⚠️ رُفض: السحابة فارغة والمحلي به', localTxCount, 'معاملة');
+        return;
+      }
       S.transactions  =d.transactions  ||[];
       S.clients       =d.clients       ||[];
       S.safes         =d.safes         ||{};
@@ -16523,12 +16664,34 @@ function startSession(uid){
     }
     renderAll();
   },(err)=>{
-    console.error('FB:',err.code);
+    // [FIX 5] رسائل خطأ دقيقة بدلاً من "بدون اتصال" دائماً
+    let errMsg;
+    switch(err.code){
+      case 'permission-denied':
+        errMsg='⛔ خطأ صلاحيات — تحقق من قواعد Firestore';
+        console.error('[onSnapshot] permission-denied:', err);
+        break;
+      case 'unavailable':
+        errMsg='📴 Firebase غير متاح مؤقتاً';
+        break;
+      case 'resource-exhausted':
+        errMsg='⚠️ تجاوز الحصة — انتظر قبل المزامنة';
+        console.error('[onSnapshot] resource-exhausted:', err);
+        break;
+      case 'unauthenticated':
+        errMsg='🔐 انتهت جلسة تسجيل الدخول';
+        break;
+      default:
+        errMsg='⚠️ خطأ مزامنة: ' + (err.code || err.message || 'غير معروف');
+        console.error('[onSnapshot] خطأ:', err.code, err);
+    }
     clearTimeout(_loadTimeout);
     if(_firstLoad){
       _firstLoad=false;
       const ld=document.getElementById('data-loading');if(ld)ld.style.display='none';
-      showSync('📴 بدون اتصال',3000);renderAll();
+      showSync(errMsg,5000);renderAll();
+    } else {
+      showSync(errMsg,5000);
     }
   });
 }
@@ -23158,12 +23321,17 @@ function dbgRender(){
         var snap = JSON.parse(raw);
         if (!snap || !snap.data) return { success: false, error: 'بيانات النسخة تالفة أو غير صحيحة' };
 
+        // [FIX] حجب onSnapshot أثناء الاستعادة لمنع البيانات القديمة من الإرجاع
+        if(typeof window._fbBlockSnapshot==='function') window._fbBlockSnapshot(25000);
+
         this.save('قبل الاسترجاع — نسخة تلقائية');
         Object.assign(window.S, snap.data);
         if (typeof window.sv === 'function') try { window.sv(); } catch (e) {}
         if (typeof window.renderAll === 'function') try { setTimeout(window.renderAll, 300); } catch (e) {}
         return { success: true, txCount: snap.txCount, ts: snap.ts };
       } catch (e) {
+        // [FIX] رفع الحجب عند الخطأ
+        if(typeof window._fbUnblockSnapshot==='function') window._fbUnblockSnapshot();
         return { success: false, error: String(e.message || e) };
       }
     },
@@ -23174,12 +23342,16 @@ function dbgRender(){
         try {
           var snap = JSON.parse(e.target.result);
           if (!snap || !snap.data) { callback({ success: false, error: 'الملف لا يحتوي بيانات صالحة' }); return; }
+          // [FIX] حجب onSnapshot أثناء الاستعادة من ملف
+          if(typeof window._fbBlockSnapshot==='function') window._fbBlockSnapshot(25000);
           BK.save('قبل استرجاع من ملف');
           Object.assign(window.S, snap.data);
           if (typeof window.sv === 'function') try { window.sv(); } catch (e2) {}
           if (typeof window.renderAll === 'function') try { setTimeout(window.renderAll, 300); } catch (e2) {}
           callback({ success: true, txCount: snap.txCount, ts: snap.ts });
         } catch (ex) {
+          // [FIX] رفع الحجب عند الخطأ
+          if(typeof window._fbUnblockSnapshot==='function') window._fbUnblockSnapshot();
           callback({ success: false, error: String(ex.message || ex) });
         }
       };
