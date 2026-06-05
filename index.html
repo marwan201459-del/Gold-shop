@@ -4519,6 +4519,8 @@ const ACC_RULES = {
       'general-receipt','general-payment',
       'salary-pay','salary-custody','salary-personal','salary-deduction','salary-allowance','sal-collect','sal-advance','sal-personal','sal-payout','sal-allowance','sal-deduction','sal-deposit','sal-withdraw',
       'sales-return','purchase-return','expense','inventory-adj',
+      /* [FIX-BTN-1] أنواع مفقودة كانت تُعطّل الحفظ بسبب "نوع غير معروف" */
+      'taskir','taskir-settle','dist-receipt','dist-payment',
     ];
     if(!tx.type) return '❌ القاعدة 2: نوع العملية غير محدد';
     if(!validTypes.includes(tx.type))
@@ -4848,8 +4850,10 @@ function renderScrapItems(){
 }
 
 function saveScrap(){
+  /* [FIX-BTN-3] إضافة acquireSave لمنع الضغط المزدوج وضمان تسلسل الحفظ */
+  if(!acquireSave()) return;
   const validItems = scrapItems.filter(i=>(i.weight||0)>0);
-  if(!validItems.length){toast('⚠️ أضف عيار واحد على الأقل وأدخل الوزن');return;}
+  if(!validItems.length){releaseSave();toast('⚠️ أضف عيار واحد على الأقل وأدخل الوزن');return;}
 
   const client=document.getElementById('sc-cli-v').value||document.getElementById('sc-cli-s').value;
   const notes=document.getElementById('sc-notes').value;
@@ -4873,7 +4877,7 @@ function saveScrap(){
     client, notes,
     items:[], total:0, cash:0, goldPay:0
   };
-  if(!safeSave(tx)) return;
+  if(!safeSave(tx)){ return; }
 
   // مسح الحقول
   scrapItems = []; scrapCounter = 0;
@@ -4884,7 +4888,7 @@ function saveScrap(){
   const scd=document.getElementById('sc-date');if(scd)scd.value='';
 
   const msg = validItems.map(i=>`ع${i.karat}: ${fmtG(i.weight)}ج`).join(' + ');
-  renderAll(); toast(`✅ تم قبض الكسر — ${msg} (إجمالي: ${fmtG(Math.round(total24*1000)/1000)}ج ع24)`);
+  renderAll(); releaseSave(); toast(`✅ تم قبض الكسر — ${msg} (إجمالي: ${fmtG(Math.round(total24*1000)/1000)}ج ع24)`);
 }
 
 
@@ -11931,6 +11935,49 @@ function deletePendingItem(id){
   sv(); renderPending(); toast('🗑️ تم الحذف');
 }
 
+/* [FIX-BTN-2] الدالتان المفقودتان للنافذة m-pending-status ─────────────
+   الأزرار في النافذة كانت تستدعي updatePendingStatus() و deletePending()
+   لكنهما لم تكونا معرَّفتَين في أي مكان → خطأ JS صامت
+   الحل: تعريفهما مع استخدام currentPendingStatusId لتتبع القطعة المحددة */
+let currentPendingStatusId = null;
+
+function openPendingStatusModal(id){
+  currentPendingStatusId = id || null;
+  const item = (S.pendingItems||[]).find(p=>p.id===id);
+  const infoEl = document.getElementById('pending-status-info');
+  if(infoEl && item){
+    infoEl.innerHTML =
+      `<strong>${item.desc||'—'}</strong><br>` +
+      `👤 ${item.client||'—'} · ⚖️ ${item.weight||0}ج ع${item.karat||'—'}` +
+      (item.price?` · 💰 ${item.price} ريال`:'');
+  }
+  openM('m-pending-status');
+}
+
+function updatePendingStatus(status){
+  if(!currentPendingStatusId){ toast('⚠️ لم يتم تحديد القطعة'); return; }
+  const item = (S.pendingItems||[]).find(p=>p.id===currentPendingStatusId);
+  if(!item){ toast('⚠️ القطعة غير موجودة'); return; }
+  item.status = status;
+  sv();
+  closeM('m-pending-status');
+  renderPending();
+  const msgs = {pending:'📌 تم الإبقاء معلّقة', sold:'✅ تم تسجيل البيع', returned:'↩️ تم تسجيل الإرجاع'};
+  toast(msgs[status] || '✅ تم التحديث');
+}
+
+function deletePending(){
+  if(!currentPendingStatusId){ toast('⚠️ لم يتم تحديد القطعة'); return; }
+  if(!confirm('هل تريد حذف هذه القطعة؟')) return;
+  S.pendingItems = (S.pendingItems||[]).filter(p=>p.id!==currentPendingStatusId);
+  currentPendingStatusId = null;
+  sv();
+  closeM('m-pending-status');
+  renderPending();
+  toast('🗑️ تم الحذف');
+}
+/* ─────────────────────────────────────────────────────────────────── */
+
 function renderPending(){
   const listEl    = document.getElementById('pending-list');
   const summaryEl = document.getElementById('pending-summary');
@@ -11978,6 +12025,7 @@ function renderPending(){
             <button onclick="markPendingStatus(${item.id},'sold')" style="padding:6px 12px;border-radius:var(--rc);border:none;background:var(--ok-bg);color:var(--ok);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">✅ تم البيع</button>
             <button onclick="markPendingStatus(${item.id},'returned')" style="padding:6px 12px;border-radius:var(--rc);border:none;background:var(--io-bg);color:var(--io);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">↩️ إرجاع</button>
             <button onclick="openPendingModal(${item.id})" style="padding:6px 12px;border-radius:var(--rc);border:1px solid var(--b2);background:var(--c2);color:var(--tx1);font-family:inherit;font-size:11px;cursor:pointer">✏️ تعديل</button>
+            <button onclick="openPendingStatusModal(${item.id})" style="padding:6px 12px;border-radius:var(--rc);border:none;background:var(--pu-bg);color:var(--pu);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🔄 تحديث الحالة</button>
           `:''}
           <button onclick="deletePendingItem(${item.id})" style="padding:6px 12px;border-radius:var(--rc);border:1px solid var(--no-bd);background:var(--no-bg);color:var(--no);font-family:inherit;font-size:11px;cursor:pointer">🗑️</button>
         </div>
