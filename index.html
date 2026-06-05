@@ -3232,7 +3232,18 @@ window.getSM = getSM;
 // صندوق الكسر  = الذهب الموجود فعلاً في يدك
 // صندوق الدين  = الذهب الذي بِعته ولم يُسدَّد بعد
 // ══════════════════════════════════════════════════════
+// [FIX-P2] Cache لحسابات الصناديق — تجنب إعادة الحساب عند عدم تغيير المعاملات
+var _safesCache = null;
+var _safesCacheKey = '';
+
 function calcSafes(){
+  // مفتاح الـ cache: عدد المعاملات + safesBase + openingBalance
+  var _ck = (S.transactions||[]).length + '|' +
+            JSON.stringify(S.safesBase||{}) + '|' +
+            JSON.stringify((S.openingBalance||{}).safes||{});
+  if(_safesCache && _safesCacheKey === _ck) return _safesCache;
+  _safesCacheKey = _ck;
+
   const txs = S.transactions;
   // دمج safesBase + openingBalance.safes
   const _ob  = (S.openingBalance && S.openingBalance.safes) ? S.openingBalance.safes : {};
@@ -3718,6 +3729,8 @@ function calcSafes(){
   Object.keys(safes).forEach(k=>{
     safes[k] = Math.round((safes[k]||0)*1000)/1000;
   });
+  // [FIX-P2] حفظ النتيجة في الـ cache
+  _safesCache = safes;
   return safes;
 }
 
@@ -9160,6 +9173,13 @@ function restoreAutoBackup(i){
   try {
     const data = b.data;
     if(!data.transactions) throw new Error('بيانات غير صالحة');
+    // [FIX-4] حجب onSnapshot قبل تعديل S — يمنع إعادة الكتابة بالبيانات القديمة
+    // كان غائباً هنا بينما importBackup كان يستخدمه بشكل صحيح
+    if(typeof window._fbBlockSnapshot==='function') window._fbBlockSnapshot(25000);
+    if(typeof window._fbMarkSaving==='function')    window._fbMarkSaving(20000);
+    // [FIX-2] تحديث الحد الأقصى بعد الاستعادة
+    if(data.transactions.length > (window._maxKnownTxCount||0))
+      window._maxKnownTxCount = data.transactions.length;
     S.transactions  = data.transactions || [];
     S.clients       = data.clients      || [];
     S.customSafes   = data.customSafes  || [];
@@ -10268,9 +10288,15 @@ async function doLogin(){
       // ⚠️ لا نحفظ في localStorage عمداً — الجلسة مؤقتة فقط
     });
 
-    const ownerVal = (found.role === 'owner' || found.role === 'tenant' || found.role === 'distributor')
+    // [FIX-3] حل مشكلة ownerId الفارغ — '' تُعامَل كـ false في JS
+    // قبل الإصلاح: '' || undefined || username → يتصل بـ userData/username (خاطئ!)
+    // بعد الإصلاح: فحص صريح يرفض السلاسل الفارغة ويستخدم اسم المالك الفعلي
+    var _resolveOwner = function(v){
+      return (v && typeof v === 'string' && v.trim()) ? v.trim().toLowerCase() : null;
+    };
+    var ownerVal = (found.role === 'owner' || found.role === 'tenant' || found.role === 'distributor')
       ? found.username.toLowerCase()
-      : (found.ownerId || found.tenantId || found.username.toLowerCase());
+      : (_resolveOwner(found.ownerId) || _resolveOwner(found.tenantId) || 'marwan');
     sessionStorage.setItem('auth-owner', ownerVal);
     // ⚠️ لا نحفظ auth-owner في localStorage
 
@@ -10279,10 +10305,13 @@ async function doLogin(){
     const aw = document.getElementById('app-wrap');
     if(aw) aw.style.display = 'block';
 
-    // ── ربط Firebase ──
+    // ── ربط Firebase — [FIX-3] نفس المنطق الآمن لـ dataUid ──
+    var _resolveOwnerUid = function(v){
+      return (v && typeof v === 'string' && v.trim()) ? v.trim().toLowerCase() : null;
+    };
     const dataUid = (found.role === 'owner' || found.role === 'tenant' || found.role === 'distributor')
       ? found.username.toLowerCase()
-      : (found.ownerId || found.tenantId || found.username.toLowerCase());
+      : (_resolveOwnerUid(found.ownerId) || _resolveOwnerUid(found.tenantId) || 'marwan');
 
     if(typeof window._startSession === 'function'){
       window._startSession(dataUid);
@@ -11961,16 +11990,39 @@ function renderAll(){
   SM=getSM();
   const computed = calcSafes();
   Object.keys(computed).forEach(k=>{ S.safes[k]=computed[k]; });
-  renderHome();renderHist();renderClients();renderSafes();renderStmt();renderTfDrops();
-  renderUsers();
-  renderInventory();renderDebts();renderProfit();renderBackup();renderAnalytics();renderSalary();renderPending();renderActLog();applyPermissions();renderTrialBalance();renderReturns();renderExpenses();
-  refreshExpSafes();
+  // [FIX-P1] إعادة ضبط cache الـ safes عند تغيير المعاملات
+  _safesCache = null;
+
+  // ── تحديد التبويب النشط ──
+  const activePg = document.querySelector('.pg.on');
+  const pgId = activePg ? activePg.id : '';
+
+  // ── دوال تُرسم دائماً (خفيفة + ضرورية) ──
+  renderSafes();
+  applyPermissions();
+
+  // ── دوال تُرسم حسب التبويب النشط فقط ──
+  if(pgId==='pg-home'    || !pgId) renderHome();
+  if(pgId==='pg-tx'      || !pgId) renderHist();
+  if(pgId==='pg-cli'     || !pgId) renderClients();
+  if(pgId==='pg-stmt'    || !pgId) renderStmt();
+  if(pgId==='pg-debts'   || !pgId) renderDebts();
+  if(pgId==='pg-profit'  || !pgId) renderProfit();
+  if(pgId==='pg-analytics'|| !pgId) renderAnalytics();
+  if(pgId==='pg-salary'  || !pgId) renderSalary();
+  if(pgId==='pg-inv'     || !pgId) renderInventory();
+  if(pgId==='pg-pending' || !pgId) renderPending();
+  if(pgId==='pg-actlog'  || !pgId) renderActLog();
+  if(pgId==='pg-returns' || !pgId) renderReturns();
+  if(pgId==='pg-expenses'|| !pgId) renderExpenses();
+  if(pgId==='pg-trial'   || !pgId) renderTrialBalance();
+  if(pgId==='pg-backup'  || !pgId) renderBackup();
+  if(pgId==='pg-users'   || !pgId) renderUsers();
   // تحديث صفحة الحركة اليومية تلقائياً عند أي تغيير في البيانات
   if(typeof window._dlpro_render==='function'){
     const _dlpg=document.getElementById('pg-dailylog');
     if(_dlpg&&_dlpg.classList.contains('on')){
       window._dlpro_render();
-      // تحديث قسم الفترة أيضاً إذا كانت التواريخ محددة
       const _dlgFrom = document.getElementById('dlg-from');
       const _dlgTo   = document.getElementById('dlg-to');
       if(_dlgFrom&&_dlgTo&&_dlgFrom.value&&_dlgTo.value&&typeof window._dlgRender==='function'){
@@ -12495,15 +12547,33 @@ function renderHome(){
     :`<div class="empty"><div class="ei">📭</div><p>لا توجد فواتير بعد</p></div>`;
 }
 
+// [FIX-P4] ترقيم صفحات لسجل المعاملات — يمنع رسم آلاف العناصر دفعة واحدة
+var _histPage = 0;
+var _histPageSize = 50;
+
 function renderHist(){
   const q=(document.getElementById('search-h')?.value||'').toLowerCase();
   const ft=document.getElementById('filter-type')?.value||'';
   let txs=S.transactions;
   if(q) txs=txs.filter(t=>(t.client||'').toLowerCase().includes(q)||(t.notes||'').toLowerCase().includes(q));
   if(ft) txs=txs.filter(t=>t.type===ft);
-  document.getElementById('hist-list').innerHTML=txs.length
-    ?`<div class="tx-list">${txs.map(t=>txHtml(t)).join('')}</div>`
-    :`<div class="empty"><div class="ei">📭</div><p>لا نتائج</p></div>`;
+  // إعادة الصفحة للأولى عند البحث أو الفلترة
+  if(q||ft) _histPage=0;
+  const total = txs.length;
+  const pageEnd = (_histPage+1)*_histPageSize;
+  const visible = txs.slice(0, pageEnd);
+  const hasMore = total > pageEnd;
+  const container = document.getElementById('hist-list');
+  if(!container) return;
+  if(!visible.length){
+    container.innerHTML=`<div class="empty"><div class="ei">📭</div><p>لا نتائج</p></div>`;
+    return;
+  }
+  container.innerHTML=`<div class="tx-list">${visible.map(t=>txHtml(t)).join('')}</div>`
+    + (hasMore ? `<div style="text-align:center;padding:12px 0">
+        <button onclick="_histPage++;renderHist()" style="background:var(--bg2,#f0f0f0);border:1px solid #ddd;border-radius:8px;padding:6px 18px;cursor:pointer;font-family:Tajawal,sans-serif;font-size:12px">
+          تحميل المزيد (${total - pageEnd > _histPageSize ? _histPageSize : total - pageEnd} من ${total - pageEnd} متبقٍ)
+        </button></div>` : '');
 }
 
 const CBDG={عميل:'bg-green',موظف:'bg-blue',مورد:'bg-gold',موزع:'bg-teal'};
@@ -16531,7 +16601,15 @@ function showSync(m,d){_sy.textContent=m;_sy.style.display='block';if(d)setTimeo
 // ── تنظيف البيانات ──
 function clean(o){
   if(o==null)return null;
-  if(typeof o==='number')return isFinite(o)&&!isNaN(o)?o:0;
+  if(typeof o==='number'){
+    if(isFinite(o)&&!isNaN(o)) return o;
+    // [FIX-7] تسجيل تحويل NaN→0 بدلاً من السكوت
+    try {
+      if (typeof AL !== 'undefined')
+        AL.error('data_integrity', 'قيمة رقمية غير صالحة حُوِّلت إلى 0', { value: String(o) });
+    } catch(e){}
+    return 0;
+  }
   if(typeof o==='string'||typeof o==='boolean')return o;
   if(o instanceof Date)return o.toISOString();
   if(Array.isArray(o))return o.map(clean).filter(x=>x!==undefined);
@@ -16602,7 +16680,52 @@ async function _doSave(n){
     throw e;
   }
 }
+// [FIX-2] تتبع الحد الأقصى المعروف من المعاملات — لمقارنته عند كل حفظ
+window._maxKnownTxCount = window._maxKnownTxCount || 0;
+
 window.sv_save=function(){
+  // ════════════════════════════════════════════════════
+  // [FIX-2] حارس البيانات — يمنع حفظ حالة فارغة أو ناقصة بشكل مشبوه
+  // ════════════════════════════════════════════════════
+
+  // الحارس 1: لا حفظ إذا لم تُحمَّل البيانات من Firebase بعد
+  if (_firstLoad) {
+    console.warn('[sv_save] ⛔ محجوب — البيانات لم تُحمَّل بعد (_firstLoad=true)');
+    try {
+      if (typeof AL !== 'undefined')
+        AL.error('save_blocked', 'حفظ محجوب: البيانات لم تُحمَّل بعد', { txCount: (S.transactions||[]).length });
+    } catch(e){}
+    return;
+  }
+
+  // الحارس 2: لا حفظ إذا انخفض عدد المعاملات بشكل مشبوه (أكثر من 60%)
+  var _curTx = (S.transactions||[]).length;
+  var _maxTx = window._maxKnownTxCount || 0;
+  if (_maxTx > 15 && _curTx < _maxTx * 0.4) {
+    var _warnMsg = '⚠️ تحذير: محاولة حفظ ' + _curTx + ' معاملة بينما الحد الأقصى المعروف ' + _maxTx;
+    console.error('[sv_save] ⛔ محجوب —', _warnMsg);
+    try {
+      if (typeof AL !== 'undefined')
+        AL.error('save_blocked', _warnMsg, { current: _curTx, maxKnown: _maxTx });
+      if (typeof showSync === 'function')
+        showSync('⛔ حفظ موقوف — راجع سجل التدقيق', 8000);
+    } catch(e){}
+    return;
+  }
+
+  // تحديث الحد الأقصى المعروف
+  if (_curTx > window._maxKnownTxCount) window._maxKnownTxCount = _curTx;
+
+  // [FIX] تسجيل كل عملية حفظ في سجل التدقيق
+  try {
+    if (typeof AL !== 'undefined')
+      AL.info('save', 'حفظ Firebase — ' + _curTx + ' معاملة', {
+        txCount: _curTx, cliCount: (S.clients||[]).length,
+        user: (sessionStorage.getItem('auth-user')||'؟'),
+        maxKnown: window._maxKnownTxCount
+      });
+  } catch(e){}
+
   // [FIX] تحديث _lastSave فوراً عند بدء الحفظ (قبل العملية الغير متزامنة)
   _lastSave = Date.now();
   showSync('⟳ جاري الحفظ...');
@@ -16686,15 +16809,43 @@ async function startSession(uid){
         console.warn('[onSnapshot] ⚠️ رُفض: السحابة فارغة والمحلي به', localTxCount, 'معاملة');
         return;
       }
+      // [FIX-5] حماية العملاء — لا نمسح قائمة العملاء إذا جاءت السحابة فارغة
+      const cloudCliCount = (d.clients||[]).length;
+      const localCliCount = (S.clients||[]).length;
+      if(cloudCliCount === 0 && localCliCount > 3){
+        console.warn('[onSnapshot] ⚠️ رُفض: عملاء السحابة فارغون والمحلي به', localCliCount, 'عميل');
+        return;
+      }
+      if(localCliCount > 5 && cloudCliCount < localCliCount * 0.4){
+        console.warn('[onSnapshot] ⚠️ رُفض: عملاء السحابة', cloudCliCount, '< 40% من المحلي', localCliCount);
+        return;
+      }
       S.transactions  =d.transactions  ||[];
       S.clients       =d.clients       ||[];
-      S.safes         =d.safes         ||{};
+      // [FIX-5] حماية الأرصدة — لا تستبدل safes بكائن فارغ {} يصفّر الأرصدة
+      if(d.safes && typeof d.safes === 'object' && Object.keys(d.safes).length > 0){
+        S.safes = d.safes;
+      } else if(Object.keys(S.safes||{}).length === 0){
+        S.safes = d.safes || {};  // مقبول فقط إذا كان المحلي فارغاً أصلاً
+      }
+      // إذا d.safes فارغ والمحلي يحتوي أرصدة → نحتفظ بالمحلي
       S.customSafes   =d.customSafes   ||[];
       S.snapshots     =d.snapshots     ||[];
       S.pendingItems  =d.pendingItems  ||[];
       S.activityLog   =d.activityLog   ||[];
       if(d.safesBase)       S.safesBase      =d.safesBase;
       if(d.openingBalance)  S.openingBalance =d.openingBalance;
+      // [FIX-2] تحديث الحد الأقصى المعروف من المعاملات بعد كل تحميل ناجح
+      var _loaded = S.transactions.length;
+      if (_loaded > (window._maxKnownTxCount||0)) window._maxKnownTxCount = _loaded;
+      // [FIX-AL] تسجيل حدث المزامنة
+      try {
+        if (typeof AL !== 'undefined')
+          AL.info('sync', 'مزامنة من Firebase — ' + _loaded + ' معاملة', {
+            txCount: _loaded, cliCount: S.clients.length,
+            user: (sessionStorage.getItem('auth-user')||'؟')
+          });
+      } catch(e){}
     }
     if(_firstLoad){
       _firstLoad=false;
@@ -16706,6 +16857,29 @@ async function startSession(uid){
       if(_role==='tenant' && typeof _loadMyTenantOB==='function'){
         _loadMyTenantOB(uid);
       }
+      // [FIX-B2] نظام الطوارئ — كشف فقدان البيانات الجماعي تلقائياً
+      try {
+        var _emergLastCount = parseInt(localStorage.getItem('_mzm_last_tx_count')||'0');
+        var _emergCurrent   = S.transactions.length;
+        // إذا كان آخر حفظ يحتوي > 20 معاملة ولكن الحالي < 30% منها
+        if(_emergLastCount > 20 && _emergCurrent < _emergLastCount * 0.3){
+          var _msg = '🚨 تحذير طارئ: كان النظام يحتوي على ' + _emergLastCount +
+                     ' معاملة وتم تحميل ' + _emergCurrent + ' فقط!\n\n' +
+                     'قد تكون البيانات تالفة. هل تريد فتح قسم النسخ الاحتياطي للاستعادة؟';
+          setTimeout(function(){
+            if(confirm(_msg)){
+              if(typeof P === 'function') P('backup', document.querySelector('[onclick*="backup"]'));
+            }
+          }, 1500);
+          if(typeof AL !== 'undefined')
+            AL.error('emergency', 'احتمال فقدان بيانات جماعي', {
+              last: _emergLastCount, current: _emergCurrent
+            });
+        } else if(_emergCurrent > 0){
+          // تحديث العداد فقط إذا البيانات تبدو سليمة
+          localStorage.setItem('_mzm_last_tx_count', String(_emergCurrent));
+        }
+      } catch(e){}
     }
     renderAll();
   },(err)=>{
@@ -20335,8 +20509,14 @@ function gpAppendMsg(role, html){
   function doAutoLogout(){
     hideIdleBar();
     _idleActive = false;
+    // [FIX-U2] حفظ أي تغييرات معلقة قبل تسجيل الخروج
+    try {
+      if (typeof window.sv === 'function' && typeof _firstLoad !== 'undefined' && !_firstLoad) {
+        window.sv();
+      }
+    } catch(e){}
     if(typeof window.toast === 'function')
-      window.toast('🔒 تم تسجيل الخروج تلقائياً لعدم النشاط');
+      window.toast('🔒 تم حفظ البيانات وتسجيل الخروج تلقائياً لعدم النشاط');
     setTimeout(function(){
       if(typeof window.logout === 'function') window.logout();
     }, 800);
@@ -20400,7 +20580,12 @@ function gpAppendMsg(role, html){
   var _idleWatchStarted = false;
   var _loginObsInterval = setInterval(function(){
     if(isLoggedIn() && !_idleActive){
-      if(!_idleWatchStarted){ _idleWatchStarted = true; startIdleWatch(); }
+      if(!_idleWatchStarted){
+        _idleWatchStarted = true;
+        startIdleWatch();
+        // [FIX-P3] إيقاف المؤقت بعد بدء المراقبة — لا حاجة للتحقق كل 3 ثوانٍ للأبد
+        clearInterval(_loginObsInterval);
+      }
     }
   }, 3000);
 
@@ -21427,7 +21612,7 @@ body.qm-on #inv-sec select:focus {
         if(typeof draftItems === 'undefined' || !draftItems || !draftItems.length) return;
         qmDoAutoSave();
       } catch(e){}
-    }, 2500);
+    }, 10000); // [FIX-P5] رُفع من 2500ms إلى 10000ms — يقلل localStorage writes بنسبة 75%
   }
 
   function qmDoAutoSave(){
@@ -24918,7 +25103,9 @@ function dbgRender(){
       try {
         AL.info('settings', 'تغيير إعدادات النظام', { affected: _user() });
         SEC.log('settings', 'تغيير إعدادات بواسطة: ' + _user());
-        if (typeof window.sv === 'function') { try { window.sv(); } catch (e2) {} }
+        // [FIX-6] ⛔ تم حذف استدعاء sv() من هنا — كان يخاطر بحفظ حالة فارغة
+        // إذا غيّر المستخدم الإعدادات خلال أول 5 ثوانٍ من التحميل
+        // الإعدادات ستُحفظ تلقائياً عند العملية القادمة عبر sv() المعتادة
       } catch (e) {}
       return res;
     };
@@ -24975,16 +25162,23 @@ function dbgRender(){
     try {
       _ensureArrays();
 
-      /* ── إصلاح جذري: التقاط أخطاء JavaScript تلقائياً ── */
+      /* ── التقاط أخطاء JavaScript — تسجيل فقط، لا حفظ [FIX-1] ── */
       var _prevOnerror = window.onerror;
       window.onerror = function (msg, src, line, col, err) {
         try {
           var srcShort = (src || '').split('/').pop().slice(0, 40);
+          // [FIX-1] ⛔ تم حذف استدعاء sv() — كان يمسح Firestore كاملاً إذا وقع الخطأ
+          // قبل اكتمال تحميل البيانات من Firebase (S لا يزال فارغاً)
           AL.error('js_error',
             'خطأ JS: ' + String(msg || '').slice(0, 120) + ' — ' + srcShort + ':' + line,
-            { affected: srcShort + ':' + line, before: String(err && err.stack ? err.stack.slice(0,200) : msg) }
+            {
+              affected: srcShort + ':' + line,
+              before: String(err && err.stack ? err.stack.slice(0,200) : msg),
+              firstLoad: (typeof _firstLoad !== 'undefined') ? _firstLoad : '?',
+              txCount: (window.S && window.S.transactions) ? window.S.transactions.length : 0
+            }
           );
-          if (typeof window.sv === 'function') { try { window.sv(); } catch (e2) {} }
+          // ✅ تسجيل فقط — لا حفظ أبداً من هنا
         } catch (e) {}
         if (typeof _prevOnerror === 'function') return _prevOnerror.apply(this, arguments);
         return false;
