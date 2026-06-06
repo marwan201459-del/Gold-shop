@@ -5091,20 +5091,33 @@ function doTransfer(){
 
 // ── Delete TX ──────────────────────────────────────────────────────
 function delTx(id){
-  const tx=S.transactions.find(t=>t.id===id);
-  if(!tx)return;
-  // [FIX] استخدام الدالة الصحيحة لمنع onSnapshot من إرجاع البيانات القديمة
-  if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
-  // تسجيل عملية الحذف في سجل النشاط قبل الحذف
-  logActivity('delete',
-    '[حذف معاملة] ' + (tx.type||'') + ' — ' + (tx.client||'') +
-    (tx.total ? ' — المبلغ: ' + tx.total.toLocaleString('ar-SA') + ' ر' : '') +
-    (tx.weight ? ' — الوزن: ' + tx.weight + ' ج' : ''),
-    String(tx.id)
-  );
-  revSafe(tx);
-  S.transactions=S.transactions.filter(t=>t.id!==id);
-  sv(); renderAll(); toast('🗑️ تم الحذف');
+  /* [FIX-DEL-1] إصلاح الفشل الصامت عند عدم وجود المعاملة أو حدوث استثناء */
+  const tx = S.transactions.find(t=>t.id===id || t.id===Number(id));
+  if(!tx){
+    // كانت المشكلة: return صامت بدون أي تغذية راجعة للمستخدم
+    toast('⚠️ السجل غير موجود — ربما تم حذفه مسبقاً أو تحديث الصفحة');
+    renderHist(); // إعادة رسم القائمة لمزامنة الأزرار
+    return;
+  }
+  const backup = [...S.transactions]; // نسخة احتياطية للتراجع
+  try {
+    if(typeof window._fbMarkSaving==='function') window._fbMarkSaving();
+    logActivity('delete',
+      '[حذف معاملة] ' + (tx.type||'') + ' — ' + (tx.client||'') +
+      (tx.total ? ' — المبلغ: ' + tx.total.toLocaleString('ar-SA') + ' ر' : '') +
+      (tx.weight ? ' — الوزن: ' + tx.weight + ' ج' : ''),
+      String(tx.id)
+    );
+    revSafe(tx);
+    S.transactions = S.transactions.filter(t=>t.id!==tx.id);
+    sv(); renderAll(); toast('🗑️ تم الحذف');
+  } catch(e) {
+    // [FIX-DEL-1] تراجع عن الحذف عند حدوث استثناء
+    console.error('[delTx] خطأ:', e);
+    S.transactions = backup;
+    renderAll();
+    toast('❌ فشل الحذف — ' + (e.message||'خطأ غير متوقع'));
+  }
 }
 function revSafe(tx){ /* محذوف — calcSafes يعيد الحساب كاملاً */ }
 
@@ -8185,13 +8198,6 @@ function doPayment(){
     txType = isReceipt ? 'general-receipt' : 'general-payment';
   }
 
-  // ── رقم السند التسلسلي ──
-  if(!S.voucherCounter) S.voucherCounter = 0;
-  S.voucherCounter++;
-  const voucherNum = S.voucherCounter;
-  const voucherPrefix = isReceipt ? 'QBD' : 'SRF';
-  const voucherCode = voucherPrefix + String(voucherNum).padStart(5,'0');
-
   // ── نوع الطرف ──
   const partyObj = (S.clients||[]).find(c=>c.name===client);
   const partyType = partyObj?.type || 'جهة';
@@ -8200,6 +8206,17 @@ function doPayment(){
   const currentUser = (typeof currentRole==='function' ? currentRole() : '') || (S.user||'');
 
   if(!acquireSave()) return;
+
+  // [FIX-PAY-1] نقل العداد إلى ما بعد acquireSave لمنع زيادته عند الفشل
+  if(!S.voucherCounter) S.voucherCounter = 0;
+  S.voucherCounter++;
+  const voucherNum = S.voucherCounter;
+  const voucherPrefix = isReceipt ? 'QBD' : 'SRF';
+  const voucherCode = voucherPrefix + String(voucherNum).padStart(5,'0');
+
+  // [FIX-PAY-2] try-finally يضمن استدعاء releaseSave دائماً حتى عند حدوث استثناء JS
+  // كانت المشكلة: أي استثناء بعد acquireSave يُبقي الأزرار معطّلة 5 ثوانٍ
+  try {
   const payTx = {
     id:Date.now(), date:payISO,
     type: txType,
@@ -8223,8 +8240,9 @@ function doPayment(){
     notes: note || (isReceipt ? 'سند قبض' : 'سند صرف'),
     items:[], total:ajour+discount+change+distAjour, cash:ajour+change, goldPay:goldW, weight:goldW
   };
-  if(!safeSave(payTx)){ releaseSave(); return; }
-  renderAll(); releaseSave();
+  // [FIX-PAY-3] إزالة releaseSave() المكررة — finally يضمنها في كل الحالات
+  if(!safeSave(payTx)) return;  // safeSave تستدعي releaseSave داخلياً عند الفشل
+  renderAll();
 
   // مسح الحقول
   ['pay-ajour','pay-gold-weight','pay-note','pay-discount','pay-change','pay-cli-s','pay-cli-v','pay-date','pay-dist-ajour']
@@ -8251,6 +8269,19 @@ function doPayment(){
   const _cashPart = ajour>0 ? ` · نقد: ${fmt(ajour)} ر` : '';
   const _goldPart = goldItems.length>0 ? ` · ذهب: ${fmtG(goldW)} ج` : '';
   toast(`✅ ${action}${vcMsg} — ${client}${_cashPart}${_goldPart}${ajMsg}`);
+  } catch(e) {
+    // [FIX-PAY-2] اصطياد أي استثناء وإظهاره بدلاً من الفشل الصامت
+    console.error('[doPayment] خطأ غير متوقع:', e);
+    toast('❌ تعذّر تسجيل السند — ' + (e.message || 'خطأ غير متوقع'));
+    // إذا حدث استثناء بعد unshift، نتراجع عن الإضافة
+    if(typeof payTx !== 'undefined'){
+      S.transactions = S.transactions.filter(t=>t.id!==payTx.id);
+      S.voucherCounter = Math.max(0, (S.voucherCounter||1)-1);
+    }
+  } finally {
+    // [FIX-PAY-2] ضمان إعادة تفعيل الأزرار دائماً
+    releaseSave();
+  }
 }
 
 // ── Discount calc ──────────────────────────────────────────────────
@@ -8494,6 +8525,8 @@ function saveCashReceipt(){
 
   // نقد
   if(!acquireSave()) return;
+  /* [FIX-CR] try-finally يضمن إعادة تفعيل الأزرار دائماً */
+  try {
   let savedCount = 0;
   if(amount>0){
     const crTx = {
@@ -8502,7 +8535,7 @@ function saveCashReceipt(){
       notes:'📥 قبض نقد'+(note?' — '+note:''),
       items:[], total:amount, cash:amount, goldPay:0
     };
-    if(!safeSave(crTx)){ releaseSave(); return; }
+    if(!safeSave(crTx)) return;
     savedCount++;
   }
   if(goldAmt>0){
@@ -8514,9 +8547,9 @@ function saveCashReceipt(){
       notes:'📥 قبض ذهب'+(note?' — '+note:''),
       items:[], total:0, cash:0, goldPay:0
     };
-    if(!safeSave(goldTx)){ releaseSave(); return; }
+    if(!safeSave(goldTx)) return;
   }
-  renderAll(); releaseSave();
+  renderAll();
   ['cr-amount','cr-gold-amount','cr-note','cr-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -8525,6 +8558,12 @@ function saveCashReceipt(){
   });
   const msg = [amount>0?fmt(amount)+' ريال':'', goldAmt>0?fmtG(goldAmt)+' ج ع'+goldKarat:''].filter(Boolean).join(' + ');
   toast('✅ تم القبض: '+msg);
+  } catch(e) {
+    console.error('[saveCashReceipt] خطأ:', e);
+    toast('❌ تعذّر تسجيل القبض — ' + (e.message||'خطأ غير متوقع'));
+  } finally {
+    releaseSave();
+  }
 }
 
 function appConfirm(msg, cb){
