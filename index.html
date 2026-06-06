@@ -10988,8 +10988,8 @@ function logActivity(action, details, targetId=''){
     action,
     details,
     targetId,
-    // [FIX] إضافة source لتسهيل التتبع
-    source:  typeof arguments.callee !== 'undefined' ? 'logActivity' : 'unknown',
+    // [FIX-STRICT] استبدال arguments.callee المحظور في Strict Mode بنص ثابت
+    source: 'logActivity',
   };
   S.activityLog.unshift(entry);
   // احتفظ بآخر 500 فقط
