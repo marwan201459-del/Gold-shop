@@ -12090,7 +12090,7 @@ function renderAll(){
 
   // ── دوال تُرسم حسب التبويب النشط فقط ──
   if(pgId==='pg-home'    || !pgId) renderHome();
-  if(pgId==='pg-tx'      || !pgId) renderHist();
+  if(pgId==='pg-hist'    || !pgId) renderHist();
   if(pgId==='pg-cli'     || !pgId) renderClients();
   if(pgId==='pg-stmt'    || !pgId) renderStmt();
   if(pgId==='pg-debts'   || !pgId) renderDebts();
@@ -14236,6 +14236,11 @@ function renderStmt(){
       if(t.fromSafe===('__cli__'+v)) dGold24 = -convertTo24(t.goldAmount,t.goldKarat||'21');
       if(t.toSafe===('__cli__'+v))   dGold24 = convertTo24(t.goldAmount,t.goldKarat||'21');
     }
+    // [FIX-GEN] سند القبض/الصرف العام: تتبع الذهب في الرصيد الجاري
+    else if(t.type==='general-receipt')
+      dGold24 = -(t.goldAs24!=null ? t.goldAs24 : convertTo24(t.goldWeight||0,t.goldKarat||'21'));
+    else if(t.type==='general-payment')
+      dGold24 =  (t.goldAs24!=null ? t.goldAs24 : convertTo24(t.goldWeight||0,t.goldKarat||'21'));
     runCash   = Math.round((runCash   + dCash)*100)/100;
     runGold24 = Math.round((runGold24 + dGold24)*1000)/1000;
     return {t, dCash, dGold24, runCash, runGold24};
@@ -14384,16 +14389,24 @@ function renderStmt(){
     }
     if(t.type==='cash-receipt')    detail=`قبض نقد: ${fmt(t.amount||0)} ر`;
     if(t.type==='general-receipt'){
-      const _amt = (t.amount||t.ajourPaid||0)+(t.change||0);
+      const _cashAmt = (t.amount||t.ajourPaid||0)+(t.change||0);
       const _vc  = t.voucherCode ? `[${t.voucherCode}] ` : '';
       const _pt  = t.partyType   ? ` · ${t.partyType}` : '';
-      detail=`${_vc}📥 قبض: ${fmt(_amt)} ر${_pt}${t.notes&&t.notes!=='سند قبض'?' · '+t.notes:''}`;
+      const _cashPart = _cashAmt>0 ? `📥 نقد: ${fmt(_cashAmt)} ر` : '';
+      const _goldPart = (t.goldWeight||0)>0
+        ? `${_cashAmt>0?' · ':''}🥇 ذهب: ${fmtG(t.goldWeight)}ج ع${t.goldKarat||'21'}`
+        : '';
+      detail=`${_vc}${_cashPart||'📥 قبض'}${_goldPart}${_pt}${t.notes&&t.notes!=='سند قبض'?' · '+t.notes:''}`;
     }
     if(t.type==='general-payment'){
-      const _amt = (t.amount||t.ajourPaid||0)+(t.change||0);
+      const _cashAmt = (t.amount||t.ajourPaid||0)+(t.change||0);
       const _vc  = t.voucherCode ? `[${t.voucherCode}] ` : '';
       const _pt  = t.partyType   ? ` · ${t.partyType}` : '';
-      detail=`${_vc}📤 صرف: ${fmt(_amt)} ر${_pt}${t.notes&&t.notes!=='سند صرف'?' · '+t.notes:''}`;
+      const _cashPart = _cashAmt>0 ? `📤 نقد: ${fmt(_cashAmt)} ر` : '';
+      const _goldPart = (t.goldWeight||0)>0
+        ? `${_cashAmt>0?' · ':''}🥇 ذهب: ${fmtG(t.goldWeight)}ج ع${t.goldKarat||'21'}`
+        : '';
+      detail=`${_vc}${_cashPart||'📤 صرف'}${_goldPart}${_pt}${t.notes&&t.notes!=='سند صرف'?' · '+t.notes:''}`;
     }
     if(t.type==='charge')          detail=`💵 ${t.desc||t.notes||''} — ${fmt(t.amount||0)} ريال`;
     if(t.type==='transfer'){
@@ -14479,7 +14492,7 @@ function renderStmt(){
       ||(t.type==='transfer' && t.fromSafe===('__cli__'+v) && (t.amount||0)>0); // التحويل الصادر = سداد
     const rowBg    = isDebit  ? 'rgba(220,38,38,.05)' : isSetRow ? 'rgba(22,163,74,.05)' : isCredit ? 'rgba(217,119,6,.05)' : '';
     const debitAmt  = isDebit  ? fmt(Math.abs(dCash)) : '–';
-    const creditAmt = (isCredit||isSetRow) ? fmt(Math.abs(dCash)) : '–';
+    const creditAmt = (isCredit||isSetRow) && Math.abs(dCash)>0.001 ? fmt(Math.abs(dCash)) : '–';
 
     // عنوان العمودين حسب نوع الجهة
     const colDebitLabel  = isSupp ? 'علينا له' : 'عليه لنا';
@@ -14497,7 +14510,8 @@ function renderStmt(){
       const rDebit = runCash>0; // عليه = هو مدين لنا
       runLabel=`<span style="color:${rDebit?'#DC2626':'#16A34A'};font-weight:900">${rDebit?'عليه':'له'} ${fmt(absRun)}</span>`;
     }
-    const goldWt=(t.items||[]).filter(i=>i.karat!=='gems').reduce((a,i)=>a+(i.weight||0),0);
+    const goldWt=(t.items||[]).filter(i=>i.karat!=='gems').reduce((a,i)=>a+(i.weight||0),0)
+      + ((t.type==='general-receipt'||t.type==='general-payment') ? (t.goldWeight||0) : 0);
     const vatBadge=(t.vatAmt>0||t.hasVat)?'<span style="background:#F59E0B;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-right:3px">ضريبة</span>':'';
 
     // ── تحسين خلفية الصف بألوان أكثر وضوحاً ──
