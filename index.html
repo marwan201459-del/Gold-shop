@@ -2951,7 +2951,7 @@ body{
       <select id="u-role">
         <option value="admin">🔑 مدير (كامل الصلاحيات)</option>
         <option value="accountant">📊 محاسب (إضافة وتعديل، بدون حذف)</option>
-        <option value="viewer">👁️ مراقب (عرض الحسابات فقط، بدون تعديل)</option>
+        <option value="viewer">👁️ مراقب (كشف حساب · مديونيات · سجل · رواتب · تحليلات · معلّقات · حركة اليوم)</option>
         <option value="user">👤 موظف (عرض فقط)</option>
       </select>
     </div>
@@ -3874,6 +3874,14 @@ function P(id,btn){
   if((id==='users'||id==='actlog') && currentRole()!=='owner'){
     toast('⛔ هذه الصفحة للمالك الرئيسي فقط');
     return;
+  }
+  // ── حماية المراقب: فقط الصفحات المسموح بها ──
+  if(currentRole()==='viewer'){
+    const _vPerm = PERMISSIONS.viewer;
+    if(_vPerm && _vPerm.allowedPages && !_vPerm.allowedPages.includes(id)){
+      toast('⛔ المراقب لا يملك صلاحية الوصول لهذه الصفحة');
+      return;
+    }
   }
   // حماية: رصيد الافتتاح للمالك والمدير فقط
   const _roleCheck = currentRole();
@@ -10871,8 +10879,10 @@ const PERMISSIONS = {
   viewer: {
     add:false, edit:false, delete:false, approve:false,
     reports:true, settings:false, users:false, actlog:false,
-    hideOpening:false,
+    hideOpening:true,
     readOnly:true,
+    // الصفحات المسموح للمراقب بعرضها فقط
+    allowedPages:['stmt','debts','hist','salary','analytics','pending','dailylog'],
   },
   user: {
     add:false, edit:false, delete:false, approve:false,
@@ -10923,6 +10933,20 @@ function applyPermissions(){
   // ── تبويب المستخدمين — owner فقط ──
   document.querySelectorAll('.tab').forEach(btn=>{
     const oc = btn.getAttribute('onclick')||'';
+
+    // ── المراقب: يرى فقط الصفحات المسموح بها ──
+    if(role === 'viewer' && perm.allowedPages){
+      // استخرج معرّف الصفحة من onclick مثل P('stmt',this)
+      const pageMatch = oc.match(/P\('([^']+)'/);
+      if(pageMatch){
+        const pageId = pageMatch[1];
+        btn.style.display = perm.allowedPages.includes(pageId) ? '' : 'none';
+      } else {
+        btn.style.display = 'none'; // أخفِ أي تبويب بدون P()
+      }
+      return; // لا تطبّق بقية الشروط على المراقب
+    }
+
     if(oc.includes("'users'"))   btn.style.display = perm.users  ? '' : 'none';
     if(oc.includes("'actlog'"))  btn.style.display = perm.actlog ? '' : 'none';
     // ── إخفاء تبويب الرصيد الافتتاحي: يُرى فقط للمالك والمالك المستقل والمدير ──
@@ -10945,7 +10969,7 @@ function applyPermissions(){
       viewerBar = document.createElement('div');
       viewerBar.id = 'viewer-readonly-bar';
       viewerBar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9998;background:linear-gradient(90deg,#1a1505,#0d1a2a,#1a1505);border-top:1.5px solid rgba(40,200,216,.35);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Tajawal,sans-serif;font-size:12px;font-weight:700;color:rgba(40,200,216,.90);box-shadow:0 -4px 16px rgba(0,0,0,.4)';
-      viewerBar.innerHTML = '👁️ وضع المراقبة — يمكنك عرض جميع الحسابات والتقارير دون إجراء أي تعديلات';
+      viewerBar.innerHTML = '👁️ وضع المراقبة — كشف الحساب · المديونيات · السجل · الرواتب · التحليلات · المعلّقات · حركة اليوم (قراءة فقط)';
       document.body.appendChild(viewerBar);
     }
     // تعطيل جميع أزرار الإجراءات للمراقب
@@ -10968,6 +10992,25 @@ function applyPermissions(){
         inp.style.pointerEvents = 'none';
       }
     });
+    // ── توجيه المراقب تلقائياً إذا كان على صفحة غير مسموحة ──
+    const _activePg = document.querySelector('.pg.on');
+    if(_activePg){
+      const _curId = _activePg.id.replace('pg-','');
+      if(!perm.allowedPages.includes(_curId)){
+        // انتقل لكشف الحساب كأول صفحة مسموحة
+        setTimeout(()=>{
+          document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+          document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+          const _pg = document.getElementById('pg-stmt');
+          if(_pg) _pg.classList.add('on');
+          // تفعيل تبويب كشف الحساب
+          document.querySelectorAll('.tab').forEach(b=>{
+            if((b.getAttribute('onclick')||'').includes("'stmt'")) b.classList.add('on');
+          });
+          if(typeof renderStmt==='function') renderStmt();
+        }, 50);
+      }
+    }
   } else {
     if(viewerBar) viewerBar.remove();
   }
