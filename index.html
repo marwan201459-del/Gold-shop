@@ -2951,7 +2951,7 @@ body{
       <select id="u-role">
         <option value="admin">🔑 مدير (كامل الصلاحيات)</option>
         <option value="accountant">📊 محاسب (إضافة وتعديل، بدون حذف)</option>
-        <option value="viewer">👁️ مراقب (كشف حساب · مديونيات · سجل · رواتب · تحليلات · معلّقات · حركة اليوم)</option>
+        <option value="viewer">👁️ مراقب (عرض الحسابات فقط، بدون تعديل)</option>
         <option value="user">👤 موظف (عرض فقط)</option>
       </select>
     </div>
@@ -3875,14 +3875,6 @@ function P(id,btn){
     toast('⛔ هذه الصفحة للمالك الرئيسي فقط');
     return;
   }
-  // ── حماية المراقب: فقط الصفحات المسموح بها ──
-  if(currentRole()==='viewer'){
-    const _vPerm = PERMISSIONS.viewer;
-    if(_vPerm && _vPerm.allowedPages && !_vPerm.allowedPages.includes(id)){
-      toast('⛔ المراقب لا يملك صلاحية الوصول لهذه الصفحة');
-      return;
-    }
-  }
   // حماية: رصيد الافتتاح للمالك والمدير فقط
   const _roleCheck = currentRole();
   if(id==='opening' && !['owner','tenant','admin'].includes(_roleCheck)){
@@ -4132,9 +4124,9 @@ function selStmt(val,label){
   document.getElementById('stmt-d').classList.remove('open');
   const pb=document.getElementById('print-btn');
   if(pb) pb.style.display=val?'flex':'none';
-  // إظهار لوحة الإضافة فقط للعملاء والموردين (ليس الصناديق)
+  // إظهار لوحة الإضافة فقط للعملاء والموردين (ليس الصناديق) — وليس للمراقب
   const cp=document.getElementById('stmt-charge-panel');
-  if(cp) cp.style.display=(val && !val.startsWith('__safe__') && !val.startsWith('__emp__'))?'block':'none';
+  if(cp) cp.style.display=(val && !val.startsWith('__safe__') && !val.startsWith('__emp__') && currentRole()!=='viewer')?'block':'none';
   renderStmt();
 }
 
@@ -5358,8 +5350,8 @@ function renderInvModal(tx,editing){
           </div>
         </div>`:''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn btn-gold" onclick="startEditInv(${tx.id})">✏️ تعديل</button>
-          <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️ حذف</button>
+          ${currentRole()==='viewer' ? '' : `<button class="btn btn-gold" onclick="startEditInv(${tx.id})">✏️ تعديل</button>
+          <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️ حذف</button>`}
         </div>`;
       document.getElementById('m-inv-body').innerHTML=html;
       return;
@@ -5373,8 +5365,8 @@ function renderInvModal(tx,editing){
 
     let html=`
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn btn-gold" style="flex:1;padding:10px" onclick="startEditInv(${tx.id})">✏️ تعديل الفاتورة</button>
-        <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️</button>
+        ${currentRole()==='viewer' ? '' : `<button class="btn btn-gold" style="flex:1;padding:10px" onclick="startEditInv(${tx.id})">✏️ تعديل الفاتورة</button>
+        <button class="btn btn-red btn-sm" onclick="delTxFromModal(${tx.id})">🗑️</button>`}
       </div>
       <div style="background:var(--c2);border-radius:10px;padding:12px;margin-bottom:10px;font-size:12px;border:1px solid var(--b2)">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
@@ -10879,10 +10871,8 @@ const PERMISSIONS = {
   viewer: {
     add:false, edit:false, delete:false, approve:false,
     reports:true, settings:false, users:false, actlog:false,
-    hideOpening:true,
+    hideOpening:false,
     readOnly:true,
-    // الصفحات المسموح للمراقب بعرضها فقط
-    allowedPages:['stmt','debts','hist','salary','analytics','pending','dailylog'],
   },
   user: {
     add:false, edit:false, delete:false, approve:false,
@@ -10933,20 +10923,6 @@ function applyPermissions(){
   // ── تبويب المستخدمين — owner فقط ──
   document.querySelectorAll('.tab').forEach(btn=>{
     const oc = btn.getAttribute('onclick')||'';
-
-    // ── المراقب: يرى فقط الصفحات المسموح بها ──
-    if(role === 'viewer' && perm.allowedPages){
-      // استخرج معرّف الصفحة من onclick مثل P('stmt',this)
-      const pageMatch = oc.match(/P\('([^']+)'/);
-      if(pageMatch){
-        const pageId = pageMatch[1];
-        btn.style.display = perm.allowedPages.includes(pageId) ? '' : 'none';
-      } else {
-        btn.style.display = 'none'; // أخفِ أي تبويب بدون P()
-      }
-      return; // لا تطبّق بقية الشروط على المراقب
-    }
-
     if(oc.includes("'users'"))   btn.style.display = perm.users  ? '' : 'none';
     if(oc.includes("'actlog'"))  btn.style.display = perm.actlog ? '' : 'none';
     // ── إخفاء تبويب الرصيد الافتتاحي: يُرى فقط للمالك والمالك المستقل والمدير ──
@@ -10969,7 +10945,7 @@ function applyPermissions(){
       viewerBar = document.createElement('div');
       viewerBar.id = 'viewer-readonly-bar';
       viewerBar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9998;background:linear-gradient(90deg,#1a1505,#0d1a2a,#1a1505);border-top:1.5px solid rgba(40,200,216,.35);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Tajawal,sans-serif;font-size:12px;font-weight:700;color:rgba(40,200,216,.90);box-shadow:0 -4px 16px rgba(0,0,0,.4)';
-      viewerBar.innerHTML = '👁️ وضع المراقبة — كشف الحساب · المديونيات · السجل · الرواتب · التحليلات · المعلّقات · حركة اليوم (قراءة فقط)';
+      viewerBar.innerHTML = '👁️ وضع المراقبة — يمكنك عرض جميع الحسابات والتقارير دون إجراء أي تعديلات';
       document.body.appendChild(viewerBar);
     }
     // تعطيل جميع أزرار الإجراءات للمراقب
@@ -10983,8 +10959,8 @@ function applyPermissions(){
         btn.title = '⛔ المراقب لا يملك صلاحية تنفيذ هذا الإجراء';
       }
     });
-    // تعطيل جميع حقول الإدخال
-    document.querySelectorAll('input:not([readonly]):not([type="search"]):not([type="text"][id*="filter"]):not([type="text"][id*="search"]):not([type="text"][id*="q"]), select:not([id*="filter"]):not([id*="sort"]), textarea').forEach(inp=>{
+    // تعطيل جميع حقول الإدخال (مع استثناء حقل بحث كشف الحساب للمراقب)
+    document.querySelectorAll('input:not([readonly]):not([type="search"]):not([type="text"][id*="filter"]):not([type="text"][id*="search"]):not([type="text"][id*="q"]):not([id="stmt-s"]), select:not([id*="filter"]):not([id*="sort"]), textarea').forEach(inp=>{
       if(!inp.closest('#viewer-readonly-bar') && !inp.closest('#login-screen')){
         inp.setAttribute('readonly','');
         inp.style.opacity = '0.6';
@@ -10992,25 +10968,6 @@ function applyPermissions(){
         inp.style.pointerEvents = 'none';
       }
     });
-    // ── توجيه المراقب تلقائياً إذا كان على صفحة غير مسموحة ──
-    const _activePg = document.querySelector('.pg.on');
-    if(_activePg){
-      const _curId = _activePg.id.replace('pg-','');
-      if(!perm.allowedPages.includes(_curId)){
-        // انتقل لكشف الحساب كأول صفحة مسموحة
-        setTimeout(()=>{
-          document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
-          document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
-          const _pg = document.getElementById('pg-stmt');
-          if(_pg) _pg.classList.add('on');
-          // تفعيل تبويب كشف الحساب
-          document.querySelectorAll('.tab').forEach(b=>{
-            if((b.getAttribute('onclick')||'').includes("'stmt'")) b.classList.add('on');
-          });
-          if(typeof renderStmt==='function') renderStmt();
-        }, 50);
-      }
-    }
   } else {
     if(viewerBar) viewerBar.remove();
   }
@@ -16982,6 +16939,9 @@ async function startSession(uid){
       // [FIX-2] تحديث الحد الأقصى المعروف من المعاملات بعد كل تحميل ناجح
       var _loaded = S.transactions.length;
       if (_loaded > (window._maxKnownTxCount||0)) window._maxKnownTxCount = _loaded;
+      // [FIX-B3] تحديث العداد المحلي عند كل تحميل ناجح وليس فقط عند _firstLoad
+      // هذا يضمن أن العداد دائماً محدّث حتى لو كان أول snapshot فارغاً من الكاش
+      if(_loaded > 0){ try{ localStorage.setItem('_mzm_last_tx_count', String(_loaded)); }catch(e){} }
       // [FIX-AL] تسجيل حدث المزامنة
       try {
         if (typeof AL !== 'undefined')
@@ -17002,28 +16962,33 @@ async function startSession(uid){
         _loadMyTenantOB(uid);
       }
       // [FIX-B2] نظام الطوارئ — كشف فقدان البيانات الجماعي تلقائياً
-      try {
-        var _emergLastCount = parseInt(localStorage.getItem('_mzm_last_tx_count')||'0');
-        var _emergCurrent   = S.transactions.length;
-        // إذا كان آخر حفظ يحتوي > 20 معاملة ولكن الحالي < 30% منها
-        if(_emergLastCount > 20 && _emergCurrent < _emergLastCount * 0.3){
-          var _msg = '🚨 تحذير طارئ: كان النظام يحتوي على ' + _emergLastCount +
-                     ' معاملة وتم تحميل ' + _emergCurrent + ' فقط!\n\n' +
-                     'قد تكون البيانات تالفة. هل تريد فتح قسم النسخ الاحتياطي للاستعادة؟';
-          setTimeout(function(){
-            if(confirm(_msg)){
-              if(typeof P === 'function') P('backup', document.querySelector('[onclick*="backup"]'));
-            }
-          }, 1500);
-          if(typeof AL !== 'undefined')
-            AL.error('emergency', 'احتمال فقدان بيانات جماعي', {
-              last: _emergLastCount, current: _emergCurrent
-            });
-        } else if(_emergCurrent > 0){
-          // تحديث العداد فقط إذا البيانات تبدو سليمة
-          localStorage.setItem('_mzm_last_tx_count', String(_emergCurrent));
-        }
-      } catch(e){}
+      // [FIX-B3] إضافة snap.exists() لمنع الإنذار الكاذب عند أول snapshot فارغ من الكاش
+      // السبب: Firebase يطلق onSnapshot مرتين — مرة من الكاش المحلي (قد يكون فارغاً)
+      // ومرة من السيرفر (البيانات الحقيقية). بدون هذا الشرط، ينطلق الإنذار على الكاش الفارغ.
+      if(snap.exists()){
+        try {
+          var _emergLastCount = parseInt(localStorage.getItem('_mzm_last_tx_count')||'0');
+          var _emergCurrent   = S.transactions.length;
+          // إذا كان آخر حفظ يحتوي > 20 معاملة ولكن الحالي < 30% منها
+          if(_emergLastCount > 20 && _emergCurrent < _emergLastCount * 0.3){
+            var _msg = '🚨 تحذير طارئ: كان النظام يحتوي على ' + _emergLastCount +
+                       ' معاملة وتم تحميل ' + _emergCurrent + ' فقط!\n\n' +
+                       'قد تكون البيانات تالفة. هل تريد فتح قسم النسخ الاحتياطي للاستعادة؟';
+            setTimeout(function(){
+              if(confirm(_msg)){
+                if(typeof P === 'function') P('backup', document.querySelector('[onclick*="backup"]'));
+              }
+            }, 1500);
+            if(typeof AL !== 'undefined')
+              AL.error('emergency', 'احتمال فقدان بيانات جماعي', {
+                last: _emergLastCount, current: _emergCurrent
+              });
+          } else if(_emergCurrent > 0){
+            // تحديث العداد فقط إذا البيانات تبدو سليمة
+            localStorage.setItem('_mzm_last_tx_count', String(_emergCurrent));
+          }
+        } catch(e){}
+      }
     }
     renderAll();
   },(err)=>{
