@@ -3100,7 +3100,7 @@ body{
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
         <button class="btn-sm btn-outline" onclick="_dlgSetRange(7)">آخر 7 أيام</button>
         <button class="btn-sm btn-outline" onclick="_dlgSetRange(30)">آخر 30 يوم</button>
-        <button class="btn-sm btn-gold"    onclick="_dlgSetRange(0)">هذا الشهر</button>
+        <button class="btn-sm btn-gold"    onclick="_dlgSetRange(-1)">هذا اليوم</button>
       </div>
     </div>
   </div>
@@ -17230,8 +17230,11 @@ function _dlgSetRange(days) {
   if (!toEl || !fromEl) return;
   const today = new Date();
   toEl.value = today.toISOString().split('T')[0];
-  if (days === 0) {
-    // هذا الشهر
+  if (days === -1) {
+    // هذا اليوم فقط
+    fromEl.value = today.toISOString().split('T')[0];
+  } else if (days === 0) {
+    // هذا الشهر (محتفظ به للاستخدام الداخلي)
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     fromEl.value = firstDay.toISOString().split('T')[0];
   } else {
@@ -17262,6 +17265,10 @@ function _dlgCalcDayMovement(dayStr) {
   let buyAjr    = 0; // أجور الشراء
   let expTotal  = 0; // المصروفات
   let invCount  = 0; // عدد الفواتير
+  let scrapIn   = 0; // وزن كسر الداخل (جرام)
+  let scrapOut  = 0; // وزن كسر الخارج (جرام)
+  let sell18    = 0; // وزن مبيعات عيار 18 (جرام)
+  let sell21    = 0; // وزن مبيعات عيار 21 (جرام)
 
   const _to24 = (w, k) => (parseFloat(w)||0) * (parseFloat(k)||21) / 24;
 
@@ -17274,6 +17281,9 @@ function _dlgCalcDayMovement(dayStr) {
       invCount++;
       (t.items || []).forEach(i => {
         if (i.karat !== 'gems') goldOut24 += _to24(i.weight, i.karat);
+        // تتبع المبيعات حسب العيار
+        if (i.karat === '18') sell18 += (parseFloat(i.weight) || 0);
+        if (i.karat === '21') sell21 += (parseFloat(i.weight) || 0);
       });
     }
 
@@ -17332,9 +17342,24 @@ function _dlgCalcDayMovement(dayStr) {
 
     // ── قبض كسر ──
     else if (type === 'scrap') {
-      (t.scrapItems || []).forEach(si => goldIn24 += _to24(si.weight, si.karat));
-      if (!(t.scrapItems?.length) && (t.weight || 0) > 0)
+      (t.scrapItems || []).forEach(si => {
+        goldIn24 += _to24(si.weight, si.karat);
+        scrapIn  += (parseFloat(si.weight) || 0);
+      });
+      if (!(t.scrapItems?.length) && (t.weight || 0) > 0) {
         goldIn24 += _to24(t.weight, t.karat || '21');
+        scrapIn  += (parseFloat(t.weight) || 0);
+      }
+    }
+
+    // ── مردود كسر (كسر خارج) ──
+    else if (type === 'scrap-return') {
+      (t.scrapItems || []).forEach(si => {
+        scrapOut += (parseFloat(si.weight) || 0);
+      });
+      if (!(t.scrapItems?.length) && (t.weight || 0) > 0) {
+        scrapOut += (parseFloat(t.weight) || 0);
+      }
     }
 
     // ── مردود عميل (ذهب يرجع + خصم أجور المرتجع من الربح) ──
@@ -17369,6 +17394,10 @@ function _dlgCalcDayMovement(dayStr) {
     buyAjr:   Math.round(buyAjr   * 100) / 100,
     expTotal: Math.round(expTotal  * 100) / 100,
     dayProfit,
+    scrapIn:  Math.round(scrapIn  * 1000) / 1000,
+    scrapOut: Math.round(scrapOut * 1000) / 1000,
+    sell18:   Math.round(sell18   * 1000) / 1000,
+    sell21:   Math.round(sell21   * 1000) / 1000,
   };
 }
 
@@ -17437,11 +17466,16 @@ function _dlgRender() {
   const periodGoldOut   = days.reduce((a,d) => a + d.goldOut24, 0);
   const periodProfit    = days.reduce((a,d) => a + d.dayProfit, 0);
   const periodInvCount  = days.reduce((a,d) => a + d.invCount,  0);
+  const periodScrapIn   = days.reduce((a,d) => a + (d.scrapIn  || 0), 0);
+  const periodScrapOut  = days.reduce((a,d) => a + (d.scrapOut || 0), 0);
+  const periodSell18    = days.reduce((a,d) => a + (d.sell18   || 0), 0);
+  const periodSell21    = days.reduce((a,d) => a + (d.sell21   || 0), 0);
 
   if (sumEl) {
     sumEl.innerHTML = `
     <div style="background:linear-gradient(135deg,var(--hd),#1a2035);border-radius:var(--ra);padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.08)">
       <div style="font-size:12px;font-weight:800;color:var(--g2);margin-bottom:10px">📊 ملخص الفترة — ${active.length} يوم نشط</div>
+      <!-- الصف الأول: نقد -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div style="background:rgba(34,199,122,.12);border:1px solid rgba(34,199,122,.25);border-radius:10px;padding:10px;text-align:center">
           <div style="font-size:10px;color:rgba(34,199,122,.8);font-weight:700;margin-bottom:3px">📥 إجمالي الدخل النقدي</div>
@@ -17453,6 +17487,9 @@ function _dlgRender() {
           <div style="font-size:18px;font-weight:900;color:#E55555">${fmt(Math.round(periodCashOut))}</div>
           <div style="font-size:9px;color:rgba(229,85,85,.6)">ريال</div>
         </div>
+      </div>
+      <!-- الصف الثاني: ذهب ع24 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div style="background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.25);border-radius:10px;padding:10px;text-align:center">
           <div style="font-size:10px;color:var(--g2);font-weight:700;margin-bottom:3px">🥇 ذهب داخل (ع24)</div>
           <div style="font-size:18px;font-weight:900;color:var(--g2)">${fmtG(Math.round(periodGoldIn*1000)/1000)}</div>
@@ -17464,14 +17501,30 @@ function _dlgRender() {
           <div style="font-size:9px;color:rgba(155,107,224,.6)">جرام</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-        <div style="background:rgba(80,144,224,.12);border:1px solid rgba(80,144,224,.25);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:9px;color:var(--in);font-weight:700;margin-bottom:2px">💰 صافي النقد</div>
-          <div style="font-size:14px;font-weight:900;color:${periodCashIn-periodCashOut>=0?'#22C77A':'#E55555'}">${fmt(Math.round(periodCashIn-periodCashOut))}</div>
+      <!-- الصف الثالث: كسر -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:rgba(34,211,238,.10);border:1px solid rgba(34,211,238,.25);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--teal);font-weight:700;margin-bottom:3px">♻️ كسر الداخل</div>
+          <div style="font-size:18px;font-weight:900;color:var(--teal)">${fmtG(Math.round(periodScrapIn*1000)/1000)}</div>
+          <div style="font-size:9px;color:rgba(34,211,238,.6)">جرام</div>
         </div>
-        <div style="background:rgba(240,144,48,.12);border:1px solid rgba(240,144,48,.25);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:9px;color:var(--io);font-weight:700;margin-bottom:2px">📈 صافي الأرباح</div>
-          <div style="font-size:14px;font-weight:900;color:${periodProfit>=0?'#22C77A':'#E55555'}">${fmt(Math.round(periodProfit))}</div>
+        <div style="background:rgba(245,147,64,.10);border:1px solid rgba(245,147,64,.25);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--io);font-weight:700;margin-bottom:3px">♻️ كسر الخارج</div>
+          <div style="font-size:18px;font-weight:900;color:var(--io)">${fmtG(Math.round(periodScrapOut*1000)/1000)}</div>
+          <div style="font-size:9px;color:rgba(245,147,64,.6)">جرام</div>
+        </div>
+      </div>
+      <!-- الصف الرابع: مبيعات 18 / مبيعات 21 / الفواتير -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:rgba(93,168,245,.12);border:1px solid rgba(93,168,245,.25);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:var(--in);font-weight:700;margin-bottom:2px">🏷️ مبيعات 18</div>
+          <div style="font-size:14px;font-weight:900;color:var(--in)">${fmtG(Math.round(periodSell18*1000)/1000)}</div>
+          <div style="font-size:8px;color:rgba(93,168,245,.55)">جرام ع18</div>
+        </div>
+        <div style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.25);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:var(--g1);font-weight:700;margin-bottom:2px">🏷️ مبيعات 21</div>
+          <div style="font-size:14px;font-weight:900;color:var(--g1)">${fmtG(Math.round(periodSell21*1000)/1000)}</div>
+          <div style="font-size:8px;color:rgba(212,168,67,.55)">جرام ع21</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px;text-align:center">
           <div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700;margin-bottom:2px">🧾 الفواتير</div>
@@ -17597,7 +17650,7 @@ function _dlgRender() {
         </div>
 
         <!-- ختامي + ربح + مصروف -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
           <div style="background:linear-gradient(135deg,var(--c3),rgba(200,150,30,.05));border:1px solid var(--b2);border-radius:8px;padding:8px;text-align:center">
             <div style="font-size:9px;color:var(--tx2);font-weight:700;margin-bottom:2px">🏦 رصيد ختامي</div>
             <div style="font-size:12px;font-weight:900;color:${d.runCash>=0?'var(--ok)':'var(--no)'}">
@@ -17612,6 +17665,26 @@ function _dlgRender() {
           <div style="background:rgba(229,85,85,.06);border:1px solid var(--no-bd);border-radius:8px;padding:8px;text-align:center">
             <div style="font-size:9px;color:var(--no);font-weight:700;margin-bottom:2px">💸 مصروفات</div>
             <div style="font-size:13px;font-weight:900;color:var(--no)">${fmt(d.expTotal)}</div>
+          </div>
+        </div>
+
+        <!-- كسر الداخل / كسر الخارج / مبيعات 18 / مبيعات 21 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--teal);font-weight:700;margin-bottom:2px">♻️ كسر الداخل</div>
+            <div style="font-size:12px;font-weight:900;color:var(--teal)">${fmtG(d.scrapIn||0)} ج</div>
+          </div>
+          <div style="background:rgba(245,147,64,.07);border:1px solid rgba(245,147,64,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--io);font-weight:700;margin-bottom:2px">♻️ كسر الخارج</div>
+            <div style="font-size:12px;font-weight:900;color:var(--io)">${fmtG(d.scrapOut||0)} ج</div>
+          </div>
+          <div style="background:rgba(93,168,245,.07);border:1px solid rgba(93,168,245,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--in);font-weight:700;margin-bottom:2px">🏷️ مبيعات 18</div>
+            <div style="font-size:12px;font-weight:900;color:var(--in)">${fmtG(d.sell18||0)} ج</div>
+          </div>
+          <div style="background:rgba(212,168,67,.07);border:1px solid rgba(212,168,67,.20);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--g1);font-weight:700;margin-bottom:2px">🏷️ مبيعات 21</div>
+            <div style="font-size:12px;font-weight:900;color:var(--g1)">${fmtG(d.sell21||0)} ج</div>
           </div>
         </div>
 
@@ -17633,8 +17706,11 @@ window._dlgSetRange = function(days) {
   if (!toEl || !fromEl) return;
   const today = new Date();
   toEl.value = today.toISOString().split('T')[0];
-  if (days === 0) {
-    // هذا الشهر: من أول الشهر حتى اليوم
+  if (days === -1) {
+    // هذا اليوم فقط
+    fromEl.value = today.toISOString().split('T')[0];
+  } else if (days === 0) {
+    // هذا الشهر: من أول الشهر حتى اليوم (محتفظ به)
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     fromEl.value = firstDay.toISOString().split('T')[0];
   } else if (days === 7) {
