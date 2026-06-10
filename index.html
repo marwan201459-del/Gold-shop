@@ -17248,7 +17248,9 @@ function _dlgSetRange(days) {
 // لا تُعدِّل أي بيانات — قراءة فقط من S.transactions
 function _dlgCalcDayMovement(dayStr) {
   // dayStr = 'YYYY-MM-DD'
-  const txs = (window.S && window.S.transactions) ? window.S.transactions : [];
+  // ── الوصول الصحيح لـ S: let S ≠ window.S ──
+  const _S = (typeof S !== 'undefined' && S) ? S : (window.S || {});
+  const txs = Array.isArray(_S.transactions) ? _S.transactions : [];
 
   // فلترة معاملات هذا اليوم
   const dayTxs = txs.filter(t => {
@@ -17417,8 +17419,10 @@ function _dlgCalcPeriod(fromStr, toStr) {
 // ── حساب الرصيد الختامي التراكمي عبر الأيام ──
 // يُضاف الرصيد الافتتاحي مرة واحدة ثم يتراكم يومياً
 function _dlgCalcRunningBalance(dayMovements) {
-  const obSafes = (window.S?.openingBalance?.safes) || {};
-  const obBase  = (window.S?.safesBase) || {};
+  // ── الوصول الصحيح لـ S: let S ≠ window.S ──
+  const _S     = (typeof S !== 'undefined' && S) ? S : (window.S || {});
+  const obSafes = (_S.openingBalance?.safes) || {};
+  const obBase  = (_S.safesBase) || {};
   // الرصيد النقدي الابتدائي = safesBase.cash + openingBalance.safes.cash
   let runCash = (obBase.cash || 0) + (obSafes.cash || 0);
   // الرصيد الذهبي الابتدائي (عيار 24 مكافئ)
